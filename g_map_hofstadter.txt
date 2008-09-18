@@ -1,0 +1,168 @@
+# URL: http://www.enseignement.polytechnique.fr/informatique/concours/xups/mapleprogs/g.map
+
+# ************************************************************************
+#
+# Titre : La fonction G de Hofstadter
+# Auteur : Daniel Krob - LIAFA (CNRS)& X 
+# Date : 7/11/2001
+# 
+# Résumé : La fonction G apparait dans le (superbe) livre "Gödel, Escher, 
+# Bach" de Douglas Hofstadter. Elle est définie de manière récursive par 
+# la très simple relation de récurrence :
+# 
+# - G(0) = 0
+# - pour tout n >= 1, G(n) = n - G(G(n-1))
+# 
+# Les fonctions qui suivent ont pour but de montrer que la fonction G
+# (bien qu'apparemment naive) est en fait loin d'être triviale. Elles
+# illustrent en effet le fait que G(n) se caractérise de la manière
+# suivante :
+#
+# - désignons d'abord par F_n le n-ième terme de la suite de Fibonacci 
+#   définie par F_0 = 0, F_1 = 1 et F_n = F_{n-1} + F_{n-2} pour n >= 2,
+#
+# - tout entier naturel n admet alors une unique décomposition (dite
+#   décomposition en base Fibonacci) sous la forme suivante :
+#
+#              n = F_{i_1} + F_{i_2} + ... + F_{i_k}
+#
+#
+#   avec i_1 >> i_2 >> ... >> i_k >> 0 où i >> j signifie que i >= j+2
+#
+#  - la valeur de G(n) est alors 
+# 
+#          G(n) = F_{i_1-1} + F_{i_2-1} + .... + F_{i_k-1}
+# 
+#    où (i_1,i_2,...,i_k) désigne la décomposition en base Fibonacci 
+#    de n telle que l'on vient de la définir ci-dessus.
+#
+# ************************************************************************
+
+G := proc(n::integer)::integer;
+if n = 0 then 0;
+         else n-G(G(n-1));
+fi;
+end:
+
+ListeG := proc(a::array(integer),n::integer)
+local i::integer;
+for i to n do
+    a[i] := G(i);
+od;
+end:
+
+AfficheListeG := proc(n::integer)
+local a::array(integer);
+a := array(1..n);
+ListeG(a,n);
+print(a);
+end:
+
+PlusGrandFibo := proc(f::array(integer),n::integer)::integer;
+local i::integer;
+f[0] := 0;
+f[1] := 1;
+i := 1;
+while (f[i] <= n) do
+    i := i+1;
+    f[i] := f[i-1]+f[i-2];
+od;
+i-1;
+end:
+
+PlusGrand := proc(f::array(integer),m::integer,n::integer)::integer;
+local g::integer,i::integer;
+g := 0;
+i := 0;
+while (g <= m) do
+    i := i+1;
+    g := f[i];
+od;
+i-1;
+end:
+
+InitZero := proc(a::array(integer),n::integer)
+local i::integer;
+for i to n do
+    a[i] := 0;
+od;
+end:
+
+# Cette procédure calcule la décomposition
+# en base Fibonacci de l'entier n
+
+DecompFibo := proc(a::array(integer),f::array(integer),n::integer)
+local i::integer,m::integer;
+a[1] := PlusGrandFibo(f,n);
+m := n-f[a[1]];
+i := 2;
+while (not (m = 0)) do
+    a[i] := PlusGrand(f,m,n+1);
+    m := m-f[a[i]];
+    i := i+1;
+od;  
+end:
+
+AfficheDecompFibo := proc(n::integer)
+local a::array(integer),f::array(integer);
+a := array(1..n+1);
+f := array(0..n+2);
+InitZero(a,n+1):
+if not (n = 0) then 
+    DecompFibo(a,f,n);
+fi;   
+print(a);
+end:
+
+MoinsUn := proc(d::array(integer),n::integer)
+local i::integer;
+for i to n+1 do
+    if not (d[i] = 0) then
+        d[i] := d[i]-1;
+    fi;
+od;
+end:
+
+Somme := proc(f::array(integer),d::array(integer),n::integer)::integer;
+local i::integer,s::integer;
+s := 0;
+for i to n+1 do 
+    s := s+f[d[i]];
+od;
+s;
+end:
+
+GBis := proc(n::integer)::integer;
+local d::array(integer),f::array(integer);
+d := array(1..n+1);
+f := array(0..n+2);
+InitZero(d,n+1);
+DecompFibo(d,f,n);
+MoinsUn(d,n);
+Somme(f,d,n);
+end:
+
+ListeGBis := proc(a::array(integer),n::integer)
+local i::integer;
+for i to n do
+    a[i] := GBis(i);
+od;
+end:
+
+AfficheListeGBis := proc(n::integer)
+local a::array(integer);
+a := array(1..n);
+ListeGBis(a,n);
+print(a);
+end:
+
+# Exemples d'utilisation 
+
+print("Calcul de G via la définition récursive");
+AfficheListeG(25);
+print("Calcul de G via la décomposition en base Fibonnaci");
+AfficheListeGBis(25);
+print("Calcul de la décomposition en base Fibonnaci de 20");
+AfficheDecompFibo(20);
+
+
