@@ -47,7 +47,7 @@ destruct (IHN N) as [a Ha]; auto.
 destruct (IHN a) as [b Hb]; auto.
 exists ((S N) -b); auto.
 eapply G_n; eauto.
-assert (b <= N) by apply le_trans with a; auto.
+assert (b <= N) by (apply le_trans with a; auto).
 omega.
 Defined.
 
