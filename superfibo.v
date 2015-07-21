@@ -1,273 +1,534 @@
 
-Require Import Arith.
-Require Import Omega.
-Require Import Wf_nat.
-Require Import List.
+Require Import Arith Omega Wf_nat List Program Program.Wf.
+Set Implicit Arguments.
 
-(* Study of the functional equation  G (S n) + G (G n) = S n, with G 0 = 0 *)
+(* Study of the functional equation:
+   G (S n) + G (G n) = S n
+   G 0 = 0
+*)
 (* Link with Fibonacci. *)
+(* Source: Hofstadter's book: Goedel, Escher, Bach. *)
 
-Inductive G : nat -> nat -> Prop := 
-   | G_0 : G 0 0
-   | G_n : forall n a b c, G n a -> G a b -> S n = c+b -> G (S n) c.
+Inductive G : nat -> nat -> Prop :=
+| G0 : G 0 0
+| GS n a b c : G n a -> G a b -> S n = c+b -> G (S n) c.
 Hint Constructors G.
 
-Lemma one_gives_1 : G 1 1. 
+Lemma G1 : G 1 1.
 Proof.
-change (G 1 (1-0)).
-eapply G_n; eauto.
+eauto.
 Qed.
-Hint Resolve one_gives_1.
+Hint Resolve G1.
 
-Lemma first_bound : forall n a, G n a -> a <= n.
+Lemma GS_inv n a : G (S n) a ->
+ exists b c, G n b /\ G b c /\ S n = a + c.
 Proof.
-cut (forall N n a, n <= N -> G n a -> a <= n). firstorder.
-induction N.
-(* N=0 *)
-do 2 inversion_clear 1; subst; auto.
-(* N>0 *)
-inversion_clear 1; subst; auto.
-inversion_clear 1; omega.
+ inversion_clear 1 as [|? b c ? Hb Hc Hn].
+ exists b; exists c. auto.
 Qed.
-Hint Resolve first_bound.
 
-Definition g_spec : forall n, { a : nat | G n a }.
-Proof. 
-cut (forall N n, n <= N -> { a : nat | G n a }).
-intros H n; apply (H n); trivial. 
-induction N.
-destruct n.
-exists 0; auto.
-intros; elimtype False; inversion H.
-intros.
-destruct (le_lt_eq_dec _ _ H).
-apply IHN; auto with arith.
-subst; clear H.
-destruct (IHN N) as [a Ha]; auto.
-destruct (IHN a) as [b Hb]; auto.
-exists ((S N) -b); auto.
-eapply G_n; eauto.
-assert (b <= N) by (apply le_trans with a; auto).
-omega.
+Lemma G_le n a : G n a -> a <= n.
+Proof.
+revert a.
+induction n using lt_wf_rec.
+destruct n; inversion_clear 1; omega.
+Qed.
+Hint Resolve G_le.
+
+Lemma G_rec (P:nat->Set) :
+P 0 ->
+(forall n, P n -> (forall a, G n a -> P a) -> P (S n)) ->
+forall n, P n.
+Proof.
+intros P_0 P_S.
+induction n as [[|n] IH] using lt_wf_rec.
+- apply P_0.
+- apply P_S.
+  + apply IH. auto.
+  + intros. apply IH. auto with arith.
+Defined.
+
+Lemma G_fun n a a' : G n a -> G n a' -> a = a'.
+Proof.
+revert a a'.
+induction n as [|n IH IH'] using G_rec; intros a a' Ha Ha'.
+- inversion_clear Ha; inversion_clear Ha'; trivial.
+- destruct (GS_inv Ha) as (b & c & Hb & Hc & H).
+  destruct (GS_inv Ha') as (b' & c' & Hb' & Hc' & H').
+  replace b' with b in * by (apply IH; auto).
+  replace c' with c in * by (apply (IH' b); auto).
+  omega.
+Qed.
+
+Module G_via_Program.
+
+Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
+ match n with
+ | O => O
+ | S n => S n - g_spec (g_spec n)
+ end.
+Next Obligation.
+ destruct g_spec; simpl. apply le_n_S. now apply G_le.
+Defined.
+Next Obligation.
+ program_simpl.
+ destruct (g_spec n) as (a,Ha).
+ program_simpl.
+ destruct (g_spec a) as (b,Hb).
+ program_simpl.
+ eapply GS; eauto. change (S n = S n - b + b).
+ generalize (G_le Ha) (G_le Hb). omega.
 Defined.
 
 Definition g n := let (a,_) := g_spec n in a.
 
+Eval lazy in g 55. (* Compute is very slow... *)
+
+End G_via_Program.
+
+
+Definition g_spec n : { a : nat | G n a }.
+Proof.
+induction n as [|n IH IH'] using G_rec.
+- now exists 0.
+- destruct IH as (a,Ha).
+  destruct (IH' a Ha) as (b,Hb).
+  assert (a <= n) by now apply G_le.
+  assert (b <= a) by now apply G_le.
+  exists (S n - b).
+  eapply GS; eauto; omega.
+Defined.
+
+Definition g n := let (a,_) := (g_spec n) in a.
+
+Extraction Inline G_rec lt_wf_rec induction_ltof2.
+Recursive Extraction g. (* TODO: des let-in parasites *)
+Recursive Extraction G_via_Program.g. (* TODO: idem *)
+
+Compute g(0)::g(1)::g(2)::g(3)::g(4)::g(5)::g(6)::g(7)::g(8)::nil.
 (*
-Eval compute in g(0)::g(1)::g(2)::g(3)::g(4)::g(5)::g(6)::g(7)::nil.
-  = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: nil
+  = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: 5 :: nil
      : list nat
 *)
 
-Lemma g_correct_0 : forall n, G n (g n).
-Proof. 
-unfold g; intro n; destruct (g_spec n); auto.
-Qed.
-Hint Resolve g_correct_0.
-
-Lemma g_correct_1 : g 0 = 0.
+Lemma g_correct n : G n (g n).
 Proof.
-unfold g; destruct (g_spec 0).
-inversion g0; auto.
+unfold g; now destruct (g_spec n).
 Qed.
+Hint Resolve g_correct.
 
-Lemma unicity : forall n a b, G n a -> G n b -> a = b.
-Proof. 
-cut (forall N n a b, n <= N -> G n a -> G n b -> a = b).
-intros H n; intros; eapply (H n); eauto.
-induction N.
-do 3 inversion_clear 1; auto.
-inversion_clear 1; eauto.
-do 2 inversion_clear 1.
-assert (a0 = a1) by eauto.
-subst.
-assert (b0 = b1) by eauto.
-subst.
-omega.
-Qed.
-
-Lemma g_correct_2 : forall n,  S n = g (S n) + g (g n).
+Lemma g_complete n p : G n p <-> p = g n.
 Proof.
-unfold g; intros n.
-destruct (g_spec (S n)) as [gSn HgSn].
-destruct (g_spec n) as [gn Hgn].
-destruct (g_spec gn) as [ggn Hggn]. 
-inversion_clear HgSn.
-rewrite (unicity _ _ _ Hgn H) in Hggn.
-rewrite (unicity _ _ _ Hggn H0); auto.
+split; intros H.
+- apply (G_fun H (g_correct n)).
+- subst. apply g_correct.
 Qed.
 
-Lemma g_unique : forall f,  f 0=0  -> (forall n, S n = f (S n)+f(f n)) -> 
+Lemma g_0 : g 0 = 0.
+Proof.
+reflexivity.
+Qed.
+
+Lemma g_eqn n : g (S n) + g (g n) = S n.
+Proof.
+unfold g.
+destruct (g_spec (S n)) as (a,Ha).
+destruct (g_spec n) as (b,Hb).
+destruct (g_spec b) as (c,Hc).
+destruct (GS_inv Ha) as (b' & c' & Hb' & Hc' & H).
+rewrite (G_fun Hb Hb') in *.
+rewrite (G_fun Hc Hc') in *. omega.
+Qed.
+
+Lemma g_S n : g (S n) = S n - g (g n).
+Proof.
+ generalize (g_eqn n); omega.
+Qed.
+
+Lemma g_unique f :
+  f 0 = 0  ->
+  (forall n, S n = f (S n)+f(f n)) ->
   forall n, f n = g n.
 Proof.
-intros f Hf1 Hf2.
-cut (forall N n, n<= N -> f n  = g n).
-intros H n; apply (H n); auto.
-induction N.
-inversion_clear 1.
-rewrite g_correct_1; auto.
-inversion_clear 1; auto.
-generalize (g_correct_2 N).
-generalize (Hf2 N).
-rewrite (IHN N); auto.
-rewrite (IHN (g N)); auto.
+intros f_0 f_S.
+induction n as [|n IH IH'] using G_rec.
+- now rewrite f_0, g_0.
+- specialize (f_S n).
+  rewrite IH in *.
+  rewrite (IH' (g n)) in * by auto.
+  generalize (g_eqn n). omega.
+Qed.
+
+Lemma g_step n : g (S n) = g n \/ g (S n) = S (g n).
+Proof.
+induction n as [|n IH IH'] using G_rec.
+- compute; auto.
+- rewrite (g_S n), (g_S (S n)).
+  destruct IH as [-> | ->]; [omega|].
+  destruct (IH' (g n)) as [-> | ->]; auto; omega.
+Qed.
+
+Lemma g_mono_S n : g n <= g (S n).
+Proof.
+ generalize (g_step n). omega.
+Qed.
+
+Lemma g_mono n m : n<=m -> g n <= g m.
+Proof.
+induction 1.
+- trivial.
+- transitivity (g m); auto using g_mono_S.
+Qed.
+
+(* NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
+
+Lemma g_lipschitz n m : g m - g n <= m - n.
+Proof.
+destruct (le_ge_dec n m) as [H|H].
+- induction H; try generalize (g_step m); omega.
+- generalize (g_mono H). omega.
+Qed.
+
+Lemma g_nonzero n : 0 < n -> 0 < g n.
+Proof.
+ unfold lt. intros. change 1 with (g 1). now apply g_mono.
+Qed.
+
+Lemma g_0_inv n : g n = 0 -> n = 0.
+Proof.
+destruct n; trivial.
+assert (0 < g (S n)) by (apply g_nonzero; auto with arith).
 omega.
 Qed.
 
-Lemma second_bound : forall n m a b, n <= m -> G n a -> G m b -> 
-   (a <= b /\ b - a <= m - n). 
+Lemma g_nz n : n <> 0 -> g n <> 0.
 Proof.
-cut (forall M n m a b, m <= M -> n <= m -> G n a -> G m b -> 
-   n <= m -> a <= b /\ b - a <= m - n).
-intros H n m; intros; apply (H m); auto.
-induction M.
-(* M=0 *)
-do 4 (inversion_clear 1; subst; auto).
-(* M>0 *)
-inversion_clear 1; subst; auto.
-intros _; intros.
-inversion_clear H0.
-destruct n as [|N].
-inversion_clear H; omega.
-inversion_clear H.
-destruct (IHM N M a1 a0); auto with arith.
-destruct (IHM a1 a0 b1 b0); auto with arith.
-omega.
+intros H. contradict H. now apply g_0_inv.
 Qed.
 
-Lemma third_bound : forall n a, 1<=n ->  G n a -> 1<= a.
-Proof. 
- intros; destruct (second_bound 1 n 1 a); auto.
-Qed. 
-
-Lemma only_0_gives_0 : forall n, G n 0 -> n = 0.
+Lemma g_fix n : g n = n <-> n <= 1.
 Proof.
-destruct n; auto.
-intros; assert (1<=0).
- apply third_bound with (S n); auto with arith.
-inversion H0.
+split.
+- destruct n; auto.
+  assert (H := g_eqn n).
+  intros Eq; rewrite Eq in H; clear Eq.
+  assert (H' : g (g n) = 0) by omega.
+  do 2 apply g_0_inv in H'. now subst.
+- inversion_clear 1 as [|? H0]; auto.
+  inversion_clear H0; auto.
 Qed.
 
-Lemma only_0_1_are_fixpoints : forall n m, G n m -> n = m -> n <= 1.
+Lemma g_le n : g n <= n.
 Proof.
-destruct n; auto.
-inversion_clear 1; intros.
-assert (b=0) by omega.
-subst.
-rewrite (only_0_gives_0 a H1) in H0.
-rewrite (only_0_gives_0 n H0); auto.
+ apply G_le; auto.
 Qed.
 
-Lemma fourth_bound : forall n a, 1<n -> G n a -> a<n.
+Lemma g_lt n : 1<n -> g n < n.
 Proof.
-intros.
-generalize (first_bound _ _ H0) (only_0_1_are_fixpoints _ _ H0); omega.
+intros H.
+destruct (le_lt_or_eq _ _ (g_le n)); trivial.
+rewrite g_fix in *. omega.
 Qed.
-Hint Resolve fourth_bound.
+Hint Resolve g_lt.
 
-(* Study of the reverse problem: G(x) = a for some a. *)
+(* Two special formulations for [g_step] *)
 
-Lemma max_two_solutions : forall a n m, n<m -> 
- G n a -> G m a -> m = S n /\ m = a + g a.
+Lemma g_next n a : g n = a -> g (S n) <> a <-> g (S n) = S a.
 Proof.
-intros.
-destruct m as [|m].
-inversion H.
-destruct n as [|n]. 
-inversion H0; subst.
-generalize (only_0_gives_0 _ H1); omega.
-inversion H0; inversion H1; subst; auto.
-destruct (second_bound n m a0 a1); auto; try omega.
-destruct (second_bound n (S n) a0 a); auto; try omega.
-destruct (second_bound m (S m) a1 a); auto; try omega.
-destruct (second_bound a0 a1 b b0); auto; try omega.
-assert (a=a1) by omega.
-subst a1.
-rewrite (unicity a (g a) b0); auto.
-omega.
+ generalize (g_step n). omega.
 Qed.
 
-Lemma same_equation_when_one_solution : forall a n, G n a -> 
-  (forall m, G m a -> m = n) -> n = a + g a.
+Lemma g_prev n a : n<>0 -> g n = a ->
+ g (n-1) <> a <-> g (n-1) = a - 1.
 Proof.
-intros.
-generalize (g_correct_0 (S n)).
-inversion 1; subst.
-rewrite (unicity n a0 a) in H4; auto; clear H3.
-rewrite (unicity a b (g a)) in H5; auto; clear H4.
-destruct (second_bound n (S n) a (g (S n))); auto; try omega.
-assert (g (S n) = a -> S n = n).
- intros A; apply (H0 (S n)); rewrite <- A; auto.
-omega.
+ intros H Ha.
+ assert (Ha' := g_nz H).
+ generalize (g_step (n-1)). replace (S (n-1)) with n by omega.
+ omega.
 Qed.
 
+(* Study of the reverse problem: g(x) = a for some a. *)
+
+Lemma max_two_antecedents a n m :
+  g n = a -> g m = a -> n<m -> m = S n.
+Proof.
+intros Hn Hm H.
+destruct m as [|m]; [inversion H|].
+destruct n as [|n].
+- compute in Hn; subst. now apply g_0_inv in Hm.
+- generalize
+   (g_eqn n) (g_eqn m) (g_step n) (g_step m)
+   (g_lipschitz (g n) (g m)).
+  omega.
+Qed.
 
 (* G is an onto map *)
 
-Lemma g_onto : forall a, { n : nat | G n a }.
-Proof. 
-induction a. 
-exists 0; auto.
-destruct IHa.
-destruct (second_bound x (S x) a (g (S x))); auto; try omega.
-destruct (eq_nat_dec (S a) (g (S x))).
-exists (S x); rewrite e; auto.
-assert (g (S x) = a) by omega.
-clear n H0 H.
-destruct (second_bound (S x) (S (S x)) a (g (S (S x)))); auto; try omega.
-rewrite <- H1; auto.
-destruct (eq_nat_dec (S a) (g (S (S x)))).
-exists (S (S x)); rewrite e; auto.
-elimtype False.
-assert (g (S (S x)) = a) by omega.
-destruct (max_two_solutions a x (S (S x))); auto.
-rewrite <- H2; auto.
-omega.
+Lemma g_onto a : exists n, g n = a.
+Proof.
+induction a.
+- exists 0; trivial.
+- destruct IHa as (n,Ha).
+  destruct (g_step n); [ | exists (S n); omega].
+  destruct (g_step (S n)); [ | exists (S (S n)); omega].
+  exfalso.
+  generalize (@max_two_antecedents a n (S (S n))). omega.
 Qed.
 
-Lemma another_G_equation: forall a b, G a b -> G (a+b) a.
-Proof.
-intros.
-rewrite (unicity a b (g a)); auto.
-destruct (g_onto a).
-destruct x.
-inversion g0.
-subst.
-inversion H; auto.
-destruct (eq_nat_dec (g (S (S x))) a).
-destruct (max_two_solutions a (S x) (S (S x))); auto.
-rewrite <- e; auto.
-rewrite H1 in e.
-pattern a at 3; rewrite <- e; auto.
-destruct (eq_nat_dec (g x) a).
-destruct (max_two_solutions a x (S x)); auto.
-rewrite <- e; auto.
-rewrite H1 in g0; auto.
-rewrite <- (@same_equation_when_one_solution a (S x)); auto.
-intros.
-destruct (lt_eq_lt_dec m (S x)) as [[H1|H1]|H1]; auto.
-destruct (max_two_solutions a m (S x)); auto.
-inversion H2; subst.
-rewrite (unicity m a (g m)) in n0; intuition.
-destruct (max_two_solutions a (S x) m); auto.
-rewrite <- H2 in n.
-rewrite (unicity m a (g m)) in n; intuition.
-Qed. 
+(* g can be related to a infinite tree where
+    - nodes are labeled via a breadth-first traversal
+    - g give the label of the father node.
 
-Fixpoint fib (n:nat) : nat := match n with 
+6 7  8
+ 4   5
+   3
+   2
+   1
+
+ In this tree, a node is unary if the node label has exactly
+ one antecedent, and the node is binary otherwise.
+*)
+
+Definition Unary a := forall n m, g n = a -> g m = a -> n = m.
+Definition Binary a := ~ Unary a.
+
+Definition rchild n := n + g n. (* rightmost son, always there *)
+Definition lchild n := n + g n - 1. (* left son, if there's one *)
+
+Lemma rightmost_child_carac a n : g n = a ->
+ g (S n) = S a <-> n = rchild a.
+Proof.
+ intros Hn.
+ assert (H' := g_eqn n).
+ rewrite Hn in H'.
+ unfold rchild; omega.
+Qed.
+
+(* We could now provide explicitely one child for each node *)
+
+Lemma g_onto_eqn a : g (rchild a) = a.
+Proof.
+destruct (g_onto a) as (n,Hn).
+destruct (g_step n) as [H|H].
+- unfold rchild.
+  rewrite <- Hn. rewrite <- H at 1 3. f_equal. apply g_eqn.
+- rewrite Hn in H.
+  rewrite rightmost_child_carac in H; trivial. congruence.
+Qed.
+
+(* This provides easily a first relationship between g and
+   Fibonacci numbers *)
+
+Fixpoint fib (n:nat) : nat := match n with
   | 0 => 1
-  | 1 => 1 
+  | 1 => 1
   | S ((S n) as p) => fib p + fib n
  end.
 
-Lemma g_fib : forall n, g (fib (S n)) = fib n.
+Lemma g_fib n : g (fib (S n)) = fib n.
 Proof.
 induction n.
-simpl; auto.
-assert (G (fib (S n) + fib n) (fib (S n))).
- apply another_G_equation.
- rewrite <- IHn; auto.
-rewrite (unicity (fib (S n) + fib n) (fib (S n)) (g (fib (S (S n))))); auto.
+- reflexivity.
+- change (fib (S (S n))) with (fib (S n) + fib n).
+  rewrite <- IHn.
+  apply g_onto_eqn.
 Qed.
 
- 
+(* Let's study now the shape of the G tree.
+   First, we prove various characterisation of Unary/Binary *)
+
+Lemma children a n : g n = a ->
+  n = rchild a \/ n = lchild a.
+Proof.
+intros Hn.
+destruct (g_step n) as [H|H].
+- right.
+  destruct (g_step (S n)) as [H'|H'].
+  + exfalso.
+    generalize (@max_two_antecedents a n (S (S n))). omega.
+  + rewrite rightmost_child_carac in H'; trivial.
+    rewrite H, Hn in H'. unfold lchild, rchild in *; omega.
+- rewrite <- (@rightmost_child_carac a n); omega.
+Qed.
+
+Lemma g_lchild a :
+ g (lchild a) = a - 1 \/ g (lchild a) = a.
+Proof.
+ destruct (le_gt_dec a 0).
+  + replace a with 0 by omega. compute. auto.
+  + assert (0 < rchild a) by (unfold rchild; generalize (@g_nonzero a); omega).
+    destruct (g_step (lchild a)) as [H'|H'];
+    replace (S (lchild a)) with (rchild a) in * by
+      (unfold lchild, rchild in *; omega);
+    rewrite g_onto_eqn in *; omega.
+Qed.
+
+Lemma unary_carac1 a :
+ Unary a <-> forall n, g n = a -> n = rchild a.
+Proof.
+split; intros H.
+- intros n Hn. apply H; trivial. apply g_onto_eqn.
+- intros n m Hn Hm. apply H in Hn. apply H in Hm. omega.
+Qed.
+
+Lemma unary_carac2 a :
+ Unary a <-> g (lchild a) = a - 1.
+Proof.
+rewrite unary_carac1.
+split; intros H.
+- destruct (g_lchild a); trivial.
+  assert (lchild a = rchild a) by (apply H; omega).
+  unfold rchild, lchild in *; omega.
+- intros n Hn.
+  destruct (children _ Hn) as [H'|H']; trivial.
+  rewrite <- H' in H.
+  replace a with 0 in * by omega. exact H'.
+Qed.
+
+Lemma binary_carac1 a :
+ Binary a <-> a<>0 /\ forall n, (g n = a <-> n = rchild a \/ n = lchild a).
+Proof.
+unfold Binary; rewrite unary_carac2.
+split.
+- intros H.
+  assert (a<>0). { contradict H; now subst. }
+  split; trivial.
+  destruct (g_lchild a) as [H'|H']; [intros; omega|].
+  clear H.
+  split.
+  + apply children.
+  + destruct 1; subst n. apply g_onto_eqn. auto.
+- intros (Ha,H) H'.
+  assert (g (lchild a) = a). { apply H; now right. }
+  omega.
+Qed.
+
+Lemma binary_carac2 a :
+ Binary a <-> (a<>0 /\ g (lchild a) = a).
+Proof.
+unfold Binary; rewrite unary_carac2.
+split.
+- intros H.
+  assert (a<>0). { contradict H; now subst. }
+  split; trivial.
+  destruct (g_lchild a); omega.
+- omega.
+Qed.
+
+Lemma unary_or_binary n : Unary n \/ Binary n.
+Proof.
+ destruct (eq_nat_dec n 0).
+ - left. subst. apply unary_carac2. reflexivity.
+ - destruct (eq_nat_dec (g (lchild n)) n).
+   + right. now apply binary_carac2.
+   + left. apply unary_carac2. apply g_prev; auto. omega.
+     apply g_onto_eqn.
+Qed.
+
+Lemma unary_xor_binary n : Unary n -> Binary n -> False.
+Proof.
+ intuition.
+Qed.
+
+(* Now we state the arity of node children *)
+
+Lemma leftmost_son_is_binary n p :
+  g p = n -> g (p-1) <> n -> Binary p.
+Proof.
+ intros Hp Hp'.
+ assert (Hp0 : p<>0). { intros Eq. rewrite Eq in *. auto. }
+ assert (Hn0 := g_nz Hp0).
+ rewrite g_prev in Hp'; auto.
+ destruct (g_lchild p) as [Hq1|Hq1]; [|apply binary_carac2; auto].
+ assert (Hq := g_onto_eqn p).
+ change (lchild p) with (rchild p - 1) in *.
+ set (q:=rchild p) in *.
+ assert (q<>0) by (unfold q, rchild; omega).
+ clearbody q.
+ assert (Eq := g_eqn (q-1)).
+ replace (S (q-1)) with q in Eq by omega.
+ assert (Eq' := g_eqn q).
+ rewrite Hq1,Hp' in Eq.
+ rewrite Hq,Hp in Eq'.
+ assert (Hq' : g (S q) = p) by omega.
+ intro U. specialize (U q (S q) Hq Hq'). omega.
+Qed.
+
+Lemma unary_rchild_is_binary n : n<>0 ->
+  Unary n -> Binary (rchild n).
+Proof.
+ intros H U. apply (@leftmost_son_is_binary n).
+ - apply g_onto_eqn.
+ - rewrite unary_carac2 in U. unfold lchild, rchild in *; omega.
+Qed.
+
+Lemma binary_lchild_is_binary n :
+  Binary n -> Binary (lchild n).
+Proof.
+ rewrite binary_carac2. intros (B0,B1).
+ apply (@leftmost_son_is_binary n); trivial.
+ intros Eq.
+ generalize (@max_two_antecedents n _ _ Eq (g_onto_eqn n)).
+ assert (H := g_nz B0).
+ unfold lchild, rchild in *. omega.
+Qed.
+
+Lemma binary_rchild_is_unary n :
+  Binary n -> Unary (rchild n).
+Proof.
+ rewrite binary_carac2. intros (B0,B1).
+ assert (Hp := g_onto_eqn n).
+ assert (Hq := g_onto_eqn (lchild n)).
+ set (p:=lchild n) in *.
+ assert (g (S (rchild p)) = S p). { apply rightmost_child_carac; auto. }
+ apply unary_carac2.
+ change (g (lchild (rchild n)) = p).
+ unfold lchild. rewrite Hp.
+ replace (rchild n) with (S p) by (unfold p, rchild, lchild; omega).
+ replace (S p + n -1) with (p + n) by omega.
+ rewrite <- B1. apply g_onto_eqn.
+Qed.
+
+(* Hence the shape of the G tree is repetition of this pattern:
+
+        q
+        |
+    p   p'
+    |   |
+    --n--
+      |
+
+ where n,p,q are binary nodes and p'=p+1=n+g(n) is unary.
+ Fractal aspect : at p and q, full copies of G-tree occur
+ (apart from special nodes 1 2 3).
+*)
+
+(* Another relation (used when flipping G left<->right) *)
+
+Lemma g_alt_eqn n : g n + g (g (S n) - 1) = n.
+Proof.
+ destruct (eq_nat_dec n 0) as [Hn|Hn].
+ - now subst.
+ - assert (Hn' := g_nz Hn).
+   case (g_step n) as [H|H].
+   + (* n left of a binary node *)
+     rewrite H.
+     generalize (g_eqn (n-1)).
+     case (g_step (n - 1));
+     replace (S (n - 1)) with n by omega.
+     * generalize (@max_two_antecedents (g n) (n-1) (S n)). omega.
+     * intros. replace (g n - 1) with (g (n-1)) by omega. omega.
+   + (* n is rightmost child *)
+     generalize (g_eqn n). rewrite H. simpl. rewrite <- minus_n_O.
+     omega.
+Qed.
+
+(* TODO:
+
+- prove the effect of g on Fibonacci decomposition of numbers
+
+- prove that g(n) = ceil((n+1)/phi) = ceil(tau*(n+1))
+  where phi = (1+sqrt(5))/2
+        tau = 1/phi = phi-1 = (sqrt(5)-1)/2
+
+*)

@@ -4,30 +4,32 @@ Require Import Omega.
 Require Import Wf_nat.
 Require Import List.
 
-(* Study of the functional equation  
-  G (G (S n)) + G (n-1) = n  for n>3
+(* G-Flip : cf quizz by Hofstadter: mirror of G tree *)
+
+(* Study of the functional equation
+  G (G n) + G (n-1) = n  for n>3
   G 0 = 0
-  G 1 = G 2 = 1 
+  G 1 = G 2 = 1
   G 3 = 2
 *)
 (* Link with Fibonacci. *)
 
-Inductive H : nat -> nat -> Prop := 
+Inductive H : nat -> nat -> Prop :=
    H_0 : H 0 0
  | H_1 : H 1 1
- | H_2 : H 2 1 
+ | H_2 : H 2 1
  | H_3 : H 3 2
  | H_4 : H 4 3
  | H_n1 : forall n a, 5<=n -> H (n-2) a -> H (n-1) a -> H n (S a)
- | H_n2 : forall n a b c, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b -> 
+ | H_n2 : forall n a b c, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
                                    H b c -> H (S b) c -> H n (S b)
- | H_n3 : forall n a b c d, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b -> 
+ | H_n3 : forall n a b c d, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
                H b c -> H (S b) d -> c <> d -> H n b.
 Hint Constructors H.
 
-Definition h_aux : 
+Definition h_aux :
  forall N, forall n, n<N -> { k : nat | H n k /\ k <= n /\ (1<n -> k < n) }.
-(*Proof.
+Proof.
 induction N.
 intros.
 elimtype False; inversion H0.
@@ -43,7 +45,7 @@ destruct n.
 exists 1; auto.
 destruct n.
 exists 2; auto.
-destruct n. 
+destruct n.
 exists 3; auto.
 elimtype False; omega.
 destruct (h (n-2)) as (x,(Hx,(Hx',Hx''))); [omega|].
@@ -67,8 +69,6 @@ repeat split; eauto.
 omega.
 omega.
 Qed.
-*)
-Admitted.
 
 Definition h_spec : forall n, { k : nat | H n k }.
 Proof.
@@ -84,33 +84,33 @@ Proof.
 intros; unfold h; destruct (h_spec n); auto.
 Qed.
 
-Lemma h_0 : h 0 = 0. 
-Proof. 
+Lemma h_0 : h 0 = 0.
+Proof.
 generalize (h_prop 0); inversion 1; auto; try omega.
 Qed.
 
-Lemma h_1 : h 1 = 1. 
-Proof. 
+Lemma h_1 : h 1 = 1.
+Proof.
 generalize (h_prop 1); inversion 1; auto; try omega.
 Qed.
 
-Lemma h_2 : h 2 = 1. 
-Proof. 
+Lemma h_2 : h 2 = 1.
+Proof.
 generalize (h_prop 2); inversion 1; auto; try omega.
 Qed.
 
-Lemma h_3 : h 3 = 2. 
-Proof. 
+Lemma h_3 : h 3 = 2.
+Proof.
 generalize (h_prop 3); inversion 1; auto; try omega.
 Qed.
 
-Lemma h_4 : h 4 = 3. 
-Proof. 
+Lemma h_4 : h 4 = 3.
+Proof.
 generalize (h_prop 4); inversion 1; auto; try omega.
 Qed.
 
-Lemma h_5 : h 5 = 3. 
-Proof. 
+Lemma h_5 : h 5 = 3.
+Proof.
 generalize (h_prop 5); inversion 1; auto; try omega; subst; simpl in *.
 inversion H3; try omega.
 inversion H4; try omega; subst; simpl in *.
@@ -151,7 +151,7 @@ intros.
 inversion H0; try omega; generalize (IHN _ _ H4); omega.
 Qed.
 
-Lemma H_unique : forall n k k', H n k -> H n k' -> k = k'. 
+Lemma H_unique : forall n k k', H n k -> H n k' -> k = k'.
 Proof.
 cut (forall N, forall n k k', H n k -> H n k' -> n < N -> k = k').
 intros.
@@ -200,11 +200,10 @@ cut (H n x \/ H n (pred x)).
  destruct n.
  inversion_clear h0; omega.
  omega.
-inversion h0; simpl; auto; 
+ inversion h0; simpl; auto;
  replace (S n - 1) with n in H2; auto; omega.
 Qed.
 
-(*
 Lemma h_step2 : forall n, h (1+n) = h n -> h (2+n) = 1+h (1+n).
 Proof.
 simpl.
@@ -233,10 +232,9 @@ rewrite <- (H_unique _ _ _ h0 H1) in H3; auto.
 rewrite (H_unique _ _ _ h1 H2) in H3; auto.
 elim H3; auto.
 Qed.
-*)
 
-Lemma h_implem_g_aux : forall N, 
-       (forall n, 3<n -> n<=N -> h (h n) + h (pred n) = n) 
+Lemma h_implem_g_aux : forall N,
+       (forall n, 3<n -> n<=N -> h (h n) + h (pred n) = n)
    /\ (N>2 -> h N = h (pred N) -> h (S (h N)) = S (h (h N))).
 Proof.
 induction N.
@@ -333,13 +331,13 @@ elim H9; auto.
 Qed.
 
 Lemma h_implem_g : forall n, 3<n -> h (h n) + h (pred n) = n.
-Proof. 
+Proof.
 intros.
 destruct (h_implem_g_aux n); auto.
 Qed.
 
-Definition G_spec (g:nat->nat) := 
-  (g 0 = 0 /\ g 1 = 1 /\ g 2 = 1 /\ g 3 = 2) /\ 
+Definition G_spec (g:nat->nat) :=
+  (g 0 = 0 /\ g 1 = 1 /\ g 2 = 1 /\ g 3 = 2) /\
   (forall n, 3<n -> g (g n) + g (pred n) = n).
 
 Lemma G_ineg : forall g, G_spec g -> forall n, 1<n -> 0<g n<n.
@@ -389,9 +387,9 @@ Qed.
 (*
 Lemma G_ineg2 : forall g, G_spec g -> forall n m, n<=m -> g n <= g m /\ g m-g n<=m-n.
 
-NON!!! une fonction vérifiant G n'est pas forcément monotone. 
+NON!!! une fonction vérifiant G n'est pas forcément monotone.
 
-Par exemple: 
+Par exemple:
 g0=0
 g1=1
 g2=1
@@ -407,10 +405,10 @@ g11=4
 g12=10
 etc, etc...
 
-Par contre, si l'on suppose en plus g monotone, alors g = h. 
+Par contre, si l'on suppose en plus g monotone, alors g = h.
 *)
 
-Lemma loc_mon_glob_mon : forall g, (forall n, g n <= g (S n)) -> 
+Lemma loc_mon_glob_mon : forall g, (forall n, g n <= g (S n)) ->
  (forall n m, n <= m -> g n <= g m).
 Proof.
 intros g Mon.
@@ -418,15 +416,15 @@ cut (forall N n m, N+n=m -> g n <= g m).
 intros.
 apply (H0 (m-n)); omega.
 induction N.
-intros; simpl in *; subst; auto. 
+intros; simpl in *; subst; auto.
 intros.
 apply le_trans with (g (S n)); auto.
 apply IHN; omega.
 Qed.
 
 
-Lemma G_ineg2 : forall g, G_spec g -> 
-  (forall n, g n<=g (S n)) -> 
+Lemma G_ineg2 : forall g, G_spec g ->
+  (forall n, g n<=g (S n)) ->
   forall n m, n <= m -> g m-g n<=m-n.
 Proof.
 intros g Hg Mon.
@@ -441,7 +439,7 @@ destruct (le_lt_dec n 3).
 destruct (le_lt_dec m 3).
  do 4 (destruct n; [ do 4 (destruct m; try omega) |]); omega.
 assert (g 4 = 3).
- assert (g (g 4) = 2) by  generalize (Hg2 4); simpl; omega.
+ assert (g (g 4) = 2) by (generalize (Hg2 4); simpl; omega).
  generalize (G_ineg _ Hg 4).
  destruct (g 4); try omega.
  destruct n0; try omega.
@@ -460,9 +458,9 @@ generalize (loc_mon_glob_mon _ Mon (g (S n)) (g (S m))).
 omega.
 Qed.
 
-Lemma G_unique : forall g1 g2, G_spec g1 -> G_spec g2 -> 
-  (forall n, g1 n <= g1 (S n)) -> 
-  (forall n, g2 n <= g2 (S n)) -> 
+Lemma G_unique : forall g1 g2, G_spec g1 -> G_spec g2 ->
+  (forall n, g1 n <= g1 (S n)) ->
+  (forall n, g2 n <= g2 (S n)) ->
   forall n, g1 n = g2 n.
 Proof.
 intros g1 g2 Hg1 Hg2 Mon1 Mon2.
@@ -496,13 +494,13 @@ destruct (lt_eq_lt_dec x1 x2) as [[E|E]|E]; auto; elimtype False.
 assert (g1 (pred n) = x1).
  rewrite <- H0 in H3; try omega.
 clear H3 H4.
-assert (g1 (g1 (S n)) = S (g1 (g1 n))). 
+assert (g1 (g1 (S n)) = S (g1 (g1 n))).
  generalize (Hg12 (S n)); simpl.
  unfold x1 in *; omega.
 assert (g1 (S n) = S (g1 n)).
  generalize (G_ineg2 _ Hg1 Mon1 (g1 n) (g1 (S n)) (Mon1 n)).
  generalize (G_ineg2 _ Hg1 Mon1 n (S n)).
- omega. 
+ omega.
 assert (S (g1 n) <= x2).
  unfold x2,x1 in *; omega.
 generalize (loc_mon_glob_mon _ Mon1 _ _ H6).
@@ -516,13 +514,13 @@ unfold x2 in *; generalize (G_ineg _ Hg2 n); omega.
 assert (g2 (pred n) = x2).
  rewrite <- H0 in H3; try omega.
 clear H3 H4.
-assert (g2 (g2 (S n)) = S (g2 (g2 n))). 
+assert (g2 (g2 (S n)) = S (g2 (g2 n))).
  generalize (Hg22 (S n)); simpl.
  unfold x2 in *; omega.
 assert (g2 (S n) = S (g2 n)).
  generalize (G_ineg2 _ Hg2 Mon2 (g2 n) (g2 (S n)) (Mon2 n)).
  generalize (G_ineg2 _ Hg2 Mon2 n (S n)).
- omega. 
+ omega.
 assert (S (g2 n) <= x1).
  unfold x2,x1 in *; omega.
 generalize (loc_mon_glob_mon _ Mon2 _ _ H6).
@@ -534,12 +532,12 @@ omega.
 unfold x1 in *; generalize (G_ineg _ Hg1 n); omega.
 Qed.
 
-(* another caracterization for h: we transform its algorithm into an equation: 
-  
+(* another caracterization for h: we transform its algorithm into an equation:
+
 h(0) = 0
-h(1) = 1 
+h(1) = 1
 h(2) = 1
-h(3) = 2 
+h(3) = 2
 h(4) = 3
 for n>=4, h(n+1) = h(n) + 1 - (h(n)-h(n-1))*(h(h(n)+1)-h(h(n)))
 
