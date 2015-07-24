@@ -14,17 +14,24 @@ Require Import List.
 *)
 (* Link with Fibonacci. *)
 
+
+(* First, a "positive" version of this equation:
+   - if H(n-2)=H(n-1) then H(n)=H(n-1)+1
+   - if H(n-2)<>H(n-1) but HH(n-1)=H(H(n-1)+1) then H(n)=H(n)+1
+   - otherwise H(n)=H(n-1)
+   We'll prove later the equivalence with the previous G. *)
+
 Inductive H : nat -> nat -> Prop :=
    H_0 : H 0 0
  | H_1 : H 1 1
  | H_2 : H 2 1
  | H_3 : H 3 2
  | H_4 : H 4 3
- | H_n1 : forall n a, 5<=n -> H (n-2) a -> H (n-1) a -> H n (S a)
- | H_n2 : forall n a b c, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
-                                   H b c -> H (S b) c -> H n (S b)
- | H_n3 : forall n a b c d, 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
-               H b c -> H (S b) d -> c <> d -> H n b.
+ | H_n1 n a : 5<=n -> H (n-2) a -> H (n-1) a -> H n (S a)
+ | H_n2 n a b c : 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
+                      H b c -> H (S b) c -> H n (S b)
+ | H_n3 n a b c d : 5<=n -> H (n-2) a -> H (n-1) b -> a<>b ->
+                      H b c -> H (S b) d -> c <> d -> H n b.
 Hint Constructors H.
 
 Definition h_aux :
