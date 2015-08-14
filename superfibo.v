@@ -1,5 +1,5 @@
 
-Require Import Arith Omega Wf_nat List Program Program.Wf.
+Require Import Arith Omega Wf_nat List.
 Set Implicit Arguments.
 
 (* Study of the functional equation:
@@ -60,33 +60,6 @@ induction n as [|n IH IH'] using G_rec; intros a a' Ha Ha'.
   omega.
 Qed.
 
-Module G_via_Program.
-
-Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
- match n with
- | O => O
- | S n => S n - g_spec (g_spec n)
- end.
-Next Obligation.
- destruct g_spec; simpl. apply le_n_S. now apply G_le.
-Defined.
-Next Obligation.
- program_simpl.
- destruct (g_spec n) as (a,Ha).
- program_simpl.
- destruct (g_spec a) as (b,Hb).
- program_simpl.
- eapply GS; eauto. change (S n = S n - b + b).
- generalize (G_le Ha) (G_le Hb). omega.
-Defined.
-
-Definition g n := let (a,_) := g_spec n in a.
-
-Eval lazy in g 55. (* Compute is very slow... *)
-
-End G_via_Program.
-
-
 Definition g_spec n : { a : nat | G n a }.
 Proof.
 induction n as [|n IH IH'] using G_rec.
@@ -101,11 +74,14 @@ Defined.
 
 Definition g n := let (a,_) := (g_spec n) in a.
 
+(*
 Extraction Inline G_rec lt_wf_rec induction_ltof2.
 Recursive Extraction g. (* TODO: des let-in parasites *)
-Recursive Extraction G_via_Program.g. (* TODO: idem *)
+*)
 
+(*
 Compute g(0)::g(1)::g(2)::g(3)::g(4)::g(5)::g(6)::g(7)::g(8)::nil.
+*)
 (*
   = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: 5 :: nil
      : list nat
@@ -265,6 +241,9 @@ Proof.
    + omega.
 Qed.
 
+
+(*==============================================================*)
+
 (* Study of the reverse problem: g(x) = a for some a. *)
 
 Lemma max_two_antecedents a n m :
@@ -328,7 +307,7 @@ Proof.
  unfold rchild; omega.
 Qed.
 
-(* We could now provide explicitely one child for each node *)
+(* We could now exhibit one child at least for each node *)
 
 Lemma g_onto_eqn a : g (rchild a) = a.
 Proof.
@@ -381,6 +360,9 @@ Proof.
    unfold rchild.
    now rewrite !g_fib.
 Qed.
+
+
+(*==============================================================*)
 
 (* Let's study now the shape of the G tree.
    First, we prove various characterisation of Unary/Binary *)
@@ -537,7 +519,7 @@ Proof.
  rewrite <- B1. apply g_onto_eqn.
 Qed.
 
-(* Hence the shape of the G tree is repetition of this pattern:
+(* Hence the shape of the G tree is a repetition of this pattern:
 
         q
         |
@@ -571,6 +553,9 @@ Proof.
      omega.
 Qed.
 
+
+(*==============================================================*)
+
 (* Depth in the G-tree *)
 
 Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).
@@ -581,7 +566,9 @@ Proof.
  induction n as [|n IH]; intros; trivial. simpl. now rewrite <- IH.
 Qed.
 
-Compute (g^^3) 13.
+(* Compute (g^^3) 13. *)
+
+Require Import Program Program.Wf.
 
 Program Fixpoint depth (n:nat) { measure n } : nat :=
  match n with
@@ -593,7 +580,7 @@ Next Obligation.
  apply g_lt. omega.
 Qed.
 
-Compute depth 13.
+(* Compute depth 13. *)
 
 Lemma depth_SS n : depth (S (S n)) = S (depth (g (S (S n)))).
 Proof.
@@ -661,10 +648,27 @@ Proof.
    + now apply g_mono.
 Qed.
 
+Lemma fib_nz k : 1 <= fib k.
+Proof.
+ induction k as [|[|k] IH]; trivial. rewrite fib_eqn. omega.
+Qed.
+
+Lemma fib_lt_S k : k<>0 -> fib k < fib (S k).
+Proof.
+ intro. rewrite fib_eqn' by trivial.
+ generalize (fib_nz (k-1)). omega.
+Qed.
+
+Lemma fib_lt k k' : 0 < k -> k < k' -> fib k < fib k'.
+Proof.
+ induction 2.
+ - apply fib_lt_S; omega.
+ - transitivity (fib m); trivial. apply fib_lt_S; omega.
+Qed.
+
 Lemma fib_mono_S k : fib k <= fib (S k).
 Proof.
- induction k as [[|[|k]] IH] using lt_wf_rec; auto with arith.
- simpl. omega.
+ destruct k. trivial. rewrite fib_eqn. omega.
 Qed.
 
 Lemma fib_mono k k' : k <= k' -> fib k <= fib k'.
@@ -673,9 +677,18 @@ Proof.
  transitivity (fib m); trivial. apply fib_mono_S.
 Qed.
 
-Lemma fib_nz k : 1 <= fib k.
+Lemma fib_inj k k' : 0<k -> 0<k' -> fib k = fib k' -> k = k'.
 Proof.
- change 1 with (fib 0). apply fib_mono; auto with arith.
+ intros.
+ destruct (lt_eq_lt_dec k k') as [[LT|EQ]|LT]; trivial;
+  apply fib_lt in LT; omega.
+Qed.
+
+Lemma fib_lt_inv k k' : fib k < fib k' -> k < k'.
+Proof.
+ intros.
+ destruct (le_lt_dec k' k) as [LE|LT]; trivial.
+ apply fib_mono in LE. omega.
 Qed.
 
 Lemma depth_fib k : depth (fib k) = k-1.
@@ -740,9 +753,456 @@ Qed.
 *)
 
 
-(* TODO:
+(*==============================================================*)
 
-- prove the effect of g on Fibonacci decomposition of numbers
+(** Decomposition of natural numbers as sums of Fibonacci numbers :
+    Zeckendorf's theorem (actually discovered earlier by Lekkerkerker) *)
+
+Definition sumfib l := fold_right (fun n acc => fib n + acc) 0 l.
+
+Lemma sumfib_simpl a l :
+  sumfib (map S (a :: l)) = fib (S a) + sumfib (map S l).
+Proof.
+ reflexivity.
+Qed.
+
+Inductive FibDecomp : list nat -> Prop :=
+ | FD_nil : FibDecomp nil
+ | FD_one n : 1<=n -> FibDecomp (n::nil)
+ | FD_cons n m l :
+   n+2 <= m -> FibDecomp (n::l) -> FibDecomp (m::n::l).
+
+Lemma FibDecomp_nz l : FibDecomp l -> ~In 0 l.
+Proof.
+ induction 1; simpl in *; intuition.
+Qed.
+
+Lemma decomp_exists n : { l | sumfib l = n /\ FibDecomp l }.
+Proof.
+ induction n as [n IH] using lt_wf_rec.
+ destruct (eq_nat_dec n 0) as [EQ|NE].
+ - subst. exists (@nil nat). simpl; split; trivial. constructor.
+ - set (k := depth (S n)).
+   assert (Hk : k<>0). { unfold k; rewrite depth_0; omega. }
+   assert (Hf : fib k <= n < fib (S k)).
+   { destruct (depth_carac (S n) Hk). unfold k in *; omega. }
+   destruct (IH (n - fib k)) as (l,(EQ,FD)).
+   { generalize (fib_nz k); omega. }
+   destruct l as [|k' l]; simpl in EQ.
+   + exists (k::nil); simpl; split; try constructor; omega.
+   + exists (k::k'::l); simpl; split.
+     * omega.
+     * constructor; trivial.
+       rewrite fib_eqn' in Hf by trivial.
+       assert (k' < k-1); try omega.
+       { apply Nat.lt_nge. intro LE. apply fib_mono in LE. omega. }
+Qed.
+
+Lemma decomp_max k l : FibDecomp (k::l) -> sumfib (k::l) < fib (S k).
+Proof.
+ revert k.
+ induction l.
+ - inversion 1; subst. simpl sumfib. rewrite Nat.add_0_r.
+   apply fib_lt_S; omega.
+ - inversion 1; subst. simpl sumfib.
+   rewrite fib_eqn' by omega. apply Nat.add_lt_mono_l.
+   apply lt_le_trans with (fib (S a)).
+   + now apply IHl.
+   + apply fib_mono; omega.
+Qed.
+
+Lemma decomp_unique l l' :
+ FibDecomp l -> FibDecomp l' -> sumfib l = sumfib l' -> l = l'.
+Proof.
+ revert l'.
+ induction l as [|n l IH]; destruct l' as [|n' l'].
+ - trivial.
+ - intros _ _. simpl. generalize (fib_nz n'); omega.
+ - intros _ _. simpl. generalize (fib_nz n); omega.
+ - intros FD FD' EQ.
+   assert (n < S n').
+   { apply fib_lt_inv. simpl in EQ.
+     apply le_lt_trans with (fib n' + sumfib l'); [omega|].
+     now apply decomp_max. }
+   assert (n' < S n).
+   { apply fib_lt_inv. simpl in EQ.
+     apply le_lt_trans with (fib n + sumfib l); [omega|].
+     now apply decomp_max. }
+   replace n' with n in * by omega. clear H H0.
+   simpl in EQ.
+   f_equal.
+   apply IH; try omega.
+   inversion FD; subst; try constructor. now inversion FD.
+   inversion FD'; subst; try constructor. now inversion FD'.
+Qed.
+
+(* We now prove that g is simply "shifting" the Fibonacci
+   decomposition of a number.
+
+   For proving this result, we need to consider relaxed
+   decompositions where consecutive fibonacci terms may occur
+   (but still no (fib 0)). These decompositions aren't unique.
+   We also consider these decomposition in the reversed order,
+   simply for technical reasons.
+*)
+
+Inductive Increasing : list nat -> Prop :=
+ | LFD_nil : Increasing nil
+ | LFD_one n : Increasing (n::nil)
+ | LFD_cons n m l : m < n -> Increasing (n::l) -> Increasing (m::n::l).
+
+Lemma Increasing_alt x l :
+  Increasing (x::l) <-> (Increasing l /\ forall y, In y l -> x<y).
+Proof.
+ split.
+ - revert x. induction l as [|a l IH].
+   + intros x _. split. constructor. inversion 1.
+   + intros x. inversion 1; subst. split; trivial.
+     intros y [Hy|Hy]. now subst.
+     transitivity a; trivial.
+     now apply IH.
+ - intros (H,H').
+   destruct l; constructor; trivial. apply H'. now left.
+Qed.
+
+Lemma Increasing_trans x y l :
+  x < y -> Increasing (y::l) -> Increasing (x::l).
+Proof.
+ rewrite !Increasing_alt. intuition. transitivity y; auto.
+Qed.
+
+Lemma Increasing_map f l :
+  (forall x y, x < y -> f x < f y) ->
+  Increasing l -> Increasing (map f l).
+Proof.
+ induction 2; constructor; auto.
+Qed.
+
+Lemma Increasing_pred l :
+  ~In 0 l -> Increasing l -> Increasing (map pred l).
+Proof.
+ induction l as [|a l IH].
+ - simpl. trivial.
+ - simpl. rewrite !Increasing_alt. intros. intuition.
+   rewrite in_map_iff in H. destruct H as (x,(E,H)).
+   subst y.
+   assert (a < x) by auto. omega.
+Qed.
+
+Lemma Increasing_app x l l' :
+  Increasing l -> Increasing (x::l') ->
+  (forall y, In y l -> y <= x) -> Increasing (l++l').
+Proof.
+ induction l.
+ - intros _ Hl' H. simpl. now rewrite Increasing_alt in Hl'.
+ - intros Hl Hl' H. simpl. apply Increasing_alt. split.
+   + apply IHl; auto.
+     * now rewrite Increasing_alt in Hl.
+     * intros y Hy. apply H. now right.
+   + intros y Hy. rewrite in_app_iff in Hy.
+     destruct Hy as [Hy|Hy].
+     * rewrite Increasing_alt in Hl. now apply Hl.
+     * apply le_lt_trans with x. apply H. now left.
+       apply Increasing_alt in Hl'. now apply Hl'.
+Qed.
+
+Lemma Increasing_app_inv l l' :
+ Increasing (l++l') ->
+ Increasing l /\ Increasing l' /\
+ forall x x', In x l -> In x' l' -> x < x'.
+Proof.
+ induction l; simpl.
+ - split. constructor. intuition.
+ - rewrite !Increasing_alt. intuition.
+   subst. apply H1. rewrite in_app_iff. now right.
+Qed.
+
+Lemma FibDecomp_Decreasing l : FibDecomp l -> Increasing (rev l).
+Proof.
+ induction 1.
+ - constructor.
+ - constructor.
+ - simpl in *.
+   apply Increasing_app with n; auto.
+   constructor. omega. constructor.
+   intros y Hy. apply Increasing_app_inv in IHFibDecomp.
+   destruct IHFibDecomp as (_ & _ & Hln).
+   specialize (Hln y n).
+   rewrite in_app_iff in Hy. simpl in *. intuition.
+Qed.
+
+Lemma Increasing_seq n k : Increasing (seq n k).
+Proof.
+ revert n. induction k.
+ - constructor.
+ - intros. simpl. apply Increasing_alt. split; auto.
+   intros y Hy. rewrite in_seq in Hy. omega.
+Qed.
+
+Lemma seq_S n k : seq (S n) k = map S (seq n k).
+Proof.
+ revert n. induction k; intros; trivial. simpl. now f_equal.
+Qed.
+
+Lemma seq_end n k : seq n (S k) = seq n k ++ [n+k].
+Proof.
+ revert n. induction k; intros.
+ - simpl. f_equal. omega.
+ - remember (S k) as k' eqn:Hk.
+   simpl. rewrite IHk.
+   rewrite Hk.
+   simpl.
+   now rewrite Nat.add_succ_r.
+Qed.
+
+Lemma sumfib_app l l' : sumfib (l++l') = sumfib l + sumfib l'.
+Proof.
+ revert l'.
+ induction l; intros.
+ - trivial.
+ - simpl. rewrite IHl. omega.
+Qed.
+
+Lemma sumfib_rev l : sumfib (rev l) = sumfib l.
+Proof.
+ induction l.
+ - trivial.
+ - simpl. rewrite sumfib_app, IHl. simpl. omega.
+Qed.
+
+Lemma sumfib_eqn l :
+ ~In 0 l ->
+ sumfib l + sumfib (map pred l) = sumfib (map S l).
+Proof.
+ induction l; trivial. rewrite sumfib_simpl. simpl sumfib.
+ simpl In.
+ intros.
+ rewrite <- IHl; intuition.
+ destruct a. intuition. simpl. omega.
+Qed.
+
+Definition odds k := map (fun x => 2*x+1) (seq 0 k).
+
+Definition evens k := map (fun x => 2*x+2) (seq 0 k).
+
+Lemma sumfib_odds k :
+  sumfib (odds k) = pred (fib (2*k)).
+Proof.
+ induction k.
+ - trivial.
+ - unfold odds in *.
+   rewrite seq_end, map_app, sumfib_app.
+   rewrite IHk.
+   simpl map.
+   rewrite !Nat.mul_succ_r, !Nat.add_succ_r.
+   rewrite Nat.add_0_r.
+   change (sumfib [S (k+(k+0))]) with (fib (S (2*k)) + 0).
+   rewrite !Nat.add_0_r.
+   rewrite fib_eqn.
+   generalize (fib_nz (2*k)) (fib_nz (S (2*k))); omega.
+Qed.
+
+Lemma sumfib_evens k :
+  sumfib (evens k) = pred (fib (2*k+1)).
+Proof.
+ induction k.
+ - trivial.
+ - unfold evens in *.
+   rewrite seq_end, map_app, sumfib_app.
+   rewrite IHk.
+   simpl map.
+   simpl Nat.mul.
+   rewrite !Nat.add_succ_r, !Nat.add_0_r.
+   change (sumfib [S (S (k+k))]) with (fib (S (S (k+k))) + 0).
+   rewrite (fib_eqn (S (k+k))).
+   generalize (fib_nz (S (k+k))) (fib_nz (S (S (k+k)))); omega.
+Qed.
+
+Lemma S_odds k : map S (odds k) = evens k.
+Proof.
+ unfold odds, evens. rewrite map_map.
+ apply map_ext. intros; omega.
+Qed.
+
+Lemma odds_S k : odds (S k) = 1 :: map S (evens k).
+Proof.
+  unfold odds, evens. simpl seq. rewrite seq_S.
+  simpl. f_equal. rewrite !map_map.
+  apply map_ext. intros. omega.
+Qed.
+
+(* The main result about g applied to a Fibonacci decomposition. *)
+
+Lemma g_sumfib l :
+  Increasing l -> g (sumfib (List.map S l)) = sumfib l.
+Proof.
+ remember (sumfib (List.map S l)) as n eqn:E.
+ revert l E.
+ induction n  as [[|n] IH] using lt_wf_rec; intros [|k l] E.
+ - trivial.
+ - rewrite sumfib_simpl in E. generalize (fib_nz (S k)); omega.
+ - discriminate.
+ - rewrite sumfib_simpl in E.
+   intros Hl.
+   rewrite g_S.
+   case (eq_nat_dec k 0) as [Hk|Hk].
+   + (* k = 0 *)
+     subst k. simpl sumfib. injection E as E.
+     assert (Nz : ~In 0 l).
+     { intro H0. apply Increasing_alt in Hl.
+       assert (0<0) by now apply Hl. omega. }
+     assert (Hl' : l = map S (map pred l)).
+     { rewrite <- (map_id l) at 1.
+       rewrite map_map.
+       apply map_ext_in.
+       intros a Ha.
+       destruct (eq_nat_dec a 0); [ now subst | omega ]. }
+     assert (E1 : g n = sumfib l).
+     { apply IH; auto. inversion Hl; auto; constructor. }
+     assert (E2 : g (g n) = sumfib (map pred l)).
+     { apply IH; auto.
+       - generalize (g_le n); omega.
+       - now rewrite <- Hl'.
+       - apply Increasing_pred; trivial.
+         now apply Increasing_alt in Hl. }
+     rewrite E at 1. rewrite <- sumfib_eqn; trivial.
+     rewrite <- E2, <- E1. omega.
+   + (* k <> 0 *)
+     destruct (Nat.Even_or_Odd k) as [(k2,Hk2)|(k2,Hk2)].
+     * (* k even *)
+       set (l0 := odds k2).
+       assert (Hl0 : sumfib l0 = Nat.pred (fib k)).
+       { rewrite Hk2. unfold l0. apply sumfib_odds. }
+       assert (Hl0' : S (sumfib (map S l0)) = fib (S k)).
+       { unfold l0. rewrite S_odds, sumfib_evens.
+         rewrite Nat.add_1_r, <- Hk2.
+         generalize (fib_nz (S k)); omega. }
+       assert (Increasing (l0++l)).
+       { apply Increasing_app with k; auto.
+         - unfold l0, odds.
+           apply Increasing_map. intros; omega.
+           apply Increasing_seq.
+         - unfold l0, odds. intros y Hy.
+           rewrite in_map_iff in Hy. destruct Hy as (y0,(<-,Hy0)).
+           rewrite in_seq in Hy0. omega. }
+       assert (~In 0 (l0++l)).
+       { rewrite in_app_iff. intros [H0|H0].
+         - unfold l0, odds in H0.
+           rewrite in_map_iff in H0. destruct H0 as (x,(Hx,_)).
+           omega.
+         - apply Increasing_alt in Hl. apply Hl in H0. omega. }
+       assert (G : g n = sumfib (l0 ++ l)).
+       { apply IH; auto.
+         rewrite map_app, sumfib_app. omega. }
+       assert (Hl' : l0 ++ l = map S (map pred (l0++l))).
+       { rewrite <- (map_id (l0++l)) at 1.
+         rewrite map_map.
+         apply map_ext_in.
+         intros a Ha.
+         destruct (eq_nat_dec a 0); [ now subst | omega ]. }
+       assert (GG : g (g n) = sumfib (map pred (l0++l))).
+       { apply IH.
+         - generalize (g_le n); omega.
+         - now rewrite <- Hl'.
+         - apply Increasing_pred; auto. }
+       simpl sumfib.
+       rewrite GG, E, <- Hl0'.
+       simpl Nat.add.
+       rewrite <- sumfib_app, <- map_app.
+       transitivity (S (sumfib (l0++l))).
+       rewrite <- sumfib_eqn; auto; omega.
+       rewrite sumfib_app. rewrite <- Nat.add_succ_l. f_equal.
+       generalize (fib_nz k); omega.
+     * (* k odd *)
+       set (l0 := evens k2).
+       assert (Hl0 : sumfib l0 = Nat.pred (fib k)).
+       { rewrite Hk2. unfold l0. apply sumfib_evens. }
+       assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
+       { unfold l0.
+         rewrite Nat.add_succ_r.
+         change (sumfib (1 :: map S (evens k2)) + 1 = fib (S k)).
+         rewrite <- odds_S, sumfib_odds.
+         replace (2 * S k2) with (S k) by omega.
+         generalize (fib_nz (S k)); omega. }
+       assert (Increasing (l0++l)).
+       { apply Increasing_app with k; auto.
+         - unfold l0, odds.
+           apply Increasing_map. intros; omega.
+           apply Increasing_seq.
+         - unfold l0, evens. intros y Hy.
+           rewrite in_map_iff in Hy. destruct Hy as (y0,(<-,Hy0)).
+           rewrite in_seq in Hy0. omega. }
+       assert (IN : forall x, In x (l0++l) -> 1<x).
+       { intros x. rewrite in_app_iff. intros [Hx|Hx].
+         - unfold l0, evens in Hx.
+           rewrite in_map_iff in Hx. destruct Hx as (x0,(Hx0,_)).
+           omega.
+         - apply Increasing_alt in Hl. apply Hl in Hx. omega. }
+       assert (~In 0 (l0++l)).
+       { intro H0. generalize (IN 0 H0). omega. }
+       assert (G : g n = sumfib (0 :: l0 ++ l)).
+       { apply IH; auto.
+         - simpl. rewrite map_app, sumfib_app. omega.
+         - apply Increasing_alt. split; auto.
+           intros y Hy. destruct y; auto with arith. intuition. }
+       assert (Hl' : 1 :: l0 ++ l = map S (map pred (0 :: l0++l))).
+       { simpl. f_equal.
+         rewrite <- (map_id (l0++l)) at 1.
+         rewrite map_map.
+         apply map_ext_in.
+         intros a Ha.
+         destruct (eq_nat_dec a 0); [ now subst | omega ]. }
+       assert (GG : g (g n) = sumfib (map pred (0 :: l0++l))).
+       { apply IH.
+         - generalize (g_le n); omega.
+         - now rewrite <- Hl'.
+         - simpl. apply Increasing_alt. split.
+           + now apply Increasing_pred.
+           + intros y Hy.
+             rewrite in_map_iff in Hy. destruct Hy as (y0,(<-,Hy0)).
+             generalize (IN y0 Hy0). omega. }
+       simpl sumfib.
+       rewrite GG, E, <- Hl0'. simpl.
+       rewrite Nat.add_shuffle0, <- sumfib_app, <- map_app.
+       transitivity (S (sumfib (l0++l))).
+       rewrite <- sumfib_eqn; auto; omega.
+       rewrite sumfib_app. rewrite <- Nat.add_succ_l. f_equal.
+       generalize (fib_nz k); omega.
+Qed.
+
+(* The same result, restricted to canonical Fibonacci decompositions. *)
+
+Lemma g_fib_decomp l :
+  FibDecomp l -> g (sumfib l) = sumfib (map pred l).
+Proof.
+ intros FD.
+ set (l' := map pred (rev l)).
+ assert (Hl : l = map S (rev l')).
+ { unfold l'. rewrite <- map_rev, rev_involutive.
+   rewrite map_map.
+   rewrite <- (map_id l) at 1.
+   apply map_ext_in. intros.
+   destruct a; trivial. now elim (FibDecomp_nz FD). }
+ rewrite Hl.
+ rewrite !map_rev, !sumfib_rev.
+ rewrite g_sumfib.
+ - f_equal. rewrite map_map. simpl. symmetry. apply map_id.
+ - unfold l'. apply Increasing_pred.
+   + rewrite <- in_rev. now apply FibDecomp_nz.
+   + now apply FibDecomp_Decreasing.
+Qed.
+
+(* Beware! In the previous statement, (map pred l) might
+   not be a valid FibDecomp anymore, since 0 could appear.
+   In this case, 0 could be turned into a 1 (since fib 0 = fib 1),
+   and then we should saturate with Fibonacci equations
+   (fib 1 + fib 2 = fib 3, etc) to regain a canonical
+   decomposition (with no consecutive fib terms). *)
+
+
+(*==============================================================*)
+
+(* TODO:
 
 - prove that g(n) = ceil((n+1)/phi) = ceil(tau*(n+1))
   where phi = (1+sqrt(5))/2
@@ -750,427 +1210,4 @@ Qed.
 
 *)
 
-
-(* If we label the node from right to left, the effect
-   on node numbers is the flip function below: *)
-
-Definition flip n :=
-  if n <=? 1 then n else S (fib (S (S (depth n)))) - n.
-
-Lemma flip_depth n : depth (flip n) = depth n.
-Proof.
- unfold flip.
- case Nat.leb_spec; trivial.
- intros.
- assert (depth n <> 0) by (rewrite depth_0; omega).
- apply depth_carac; trivial.
- set (k := depth n) in *.
- assert (S (fib k) <= n <= fib (S k)) by now apply depth_carac.
- rewrite fib_eqn.
- omega.
-Qed.
-
-Lemma flip_eqn0 n : depth n <> 0 ->
- flip n = S (fib (S (S (depth n)))) - n.
-Proof.
- intros.
- rewrite depth_0 in *.
- unfold flip.
- case Nat.leb_spec; omega.
-Qed.
-
-Lemma flip_eqn k n : k<>0 -> 1 <= n <= fib (k-1) ->
- flip (fib k + n) = S (fib (S k)) - n.
-Proof.
- intros Hk Hn.
- unfold flip.
- case Nat.leb_spec.
- - generalize (fib_nz k); omega.
- - intros H.
-   replace (depth (fib k + n)) with k.
-   + rewrite fib_eqn. omega.
-   + symmetry. apply depth_carac; auto.
-     rewrite fib_eqn'; omega.
-Qed.
-
-(* Two special cases : leftmost and rightmost node at a given depth *)
-
-Lemma flip_Sfib k : k<>0 -> flip (S (fib k)) = fib (S k).
-Proof.
- intros H.
- rewrite <- Nat.add_1_r.
- rewrite flip_eqn; try omega.
- split; trivial. apply fib_nz.
-Qed.
-
-Lemma flip_fib k : k<>0 -> flip (fib (S k)) = S (fib k).
-Proof.
- intros H.
- rewrite fib_eqn'; auto.
- rewrite flip_eqn; auto.
- rewrite fib_eqn'; auto. omega.
- split; auto. apply fib_nz.
-Qed.
-
-(* flip is involutive (and hence a bijection) *)
-
-Lemma flip_flip n : flip (flip n) = n.
-Proof.
- unfold flip at 2.
- case Nat.leb_spec; trivial.
- - unfold flip.
-   case Nat.leb_spec; trivial. omega.
- - intros Hn.
-   set (k := depth n).
-   assert (k<>0).
-   { contradict Hn. subst. rewrite depth_0 in Hn. omega. }
-   assert (Hn' : S (fib k) <= n <= fib (S k)).
-   { apply depth_carac; auto. }
-   rewrite fib_eqn.
-   replace (S (fib (S k) + fib k) - n) with
-    (fib k + (S (fib (S k)) - n)) by omega.
-   rewrite flip_eqn; auto. omega.
-   split. omega. rewrite fib_eqn'; auto. omega.
-Qed.
-
-Lemma flip_eq n m : flip n = flip m <-> n = m.
-Proof.
- split; intros H.
- - rewrite <- (flip_flip n), <- (flip_flip m). now f_equal.
- - now subst.
-Qed.
-
-Lemma flip_swap n m : flip n = m <-> n = flip m.
-Proof.
- rewrite <- (flip_flip m) at 1. apply flip_eq.
-Qed.
-
-Lemma flip_low n : n <= 1 <-> flip n <= 1.
-Proof.
- split; intros.
- - assert (EQ : n = 0 \/ n = 1) by omega.
-   destruct EQ as [-> | ->]; compute; auto.
- - assert (EQ : flip n = 0 \/ flip n = 1) by omega.
-   rewrite !flip_swap in EQ. compute in EQ. omega.
-Qed.
-
-Lemma flip_high n : 1 < n <-> 1 < flip n.
-Proof.
- generalize (flip_low n). omega.
-Qed.
-
-(* flip and neighboors *)
-
-Lemma flip_S n : 1<n -> depth (S n) = depth n ->
-  flip (S n) = flip n - 1.
-Proof.
- intros Hn EQ.
- assert (depth n <> 0) by (rewrite depth_0; omega).
- rewrite !flip_eqn0, EQ; omega.
-Qed.
-
-Lemma flip_pred n : 1<n -> depth (n-1) = depth n ->
-  flip (n-1) = S (flip n).
-Proof.
- intros Hn EQ.
- assert (depth n <> 0) by (rewrite depth_0; omega).
- rewrite !flip_eqn0, EQ; try omega.
- assert (n <= fib (S (depth n))) by (apply depth_carac; auto).
- rewrite fib_eqn; omega.
-Qed.
-
-(* The flipped g' function, corresponding to the flipped G tree *)
-
-Definition g' n := flip (g (flip n)).
-
-Compute g'(0)::g'(1)::g'(2)::g'(3)::g'(4)::g'(5)::g'(6)::g'(7)::g'(8)::nil.
-
-Lemma g'_fib k : g' (fib (S k)) = fib k.
-Proof.
- destruct k.
- - now compute.
- - destruct k.
-   + now compute.
-   + unfold g'.
-     rewrite flip_fib; auto.
-     rewrite g_Sfib; auto.
-     rewrite flip_Sfib; auto.
-Qed.
-
-Lemma g'_Sfib k : k<>0 -> g' (S (fib (S k))) = S (fib k).
-Proof.
- intros Hk.
- unfold g'.
- rewrite flip_Sfib; auto.
- rewrite g_fib.
- rewrite flip_fib; auto.
-Qed.
-
-Lemma g'_step n : g' (S n) = g' n \/ g' (S n) = S (g' n).
-Proof.
- destruct (le_lt_dec n 1) as [LE|LT].
- - assert (EQ : n = 0 \/ n = 1) by omega.
-   destruct EQ as [-> | ->]; compute; auto.
- - set (k := depth n).
-   assert (k<>0) by (unfold k; rewrite depth_0; omega).
-   assert (S (fib k) <= n <= fib (S k)).
-   { apply depth_carac; auto. }
-   destruct (eq_nat_dec n (fib (S k))) as [EQ|NE].
-   + rewrite EQ. rewrite g'_Sfib, g'_fib; auto.
-   + assert (depth (S n) = k). { apply depth_carac; omega. }
-     assert (depth (flip (S n)) = k). { rewrite flip_depth; auto. }
-     assert (1 < flip n). { now apply (flip_high n). }
-     unfold g'.
-     rewrite flip_S in *; auto.
-     destruct (eq_nat_dec (g (flip n - 1)) (g (flip n))) as [EQ|NE'].
-     * left; f_equal; trivial.
-     * right.
-       rewrite g_prev in NE' by omega.
-       rewrite NE'.
-       apply flip_pred.
-       { unfold lt. change 2 with (g 3). apply g_mono.
-         assert (flip n <> 2).
-         { intros EQ. rewrite EQ in *. now compute in NE'. }
-         omega. }
-       { rewrite <- NE'. rewrite !g_depth. rewrite flip_depth.
-         unfold k in *; omega. }
-Qed.
-
-Lemma g'_mono_S n : g' n <= g' (S n).
-Proof.
- generalize (g'_step n). omega.
-Qed.
-
-Lemma g'_mono n m : n<=m -> g' n <= g' m.
-Proof.
-induction 1.
-- trivial.
-- transitivity (g' m); auto using g'_mono_S.
-Qed.
-
-Lemma g'_lipschitz n m : g' m - g' n <= m - n.
-Proof.
-destruct (le_ge_dec n m) as [H|H].
-- induction H; try generalize (g'_step m); omega.
-- generalize (g'_mono H). omega.
-Qed.
-
-Lemma g'_nonzero n : 0 < n -> 0 < g' n.
-Proof.
- unfold lt. intros. change 1 with (g' 1). now apply g'_mono.
-Qed.
-
-Lemma g'_0_inv n : g' n = 0 -> n = 0.
-Proof.
-destruct n; trivial.
-assert (0 < g' (S n)) by (apply g'_nonzero; auto with arith).
-omega.
-Qed.
-
-Lemma g'_nz n : n <> 0 -> g' n <> 0.
-Proof.
-intros H. contradict H. now apply g'_0_inv.
-Qed.
-
-Lemma g'_fix n : g' n = n <-> n <= 1.
-Proof.
- unfold g'.
- now rewrite flip_low, <- g_fix, flip_swap.
-Qed.
-
-Lemma g'_le n : g' n <= n.
-Proof.
- generalize (g'_lipschitz 0 n). change (g' 0) with 0. omega.
-Qed.
-
-Lemma g'_lt n : 1<n -> g' n < n.
-Proof.
-intros H.
-destruct (le_lt_or_eq _ _ (g'_le n)); trivial.
-rewrite g'_fix in *. omega.
-Qed.
-
-Lemma g'_onto a : exists n, g' n = a.
-Proof.
- unfold g'. destruct (g_onto (flip a)) as (x,H).
- exists (flip x). now rewrite flip_swap, flip_flip.
-Qed.
-
-Lemma g'_nonflat n : g' (S n) = g' n -> g' (S (S n)) = S (g' n).
-Proof.
- intros H.
- destruct (le_lt_dec n 1) as [Hn|Hn].
- - assert (EQ : n = 0 \/ n = 1) by omega.
-   destruct EQ as [-> | ->]; reflexivity.
- - destruct (g'_step (S n)) as [H'|H']; [|omega].
-   exfalso.
-   set (k := depth n).
-   assert (Hk : k<>0) by (unfold k; rewrite depth_0; omega).
-   assert (Hnk : S (fib k) <= n <= fib (S k)).
-   { apply depth_carac; auto. }
-   destruct (eq_nat_dec n (fib (S k))) as [EQ|NE].
-   + rewrite EQ in H. rewrite g'_fib, g'_Sfib in H; omega.
-   + destruct (eq_nat_dec (S n) (fib (S k))) as [EQ|NE'].
-     * rewrite EQ in H'. rewrite g'_fib, g'_Sfib in H'; omega.
-     * revert H'. rewrite H; clear H. unfold g'. rewrite flip_eq.
-       assert (depth (S n) = k). { apply depth_carac; omega. }
-       assert (depth (flip (S n)) = k). { rewrite flip_depth; auto. }
-       assert (depth (S (S n)) = k). { apply depth_carac; omega. }
-       assert (depth (flip (S (S n))) = k). { rewrite flip_depth; auto. }
-       rewrite flip_S by omega.
-       rewrite flip_S by (unfold k in H; omega).
-       assert (HH : forall m, 1<m -> g (m-1-1) <> g m).
-       { intros.
-         generalize (@max_two_antecedents (g m) (m-1-1) m).
-         omega. }
-       apply HH. now apply flip_high in Hn.
-Qed.
-
-Lemma g'_max_two_antecedents n m :
- g' n = g' m -> n < m -> m = S n.
-Proof.
- intros H LT.
- unfold lt in LT.
- assert (LE := g'_mono LT).
- rewrite <- H in LE.
- destruct (g'_step n) as [EQ|EQ]; [|omega].
- apply g'_nonflat in EQ.
- destruct (le_lt_dec m (S n)) as [LE'|LT']; [omega|].
- unfold lt in LT'. apply g'_mono in LT'. omega.
-Qed.
-
-Lemma g'_eqn n : 4 <= n -> g' (S (g' (n-1))) = S n - g' n.
-Proof.
- intros Hn.
- set (k := depth n).
- assert (3<=k).
- { unfold k. change 3 with (depth 4).
-   apply depth_mono; auto. }
- assert (LE : S (fib k) <= n <= fib (S k)).
- { apply depth_carac. omega. auto. }
- destruct (eq_nat_dec (S (fib k)) n) as [EQ|NE].
- - (* n = S (fib k) *)
-   rewrite <- EQ.
-   replace (S (fib k) - 1) with (fib k) by omega.
-   replace k with (S (k-1)) at 1 3 by omega.
-   rewrite g'_fib, g'_Sfib by omega.
-   replace (k-1) with (S (k-2)) by omega.
-   rewrite g'_Sfib by omega.
-   replace k with (S (S (k-2))) at 2 by omega.
-   rewrite fib_eqn. omega.
- - (* n > S (fib k) *)
-   assert (Hk : depth (n-1) = k).
-   { apply depth_carac; omega. }
-   assert (Hk' : depth (g' (n-1)) = k-1).
-   { now rewrite g'_depth, Hk. }
-   assert (LE' : S (fib (k-1)) <= g' (n-1) <= fib k).
-   { replace k with (S (k-1)) at 2 by omega.
-     apply depth_carac; auto. omega. }
-   destruct (eq_nat_dec (g' (n-1)) (fib k)) as [EQ|NE'].
-   + (* g'(n-1) = fib k *)
-     rewrite EQ.
-     replace k with (S (k-1)) by omega.
-     rewrite g'_Sfib by omega.
-     assert (EQ' : g' n = fib k).
-     { destruct (g'_step (n-1)) as [EQ'|EQ'];
-       replace (S (n-1)) with n in EQ'; try omega.
-       rewrite EQ in EQ'.
-       assert (H' : depth (g' n) = k) by (apply depth_carac; omega).
-       rewrite g'_depth in H'. unfold k in *. omega. }
-     rewrite EQ'.
-     assert (EQ'' : g' (n-1) = g' (fib (S k))) by now rewrite EQ, g'_fib.
-     apply g'_max_two_antecedents in EQ''; [|omega].
-     replace (S (n-1)) with n in EQ'' by omega.
-     rewrite <- EQ''.
-     rewrite fib_eqn'; omega.
-   + (* g'(n-1) <> fib k *)
-     assert (Hk'' : depth (S (g' (n-1))) = k-1).
-     { apply depth_carac. omega.
-       replace (S (k-1)) with k by omega.
-       omega. }
-     unfold g' at 1.
-     rewrite flip_eqn0;
-     rewrite g_depth, flip_depth, Hk''; [|omega].
-     replace (S (S (k-1-1))) with k by omega.
-     assert (LT : 1 < g' (n-1)).
-     { unfold lt. change 2 with (g' 3). apply g'_mono. omega. }
-     rewrite flip_S by omega.
-     unfold g' at 1. rewrite flip_flip.
-     rewrite flip_pred; try (unfold k in Hk; omega).
-     clear LT Hk'' NE' LE' Hk Hk'.
-     replace (g (g (S (flip n)) - 1)) with (flip n - g (flip n))
-     by (generalize (g_alt_eqn (flip n)); omega).
-     rewrite <- (flip_flip (g (flip n))).
-     fold (g' n).
-     rewrite !flip_eqn0 by (rewrite ?g'_depth; unfold k in H; omega).
-     rewrite g'_depth.
-     change (depth n) with k.
-     replace (S (k-1)) with k by omega.
-     rewrite fib_eqn.
-     assert (Hnk : depth (g' n) = k-1).
-     { rewrite g'_depth. unfold k. omega. }
-     apply depth_carac in Hnk; [|omega].
-     replace (S (k-1)) with k in Hnk by omega.
-     replace (fib (k-1)) with (fib (S k) - fib k) in Hnk;
-      [|rewrite fib_eqn'; omega].
-     set (FSK := fib (S k)) in *.
-     set (FK := fib k) in *.
-     replace (S (FSK+FK) -n - (S FSK - g' n))
-      with (FK + g' n - n) by omega.
-     omega.
-Qed.
-
-Lemma g'_eqn' n : 4 <= n -> g' (g' n) + g' (n-1) = n.
-Proof.
- intros.
- set (k := depth n).
- assert (Hk : 3<=k).
- { unfold k. change 3 with (depth 4).
-   apply depth_mono; auto. }
- assert (LE : S (fib k) <= n <= fib (S k)).
- { apply depth_carac. omega. auto. }
- unfold g'. rewrite flip_flip.
- rewrite flip_eqn0; rewrite !g_depth, flip_depth; [|unfold k in *; omega].
- fold k.
- replace (S (S (k-1-1))) with k by omega.
- destruct (eq_nat_dec n (S (fib k))) as [EQ|NE].
- - rewrite EQ.
-   replace (S (fib k) - 1) with (fib k) by omega.
-   rewrite flip_Sfib by omega.
-   replace k with (S (k-1)) by omega.
-   rewrite flip_fib by omega.
-   rewrite !g_fib.
-   replace (k-1) with (S (k-2)) at 3 by omega.
-   rewrite g_Sfib by omega.
-   rewrite flip_Sfib by omega.
-   replace (S (k-2)) with (k-1) by omega.
-   rewrite fib_eqn'; omega.
- - assert (Hk' : depth (n-1) = k).
-   { apply depth_carac; omega. }
-   rewrite (flip_eqn0 (g _)); rewrite g_depth, flip_depth, Hk';
-    [|omega].
-   replace (S (k-1)) with k by omega.
-   rewrite flip_pred by (unfold k in Hk'; omega).
-   rewrite g_S.
-   rewrite (flip_eqn0 n) at 2 by (unfold k in Hk; omega).
-   fold k.
-   assert (Hk'' : depth (g (g (flip n))) = k-2).
-   { rewrite !g_depth, flip_depth. unfold k; omega. }
-   apply depth_carac in Hk'' ; [|omega].
-   rewrite fib_eqn.
-   replace (S (k-2)) with (k-1) in * by omega.
-   assert (fib (k-1) <= fib k).
-   { apply fib_mono. omega. }
-   omega.
-Qed.
-
-(* TODO: study unary/binary nodes of g' *)
-
-(* TODO: montrer que g' est caractérisé par:
-   a)  g' (S n) = g' n -> g' (n+2) = S (g' (S n))
-   b)  g' (S n) = S (g' n) -> g' g' (S n) = g' (S (g' (S n)) ->
-       g' (n+2) = S (g' (S n))
-   c) sinon (g' (S n) = S (g' n) et g' (S (g' (S n))) = S' (g' g' (S n))
-      alors g' (n+2) = g' (S n)
-  Cf fichier superfibo2...
-*)
+(*==============================================================*)
