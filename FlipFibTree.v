@@ -1,6 +1,6 @@
 
 Require Import Arith Omega Wf_nat List Program Program.Wf.
-Require Import superfibo.
+Require Import FibTree.
 Set Implicit Arguments.
 
 (* Source: Hofstadter's book: Goedel, Escher, Bach. *)
@@ -311,7 +311,7 @@ Proof.
        rewrite flip_S by (unfold k in H; omega).
        assert (HH : forall m, 1<m -> g (m-1-1) <> g m).
        { intros.
-         generalize (@max_two_antecedents (g m) (m-1-1) m).
+         generalize (@g_max_two_antecedents (g m) (m-1-1) m).
          omega. }
        apply HH. now apply flip_high in Hn.
 Qed.
@@ -428,6 +428,19 @@ Proof.
    + generalize (@g'_lt n). omega.
    + generalize (@g'_lt (n-1)). omega.
 Qed.
+
+(*=============================================================*)
+
+(* g' and the shape of its tree *)
+
+(* - we already know that g' is onto, hence each node has
+     at least a child
+   - Cf g_max_two_antecedents : at most two children per node. *)
+
+
+
+
+
 
 (*=============================================================*)
 

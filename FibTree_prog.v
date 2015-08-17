@@ -1,5 +1,5 @@
 
-Require Import superfibo.
+Require Import FibTree.
 Require Import Arith Omega Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 

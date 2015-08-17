@@ -3,11 +3,35 @@ Require Import Arith Omega Wf_nat List.
 Set Implicit Arguments.
 
 (* Study of the functional equation:
-   G (S n) + G (G n) = S n
-   G 0 = 0
+    G (S n) + G (G n) = S n
+    G 0 = 0
+   Which is related with the Fibonacci sequence.
+   Source: Hofstadter's book: Goedel, Escher, Bach.
 *)
-(* Link with Fibonacci. *)
-(* Source: Hofstadter's book: Goedel, Escher, Bach. *)
+
+
+(* First, a definition of the Fibonacci sequence. *)
+
+Fixpoint fib (n:nat) : nat := match n with
+  | 0 => 1
+  | 1 => 1
+  | S ((S n) as p) => fib p + fib n
+ end.
+
+Lemma fib_eqn n : fib (S (S n)) = fib (S n) + fib n.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma fib_eqn' n : n<>0 -> fib (S n) = fib n + fib (n-1).
+Proof.
+ destruct n.
+ - now destruct 1.
+ - intros _. replace (S n - 1) with n by omega.
+   apply fib_eqn.
+Qed.
+
+(* Statement of the G equations as an inductive relation. *)
 
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
@@ -26,6 +50,9 @@ Proof.
  inversion_clear 1 as [|? b c ? Hb Hc Hn].
  exists b; exists c. auto.
 Qed.
+
+(* A first upper bound on G.
+   It is used for proving that G is a total function. *)
 
 Lemma G_le n a : G n a -> a <= n.
 Proof.
@@ -48,6 +75,8 @@ induction n as [[|n] IH] using lt_wf_rec.
   + intros. apply IH. auto with arith.
 Defined.
 
+(* The G relation is indeed functional: *)
+
 Lemma G_fun n a a' : G n a -> G n a' -> a = a'.
 Proof.
 revert a a'.
@@ -59,6 +88,8 @@ induction n as [|n IH IH'] using G_rec; intros a a' Ha Ha'.
   replace c' with c in * by (apply (IH' b); auto).
   omega.
 Qed.
+
+(* Moreover, G can be implemented (it's a total function) *)
 
 Definition g_spec n : { a : nat | G n a }.
 Proof.
@@ -105,6 +136,8 @@ Proof.
 reflexivity.
 Qed.
 
+(* The initial equation, formulated for g *)
+
 Lemma g_eqn n : g (S n) + g (g n) = S n.
 Proof.
 unfold g.
@@ -115,6 +148,8 @@ destruct (GS_inv Ha) as (b' & c' & Hb' & Hc' & H).
 rewrite (G_fun Hb Hb') in *.
 rewrite (G_fun Hc Hc') in *. omega.
 Qed.
+
+(* Same, with subtraction *)
 
 Lemma g_S n : g (S n) = S n - g (g n).
 Proof.
@@ -134,6 +169,8 @@ induction n as [|n IH IH'] using G_rec.
   rewrite (IH' (g n)) in * by auto.
   generalize (g_eqn n). omega.
 Qed.
+
+(* Properties of g *)
 
 Lemma g_step n : g (S n) = g n \/ g (S n) = S (g n).
 Proof.
@@ -246,7 +283,7 @@ Qed.
 
 (* Study of the reverse problem: g(x) = a for some a. *)
 
-Lemma max_two_antecedents a n m :
+Lemma g_max_two_antecedents a n m :
   g n = a -> g m = a -> n<m -> m = S n.
 Proof.
 intros Hn Hm H.
@@ -259,6 +296,17 @@ destruct n as [|n].
   omega.
 Qed.
 
+(* Another formulation of the same fact: *)
+
+Lemma g_inv n m :
+  g n = g m -> n = m \/ n = S m \/ m = S n.
+Proof.
+ intros.
+ destruct (lt_eq_lt_dec n m) as [[LT|EQ]|LT]; auto.
+ - destruct (@g_max_two_antecedents (g n) n m); auto.
+ - destruct (@g_max_two_antecedents (g m) m n); auto.
+Qed.
+
 (* G is an onto map *)
 
 Lemma g_onto a : exists n, g n = a.
@@ -269,7 +317,7 @@ induction a.
   destruct (g_step n); [ | exists (S n); omega].
   destruct (g_step (S n)); [ | exists (S (S n)); omega].
   exfalso.
-  generalize (@max_two_antecedents a n (S (S n))). omega.
+  generalize (@g_max_two_antecedents a n (S (S n))). omega.
 Qed.
 
 (* g can be related to a infinite tree where
@@ -288,12 +336,61 @@ Qed.
      |
      1
 
- In this tree, a node is unary if the node label has exactly
- one antecedent, and the node is binary otherwise.
+ We already proved that g is onto, hence each node has at least
+ one child. A node is said to be unary if the node label has
+ exactly one antecedent, and the node is said multary otherwise.
+ We first prove that a multary node is actually binary.
 *)
 
-Definition Unary a := forall n m, g n = a -> g m = a -> n = m.
-Definition Binary a := ~ Unary a.
+Definition Unary (g:nat->nat) a :=
+ forall n m, g n = a -> g m = a -> n = m.
+
+Definition Multary g a := ~ Unary g a.
+
+Definition Binary (g:nat->nat) a :=
+ exists n m,
+   g n = a /\ g m = a /\ n <> m /\
+   forall k, g k = a -> k = n \/ k = m.
+
+Lemma multary_binary a : Multary g a <-> Binary g a.
+Proof.
+ unfold Multary.
+ split.
+ - intros U.
+   assert (Ha : a<>0).
+   { contradict U.
+     subst.
+     intros u v Hu Hv. apply g_0_inv in Hu. apply g_0_inv in Hv.
+     now subst. }
+   destruct (g_onto a) as (n,Hn).
+   assert (Hn' : n<>0).
+   { contradict Ha. now subst. }
+   destruct (eq_nat_dec (g (S n)) a);
+   destruct (eq_nat_dec (g (n-1)) a).
+   + exfalso.
+     generalize (@g_max_two_antecedents a (n-1) (S n)). omega.
+   + exists n; exists (S n); repeat split; auto.
+     intros k Hk.
+     destruct (g_inv n k) as [H|[H|H]]; try omega.
+     subst n. simpl in *. rewrite Nat.sub_0_r in *. omega.
+   + exists n; exists (n-1); repeat split; auto; try omega.
+     intros k Hk.
+     destruct (g_inv n k) as [H|[H|H]]; try omega.
+     subst k. omega.
+   + elim U.
+     intros u v Hu Hv.
+     assert (u = n).
+     { destruct (g_inv n u) as [H|[H|H]]; subst;
+       simpl in *; rewrite ?Nat.sub_0_r in *; omega. }
+     assert (v = n).
+     { destruct (g_inv n v) as [H'|[H'|H']]; subst;
+       simpl in *; rewrite ?Nat.sub_0_r in *; omega. }
+     omega.
+ - intros (n & m & Hn & Hm & Hnm & H) U.
+   apply Hnm. now apply (U n m).
+Qed.
+
+(* We could even exhibit at least one child for each node *)
 
 Definition rchild n := n + g n. (* rightmost son, always there *)
 Definition lchild n := n + g n - 1. (* left son, if there's one *)
@@ -307,8 +404,6 @@ Proof.
  unfold rchild; omega.
 Qed.
 
-(* We could now exhibit one child at least for each node *)
-
 Lemma g_onto_eqn a : g (rchild a) = a.
 Proof.
 destruct (g_onto a) as (n,Hn).
@@ -321,25 +416,6 @@ Qed.
 
 (* This provides easily a first relationship between g and
    Fibonacci numbers *)
-
-Fixpoint fib (n:nat) : nat := match n with
-  | 0 => 1
-  | 1 => 1
-  | S ((S n) as p) => fib p + fib n
- end.
-
-Lemma fib_eqn n : fib (S (S n)) = fib (S n) + fib n.
-Proof.
- reflexivity.
-Qed.
-
-Lemma fib_eqn' n : n<>0 -> fib (S n) = fib n + fib (n-1).
-Proof.
- destruct n.
- - now destruct 1.
- - intros _. replace (S n - 1) with n by omega.
-   apply fib_eqn.
-Qed.
 
 Lemma g_fib n : g (fib (S n)) = fib n.
 Proof.
@@ -367,7 +443,7 @@ Qed.
 (* Let's study now the shape of the G tree.
    First, we prove various characterisation of Unary/Binary *)
 
-Lemma children a n : g n = a ->
+Lemma g_children a n : g n = a ->
   n = rchild a \/ n = lchild a.
 Proof.
 intros Hn.
@@ -375,7 +451,7 @@ destruct (g_step n) as [H|H].
 - right.
   destruct (g_step (S n)) as [H'|H'].
   + exfalso.
-    generalize (@max_two_antecedents a n (S (S n))). omega.
+    generalize (@g_max_two_antecedents a n (S (S n))). omega.
   + rewrite rightmost_child_carac in H'; trivial.
     rewrite H, Hn in H'. unfold lchild, rchild in *; omega.
 - rewrite <- (@rightmost_child_carac a n); omega.
@@ -394,7 +470,7 @@ Proof.
 Qed.
 
 Lemma unary_carac1 a :
- Unary a <-> forall n, g n = a -> n = rchild a.
+ Unary g a <-> forall n, g n = a -> n = rchild a.
 Proof.
 split; intros H.
 - intros n Hn. apply H; trivial. apply g_onto_eqn.
@@ -402,7 +478,7 @@ split; intros H.
 Qed.
 
 Lemma unary_carac2 a :
- Unary a <-> g (lchild a) = a - 1.
+ Unary g a <-> g (lchild a) = a - 1.
 Proof.
 rewrite unary_carac1.
 split; intros H.
@@ -410,15 +486,15 @@ split; intros H.
   assert (lchild a = rchild a) by (apply H; omega).
   unfold rchild, lchild in *; omega.
 - intros n Hn.
-  destruct (children _ Hn) as [H'|H']; trivial.
+  destruct (g_children _ Hn) as [H'|H']; trivial.
   rewrite <- H' in H.
   replace a with 0 in * by omega. exact H'.
 Qed.
 
 Lemma binary_carac1 a :
- Binary a <-> a<>0 /\ forall n, (g n = a <-> n = rchild a \/ n = lchild a).
+ Multary g a <-> a<>0 /\ forall n, (g n = a <-> n = rchild a \/ n = lchild a).
 Proof.
-unfold Binary; rewrite unary_carac2.
+unfold Multary; rewrite unary_carac2.
 split.
 - intros H.
   assert (a<>0). { contradict H; now subst. }
@@ -426,7 +502,7 @@ split.
   destruct (g_lchild a) as [H'|H']; [intros; omega|].
   clear H.
   split.
-  + apply children.
+  + apply g_children.
   + destruct 1; subst n. apply g_onto_eqn. auto.
 - intros (Ha,H) H'.
   assert (g (lchild a) = a). { apply H; now right. }
@@ -434,9 +510,9 @@ split.
 Qed.
 
 Lemma binary_carac2 a :
- Binary a <-> (a<>0 /\ g (lchild a) = a).
+ Multary g a <-> (a<>0 /\ g (lchild a) = a).
 Proof.
-unfold Binary; rewrite unary_carac2.
+unfold Multary; rewrite unary_carac2.
 split.
 - intros H.
   assert (a<>0). { contradict H; now subst. }
@@ -445,7 +521,7 @@ split.
 - omega.
 Qed.
 
-Lemma unary_or_binary n : Unary n \/ Binary n.
+Lemma unary_or_multary n : Unary g n \/ Multary g n.
 Proof.
  destruct (eq_nat_dec n 0).
  - left. subst. apply unary_carac2. reflexivity.
@@ -455,7 +531,7 @@ Proof.
      apply g_onto_eqn.
 Qed.
 
-Lemma unary_xor_binary n : Unary n -> Binary n -> False.
+Lemma unary_xor_multary n : Unary g n -> Multary g n -> False.
 Proof.
  intuition.
 Qed.
@@ -463,7 +539,7 @@ Qed.
 (* Now we state the arity of node children *)
 
 Lemma leftmost_son_is_binary n p :
-  g p = n -> g (p-1) <> n -> Binary p.
+  g p = n -> g (p-1) <> n -> Multary g p.
 Proof.
  intros Hp Hp'.
  assert (Hp0 : p<>0). { intros Eq. rewrite Eq in *. auto. }
@@ -485,7 +561,7 @@ Proof.
 Qed.
 
 Lemma unary_rchild_is_binary n : n<>0 ->
-  Unary n -> Binary (rchild n).
+  Unary g n -> Multary g (rchild n).
 Proof.
  intros H U. apply (@leftmost_son_is_binary n).
  - apply g_onto_eqn.
@@ -493,18 +569,18 @@ Proof.
 Qed.
 
 Lemma binary_lchild_is_binary n :
-  Binary n -> Binary (lchild n).
+  Multary g n -> Multary g (lchild n).
 Proof.
  rewrite binary_carac2. intros (B0,B1).
  apply (@leftmost_son_is_binary n); trivial.
  intros Eq.
- generalize (@max_two_antecedents n _ _ Eq (g_onto_eqn n)).
+ generalize (@g_max_two_antecedents n _ _ Eq (g_onto_eqn n)).
  assert (H := g_nz B0).
  unfold lchild, rchild in *. omega.
 Qed.
 
 Lemma binary_rchild_is_unary n :
-  Binary n -> Unary (rchild n).
+  Multary g n -> Unary g (rchild n).
 Proof.
  rewrite binary_carac2. intros (B0,B1).
  assert (Hp := g_onto_eqn n).
@@ -533,7 +609,10 @@ Qed.
  (apart from special initial nodes 1 2 3).
 *)
 
-(* Another relation (used when flipping G left<->right) *)
+
+(*==============================================================*)
+
+(* Another relation (used later when flipping G left<->right) *)
 
 Lemma g_alt_eqn n : g n + g (g (S n) - 1) = n.
 Proof.
@@ -546,7 +625,7 @@ Proof.
      generalize (g_eqn (n-1)).
      case (g_step (n - 1));
      replace (S (n - 1)) with n by omega.
-     * generalize (@max_two_antecedents (g n) (n-1) (S n)). omega.
+     * generalize (@g_max_two_antecedents (g n) (n-1) (S n)). omega.
      * intros. replace (g n - 1) with (g (n-1)) by omega. omega.
    + (* n is rightmost child *)
      generalize (g_eqn n). rewrite H. simpl. rewrite <- minus_n_O.
