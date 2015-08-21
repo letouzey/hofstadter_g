@@ -926,9 +926,9 @@ Qed.
 *)
 
 Inductive Increasing : list nat -> Prop :=
- | LFD_nil : Increasing nil
- | LFD_one n : Increasing (n::nil)
- | LFD_cons n m l : m < n -> Increasing (n::l) -> Increasing (m::n::l).
+ | Incr_nil : Increasing nil
+ | Incr_one n : Increasing (n::nil)
+ | Incr_cons n m l : m < n -> Increasing (n::l) -> Increasing (m::n::l).
 
 Lemma Increasing_alt x l :
   Increasing (x::l) <-> (Increasing l /\ forall y, In y l -> x<y).
@@ -944,10 +944,11 @@ Proof.
    destruct l; constructor; trivial. apply H'. now left.
 Qed.
 
-Lemma Increasing_trans x y l :
-  x < y -> Increasing (y::l) -> Increasing (x::l).
+Lemma Increasing_lower x y l :
+  x <= y -> Increasing (y::l) -> Increasing (x::l).
 Proof.
- rewrite !Increasing_alt. intuition. transitivity y; auto.
+ rewrite !Increasing_alt. intuition.
+ apply le_lt_trans with y; auto.
 Qed.
 
 Lemma Increasing_map f l :
@@ -1281,6 +1282,117 @@ Qed.
 
 (*==============================================================*)
 
+(* g and "delta" equations *)
+
+(* We can characterize g' via its "delta" (a.k.a increments).
+   Let d(n) = g(n+1)-g(n).
+   For all n:
+   a) if d(n) = 0 then d(n+1) = 1
+   b) if d(n) <> 0 then d(n+1) = 1 - d(g(n))
+
+   In fact these deltas are always 0 or 1.
+*)
+
+Definition d n := g (S n) - g n.
+
+Lemma delta_0_1 n : d n = 0 \/ d n = 1.
+Proof.
+ unfold d. destruct (g_step n); omega.
+Qed.
+
+Lemma delta_a n : d n = 0 -> d (S n) = 1.
+Proof.
+ unfold d in *.
+ generalize (g_nonflat n) (g_mono_S n). omega.
+Qed.
+
+Lemma delta_b n :
+ d n = 1 -> d (S n) + d (g n) = 1.
+Proof.
+ intros Hn.
+ assert (Hgn := delta_0_1 (g n)).
+ unfold d in *.
+ assert (LE := g_mono_S (S n)).
+ assert (LE' := g_mono_S (g n)).
+ cut (g (S (S n)) + g (S (g n)) = S (g (S n) + g (g n))); [omega|].
+ replace (S (g n)) with (g (S n)) by omega.
+ now rewrite !g_eqn.
+Qed.
+
+(* A short formula giving delta:
+   This could be used to define g. *)
+
+Lemma delta_eqn n :
+ d (S n) = 1 - d n * d (g n).
+Proof.
+ destruct (delta_0_1 n) as [E|E]; rewrite E.
+ - simpl. now apply delta_a.
+ - rewrite Nat.mul_1_l. rewrite <- (delta_b n); omega.
+Qed.
+
+(* H is a relational presentation of these equations. *)
+
+Inductive H : nat -> nat -> Prop :=
+ | H_0 : H 0 0
+ | H_1 : H 1 1
+ | H_a n x : H n x -> H (S n) x -> H (2+n) (S x)
+ | H_b n x y z : H n x -> H (S n) y -> x<>y ->
+                 H x z -> H (S x) z -> H (2+n) (S y)
+ | H_b' n x y z t : H n x -> H (S n) y -> x<>y ->
+                    H x z -> H (S x) t -> z <> t -> H (2+n) y.
+Hint Constructors H.
+
+(* There is only one implementation of H *)
+
+Ltac uniq :=
+match goal with
+| U:forall k, H ?x k -> _, V:H ?x ?y |- _ =>
+   apply U in V; try subst y; uniq
+| U:?x<>?x |- _ => now elim U
+end.
+
+Lemma H_unique n k k' : H n k -> H n k' -> k = k'.
+Proof.
+intros H1.
+revert k'.
+induction H1; inversion 1; subst; auto; try omega; uniq.
+Qed.
+
+(* g is an implementation of H (hence the only one). *)
+
+Lemma g_implements_H n : H n (g n).
+Proof.
+induction n as [n IH] using lt_wf_rec.
+destruct n as [|[|n]].
+- auto.
+- auto.
+- assert (H n (g n)) by (apply IH; omega).
+  assert (H (S n) (g (S n))) by (apply IH; omega).
+  set (x := g n) in *.
+  destruct (eq_nat_dec x (g (S n))) as [E|N].
+  + rewrite (g_nonflat n) by auto. rewrite <-E in *.
+    constructor; auto.
+  + assert (H x (g x)).
+    { apply IH. unfold x. generalize (g_le n); omega. }
+    assert (H (S x) (g (S x))).
+    { apply IH. unfold x. generalize (g_le n); omega. }
+    assert (D : g (S n) - g n = 1).
+    { generalize (delta_0_1 n) (g_mono_S n); unfold d, x in *.
+      omega. }
+    assert (D' := delta_b n D). unfold d in D'.
+    destruct (eq_nat_dec (g x) (g (S x))).
+    * replace (g (S (S n))) with (S (g (S n)))
+       by (unfold x in *; omega).
+      eapply H_b; eauto. congruence.
+    * assert (g (S x) - g x = 1).
+      { generalize (delta_0_1 x) (g_mono_S x); unfold d; omega. }
+      replace (g (S (S n))) with (g (S n))
+       by (generalize (g_mono_S (S n)); unfold x in *; omega).
+      eapply H_b'; eauto.
+Qed.
+
+(*==============================================================*)
+
 (* TODO:
 
 - prove that g(n) = ceil((n+1)/phi) = ceil(tau*(n+1))
@@ -1289,4 +1401,3 @@ Qed.
 
 *)
 
-(*==============================================================*)
