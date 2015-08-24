@@ -80,7 +80,8 @@ endif
 #                    #
 ######################
 
-VFILES:=FlipFibTree.v\
+VFILES:=Phi.v\
+  FlipFibTree.v\
   FibTree.v\
   Fib.v\
   DeltaList.v
