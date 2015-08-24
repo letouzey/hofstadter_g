@@ -1,4 +1,4 @@
-Require Import Arith Omega Wf_nat List.
+Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
@@ -387,11 +387,11 @@ Proof.
  - simpl in H1. omega.
  - destruct k as [|[|[|k]]].
    + simpl in H3. intuition.
-   + left; now exists l.
+   + left. exists l. auto.
    + destruct l as [|k' l].
      * simpl in H1. omega.
      * destruct (Nat.Even_or_Odd k') as [(k2,Hk2)|(k2,Hk2)].
-       { right; left. exists k2; exists l. now subst. }
+       { right; left. exists k2; exists l. subst. auto. }
        { right; right; left. exists k2; exists l.
          repeat split; subst k'; auto; omega. }
    + right; right; right. exists (3+k); exists l. intuition.
@@ -589,7 +589,7 @@ Proof.
  unfold odds in *.
  rewrite seq_end, map_app, sumfib_app, IHk.
  simpl map. rewrite sumfib_cons. simpl sumfib.
- simpl "*". rewrite !Nat.add_succ_r, !Nat.add_0_r.
+ simpl mult. rewrite !Nat.add_succ_r, !Nat.add_0_r.
  rewrite fib_eqn.
  generalize (fib_nz (k+k)); omega.
 Qed.
@@ -601,7 +601,7 @@ Proof.
  unfold evens in *.
  rewrite seq_end, map_app, sumfib_app, IHk.
  simpl map. rewrite sumfib_cons. simpl sumfib.
- simpl "*". rewrite !Nat.add_succ_r, !Nat.add_0_r.
+ simpl mult. rewrite !Nat.add_succ_r, !Nat.add_0_r.
  rewrite (fib_eqn (S (k+k))).
  generalize (fib_nz (S (k+k))); omega.
 Qed.

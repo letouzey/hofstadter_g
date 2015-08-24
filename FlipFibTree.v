@@ -1,5 +1,5 @@
 
-Require Import Arith Omega Wf_nat List Program Program.Wf.
+Require Import Arith Omega Wf_nat List Program Program.Wf NPeano.
 Require Import DeltaList Fib FibTree.
 Set Implicit Arguments.
 
@@ -40,10 +40,12 @@ Set Implicit Arguments.
 Definition flip n :=
   if n <=? 1 then n else S (fib (S (S (depth n)))) - n.
 
+Ltac tac_leb := rewrite <- ?Bool.not_true_iff_false, leb_le.
+
 Lemma flip_depth n : depth (flip n) = depth n.
 Proof.
  unfold flip.
- case Nat.leb_spec; trivial.
+ case_eq (n <=? 1); tac_leb; trivial.
  intros.
  assert (depth n <> 0) by (rewrite depth_0; omega).
  apply depth_carac; trivial.
@@ -59,7 +61,7 @@ Proof.
  intros.
  rewrite depth_0 in *.
  unfold flip.
- case Nat.leb_spec; omega.
+ case_eq (n <=? 1); tac_leb; omega.
 Qed.
 
 Lemma flip_eqn k n : k<>0 -> 1 <= n <= fib (k-1) ->
@@ -67,7 +69,7 @@ Lemma flip_eqn k n : k<>0 -> 1 <= n <= fib (k-1) ->
 Proof.
  intros Hk Hn.
  unfold flip.
- case Nat.leb_spec.
+ case_eq (fib k + n <=? 1); tac_leb.
  - generalize (fib_nz k); omega.
  - intros H.
    replace (depth (fib k + n)) with k.
@@ -100,10 +102,10 @@ Qed.
 Lemma flip_flip n : flip (flip n) = n.
 Proof.
  unfold flip at 2.
- case Nat.leb_spec; trivial.
- - unfold flip.
-   case Nat.leb_spec; trivial. omega.
- - intros Hn.
+ case_eq (n <=? 1).
+ - unfold flip. now intros ->.
+ - tac_leb.
+   intros Hn.
    set (k := depth n).
    assert (k<>0).
    { contradict Hn. subst. rewrite depth_0 in Hn. omega. }
@@ -328,7 +330,7 @@ Proof.
        { intros.
          generalize (@g_max_two_antecedents (g m) (m-1-1) m).
          omega. }
-       apply HH. now apply flip_high in Hn.
+       apply HH. apply flip_high in Hn. auto.
 Qed.
 
 Lemma g'_max_two_antecedents n m :
@@ -523,11 +525,12 @@ Qed.
 
 (* We could even exhibit at least one child for each node *)
 
-Definition rchild' n := if n =? 1 then 2 else n + g' (S n) - 1.
+Definition rchild' n :=
+ if eq_nat_dec n 1 then 2 else n + g' (S n) - 1.
 (* rightmost son, always there *)
 
 Lemma rightmost_child_carac a n : g' n = a ->
- g' (S n) = S a <-> n = rchild' a.
+ (g' (S n) = S a <-> n = rchild' a).
 Proof.
  intros Hn.
  destruct (le_lt_dec n 2).
@@ -539,13 +542,13 @@ Proof.
  - assert (2 <= a).
    { change 2 with (g' 3). rewrite <- Hn. apply g'_mono. assumption. }
    unfold rchild'.
-   replace (a =? 1) with false
-     by (destruct a as [|[|[|a]]]; trivial; omega).
-   assert (Hn' : 3 < S n) by omega.
-   assert (H' := g'_eqn Hn').
-   replace (S n - 1) with n in H' by omega.
-   rewrite Hn in H'.
-   omega.
+   destruct eq_nat_dec.
+   + destruct a as [|[|[|a]]]; trivial; omega.
+   + assert (Hn' : 3 < S n) by omega.
+     assert (H' := g'_eqn Hn').
+     replace (S n - 1) with n in H' by omega.
+     rewrite Hn in H'.
+     omega.
 Qed.
 
 Lemma g'_onto_eqn a : g' (rchild' a) = a.
@@ -561,14 +564,15 @@ destruct (g'_step n) as [H|H].
   now rewrite <- H.
 Qed.
 
-Definition lchild' n := if n =? 1 then 1 else flip (rchild (flip n)).
+Definition lchild' n :=
+  if eq_nat_dec n 1 then 1 else flip (rchild (flip n)).
 (* leftmost son, always there (but might be equal to
    the rightmost son for unary nodes) *)
 
 Lemma lchild'_alt n : n<>1 -> lchild' n = flip (flip n + flip (g' n)).
 Proof.
  unfold lchild', rchild, g'.
- case Nat.eqb_spec; [intros; omega|intros].
+ destruct eq_nat_dec; [intros; omega|intros].
  f_equal. f_equal.
  symmetry. apply flip_flip.
 Qed.
@@ -576,7 +580,7 @@ Qed.
 Lemma g'_onto_eqn' n : g' (lchild' n) = n.
 Proof.
  unfold g', lchild'.
- case Nat.eqb_spec; intros.
+ destruct eq_nat_dec.
  - now subst.
  - rewrite flip_flip, g_onto_eqn.
    apply flip_flip.
@@ -596,13 +600,14 @@ Proof.
    + rewrite E.
      replace (S (fib k) - 1) with (fib k) by omega.
      unfold lchild'.
-     case Nat.eqb_spec; [generalize (fib_nz k); intros; omega|intros].
-     rewrite flip_Sfib; auto.
-     unfold rchild. rewrite g_fib.
-     rewrite <- fib_eqn.
-     rewrite flip_fib; auto.
-     replace (S (fib (S k)) - 1) with (fib (S k)) by omega.
-     apply g'_fib.
+     destruct eq_nat_dec.
+     * generalize (fib_nz k); intros; omega.
+     * rewrite flip_Sfib; auto.
+       unfold rchild. rewrite g_fib.
+       rewrite <- fib_eqn.
+       rewrite flip_fib; auto.
+       replace (S (fib (S k)) - 1) with (fib (S k)) by omega.
+       apply g'_fib.
    + unfold g'. apply flip_swap.
      assert (1 < lchild' n).
      { generalize (g'_onto_eqn' n).
@@ -610,7 +615,7 @@ Proof.
        omega. }
      rewrite !flip_pred; auto.
      * unfold lchild'.
-       case Nat.eqb_spec; intros; [omega|].
+       destruct eq_nat_dec; [omega|].
        rewrite flip_flip.
        rewrite FibTree.rightmost_child_carac; auto.
        apply g_onto_eqn.
@@ -652,7 +657,7 @@ Proof.
 Qed.
 
 Lemma g'_children a n :
-  g' n = a -> n = lchild' a \/ n = rchild' a.
+  g' n = a -> (n = lchild' a \/ n = rchild' a).
 Proof.
  intros H.
  destruct (lchild'_leftmost' _ H) as [Hn|Hn]; auto.
@@ -668,9 +673,9 @@ Lemma binary_lchild_is_unary n :
 Proof.
  rewrite multary_flip, unary_flip.
  unfold lchild'.
- case Nat.eqb_spec; intros; try omega.
+ destruct eq_nat_dec; try omega.
  rewrite flip_flip.
- now apply binary_rchild_is_unary.
+ intros. now apply binary_rchild_is_unary.
 Qed.
 
 Lemma rightmost_son_is_binary n :
@@ -782,7 +787,7 @@ Proof.
  replace n with (S (n-1)) at 3 by omega.
  rewrite g_S.
  replace (S (n-1)) with n by omega.
- now rewrite H.
+ rewrite H. omega.
 Qed.
 
 Lemma g_One n : Fib.One 2 n -> g (S n) = g n.
@@ -929,7 +934,7 @@ Proof.
  assert (~In 0 (l0++l)).
  { rewrite in_app_iff. intros [X|X]; [|intuition].
    unfold l0 in X. apply odds_in in X. omega. }
- assert (Hl0 : sumfib l0 = Nat.pred (fib (2*k))).
+ assert (Hl0 : sumfib l0 = pred (fib (2*k))).
  { unfold l0. apply sumfib_odds. }
  assert (Hl0' : l0 = 1::map S (evens (k-1))).
  { unfold l0. rewrite <- odds_S. f_equal. omega. }
@@ -1057,7 +1062,7 @@ Proof.
  { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
    apply Hl in Hx'. omega. }
  set (l0 := evens k).
- assert (Hl0 : sumfib l0 = Nat.pred (fib (2*k+1))).
+ assert (Hl0 : sumfib l0 = pred (fib (2*k+1))).
  { unfold l0. apply sumfib_evens. }
  assert (D1 : Delta 1 (l0++l)).
  { apply Delta_app with (2*k+1); auto.
@@ -1509,10 +1514,10 @@ Definition oups n :=
  | 5 => 3
  | 6 => 5
  | 7 => 3
- | _ => if Nat.even n then n-2 else 4
+ | _ => if even n then n-2 else 4
  end.
 
-Lemma oups_def n : 7<n -> oups n = if Nat.even n then n-2 else 4.
+Lemma oups_def n : 7<n -> oups n = if even n then n-2 else 4.
 Proof.
  do 8 (destruct n; try omega). reflexivity.
 Qed.
@@ -1522,7 +1527,7 @@ Proof.
 intros.
 destruct (le_lt_dec n 9).
 - do 10 (destruct n; simpl; try omega).
-- case_eq (Nat.even n); intros E.
+- case_eq (even n); intros E.
   + rewrite (@oups_def n),E,!oups_def by omega.
     rewrite !Nat.even_sub,E by omega. simpl. omega.
   + rewrite (@oups_def n),E by omega. simpl.

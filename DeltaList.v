@@ -75,6 +75,18 @@ Proof.
  induction 2; simpl in *; constructor; intuition.
 Qed.
 
+(* In stdlib's List.v since 8.5: *)
+Lemma in_seq len start n :
+  In n (seq start len) <-> start <= n < start+len.
+Proof.
+  revert start. induction len; simpl; intros.
+  - rewrite <- plus_n_O. split;[easy|].
+    intros (H,H'). apply (Lt.lt_irrefl _ (Lt.le_lt_trans _ _ _ H H')).
+  - rewrite IHlen, <- plus_n_Sm; simpl; split.
+    * intros [H|H]; subst; intuition auto with arith.
+    * intros (H,H'). destruct (Lt.le_lt_or_eq _ _ H); intuition.
+Qed.
+
 Lemma Delta_seq n k : Delta 1 (seq n k).
 Proof.
  revert n. induction k.

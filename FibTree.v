@@ -1,5 +1,5 @@
 
-Require Import Arith Omega Wf_nat List.
+Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList Fib.
 Set Implicit Arguments.
 
@@ -225,13 +225,13 @@ Hint Resolve g_lt.
 
 (* Two special formulations for [g_step] *)
 
-Lemma g_next n a : g n = a -> g (S n) <> a <-> g (S n) = S a.
+Lemma g_next n a : g n = a -> (g (S n) <> a <-> g (S n) = S a).
 Proof.
  generalize (g_step n). omega.
 Qed.
 
 Lemma g_prev n a : n<>0 -> g n = a ->
- g (n-1) <> a <-> g (n-1) = a - 1.
+ (g (n-1) <> a <-> g (n-1) = a - 1).
 Proof.
  intros H Ha.
  assert (Ha' := g_nz H).
@@ -278,12 +278,12 @@ Qed.
 (* Another formulation of the same fact: *)
 
 Lemma g_inv n m :
-  g n = g m -> n = m \/ n = S m \/ m = S n.
+  g n = g m -> (n = m \/ n = S m \/ m = S n).
 Proof.
  intros.
  destruct (lt_eq_lt_dec n m) as [[LT|EQ]|LT]; auto.
- - destruct (@g_max_two_antecedents (g n) n m); auto.
- - destruct (@g_max_two_antecedents (g m) m n); auto.
+ - generalize (@g_max_two_antecedents (g n) n m); auto.
+ - generalize (@g_max_two_antecedents (g m) m n); auto.
 Qed.
 
 (* G is an onto map *)
@@ -375,7 +375,7 @@ Definition rchild n := n + g n. (* rightmost son, always there *)
 Definition lchild n := n + g n - 1. (* left son, if there's one *)
 
 Lemma rightmost_child_carac a n : g n = a ->
- g (S n) = S a <-> n = rchild a.
+ (g (S n) = S a <-> n = rchild a).
 Proof.
  intros Hn.
  assert (H' := g_eqn n).
@@ -505,7 +505,7 @@ Proof.
  destruct (eq_nat_dec n 0).
  - left. subst. apply unary_carac2. reflexivity.
  - destruct (eq_nat_dec (g (lchild n)) n).
-   + right. now apply binary_carac2.
+   + right. apply binary_carac2; auto.
    + left. apply unary_carac2. apply g_prev; auto. omega.
      apply g_onto_eqn.
 Qed.
@@ -616,7 +616,7 @@ Qed.
 
 (* Depth in the G-tree *)
 
-Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).
+Notation "f ^^ n" := (nat_iter n f) (at level 30, right associativity).
 
 Lemma iter_S (f:nat->nat) n p : (f^^(S n)) p = (f^^n) (f p).
 Proof.
@@ -736,7 +736,7 @@ Proof.
 Qed.
 
 Lemma depth_carac k n : k<>0 ->
-  depth n = k <-> S (fib k) <= n <= fib (S k).
+  (depth n = k <-> S (fib k) <= n <= fib (S k)).
 Proof.
  intros Hk.
  split; intros H.
@@ -769,6 +769,15 @@ Qed.
 
 
 (*==============================================================*)
+
+(* now in Coq stdlib's List.v in 8.5 *)
+Lemma map_ext_in :
+  forall (A B : Type)(f g:A->B) l,
+    (forall a, In a l -> f a = g a) -> map f l = map g l.
+Proof.
+  induction l; simpl; auto.
+  intros; rewrite H by intuition; rewrite IHl; auto.
+Qed.
 
 Lemma map_S_pred l : ~In 0 l -> map S (map pred l) = l.
 Proof.
@@ -805,7 +814,7 @@ Proof.
    rewrite g_S.
    case (eq_nat_dec k 0) as [Hk|Hk].
    + (* k = 0 *)
-     subst k. simpl sumfib. injection E as E.
+     subst k. simpl sumfib. injection E as E'.
      assert (Nz : ~In 0 l).
      { intro H0. apply Delta_alt in Hl. apply Hl in H0. omega. }
      assert (E1 : g n = sumfib l).
@@ -815,13 +824,13 @@ Proof.
        - generalize (g_le n); omega.
        - now rewrite map_S_pred.
        - apply Delta_pred; eauto. }
-     rewrite E at 1. rewrite <- sumfib_eqn; trivial.
+     rewrite E' at 1. rewrite <- sumfib_eqn; trivial.
      rewrite <- E2, <- E1. omega.
    + (* k <> 0 *)
      destruct (Nat.Even_or_Odd k) as [(k2,Hk2)|(k2,Hk2)].
      * (* k even *)
        set (l0 := odds k2).
-       assert (Hl0 : sumfib l0 = Nat.pred (fib k)).
+       assert (Hl0 : sumfib l0 = pred (fib k)).
        { rewrite Hk2. unfold l0. apply sumfib_odds. }
        assert (Hl0' : S (sumfib (map S l0)) = fib (S k)).
        { unfold l0. rewrite S_odds, sumfib_evens.
@@ -847,14 +856,14 @@ Proof.
          - apply Delta_pred; auto. }
        simpl sumfib.
        rewrite GG, E, <- Hl0'.
-       simpl Nat.add.
+       simpl plus.
        rewrite <- sumfib_app, <- map_app.
        transitivity (S (sumfib (l0++l))).
        rewrite <- sumfib_eqn; auto; omega.
        rewrite sumfib_app. generalize (fib_nz k); omega.
      * (* k odd *)
        set (l0 := evens k2).
-       assert (Hl0 : sumfib l0 = Nat.pred (fib k)).
+       assert (Hl0 : sumfib l0 = pred (fib k)).
        { rewrite Hk2. unfold l0. apply sumfib_evens. }
        assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
        { unfold l0.
