@@ -3,7 +3,7 @@ Require Import FibTree.
 Require Import Arith Omega Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 
-(* Same as g_spec, but via the Program framework *)
+(** Same as g_spec, but via the Program framework *)
 
 Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
  match n with
@@ -15,16 +15,25 @@ Next Obligation.
 Defined.
 Next Obligation.
  program_simpl.
- destruct (g_spec n) as (a,Ha).
+ destruct (g_spec n0) as (a,Ha).
  program_simpl.
  destruct (g_spec a) as (b,Hb).
  program_simpl.
- eapply GS; eauto. change (S n = S n - b + b).
+ eapply GS; eauto. change (S n0 = S n0 - b + b).
  generalize (G_le Ha) (G_le Hb). omega.
 Defined.
 
 Definition g n := let (a,_) := g_spec n in a.
 
-Eval lazy in g 55. (* Compute is very slow... *)
+(*Eval lazy in g 55.*) (* Compute is very slow... *)
 
-Recursive Extraction g. (* TODO: des let-in parasites *)
+(*Recursive Extraction g.*) (* TODO: des let-in parasites *)
+
+(** This is just an alternative presentation... *)
+
+Lemma nothing_new n : g n = FibTree.g n.
+Proof.
+ apply G_fun with n.
+ unfold g. now destruct g_spec.
+ apply FibTree.g_correct.
+Qed.
