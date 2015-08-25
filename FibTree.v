@@ -3,14 +3,16 @@ Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList Fib.
 Set Implicit Arguments.
 
-(* Study of the functional equation:
+(** Study of the functional equation:
+
     G (S n) + G (G n) = S n
     G 0 = 0
-   Which is related with the Fibonacci sequence.
-   Source: Hofstadter's book: Goedel, Escher, Bach.
+
+    Which is related with the Fibonacci sequence.
+    Source: Hofstadter's book: Goedel, Escher, Bach.
 *)
 
-(* Statement of the G equations as an inductive relation. *)
+(** Statement of the G equations as an inductive relation. *)
 
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
@@ -30,8 +32,8 @@ Proof.
  exists b; exists c. auto.
 Qed.
 
-(* A first upper bound on G.
-   It is used for proving that G is a total function. *)
+(** A first upper bound on G.
+    It is used for proving that G is a total function. *)
 
 Lemma G_le n a : G n a -> a <= n.
 Proof.
@@ -54,7 +56,7 @@ induction n as [[|n] IH] using lt_wf_rec.
   + intros. apply IH. auto with arith.
 Defined.
 
-(* The G relation is indeed functional: *)
+(** The G relation is indeed functional: *)
 
 Lemma G_fun n a a' : G n a -> G n a' -> a = a'.
 Proof.
@@ -68,7 +70,7 @@ induction n as [|n IH IH'] using G_rec; intros a a' Ha Ha'.
   omega.
 Qed.
 
-(* Moreover, G can be implemented (it's a total function) *)
+(** Moreover, G can be implemented (it's a total function) *)
 
 Definition g_spec n : { a : nat | G n a }.
 Proof.
@@ -89,11 +91,9 @@ Extraction Inline G_rec lt_wf_rec induction_ltof2.
 Recursive Extraction g. (* TODO: des let-in parasites *)
 *)
 
+(* Compute map g (seq 0 10). *)
 (*
-Compute g(0)::g(1)::g(2)::g(3)::g(4)::g(5)::g(6)::g(7)::g(8)::nil.
-*)
-(*
-  = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: 5 :: nil
+  = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: 5 :: 6 :: nil
      : list nat
 *)
 
@@ -115,7 +115,7 @@ Proof.
 reflexivity.
 Qed.
 
-(* The initial equation, formulated for g *)
+(** The initial equation, formulated for g *)
 
 Lemma g_eqn n : g (S n) + g (g n) = S n.
 Proof.
@@ -128,7 +128,7 @@ rewrite (G_fun Hb Hb') in *.
 rewrite (G_fun Hc Hc') in *. omega.
 Qed.
 
-(* Same, with subtraction *)
+(** Same, with subtraction *)
 
 Lemma g_S n : g (S n) = S n - g (g n).
 Proof.
@@ -149,7 +149,7 @@ induction n as [|n IH IH'] using G_rec.
   generalize (g_eqn n). omega.
 Qed.
 
-(* Properties of g *)
+(** Properties of g *)
 
 Lemma g_step n : g (S n) = g n \/ g (S n) = S (g n).
 Proof.
@@ -172,7 +172,7 @@ induction 1.
 - transitivity (g m); auto using g_mono_S.
 Qed.
 
-(* NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
+(** NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
 
 Lemma g_lipschitz n m : g m - g n <= m - n.
 Proof.
@@ -223,7 +223,7 @@ rewrite g_fix in *. omega.
 Qed.
 Hint Resolve g_lt.
 
-(* Two special formulations for [g_step] *)
+(** Two special formulations for [g_step] *)
 
 Lemma g_next n a : g n = a -> (g (S n) <> a <-> g (S n) = S a).
 Proof.
@@ -239,7 +239,7 @@ Proof.
  omega.
 Qed.
 
-(* g cannot stay flat very long *)
+(** g cannot stay flat very long *)
 
 Lemma g_nonflat n : g (S n) = g n -> g (S (S n)) = S (g n).
 Proof.
@@ -260,7 +260,7 @@ Qed.
 
 (*==============================================================*)
 
-(* Study of the reverse problem: g(x) = a for some a. *)
+(** Study of the reverse problem: g(x) = a for some a. *)
 
 Lemma g_max_two_antecedents a n m :
   g n = a -> g m = a -> n<m -> m = S n.
@@ -275,7 +275,7 @@ destruct n as [|n].
   omega.
 Qed.
 
-(* Another formulation of the same fact: *)
+(** Another formulation of the same fact: *)
 
 Lemma g_inv n m :
   g n = g m -> (n = m \/ n = S m \/ m = S n).
@@ -286,7 +286,7 @@ Proof.
  - generalize (@g_max_two_antecedents (g m) m n); auto.
 Qed.
 
-(* G is an onto map *)
+(** G is an onto map *)
 
 Lemma g_onto a : exists n, g n = a.
 Proof.
@@ -299,7 +299,7 @@ induction a.
   generalize (@g_max_two_antecedents a n (S (S n))). omega.
 Qed.
 
-(* g can be related to a infinite tree where
+(** g can be related to a infinite tree where
     - nodes are labeled via a breadth-first traversal
     - g give the label of the father node.
 
@@ -369,10 +369,10 @@ Proof.
    apply Hnm. now apply (U n m).
 Qed.
 
-(* We could even exhibit at least one child for each node *)
+(** We could even exhibit at least one child for each node *)
 
-Definition rchild n := n + g n. (* rightmost son, always there *)
-Definition lchild n := n + g n - 1. (* left son, if there's one *)
+Definition rchild n := n + g n. (** rightmost son, always there *)
+Definition lchild n := n + g n - 1. (** left son, if there's one *)
 
 Lemma rightmost_child_carac a n : g n = a ->
  (g (S n) = S a <-> n = rchild a).
@@ -393,8 +393,8 @@ destruct (g_step n) as [H|H].
   rewrite rightmost_child_carac in H; trivial. congruence.
 Qed.
 
-(* This provides easily a first relationship between g and
-   Fibonacci numbers *)
+(** This provides easily a first relationship between g and
+    Fibonacci numbers *)
 
 Lemma g_fib n : g (fib (S n)) = fib n.
 Proof.
@@ -419,8 +419,8 @@ Qed.
 
 (*==============================================================*)
 
-(* Let's study now the shape of the G tree.
-   First, we prove various characterisation of Unary/Binary *)
+(** Let's study now the shape of the G tree.
+    First, we prove various characterisation of Unary/Binary *)
 
 Lemma g_children a n : g n = a ->
   n = rchild a \/ n = lchild a.
@@ -515,7 +515,7 @@ Proof.
  intuition.
 Qed.
 
-(* Now we state the arity of node children *)
+(** Now we state the arity of node children *)
 
 Lemma leftmost_son_is_binary n p :
   g p = n -> g (p-1) <> n -> Multary g p.
@@ -574,7 +574,7 @@ Proof.
  rewrite <- B1. apply g_onto_eqn.
 Qed.
 
-(* Hence the shape of the G tree is a repetition of this pattern:
+(** Hence the shape of the G tree is a repetition of this pattern:
 
         q
         |
@@ -583,15 +583,15 @@ Qed.
     --n--
       |
 
- where n,p,q are binary nodes and p'=p+1=n+g(n) is unary.
- Fractal aspect : at p and q, full copies of G-tree occur
- (apart from special initial nodes 1 2 3).
+  where n,p,q are binary nodes and p'=p+1=n+g(n) is unary.
+  Fractal aspect : at p and q, full copies of G-tree occur
+  (apart from special initial nodes 1 2 3).
 *)
 
 
 (*==============================================================*)
 
-(* Another relation (used later when flipping G left<->right) *)
+(** Another relation (used later when flipping G left<->right) *)
 
 Lemma g_alt_eqn n : g n + g (g (S n) - 1) = n.
 Proof.
@@ -614,7 +614,7 @@ Qed.
 
 (*==============================================================*)
 
-(* Depth in the G-tree *)
+(** Depth in the G-tree *)
 
 Notation "f ^^ n" := (nat_iter n f) (at level 30, right associativity).
 
@@ -751,20 +751,20 @@ Proof.
    rewrite depth_fib in H2; rewrite depth_Sfib in H1; omega.
 Qed.
 
-(* Conclusion:
+(** Conclusion:
    - (fib k)+1 is the leftmost node at depth k
    - fib (k+1) is the rightmost node at depth k
    - hence we have fib (k+1) - fib k = fib (k-1) nodes at depth k.
 *)
 
-(* Alternatively, we could also have considered
-    U(k) : unary nodes at depth k
-    B(k) : binary nodes at depth k
-  and their recursive equations:
-    U(k+1) = B(k)
-    B(k+1) = U(k)+B(k)
-  These numbers are also fibonacci numbers (apart from k=0).
-  and Nodes(k) = U(k)+B(k).
+(** Alternatively, we could also have considered
+     U(k) : unary nodes at depth k
+     B(k) : binary nodes at depth k
+    and their recursive equations:
+     U(k+1) = B(k)
+     B(k+1) = U(k)+B(k)
+    These numbers are also fibonacci numbers (apart from k=0).
+    and Nodes(k) = U(k)+B(k).
 *)
 
 
@@ -787,7 +787,7 @@ Proof.
  intros a Ha. assert (a<>0) by congruence. omega.
 Qed.
 
-(* The main result about g applied to a Fibonacci decomposition.
+(** The main result about g applied to a Fibonacci decomposition.
 
    We now prove that g is simply "shifting" the Fibonacci
    decomposition of a number.
@@ -912,7 +912,7 @@ Proof.
  apply g_sumfib. apply Delta_pred; auto.
 Qed.
 
-(* same result, for canonical decomposition expressed in rev order *)
+(** same result, for canonical decomposition expressed in rev order *)
 
 Lemma g_sumfib_rev l : ~In 0 l -> DeltaRev 2 l ->
  g (sumfib l) = sumfib (map pred l).
@@ -930,21 +930,21 @@ Proof.
    + now apply Delta_rev.
 Qed.
 
-(* Beware! In the previous statement, (map pred l) might
-   not be a canonical decomposition anymore, since 0 could appear.
-   In this case, 0 could be turned into a 1 (since fib 0 = fib 1),
-   and then we should saturate with Fibonacci equations
-   (fib 1 + fib 2 = fib 3, etc) to regain a canonical
-   decomposition (with no consecutive fib terms). *)
+(** Beware! In the previous statement, (map pred l) might
+    not be a canonical decomposition anymore, since 0 could appear.
+    In this case, 0 could be turned into a 1 (since fib 0 = fib 1),
+    and then we should saturate with Fibonacci equations
+    (fib 1 + fib 2 = fib 3, etc) to regain a canonical
+    decomposition (with no consecutive fib terms). *)
 
 
 (*==============================================================*)
 
-(* g and "delta" equations *)
+(** G and "delta" equations *)
 
-(* We can characterize g' via its "delta" (a.k.a increments).
-   Let d(n) = g(n+1)-g(n).
-   For all n:
+(** We can characterize g' via its "delta" (a.k.a increments).
+   Let d(n) = g(n+1)-g(n). For all n:
+
    a) if d(n) = 0 then d(n+1) = 1
    b) if d(n) <> 0 then d(n+1) = 1 - d(g(n))
 
@@ -977,8 +977,8 @@ Proof.
  now rewrite !g_eqn.
 Qed.
 
-(* A short formula giving delta:
-   This could be used to define g. *)
+(** A short formula giving delta:
+    This could be used to define g. *)
 
 Lemma delta_eqn n :
  d (S n) = 1 - d n * d (g n).
@@ -988,51 +988,51 @@ Proof.
  - rewrite Nat.mul_1_l. rewrite <- (delta_b n); omega.
 Qed.
 
-(* H is a relational presentation of these equations. *)
+(** GD is a relational presentation of G via these "delta" equations. *)
 
-Inductive H : nat -> nat -> Prop :=
- | H_0 : H 0 0
- | H_1 : H 1 1
- | H_a n x : H n x -> H (S n) x -> H (2+n) (S x)
- | H_b n x y z : H n x -> H (S n) y -> x<>y ->
-                 H x z -> H (S x) z -> H (2+n) (S y)
- | H_b' n x y z t : H n x -> H (S n) y -> x<>y ->
-                    H x z -> H (S x) t -> z <> t -> H (2+n) y.
-Hint Constructors H.
+Inductive GD : nat -> nat -> Prop :=
+ | GD_0 : GD 0 0
+ | GD_1 : GD 1 1
+ | GD_a n x : GD n x -> GD (S n) x -> GD (2+n) (S x)
+ | GD_b n x y z : GD n x -> GD (S n) y -> x<>y ->
+                  GD x z -> GD (S x) z -> GD (2+n) (S y)
+ | GD_b' n x y z t : GD n x -> GD (S n) y -> x<>y ->
+                     GD x z -> GD (S x) t -> z <> t -> GD (2+n) y.
+Hint Constructors GD.
 
-(* There is only one implementation of H *)
+(** There is only one implementation of GD *)
 
 Ltac uniq :=
 match goal with
-| U:forall k, H ?x k -> _, V:H ?x ?y |- _ =>
+| U:forall k, GD ?x k -> _, V:GD ?x ?y |- _ =>
    apply U in V; try subst y; uniq
 | U:?x<>?x |- _ => now elim U
 end.
 
-Lemma H_unique n k k' : H n k -> H n k' -> k = k'.
+Lemma GD_unique n k k' : GD n k -> GD n k' -> k = k'.
 Proof.
 intros H1.
 revert k'.
 induction H1; inversion 1; subst; auto; try omega; uniq.
 Qed.
 
-(* g is an implementation of H (hence the only one). *)
+(** g is an implementation of GD (hence the only one). *)
 
-Lemma g_implements_H n : H n (g n).
+Lemma g_implements_GD n : GD n (g n).
 Proof.
 induction n as [n IH] using lt_wf_rec.
 destruct n as [|[|n]].
 - auto.
 - auto.
-- assert (H n (g n)) by (apply IH; omega).
-  assert (H (S n) (g (S n))) by (apply IH; omega).
+- assert (GD n (g n)) by (apply IH; omega).
+  assert (GD (S n) (g (S n))) by (apply IH; omega).
   set (x := g n) in *.
   destruct (eq_nat_dec x (g (S n))) as [E|N].
   + rewrite (g_nonflat n) by auto. rewrite <-E in *.
     constructor; auto.
-  + assert (H x (g x)).
+  + assert (GD x (g x)).
     { apply IH. unfold x. generalize (g_le n); omega. }
-    assert (H (S x) (g (S x))).
+    assert (GD (S x) (g (S x))).
     { apply IH. unfold x. generalize (g_le n); omega. }
     assert (D : g (S n) - g n = 1).
     { generalize (delta_0_1 n) (g_mono_S n); unfold d, x in *.
@@ -1041,20 +1041,10 @@ destruct n as [|[|n]].
     destruct (eq_nat_dec (g x) (g (S x))).
     * replace (g (S (S n))) with (S (g (S n)))
        by (unfold x in *; omega).
-      eapply H_b; eauto. congruence.
+      eapply GD_b; eauto. congruence.
     * assert (g (S x) - g x = 1).
       { generalize (delta_0_1 x) (g_mono_S x); unfold d; omega. }
       replace (g (S (S n))) with (g (S n))
        by (generalize (g_mono_S (S n)); unfold x in *; omega).
-      eapply H_b'; eauto.
+      eapply GD_b'; eauto.
 Qed.
-
-(*==============================================================*)
-
-(* TODO:
-
-- prove that g(n) = ceil((n+1)/phi) = ceil(tau*(n+1))
-  where phi = (1+sqrt(5))/2
-        tau = 1/phi = phi-1 = (sqrt(5)-1)/2
-
-*)
