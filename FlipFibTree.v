@@ -3,18 +3,20 @@ Require Import Arith Omega Wf_nat List Program Program.Wf NPeano.
 Require Import DeltaList Fib FibTree.
 Set Implicit Arguments.
 
-(* Source: Hofstadter's book: Goedel, Escher, Bach. *)
+(** See first the previous file for the study of:
 
-(* See first the previous file for the study of:
     G (S n) + G (G n) = S n
     G 0 = 0
+
    and the associated tree where nodes are labeled breadth-first
    from left to right. *)
 
-(* Now, question by Hofstadter: what if we still label the nodes
-   from right to left, but for the mirror tree ?
-   What is the algebraic definition of the "parent" function
-   for this flipped tree ?
+(** Source: Hofstadter's book: Goedel, Escher, Bach. *)
+
+(** Now, question by Hofstadter: what if we still label the nodes
+    from right to left, but for the mirror tree ?
+    What is the algebraic definition of the "parent" function
+    for this flipped tree ?
 
 9 10 11 12  13
  \/   |  \ /
@@ -34,7 +36,7 @@ Set Implicit Arguments.
 
 (** flip *)
 
-(* If we label the node from right to left, the effect
+(** If we label the node from right to left, the effect
    on node numbers is the flip function below: *)
 
 Definition flip n :=
@@ -78,7 +80,7 @@ Proof.
      rewrite fib_eqn'; omega.
 Qed.
 
-(* Two special cases : leftmost and rightmost node at a given depth *)
+(** Two special cases : leftmost and rightmost node at a given depth *)
 
 Lemma flip_Sfib k : k<>0 -> flip (S (fib k)) = fib (S k).
 Proof.
@@ -97,7 +99,7 @@ Proof.
  split; auto. apply fib_nz.
 Qed.
 
-(* flip is involutive (and hence a bijection) *)
+(** flip is involutive (and hence a bijection) *)
 
 Lemma flip_flip n : flip (flip n) = n.
 Proof.
@@ -144,7 +146,7 @@ Proof.
  generalize (flip_low n). omega.
 Qed.
 
-(* flip and neighbors *)
+(** flip and neighbors *)
 
 Lemma flip_S n : 1<n -> depth (S n) = depth n ->
   flip (S n) = flip n - 1.
@@ -167,7 +169,7 @@ Qed.
 
 (*=============================================================*)
 
-(* The flipped g' function, corresponding to the flipped G tree *)
+(** The flipped g' function, corresponding to the flipped G tree *)
 
 Definition g' n := flip (g (flip n)).
 
@@ -430,8 +432,8 @@ Proof.
      omega.
 Qed.
 
-(* This equation, along with initial values up to n=3,
-   characterizes g' entirely. *)
+(** This equation, along with initial values up to n=3,
+    characterizes g' entirely. *)
 
 Lemma g'_eqn_unique f :
   f 0 = 0 ->
@@ -456,11 +458,11 @@ Qed.
 
 (*=============================================================*)
 
-(* g' and the shape of its tree *)
+(** g' and the shape of its tree *)
 
-(* - we already know that g' is onto, hence each node has
-     at least a child
-   - Cf g_max_two_antecedents : at most two children per node. *)
+(** - we already know that g' is onto, hence each node has
+      at least a child
+    - Cf g_max_two_antecedents : at most two children per node. *)
 
 Lemma unary_flip a : Unary g' a <-> Unary g (flip a).
 Proof.
@@ -523,11 +525,11 @@ Proof.
  unfold Multary. intuition.
 Qed.
 
-(* We could even exhibit at least one child for each node *)
+(** We could even exhibit at least one child for each node *)
 
 Definition rchild' n :=
  if eq_nat_dec n 1 then 2 else n + g' (S n) - 1.
-(* rightmost son, always there *)
+ (** rightmost son, always there *)
 
 Lemma rightmost_child_carac a n : g' n = a ->
  (g' (S n) = S a <-> n = rchild' a).
@@ -565,9 +567,9 @@ destruct (g'_step n) as [H|H].
 Qed.
 
 Definition lchild' n :=
-  if eq_nat_dec n 1 then 1 else flip (rchild (flip n)).
-(* leftmost son, always there (but might be equal to
-   the rightmost son for unary nodes) *)
+ if eq_nat_dec n 1 then 1 else flip (rchild (flip n)).
+ (** leftmost son, always there (but might be equal to
+     the rightmost son for unary nodes) *)
 
 Lemma lchild'_alt n : n<>1 -> lchild' n = flip (flip n + flip (g' n)).
 Proof.
@@ -740,7 +742,7 @@ Proof.
 Qed.
 
 
-(* Hence the shape of the g' tree is a repetition of this pattern:
+(** Hence the shape of the g' tree is a repetition of this pattern:
 
     q
     |
@@ -749,16 +751,18 @@ Qed.
     --n--
       |
 
- where n,p',q are binary nodes and p is unary.
- As expected, this is the mirror of the G tree.
+  where n,p',q are binary nodes and p is unary.
+  And in q and p', there is the whole tree again
+  (apart from special nodes 0 1 2).
+  As expected, this is the mirror of the G tree.
 *)
 
 
 (*=============================================================*)
 
-(* Comparison between g' and g *)
+(** Comparison between g' and g *)
 
-(* First, a few technical lemmas *)
+(** First, a few technical lemmas *)
 
 Lemma g'_g_S_inv n : 3<n ->
  g' (S (g' (n-1))) = g (g (n-1)) ->
@@ -802,9 +806,9 @@ Proof.
  rewrite !g_sumfib'; eauto.
 Qed.
 
-(* Now, the proof that g' is either g or g+1, separated
-   in many cases according to the shape of the Fibonacci
-   decomposition. *)
+(** Now, the proof that g' is either g or g+1, separated
+    in many cases according to the shape of the Fibonacci
+    decomposition. *)
 
 Definition IHeq n :=
  forall m, m<n -> ~Fib.TwoEven 2 m -> g' m = g m.
@@ -1186,11 +1190,11 @@ Qed.
 
 (*=============================================================*)
 
-(* g' and "delta" equations *)
+(** g' and "delta" equations *)
 
-(* We can characterize g' via its "delta" (a.k.a increments).
-   Let d(n) = g'(n+1)-g'(n).
-   For n>3 :
+(** We can characterize g' via its "delta" (a.k.a increments).
+   Let d(n) = g'(n+1)-g'(n).  For n>3 :
+
    a) if d(n-1) = 0 then d(n) = 1
    b) if d(n-1) <> 0 and d(g'(n)) = 0 then d(n) = 1
    c) if d(n-1) <> 0 and d(g'(n)) <> 0 then d(n) = 0
@@ -1198,108 +1202,109 @@ Qed.
    In fact these deltas are always 0 or 1.
 *)
 
-(* H is a relational presentation of these equations. *)
+(** GD' is a relational presentation of these equations. *)
 
-Inductive H : nat -> nat -> Prop :=
- | H_0 : H 0 0
- | H_1 : H 1 1
- | H_2 : H 2 1
- | H_3 : H 3 2
- | H_4 : H 4 3
- | H_a n x : 4<n -> H (n-2) x -> H (n-1) x -> H n (S x)
- | H_b n x y z : 4<n -> H (n-2) x -> H (n-1) y -> x<>y ->
-                      H y z -> H (S y) z -> H n (S y)
- | H_c n x y z t : 4<n -> H (n-2) x -> H (n-1) y -> x<>y ->
-                      H y z -> H (S y) t -> z <> t -> H n y.
-Hint Constructors H.
+Inductive GD' : nat -> nat -> Prop :=
+ | GD'_0 : GD' 0 0
+ | GD'_1 : GD' 1 1
+ | GD'_2 : GD' 2 1
+ | GD'_3 : GD' 3 2
+ | GD'_4 : GD' 4 3
+ | GD'_a n x : 4<n -> GD' (n-2) x -> GD' (n-1) x -> GD' n (S x)
+ | GD'_b n x y z : 4<n -> GD' (n-2) x -> GD' (n-1) y -> x<>y ->
+                   GD' y z -> GD' (S y) z -> GD' n (S y)
+ | GD'_c n x y z t : 4<n -> GD' (n-2) x -> GD' (n-1) y -> x<>y ->
+                     GD' y z -> GD' (S y) t -> z <> t -> GD' n y.
+Hint Constructors GD'.
 
-Lemma H_le n k : H n k -> k <= n.
+Lemma GD'_le n k : GD' n k -> k <= n.
 Proof.
 induction 1; auto with arith; omega.
 Qed.
 
-Lemma H_nz n k : H n k -> 0<n -> 0<k.
+Lemma GD'_nz n k : GD' n k -> 0<n -> 0<k.
 Proof.
 induction 1; auto with arith; omega.
 Qed.
 
-Lemma H_lt n k : H n k -> 1<n -> 0<k<n.
+Lemma GD'_lt n k : GD' n k -> 1<n -> 0<k<n.
 Proof.
 induction 1; auto with arith; omega.
 Qed.
 
 Ltac uniq :=
 match goal with
-| U:forall k, H ?x k -> _, V:H ?x ?y |- _ =>
+| U:forall k, GD' ?x k -> _, V:GD' ?x ?y |- _ =>
    apply U in V; try subst y; uniq
 | U:?x<>?x |- _ => now elim U
 end.
 
-Lemma H_unique n k k' : H n k -> H n k' -> k = k'.
+Lemma GD'_unique n k k' : GD' n k -> GD' n k' -> k = k'.
 Proof.
 intros H1.
 revert k'.
 induction H1; inversion 1; subst; auto; try omega; uniq.
 Qed.
 
-Lemma H_step n k k' : H n k -> H (S n) k' -> k'=k \/ k' = S k.
+Lemma GD'_step n k k' : GD' n k -> GD' (S n) k' -> k'=k \/ k' = S k.
 Proof.
 inversion 2; subst; intros; simpl in *; rewrite ?Nat.sub_0_r in *.
-- replace k with 0 by (apply H_unique with 0; auto). auto.
-- replace k with 1 by (apply H_unique with 1; auto). auto.
-- replace k with 1 by (apply H_unique with 2; auto). auto.
-- replace k with 2 by (apply H_unique with 3; auto). auto.
-- replace x with k by (apply H_unique with n; auto). omega.
-- replace y with k by (apply H_unique with n; auto). omega.
-- replace k' with k by (apply H_unique with n; auto). omega.
+- replace k with 0 by (apply GD'_unique with 0; auto). auto.
+- replace k with 1 by (apply GD'_unique with 1; auto). auto.
+- replace k with 1 by (apply GD'_unique with 2; auto). auto.
+- replace k with 2 by (apply GD'_unique with 3; auto). auto.
+- replace x with k by (apply GD'_unique with n; auto). omega.
+- replace y with k by (apply GD'_unique with n; auto). omega.
+- replace k' with k by (apply GD'_unique with n; auto). omega.
 Qed.
 
-(* H can be implemented *)
+(** g' is an implementation of GD' (hence the only one). *)
 
-Definition h_spec n : { k : nat | H n k }.
+Lemma g'_implements_GD' n : GD' n (g' n).
 Proof.
-induction n as [n h] using lt_wf_rec.
-destruct (le_lt_dec n 4).
-- clear h.
-  destruct n as [|[|[|[|n]]]].
-  { exists 0; auto. }
-  { exists 1; auto. }
-  { exists 1; auto. }
-  { exists 2; auto. }
-  { exists 3; assert (n=0) by omega; subst; auto. }
-- destruct (h (n-2)) as (x,X); [omega|].
-  destruct (h (n-1)) as (y,Y); [omega|].
-  destruct (eq_nat_dec x y).
-  + exists (S y). subst; auto.
-  + destruct (h y) as (z,Z); [apply H_le in Y; omega|].
-    destruct (h (S y)) as (t,T); [apply H_lt in Y; omega|].
-    destruct (eq_nat_dec z t).
-    * exists (S y). subst; eauto.
-    * exists y. eauto.
-Defined.
-
-Definition h n := let (k,_) := h_spec n in k.
-
-Lemma h_prop n : H n (h n).
-Proof.
-unfold h; now destruct h_spec.
+induction n as [n IH] using lt_wf_rec.
+destruct (le_lt_dec n 4) as [Hn|Hn].
+- destruct n as [|[|[|[|n]]]]; try constructor.
+  replace n with 0 by omega. constructor.
+- assert (GD' (n-2) (g' (n-2))) by (apply IH; omega).
+  assert (GD' (n-1) (g' (n-1))) by (apply IH; omega).
+  destruct (g'_step (n-2)) as [E|N].
+  + replace n with (S (S (n-2))) at 2 by omega.
+    rewrite (g'_nonflat (n-2)); auto.
+    constructor; auto. rewrite <- E.
+    replace (S (n-2)) with (n-1) by omega. auto.
+  + replace (S (n-2)) with (n-1) in N by omega.
+    set (x := g' (n-2)) in *.
+    set (y := g' (n-1)) in *.
+    assert (GD' y (g' y)).
+    { apply IH. unfold y. generalize (g'_le (n-1)); omega. }
+    assert (GD' (S y) (g' (S y))).
+    { apply IH. unfold y. generalize (@g'_lt (n-1)); omega. }
+    assert (Hn' : 3 < n) by omega.
+    assert (Hn'' : 3 < n-1) by omega.
+    assert (EQ := g'_eqn Hn').
+    assert (EQ' := g'_eqn Hn'').
+    change (g'(n-1)) with y in EQ,EQ'.
+    replace (n-1-1) with (n-2) in EQ' by omega.
+    change (g'(n-2)) with x in EQ'.
+    rewrite <- N in EQ'.
+    destruct (g'_step y) as [E'|N'].
+    * replace (g' n) with (S y) by omega.
+      eapply GD'_b; eauto. omega. rewrite <- E'; auto.
+    * replace (g' n) with y by omega.
+      eapply GD'_c; eauto. omega. omega.
 Qed.
 
-Lemma h_unique n k : H n k <-> k = h n.
+Lemma gd'_unique n k : GD' n k <-> k = g' n.
 Proof.
 split.
-- intros. eapply H_unique; eauto. apply h_prop.
-- intros ->. apply h_prop.
+- intros. eapply GD'_unique; eauto. apply g'_implements_GD'.
+- intros ->. apply g'_implements_GD'.
 Qed.
 
-Lemma h_step n : h (S n) = h n \/ h (S n) = S (h n).
-Proof.
-destruct (@H_step n (h n) (h (S n))); auto using h_prop.
-Qed.
+(** The three situations a) b) c) expressed in terms of g'. *)
 
-(* The three situations a) b) c) expressed in terms of h. *)
-
-Lemma h_a n : 0<n -> h (n-2) = h (n-1) -> h n = S (h (n-1)).
+Lemma g'_a n : 0<n -> g' (n-2) = g' (n-1) -> g' n = S (g' (n-1)).
 Proof.
 destruct (le_lt_dec n 4).
 - destruct n as [|[|[|[|n]]]].
@@ -1307,86 +1312,71 @@ destruct (le_lt_dec n 4).
   + reflexivity.
   + discriminate.
   + reflexivity.
-  + replace n with 0 by omega. discriminate.
+  + replace n with 0 by omega. compute. reflexivity.
 - intros.
-  symmetry. apply h_unique.
-  apply H_a; auto using h_prop.
-  now apply h_unique.
+  symmetry. apply gd'_unique.
+  apply GD'_a; auto using g'_implements_GD'.
+  now apply gd'_unique.
 Qed.
 
-Lemma h_b n y : 4<n ->
- y = h (n-1) ->
- h (n-2) <> y ->
- h (S y) = h y ->
- h n = S y.
+Lemma g'_b n y : 4<n ->
+ y = g' (n-1) ->
+ g' (n-2) <> y ->
+ g' (S y) = g' y ->
+ g' n = S y.
 Proof.
  intros.
- symmetry. apply h_unique.
- apply (@H_b n (h (n-2)) y (h y));
-  auto using h_prop.
- - subst. apply h_prop.
- - now apply h_unique.
+ symmetry. apply gd'_unique.
+ apply (@GD'_b n (g' (n-2)) y (g' y));
+  auto using g'_implements_GD'.
+ - subst. apply g'_implements_GD'.
+ - now apply gd'_unique.
 Qed.
 
-Lemma h_c n y : 4<n ->
- y = h (n-1) ->
- h (n-2) <> y ->
- h (S y) <> h y ->
- h n = y.
+Lemma g'_c n y : 4<n ->
+ y = g' (n-1) ->
+ g' (n-2) <> y ->
+ g' (S y) <> g' y ->
+ g' n = y.
 Proof.
  intros.
- symmetry. apply h_unique.
- apply (@H_c n (h (n-2)) y (h y) (h (S y)));
-  auto using h_prop.
- subst. apply h_prop.
+ symmetry. apply gd'_unique.
+ apply (@GD'_c n (g' (n-2)) y (g' y) (g' (S y)));
+  auto using g'_implements_GD'.
+ subst. apply g'_implements_GD'.
 Qed.
 
-Ltac H2h := match goal with
- | U: H _ _ |- _ => apply h_unique in U; H2h
- | _ => idtac
-end.
+(** An old auxiliary lemma stating the converse of the c) case *)
 
-Lemma h_eqn n : 3 < n -> h n + h (S (h (n-1))) = S n.
+Lemma g'_c_inv n :
+  2<n -> g' n = g' (n-1) -> g' (S (g' n)) = S (g' (g' n)).
 Proof.
- induction n as [|n IH].
- - inversion 1.
- - intros Hn.
-   simpl. rewrite Nat.sub_0_r.
-   assert (Hh := h_prop (S n)); inversion Hh; subst; try omega;
-    simpl in *; rewrite ?Nat.sub_0_r in *; H2h.
-   + reflexivity.
-   + (* case a) *)
-     rewrite <- H2, <- H4 in *. omega.
-   + (* case b) *)
-     assert (y = S x).
-     { generalize (h_step (n-1)).
-       replace (S (n-1)) with n by omega.
-       omega. }
-     rewrite <- H2, <- H3, <- H7, <- H6 in *. omega.
-   + (* case c) *)
-     rewrite <- H1 in *.
-     rewrite H2 in *.
-     assert (h n = S x).
-     { generalize (h_step (n-1)).
-       replace (S (n-1)) with n by omega.
-       omega. }
-     rewrite H7 in *.
-     generalize (h_step (S x)). omega.
+ intros Hn Hg.
+ symmetry in Hg. apply gd'_unique in Hg.
+ remember g' as f eqn:Hf.
+ inversion Hg; subst.
+ - reflexivity.
+ - compute in H1. discriminate.
+ - omega.
+ - compute in H1. discriminate.
+ - compute in H1. discriminate.
+ - assert (x = g'(n-1)).
+   { eapply GD'_unique; eauto using g'_implements_GD'. }
+   omega.
+ - assert (y = g'(n-1)).
+   { eapply GD'_unique; eauto using g'_implements_GD'. }
+   omega.
+ - set (y := g'(n-1)) in *.
+   assert (y = g' n).
+   { eapply GD'_unique with n; eauto using g'_implements_GD'. }
+   assert (z = g' y).
+   { eapply GD'_unique; eauto using g'_implements_GD'. }
+   assert (t = g' (S y)).
+   { eapply GD'_unique; eauto using g'_implements_GD'. }
+   destruct (g'_step y); congruence.
 Qed.
 
-(* This implementation of H is hence g' *)
-
-Lemma h_is_g' : forall n, h n = g' n.
-Proof.
- apply g'_eqn_unique; try reflexivity. apply h_eqn.
-Qed.
-
-Lemma H_is_g' n k : H n k <-> k = g' n.
-Proof.
- now rewrite h_unique, h_is_g'.
-Qed.
-
-(* Presentation via a "delta" function *)
+(** Presentation via a "delta" function *)
 
 Definition d n := g' (S n) - g' n.
 
@@ -1411,11 +1401,10 @@ Proof.
  unfold d.
  intros.
  replace (S (n-1)) with n in * by omega.
- rewrite <- !h_is_g' in *.
- rewrite (@h_b (S n) (h n)); try omega.
+ rewrite (@g'_b (S n) (g' n)); try omega.
  f_equal. omega.
  simpl. omega.
- generalize (h_step (h n)). omega.
+ generalize (g'_step (g' n)). omega.
 Qed.
 
 Lemma delta_c n : 4<=n ->
@@ -1424,8 +1413,7 @@ Proof.
  unfold d.
  intros.
  replace (S (n-1)) with n in * by omega.
- rewrite <- !h_is_g' in *.
- rewrite (@h_c (S n) (h n)); try omega.
+ rewrite (@g'_c (S n) (g' n)); try omega.
  f_equal. omega.
  simpl. omega.
 Qed.
@@ -1452,8 +1440,8 @@ Qed.
 
 (*============================================================*)
 
-(* Another short equation for g', but this one cannot be used
-   for defining g' recursively :-( *)
+(** Another short equation for g', but this one cannot be used
+    for defining g' recursively :-( *)
 
 Lemma g'_eqn' n : 3 < n -> g' (g' n) + g' (n-1) = n.
 Proof.
@@ -1499,10 +1487,10 @@ Proof.
    omega.
 Qed.
 
-(* This last equation f(f(n)) + f(n-1) = n for n > 3
-   is nice and short, but unfortunately it doesn't define
-   a unique function, even if the first values are fixed to
-   0 1 1 2. For instance: *)
+(** This last equation f(f(n)) + f(n-1) = n for n > 3
+    is nice and short, but unfortunately it doesn't define
+    a unique function, even if the first values are fixed to
+    0 1 1 2. For instance: *)
 
 Definition oups n :=
  match n with
@@ -1535,11 +1523,11 @@ destruct (le_lt_dec n 9).
     rewrite !Nat.even_sub,E by omega. simpl. omega.
 Qed.
 
-(* We will show later that if we require this equation along
-  with a monotonicity constraint, then there is a unique solution
-  (which is hence g'). *)
+(** We will show below that if we require this equation along
+    with a monotonicity constraint, then there is a unique
+    solution (which is hence g'). *)
 
-(* Study of the alternative equation and its consequences. *)
+(** Study of the alternative equation and its consequences. *)
 
 Definition AltSpec (g:nat->nat) :=
   (g 0 = 0 /\ g 1 = 1 /\ g 2 = 1 /\ g 3 = 2) /\
@@ -1600,7 +1588,7 @@ Proof.
  destruct (g 5) as [|[|[|[|[|n]]]]]; omega.
 Qed.
 
-(* Alas, g(n) isn't unique for n>5 (e.g 4 or 5 for n=6) *)
+(** Alas, g(n) isn't unique for n>5 (e.g 4 or 5 for n=6) *)
 
 Lemma monotone_equiv g :
  (forall n, g n <= g (S n)) ->
@@ -1706,39 +1694,4 @@ Proof.
  intros Hg Mon. apply alt_mono_unique; auto.
  - split. now compute. apply g'_eqn'.
  - apply g'_mono_S.
-Qed.
-
-(* A direct proof of the alternative equation for h,
-   with first a auxiliary lemma. *)
-
-Lemma h_nostep_inv n :
-  2<n -> h n = h (n-1) -> h (S (h n)) = S (h (h n)).
-Proof.
- intros Hn Hh.
- symmetry in Hh. apply h_unique in Hh.
- inversion Hh; subst; H2h; try omega.
- set (y := h (n-1)) in *. rewrite <- Hh.
- destruct (h_step y); trivial. congruence.
-Qed.
-
-Lemma h_eqn' n : 3<n -> h (h n) + h (n-1) = n.
-Proof.
- induction n as [|n IH].
- - inversion 1.
- - intros Hn.
-   simpl. rewrite Nat.sub_0_r.
-   assert (Hh := h_prop (S n)); inversion Hh; subst; try omega;
-    simpl in *; rewrite ?Nat.sub_0_r in *; H2h.
-   + reflexivity.
-   + (* case a) *)
-     generalize (@h_nostep_inv n).
-     rewrite <- H2, <- H4 in *. omega.
-   + (* case b) *)
-     generalize (h_step (n-1)).
-     replace (S (n-1)) with n by omega.
-     rewrite <- H2, <- H3, <- H5, <- H7 in *. omega.
-   + (* case c) *)
-     generalize (h_step (n-1)).
-     replace (S (n-1)) with n by omega.
-     rewrite <- H1, <- H2 in *. omega.
 Qed.
