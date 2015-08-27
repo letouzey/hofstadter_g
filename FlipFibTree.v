@@ -799,16 +799,12 @@ Proof.
  intros (l & H & Hl).
  rewrite H.
  change (S (sumfib (1::l))) with (sumfib (2::l)).
- assert (Delta 1 (2::l)).
- { apply Delta_alt in Hl; apply Delta_alt. split.
-   + apply Delta_21. apply Hl.
-   + intros y Hy. apply Hl in Hy. auto. }
  rewrite !g_sumfib'; eauto.
 Qed.
 
-(** Now, the proof that g' is either g or g+1, separated
+(** Now, the proof that g'(n) is either g(n) or g(n)+1, separated
     in many cases according to the shape of the Fibonacci
-    decomposition. *)
+    decomposition of n. *)
 
 Definition IHeq n :=
  forall m, m<n -> ~Fib.TwoEven 2 m -> g' m = g m.
@@ -834,10 +830,8 @@ Proof.
  assert (D1 : Delta 1 (1::2*p::l)).
  { apply Delta_low_hd with 2; auto. }
  assert (D2 : Delta 2 (1::2*p-1::l')).
- { apply Delta_pred in D; eauto. simpl in D.
+ { apply Delta_pred in D; [|eauto]. simpl in D.
    rewrite Nat.sub_1_r. eauto. }
- assert (D3 : Delta 1 (2::2*p-1::l')).
- { constructor. omega. eauto. }
  assert (E1 : n - 1 = sumfib (1 :: 2*p :: l)).
  { rewrite E. simpl. omega. }
  assert (E2 : g (n-1) = sumfib (1::2*p-1::l')).
@@ -866,7 +860,7 @@ Proof.
  assert (~In 0 l').
  { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
    apply Hl in Hx'. omega. }
- assert (D1 : Delta 1 (2::l)). { apply Delta_alt; eauto. }
+ assert (D1 : Delta 1 (2::l)) by auto.
  assert (D2 : Delta 1 (1::l')). { apply Delta_pred in D1; eauto. }
  assert (E1 : n-1 = sumfib l). { rewrite E. simpl. omega. }
  assert (E2 : g (n-1) = sumfib l'). { rewrite E1, g_sumfib'; eauto. }
@@ -900,11 +894,8 @@ Proof.
  assert (D1 : Delta 1 (1 :: 2*p+1 :: l)).
  { constructor. omega. eauto. }
  assert (D2 : Delta 2 (1 :: 2*p :: l')).
- { constructor. omega.
-   apply Delta_pred in D; eauto. simpl in D.
-   rewrite Nat.add_1_r in D. eauto. }
- assert (D3 : Delta 1 (2 :: 2*p :: l')).
- { constructor. omega. eauto. }
+ { apply Delta_pred in D; eauto. simpl in D.
+   rewrite Nat.add_1_r in D. auto. }
  assert (E1 : n-1 = sumfib (1 :: 2*p+1 :: l)). { now rewrite E. }
  assert (E2 : g (n-1) = sumfib (1::2*p::l')).
  { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
@@ -954,19 +945,12 @@ Proof.
        intros; unfold SS; omega.
      + intros y. rewrite in_map_iff. intros (x,(<-,Hx)).
        apply evens_in in Hx. unfold SS; omega.
-   - apply (@Delta_pred _ (S (2*k)::l)).
-     + simpl; intuition.
-     + apply Delta_alt. apply Delta_alt in D.
-       split.  apply Delta_21, D.
-       intros y Hy. apply D in Hy. omega.
+   - apply (@Delta_pred _ (S (2*k)::l)); auto. simpl; intuition.
    - intros y. simpl. rewrite in_map_iff.
      intros [X|(x,(<-,Hx))]. subst y. omega.
      apply evens_in in Hx. unfold SS; omega. }
  assert (D3 : Delta 1 (1::2::map SS l0' ++ l')).
- { constructor. omega.
-   apply Delta_alt; split; eauto.
-   intros y Hy. apply Delta_inv, Delta_alt in D2.
-   apply D2 in Hy. omega. }
+ { constructor. omega. apply Delta_low_hd with 3; eauto. }
  assert (E1 : n-1 = sumfib (l0 ++ l)).
  { rewrite sumfib_app.
    rewrite E, Hl0. generalize (fib_nz (2*k)). simpl. omega. }
@@ -1006,13 +990,13 @@ Proof.
  destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
  - (* next term is even *)
    assert (D1 : Delta 1 (2::2*p::l)).
-   { constructor. omega. eauto. }
+   { apply Delta_low_hd with 3; auto. }
    assert (D2 : Delta 1 (3 :: 2*p-1 :: map pred l)).
    { constructor. omega.
      apply Delta_pred in D1; eauto. simpl in D1.
      rewrite Nat.sub_1_r; eauto. }
    assert (D3 : Delta 1 (1 :: 2*p-1 :: map pred l)).
-   { constructor. omega. eauto. }
+   { apply Delta_low_hd with 3; auto. }
    assert (E2 : g (n-1) = sumfib (1::2*p-1::map pred l)).
    { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
    assert (E3 : S (S (g (n-1))) = sumfib (3::2*p-1::map pred l)).
@@ -1029,13 +1013,13 @@ Proof.
    rewrite !g_sumfib'; eauto.
  - (* next term is odd *)
    assert (D1 : Delta 1 (2::2*p+1::l)).
-   { constructor. omega. eauto. }
+   { apply Delta_low_hd with 3; auto. }
    assert (D2 : Delta 2 (2 :: 2*p :: map pred l)).
    { constructor. omega.
      apply Delta_pred in D; eauto. simpl in D.
      replace (2*p) with (pred (2*p+1)); eauto. omega. }
    assert (D3 : Delta 2 (1 :: 2*p :: map pred l)).
-   { constructor. omega. eauto. }
+   { apply Delta_low_hd with 2; auto. }
    assert (E2 : g (n-1) = sumfib (1::2*p::map pred l)).
    { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
    assert (E3 : S (g (n-1)) = sumfib (2::2*p::map pred l)).
@@ -1090,30 +1074,20 @@ Proof.
  { constructor. omega.
    apply (@Delta_app 2 (2*k+1) (4::map S4 l0')); auto.
    - apply Delta_alt. split.
-     + apply Delta_map with 2.
+     + apply Delta_map with 2; [|apply Delta_evens].
        intros; unfold S4; omega.
-       apply Delta_evens.
      + intros y. rewrite in_map_iff. intros (x,(Hx,Hx')).
-       unfold S4 in Hx.
-       apply evens_in in Hx'. omega.
+       apply evens_in in Hx'. unfold S4 in *; omega.
    - intros y. simpl. rewrite in_map_iff. unfold S4.
-     intros [X|(x,(<-,Hx))]. omega.
-     apply evens_in in Hx. omega. }
+     intros [X|(x,(<-,Hx))]; try (apply evens_in in Hx); omega. }
  assert (D3 : Delta 1 (1 :: 4 :: map S3 l0' ++ l')).
  { constructor. omega.
    apply Delta_inv in D2.
    assert (0<4) by omega.
-   apply Delta_pred in D2; eauto. simpl in D2.
-   rewrite map_app, map_map in D2.
-   change (fun x => pred (S4 x)) with S3 in *.
-   apply Delta_alt in D2. destruct D2 as (D2,D2').
-   apply Delta_alt. split; [eauto|].
-   intros y Hy. apply D2' in Hy. omega. }
+   apply Delta_pred in D2; [|eauto]. simpl in D2.
+   rewrite map_app, map_map in D2. simpl map in D2. auto. }
  assert (D4 : Delta 1 (1 :: 3 :: map S3 l0' ++ l')).
- { constructor. omega.
-   apply Delta_alt. split; [eauto|].
-   apply Delta_inv, Delta_alt in D3.
-   intros y Hy. apply D3 in Hy. omega. }
+ { constructor. omega. apply Delta_low_hd with 4; eauto. }
  assert (E3 : g (n-1) = sumfib (1::3::map S3 l0'++l')).
  { rewrite E2, g_sumfib'; eauto.
    simpl. now rewrite map_app, map_map. }
@@ -1168,6 +1142,10 @@ Proof.
      * now apply g'_g_eq_2.
      * now apply g'_g_eq_3.
 Qed.
+
+(** Note: the positions where g' and g differ starts at 7
+    and then are separated by 5 or 8 (see Fib.TwoEven_next
+    and related lemmas). *)
 
 Lemma g'_g_step n : g' n = g n \/ g' n = S (g n).
 Proof.

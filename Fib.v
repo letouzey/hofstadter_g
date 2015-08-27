@@ -750,25 +750,57 @@ Proof.
     + constructor. omega. constructor. omega. eauto.
 Qed.
 
-Lemma TwoEven_itvl n m :
+Lemma TwoEven_next_5_xor_8 n :
+  TwoEven 2 (n+5) -> TwoEven 2 (n+8) -> False.
+Proof.
+ intros Hn.
+ change (~TwoEven 2 (n+8)).
+ apply TwoEven_add_3 in Hn.
+ replace (n+5+3) with (n+8) in Hn by omega.
+ destruct Hn; auto.
+Qed.
+
+Lemma TwoEven_next5 n :
+ TwoEven 2 n -> TwoEven 2 (n+5) ->
+ forall m, n<m<n+5 -> ~TwoEven 2 m.
+Proof.
+ intros Hn Hn' m H.
+ assert (Hm : m=n+1 \/ m=n+2 \/ m=n+3 \/ m=n+4) by omega.
+ destruct Hm as [Hm|[Hm|[Hm|Hm]]]; subst m.
+ - apply TwoEven_add_1 in Hn. auto.
+ - apply TwoEven_add_2 in Hn. auto.
+ - apply TwoEven_add_3 in Hn. destruct Hn; auto.
+ - apply TwoEven_add_4 in Hn. destruct Hn; auto.
+Qed.
+
+Lemma TwoEven_next8 n :
+ TwoEven 2 n -> TwoEven 2 (n+8) ->
+ forall m, n<m<n+8 -> ~TwoEven 2 m.
+Proof.
+ intros Hn Hn' m H.
+ assert (Hm : m=n+1 \/ m=n+2 \/ m=n+3 \/ m=n+4 \/
+              m=n+5 \/ m=n+6 \/ m=n+7) by omega.
+ destruct Hm as [Hm|[Hm|[Hm|[Hm|[Hm|[Hm|Hm]]]]]]; subst m.
+ - apply TwoEven_add_1 in Hn. auto.
+ - apply TwoEven_add_2 in Hn. auto.
+ - apply TwoEven_add_3 in Hn. destruct Hn; auto.
+ - apply TwoEven_add_4 in Hn. destruct Hn; auto.
+ - intros Hn''. eapply TwoEven_next_5_xor_8; eauto.
+ - apply TwoEven_add_6 in Hn. auto.
+ - apply TwoEven_add_7 in Hn. auto.
+Qed.
+
+Lemma TwoEven_next_inv n m :
   TwoEven 2 n -> TwoEven 2 m -> n < m ->
   (forall p, n < p < m -> ~TwoEven 2 p) ->
   m = n+5 \/ m = n+8.
 Proof.
   intros Hn Hm LT Hp.
-  assert (H : m <= n+8).
-  { apply Nat.le_ngt. intro.
-    destruct (TwoEven_next Hn) as [Hn'|Hn'].
-    - elim (Hp (n+5)); auto; omega.
-    - elim (Hp (n+8)); auto; omega. }
-  assert (H' : m = n+1 \/ m = n+2 \/ m = n+3 \/ m = n+4 \/ m = n+5 \/
-               m = n+6 \/ m = n+7 \/ m = n+8) by omega.
-  destruct H' as [H'|[H'|[H'|[H'|[H'|[H'|[H'|H']]]]]]]; subst m; auto;
-   contradict Hm.
-  - apply TwoEven_add_1 in Hn. auto.
-  - apply TwoEven_add_2 in Hn. auto.
-  - apply TwoEven_add_3 in Hn. destruct Hn; auto.
-  - apply TwoEven_add_4 in Hn. destruct Hn; auto.
-  - apply TwoEven_add_6 in Hn. auto.
-  - apply TwoEven_add_7 in Hn. auto.
+  destruct (TwoEven_next Hn) as [Hn'|Hn'].
+  - destruct (lt_eq_lt_dec m (n+5)) as [[LT'|EQ]|LT']; auto.
+    + elim (@TwoEven_next5 _ Hn Hn' m). omega. auto.
+    + elim (Hp (n+5)). omega. auto.
+  - destruct (lt_eq_lt_dec m (n+8)) as [[LT'|EQ]|LT']; auto.
+    + elim (@TwoEven_next8 _ Hn Hn' m). omega. auto.
+    + elim (Hp (n+8)). omega. auto.
 Qed.
