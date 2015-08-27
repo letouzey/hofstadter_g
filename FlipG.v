@@ -33,8 +33,8 @@ Set Implicit Arguments.
 
    References:
     - Hofstadter's book: Goedel, Escher, Bach, page 137.
-    - Sequence #A123070 on the Online Encyclopedia of Integer Sequences
-      http://oeis.org/A123070
+    - Sequence A123070 on the Online Encyclopedia of Integer Sequences
+      #<a href="http://oeis.org/A123070">#http://oeis.org/A123070#</a>#
 *)
 
 (*=============================================================*)

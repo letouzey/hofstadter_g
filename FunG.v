@@ -12,8 +12,8 @@ Set Implicit Arguments.
 
     References:
      - Hofstadter's book: Goedel, Escher, Bach, page 137.
-     - Sequence #A005206 on the Online Encyclopedia of Integer Sequences
-       http://oeis.org/A005206
+     - Sequence A005206 on the Online Encyclopedia of Integer Sequences
+       #<a href="http://oeis.org/A005206">#http://oeis.org/A005206#</a>#
 *)
 
 (** * Statement of the [G] equations as an inductive relation. *)
