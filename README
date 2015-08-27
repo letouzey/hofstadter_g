@@ -25,3 +25,9 @@ References:
 - Hofstadter's book: Goedel, Escher, Bach, page 137.
 - For G : http://oeis.org/A005206
 - For flipped-G : http://oeis.org/A123070
+
+Licence
+-------
+
+This Coq development is released in the Public Domain
+(see the LICENCE file in the current directory)
