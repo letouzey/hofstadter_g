@@ -1,18 +1,19 @@
+(** * FibTree : Hofstadter's G function and tree *)
 
 Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList Fib.
 Set Implicit Arguments.
 
 (** Study of the functional equation:
+     - [G (S n) + G (G n) = S n]
+     - [G 0 = 0]
 
-    G (S n) + G (G n) = S n
-    G 0 = 0
+    and its relationship with the Fibonacci sequence.
 
-    Which is related with the Fibonacci sequence.
     Source: Hofstadter's book: Goedel, Escher, Bach.
 *)
 
-(** Statement of the G equations as an inductive relation. *)
+(** * Statement of the [G] equations as an inductive relation. *)
 
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
@@ -32,8 +33,8 @@ Proof.
  exists b; exists c. auto.
 Qed.
 
-(** A first upper bound on G.
-    It is used for proving that G is a total function. *)
+(** A first upper bound on [G].
+    It is used for proving that [G] is a total function. *)
 
 Lemma G_le n a : G n a -> a <= n.
 Proof.
@@ -56,7 +57,7 @@ induction n as [[|n] IH] using lt_wf_rec.
   + intros. apply IH. auto with arith.
 Defined.
 
-(** The G relation is indeed functional: *)
+(** The [G] relation is indeed functional: *)
 
 Lemma G_fun n a a' : G n a -> G n a' -> a = a'.
 Proof.
@@ -70,7 +71,7 @@ induction n as [|n IH IH'] using G_rec; intros a a' Ha Ha'.
   omega.
 Qed.
 
-(** Moreover, G can be implemented (it's a total function) *)
+(** * The [g] function, implementing the [G] relation. *)
 
 Definition g_spec n : { a : nat | G n a }.
 Proof.
@@ -110,12 +111,12 @@ split; intros H.
 - subst. apply g_correct.
 Qed.
 
+(** The initial equations, formulated for [g] *)
+
 Lemma g_0 : g 0 = 0.
 Proof.
 reflexivity.
 Qed.
-
-(** The initial equation, formulated for g *)
 
 Lemma g_eqn n : g (S n) + g (g n) = S n.
 Proof.
@@ -135,6 +136,8 @@ Proof.
  generalize (g_eqn n); omega.
 Qed.
 
+(** * Properties of [g] *)
+
 Lemma g_unique f :
   f 0 = 0  ->
   (forall n, S n = f (S n)+f(f n)) ->
@@ -148,8 +151,6 @@ induction n as [|n IH IH'] using G_rec.
   rewrite (IH' (g n)) in * by auto.
   generalize (g_eqn n). omega.
 Qed.
-
-(** Properties of g *)
 
 Lemma g_step n : g (S n) = g n \/ g (S n) = S (g n).
 Proof.
@@ -165,7 +166,7 @@ Proof.
  generalize (g_step n). omega.
 Qed.
 
-Lemma g_mono n m : n<=m -> g n <= g m.
+Lemma g_mono n m : n <= m -> g n <= g m.
 Proof.
 induction 1.
 - trivial.
@@ -230,7 +231,7 @@ Proof.
  generalize (g_step n). omega.
 Qed.
 
-Lemma g_prev n a : n<>0 -> g n = a ->
+Lemma g_prev n a : n <> 0 -> g n = a ->
  (g (n-1) <> a <-> g (n-1) = a - 1).
 Proof.
  intros H Ha.
@@ -239,7 +240,7 @@ Proof.
  omega.
 Qed.
 
-(** g cannot stay flat very long *)
+(** [g] cannot stay flat very long *)
 
 Lemma g_nonflat n : g (S n) = g n -> g (S (S n)) = S (g n).
 Proof.
@@ -260,7 +261,9 @@ Qed.
 
 (*==============================================================*)
 
-(** Study of the reverse problem: g(x) = a for some a. *)
+(** * Antecedents by [g]
+
+    Study of the reverse problem [g(x) = a] for some [a]. *)
 
 Lemma g_max_two_antecedents a n m :
   g n = a -> g m = a -> n<m -> m = S n.
@@ -275,7 +278,7 @@ destruct n as [|n].
   omega.
 Qed.
 
-(** Another formulation of the same fact: *)
+(** Another formulation of the same fact *)
 
 Lemma g_inv n m :
   g n = g m -> (n = m \/ n = S m \/ m = S n).
@@ -286,7 +289,7 @@ Proof.
  - generalize (@g_max_two_antecedents (g m) m n); auto.
 Qed.
 
-(** G is an onto map *)
+(** [g] is an onto map *)
 
 Lemma g_onto a : exists n, g n = a.
 Proof.
@@ -299,21 +302,26 @@ induction a.
   generalize (@g_max_two_antecedents a n (S (S n))). omega.
 Qed.
 
-(** g can be related to a infinite tree where
-    - nodes are labeled via a breadth-first traversal
-    - g give the label of the father node.
+(** * The [G] tree *)
 
+(** [g] can be related to a infinite tree where:
+    - nodes are labeled via a breadth-first traversal
+    - from the label of a child node, [g] give the label
+      of the father node.
+
+<<
 9 10 11 12 13
-\/   |  \ /
- 6   7   8
-  \ /   /
-   4   5
-    \ /
-     3
-     |
-     2
-     |
-     1
+ \/   |  \ /
+  6   7   8
+   \ /   /
+    4   5
+     \ /
+      3
+      |
+      2
+      |
+      1
+>>
 
  We already proved that g is onto, hence each node has at least
  one child. A node is said to be unary if the node label has
@@ -405,7 +413,7 @@ induction n.
   apply g_onto_eqn.
 Qed.
 
-Lemma g_Sfib n : n<>0 -> g (S (fib (S n))) = S (fib n).
+Lemma g_Sfib n : n <> 0 -> g (S (fib (S n))) = S (fib n).
 Proof.
  destruct n.
  - now destruct 1.
@@ -419,8 +427,10 @@ Qed.
 
 (*==============================================================*)
 
+(** * Shape of the [G] tree *)
+
 (** Let's study now the shape of the G tree.
-    First, we prove various characterisation of Unary/Binary *)
+    First, we prove various characterisation of [Unary] and [Binary] *)
 
 Lemma g_children a n : g n = a ->
   n = rchild a \/ n = lchild a.
@@ -471,7 +481,7 @@ split; intros H.
 Qed.
 
 Lemma binary_carac1 a :
- Multary g a <-> a<>0 /\ forall n, (g n = a <-> n = rchild a \/ n = lchild a).
+ Multary g a <-> a <> 0 /\ forall n, (g n = a <-> n = rchild a \/ n = lchild a).
 Proof.
 unfold Multary; rewrite unary_carac2.
 split.
@@ -489,7 +499,7 @@ split.
 Qed.
 
 Lemma binary_carac2 a :
- Multary g a <-> (a<>0 /\ g (lchild a) = a).
+ Multary g a <-> (a <> 0 /\ g (lchild a) = a).
 Proof.
 unfold Multary; rewrite unary_carac2.
 split.
@@ -539,7 +549,7 @@ Proof.
  intro U. specialize (U q (S q) Hq Hq'). omega.
 Qed.
 
-Lemma unary_rchild_is_binary n : n<>0 ->
+Lemma unary_rchild_is_binary n : n <> 0 ->
   Unary g n -> Multary g (rchild n).
 Proof.
  intros H U. apply (@leftmost_son_is_binary n).
@@ -574,24 +584,35 @@ Proof.
  rewrite <- B1. apply g_onto_eqn.
 Qed.
 
-(** Hence the shape of the G tree is a repetition of this pattern:
-
-        q
+(** Hence the shape of the [G] tree is a repetition of this pattern:
+<<
+        r
         |
-    p   p'
-    |   |
-    --n--
-      |
+    p   q
+     \ /
+      n
+>>
+  where [n] and [p] and [r=n+q] are binary nodes and
+  [q=p+1=n+g(n)] is unary.
 
-  where n,p,q are binary nodes and p'=p+1=n+g(n) is unary.
-  Fractal aspect : at p and q, full copies of G-tree occur
-  (apart from special initial nodes 1 2 3).
+  Fractal aspect : each binary nodes (e.g. [n], [p] and [r] above)
+  have the same infinite shape of tree above them
+  (which is the shape of [G] apart from special initial nodes 1 2):
+<<
+     A           A
+     |           |
+     .       A   .
+     |        \ /
+ G = .     A = .
+>>
 *)
 
 
 (*==============================================================*)
 
-(** Another relation (used later when flipping G left<->right) *)
+(** * Another equation about [g]
+
+    This one will be used later when flipping [G] left/right. *)
 
 Lemma g_alt_eqn n : g n + g (g (S n) - 1) = n.
 Proof.
@@ -614,7 +635,10 @@ Qed.
 
 (*==============================================================*)
 
-(** Depth in the G-tree *)
+(** * Depth in the [G] tree *)
+
+(** The depth of a node in the [G] tree is the number of
+    iteration of [g] needed before reaching node 1 *)
 
 Notation "f ^^ n" := (nat_iter n f) (at level 30, right associativity).
 
@@ -661,7 +685,7 @@ Proof.
  - rewrite (depth_eqn LT). omega.
 Qed.
 
-Lemma depth_correct n : n<>0 -> (g^^(depth n)) n = 1.
+Lemma depth_correct n : n <> 0 -> (g^^(depth n)) n = 1.
 Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec.
  - omega.
@@ -716,7 +740,7 @@ Proof.
    + unfold lt. change 2 with (fib 2). apply fib_mono. omega.
 Qed.
 
-Lemma depth_Sfib k : k<>0 -> depth (S (fib k)) = k.
+Lemma depth_Sfib k : k <> 0 -> depth (S (fib k)) = k.
 Proof.
  induction k as [|[|k] IH].
  - now destruct 1.
@@ -727,7 +751,7 @@ Proof.
    + unfold lt. apply le_n_S. apply fib_nz.
 Qed.
 
-Lemma depth_0 n : depth n = 0 <-> n<=1.
+Lemma depth_0 n : depth n = 0 <-> n <= 1.
 Proof.
  destruct n as [|[|n]].
  - compute; auto with arith.
@@ -735,7 +759,7 @@ Proof.
  - rewrite depth_SS. omega.
 Qed.
 
-Lemma depth_carac k n : k<>0 ->
+Lemma depth_carac k n : k <> 0 ->
   (depth n = k <-> S (fib k) <= n <= fib (S k)).
 Proof.
  intros Hk.
@@ -752,24 +776,28 @@ Proof.
 Qed.
 
 (** Conclusion:
-   - (fib k)+1 is the leftmost node at depth k
-   - fib (k+1) is the rightmost node at depth k
-   - hence we have fib (k+1) - fib k = fib (k-1) nodes at depth k.
+   - [(fib k)+1] is the leftmost node at depth [k]
+   - [fib (k+1)] is the rightmost node at depth [k]
+   - hence we have [fib (k+1) - fib k = fib (k-1)] nodes at depth [k].
 *)
 
 (** Alternatively, we could also have considered
-     U(k) : unary nodes at depth k
-     B(k) : binary nodes at depth k
+     - [U(k)] : number of unary nodes at depth [k]
+     - [B(k)] : number binary nodes at depth [k]
+
     and their recursive equations:
-     U(k+1) = B(k)
-     B(k+1) = U(k)+B(k)
-    These numbers are also fibonacci numbers (apart from k=0).
-    and Nodes(k) = U(k)+B(k).
+     - [U(k+1) = B(k)]
+     - [B(k+1) = U(k)+B(k)]
+
+    These numbers are also Fibonacci numbers (except when [k=0]),
+    along with the number of nodes at depth [k] which is
+    [U(k)+B(k)].
 *)
 
 
 (*==============================================================*)
 
+(* begin hide *)
 (* now in Coq stdlib's List.v in 8.5 *)
 Lemma map_ext_in :
   forall (A B : Type)(f g:A->B) l,
@@ -778,6 +806,7 @@ Proof.
   induction l; simpl; auto.
   intros; rewrite H by intuition; rewrite IHl; auto.
 Qed.
+(* end hide *)
 
 Lemma map_S_pred l : ~In 0 l -> map S (map pred l) = l.
 Proof.
@@ -787,10 +816,11 @@ Proof.
  intros a Ha. assert (a<>0) by congruence. omega.
 Qed.
 
-(** The main result about g applied to a Fibonacci decomposition.
+(** * [g] and Fibonacci decomposition.
 
    We now prove that g is simply "shifting" the Fibonacci
-   decomposition of a number.
+   decomposition of a number, i.e. removing 1 at all the ranks
+   in this decomposition.
 
    For proving this result, we need to consider relaxed
    decompositions where consecutive fibonacci terms may occur
@@ -930,23 +960,23 @@ Proof.
    + now apply Delta_rev.
 Qed.
 
-(** Beware! In the previous statement, (map pred l) might
+(** Beware! In the previous statement, [map pred l] might
     not be a canonical decomposition anymore, since 0 could appear.
-    In this case, 0 could be turned into a 1 (since fib 0 = fib 1),
+    In this case, 0 could be turned into a 1 (since [fib 0 = fib 1]),
     and then we should saturate with Fibonacci equations
-    (fib 1 + fib 2 = fib 3, etc) to regain a canonical
-    decomposition (with no consecutive fib terms). *)
+    ([fib 1 + fib 2 = fib 3], etc) to regain a canonical
+    decomposition (with no consecutive fib terms), see [Fib.norm].*)
 
 
 (*==============================================================*)
 
-(** G and "delta" equations *)
+(** * [g] and "delta" equations *)
 
-(** We can characterize g' via its "delta" (a.k.a increments).
-   Let d(n) = g(n+1)-g(n). For all n:
+(** We can characterize [g] via its "delta" (a.k.a increments).
+   Let [d(n) = g(n+1)-g(n)]. For all [n]:
 
-   a) if d(n) = 0 then d(n+1) = 1
-   b) if d(n) <> 0 then d(n+1) = 1 - d(g(n))
+    - a) if [d(n) = 0] then [d(n+1) = 1]
+    - b) if [d(n) <> 0] then [d(n+1) = 1 - d(g(n))]
 
    In fact these deltas are always 0 or 1.
 *)
@@ -978,7 +1008,7 @@ Proof.
 Qed.
 
 (** A short formula giving delta:
-    This could be used to define g. *)
+    This could be used to define [g]. *)
 
 Lemma delta_eqn n :
  d (S n) = 1 - d n * d (g n).
@@ -988,26 +1018,39 @@ Proof.
  - rewrite Nat.mul_1_l. rewrite <- (delta_b n); omega.
 Qed.
 
-(** GD is a relational presentation of G via these "delta" equations. *)
+Lemma g_alt_def n :
+ g (S (S n)) = S (g (S n)) - (g (S n) - g n) * (g (S (g n)) - g (g n)).
+Proof.
+ change (g (S (S n)) = S (g (S n)) - d n * d (g n)).
+ assert (0 <= d n * d (g n) <= 1).
+ { generalize (delta_0_1 n)(delta_0_1 (g n)).
+   intros [-> | ->] [-> | ->]; simpl; auto. }
+ generalize (delta_eqn n). unfold d at 1.
+ generalize (g_mono_S (S n)). omega.
+Qed.
+
+(** [GD] is a relational presentation of [G] via these "delta" equations. *)
 
 Inductive GD : nat -> nat -> Prop :=
  | GD_0 : GD 0 0
  | GD_1 : GD 1 1
  | GD_a n x : GD n x -> GD (S n) x -> GD (2+n) (S x)
- | GD_b n x y z : GD n x -> GD (S n) y -> x<>y ->
+ | GD_b n x y z : GD n x -> GD (S n) y -> x <> y ->
                   GD x z -> GD (S x) z -> GD (2+n) (S y)
- | GD_b' n x y z t : GD n x -> GD (S n) y -> x<>y ->
+ | GD_b' n x y z t : GD n x -> GD (S n) y -> x <> y ->
                      GD x z -> GD (S x) t -> z <> t -> GD (2+n) y.
 Hint Constructors GD.
 
-(** There is only one implementation of GD *)
+(** There is only one implementation of [GD] *)
 
+(* begin hide *)
 Ltac uniq :=
 match goal with
 | U:forall k, GD ?x k -> _, V:GD ?x ?y |- _ =>
    apply U in V; try subst y; uniq
 | U:?x<>?x |- _ => now elim U
 end.
+(* end hide *)
 
 Lemma GD_unique n k k' : GD n k -> GD n k' -> k = k'.
 Proof.
@@ -1016,7 +1059,7 @@ revert k'.
 induction H1; inversion 1; subst; auto; try omega; uniq.
 Qed.
 
-(** g is an implementation of GD (hence the only one). *)
+(** [g] is an implementation of [GD] (hence the only one). *)
 
 Lemma g_implements_GD n : GD n (g n).
 Proof.

@@ -1,6 +1,7 @@
-DeltaList.v
-Fib.v
-FibTree.v
+COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
 FlipFibTree.v
 Phi.v
 FibTree_prog.v
+FibTree.v
+Fib.v
+DeltaList.v

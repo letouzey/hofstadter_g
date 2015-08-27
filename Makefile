@@ -48,6 +48,7 @@ COQDOCLIBS?=
 #                        #
 ##########################
 
+COQDOCFLAGS=-interpolate -utf8 --lib-subtitles
 
 OPT?=
 COQDEP?="$(COQBIN)coqdep" -c
@@ -80,12 +81,12 @@ endif
 #                    #
 ######################
 
-VFILES:=FibTree_prog.v\
-  Phi.v\
-  FlipFibTree.v\
-  FibTree.v\
+VFILES:=DeltaList.v\
   Fib.v\
-  DeltaList.v
+  FibTree.v\
+  FibTree_prog.v\
+  Phi.v\
+  FlipFibTree.v
 
 -include $(addsuffix .d,$(VFILES))
 .SECONDARY: $(addsuffix .d,$(VFILES))

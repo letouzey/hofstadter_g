@@ -1,9 +1,10 @@
+(** * FibTree_prog : Alternative definition of Hofstadter's G function *)
 
 Require Import FibTree.
 Require Import Arith Omega Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 
-(** Same as g_spec, but via the Program framework *)
+(** Same as [FibTree.g_spec], but via the Program framework *)
 
 Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
  match n with

@@ -1,18 +1,32 @@
+(** * Phi : Hofstadter G function and the golden ratio *)
 
 Require Import Arith Fourier R_Ifp R_sqrt Znumtheory.
 Require Import Fib FibTree.
 
-(** We consider again the function g defined by
-    g 0 = 0 and g (S n) = S n - g (g n),
-    and we prove here that
+Open Scope R.
 
-    g(n) = floor((n+1)/phi) = floor(tau*(n+1))
+(** We consider again the function [g] defined by
+    [g 0 = 0] and [g (S n) = S n - g (g n)],
+    and we prove that it can also be directly defined
+    via primitives using reals numbers:
 
-    where phi = (1+sqrt(5))/2
-          tau = 1/phi = phi-1 = (sqrt(5)-1)/2
+    [g(n) = floor((n+1)/phi) = floor(tau*(n+1))]
+
+    where:
+     - [phi = (1+sqrt(5))/2]
+     - [tau = 1/phi = phi-1 = (sqrt(5)-1)/2]
+
+    In Coq, we'll use here by default operations on reals numbers,
+    and also:
+     - [INR] : the injection from [nat] to [R]
+     - [IZR] : the injection from [Z] to [R]
+     - [Int_part] : the integer part of a real, used as a [floor]
+       function. It produces a [Z] integer, that we can convert
+       to [nat] via [Z.to_nat] when necessary.
+     - [frac_part] : the faction part of a real, producing a [R]
 *)
 
-Open Scope R.
+(** * Phi and tau *)
 
 Definition phi := (sqrt 5 + 1)/2.
 Definition tau := (sqrt 5 - 1)/2.
@@ -70,7 +84,7 @@ Proof.
    field_simplify. fourier.
 Qed.
 
-(** A bit of irrational theory *)
+(** * A bit of irrationality theory *)
 
 Lemma prime_5 : prime 5.
 Proof.
@@ -130,7 +144,7 @@ Proof.
  rewrite <- Eq. field.
 Qed.
 
-(** Some complements about integer part and fractional part *)
+(** * Some complements about integer part and fractional part *)
 
 Lemma int_part_iff (r:R)(k:Z) :
  0 <= r-IZR k < 1 <-> Int_part r = k.
@@ -167,7 +181,7 @@ Proof.
    intros LE. apply IZR_le in LE. fourier.
 Qed.
 
-(** The main theorem here: *)
+(** * The main theorem *)
 
 Lemma g_tau (n:nat) : g n = Z.to_nat (Int_part (tau * INR (S n))).
 Proof.

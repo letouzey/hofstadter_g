@@ -1,21 +1,26 @@
+(** * Fib : Fibonacci sequence and decomposition *)
+
 Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
 
-(** * Fibonacci sequence and decomposition *)
+(** * Fibonacci sequence
 
-(** First, a definition of the Fibonacci sequence.
-
+    First, a definition of the Fibonacci sequence.
     We use here the variant that starts with 1 1 2 3 ...
     (no zero).
 *)
 
-Fixpoint fib (n:nat) : nat := match n with
+Fixpoint fib (n:nat) : nat :=
+  match n with
   | 0 => 1
-  | 1 => 1
-  | S ((S n) as p) => fib p + fib n
- end.
+  | S n' =>
+    match n' with
+    | 0 => 1
+    | S n'' => fib n' + fib n''
+    end
+  end.
 
 Lemma fib_eqn n : fib (S (S n)) = fib (S n) + fib n.
 Proof.
@@ -95,17 +100,17 @@ Proof.
 Defined.
 
 
-(** Decomposition via sums of Fibonacci numbers.
+(** * Decomposition via sums of Fibonacci numbers.
 
     Zeckendorf's theorem (actually discovered earlier by
     Lekkerkerker) states that any natural number can be obtained
     by a sum of distinct Fibonacci numbers, and this decomposition
     is moreover unique when :
-     - fib 0 isn't in the decomposition
+     - [fib 0] isn't in the decomposition
      - Fibonacci numbers in the decomposition aren't consecutive.
 *)
 
-(** sumfib
+(** ** The [sumfib] function
 
    We represent a Fibonacci decomposition by the list of ranks
    of the Fibonacci numbers in this decomposition.
@@ -152,7 +157,9 @@ Proof.
  - simpl. rewrite sumfib_app, IHl. simpl. omega.
 Qed.
 
-(** Technical lemma for Zeckendorf's theorem:
+(** ** Zeckendorf's Theorem *)
+
+(** Technical lemma:
     A canonical decomposition cannot excess the next Fibonacci. *)
 
 Lemma decomp_max k l :
@@ -246,12 +253,12 @@ Proof.
  now f_equal.
 Qed.
 
-(** Normalisation of a Fibonacci decomposition.
+(** ** Normalisation of a Fibonacci decomposition.
 
     Starting from an increasing decomposition, we can
     transform it into a canonical decomposition (with no
     consecutive Fibonacci numbers), by simply saturating
-    the basic Fibonacci equation (fib k + fib (k+1) = fib (k+2))
+    the basic Fibonacci equation [fib k + fib (k+1) = fib (k+2)]
     in the right order (highest terms first).
 
     Termination isn't obvious for Coq, since we might have
@@ -357,13 +364,15 @@ Proof.
    apply Delta_alt in H. apply H in Hy. omega.
 Qed.
 
-(** Classification of Fibonacci decompositions according to
-    their lowest terms: for n>3, a decomposition starts either
-    by:
-        fib 1 + ...
-        fib 2 + fib (2*k) + ...
-        fib 2 + fib (2*k+1) + ...
-        fib k + ...    (with k>2)
+(** ** Classification of Fibonacci decompositions
+
+    For a later theorem ([g'_g]), we'll need to classify
+    the Fibonacci decompositions according to their lowest
+    terms: for [n>3], a decomposition starts either by:
+    - [fib 1 + ...]
+    - [fib 2 + fib (2*k) + ...]
+    - [fib 2 + fib (2*k+1) + ... ]
+    - [fib k + ...] where [k>2]
 *)
 
 Definition One p n :=
@@ -539,15 +548,15 @@ Qed.
 Hint Resolve One_not_TwoEven' TwoOdd_not_TwoEven' High_not_TwoEven'.
 
 
-(** Fibonacci decomposition of ((fib k)-1)
+(** ** Decomposition of the predecessor of a Fibonacci number
 
-    fib (2k) - 1 = fib 1 + fib 3 + ... + fib (2k-1)
-    fib (2k+1) - 1 = fib 2 + fib 4 + ... + fib (2k)
+    We discrimine according to the parity of the rank:
+     - [fib (2k) - 1 = fib 1 + fib 3 + ... + fib (2k-1)]
+     - [fib (2k+1) - 1 = fib 2 + fib 4 + ... + fib (2k)]
 
-    We explicitely builds these decompositions :
-
-    odds k = [1;3;...;(2k-1)]
-    evens k = [2;4;...;(2*k)]
+    So we explicitely builds these decompositions:
+     - [odds k = [1;3;...;2k-1] ]
+     - [evens k = [2;4;...;2k] ]
 *)
 
 Definition odds k := map (fun x => 2*x+1) (seq 0 k).
@@ -638,7 +647,7 @@ Proof.
 Qed.
 
 
-(** Interval between two consecutive TwoEven numbers is 5 or 8 *)
+(** ** Two consecutive [TwoEven] numbers are separated by 5 or 8 *)
 
 Lemma TwoEven_next n :
   TwoEven 2 n -> TwoEven 2 (n+5) \/ TwoEven 2 (n+8).

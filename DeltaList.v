@@ -1,11 +1,13 @@
+(** * DeltaList : lists of natural numbers with constrained differences *)
+
 Require Import Arith Omega Wf_nat List.
 Import ListNotations.
 Set Implicit Arguments.
 
-(** * List of natural numbers with constrained differences *)
+(** * Increasing lists *)
 
-(** [Delta p l] means that consecutives values in the list l
-    have differences of at least p. *)
+(** [Delta p l] means that consecutives values in the list [l]
+    have differences of at least [p]. *)
 
 Inductive Delta (p:nat) : list nat -> Prop :=
   | Dnil : Delta p []
@@ -14,10 +16,10 @@ Inductive Delta (p:nat) : list nat -> Prop :=
 Hint Constructors Delta.
 
 (** In particular:
-    - [Delta 0 l] means that l is increasing
-    - [Delta 1 l] means that l is stricly increasing
+    - [Delta 0 l] means that [l] is increasing
+    - [Delta 1 l] means that [l] is stricly increasing
     - [Delta 2 l] implies in addition that no consecutive
-      numbers can occur in l.
+      numbers can occur in [l].
 *)
 
 Lemma Delta_alt p x l :
@@ -83,6 +85,7 @@ Proof.
  induction 2; simpl in *; constructor; intuition.
 Qed.
 
+(* begin hide *)
 (* In stdlib's List.v since 8.5: *)
 Lemma in_seq len start n :
   In n (seq start len) <-> start <= n < start+len.
@@ -94,6 +97,7 @@ Proof.
     * intros [H|H]; subst; intuition auto with arith.
     * intros (H,H'). destruct (Lt.le_lt_or_eq _ _ H); intuition.
 Qed.
+(* end hide *)
 
 Lemma Delta_seq n k : Delta 1 (seq n k).
 Proof.
@@ -130,6 +134,7 @@ Proof.
    subst. apply H1. rewrite in_app_iff. now right.
 Qed.
 
+(** * Decreasing lists *)
 
 (** [DeltaRev p l] is [Delta p (rev l)] :
     it considers differences in the reversed order,
