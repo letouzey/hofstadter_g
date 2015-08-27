@@ -1,0 +1,21 @@
+
+==========================================================
+Investigation of Hofstadter's G function, tree, and mirror
+==========================================================
+
+A Coq development by Pierre Letouzey, Summer 2015.
+
+To be compiled with Coq 8.4.
+
+Use "make gallinahtml" to generate the short html documentation.
+
+Summary of files:
+----------------
+
+DeltaList: lists of natural numbers with constrained differences
+Fib: Fibonacci sequence and decomposition
+FunG: Hofstadter's G function and tree
+FunG_prog: Alternative definition of Hofstadter's G function
+Phi: Hofstadter G function and the golden ratio
+FlipG: Hofstadter's flipped G tree
+
