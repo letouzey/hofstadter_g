@@ -102,7 +102,7 @@ Defined.
     by a sum of distinct Fibonacci numbers, and this decomposition
     is moreover unique when :
      - fib 0 isn't in the decomposition
-     - Fibonacci numbers in the decomposition aren't consecutive. 
+     - Fibonacci numbers in the decomposition aren't consecutive.
 *)
 
 (** sumfib
@@ -420,8 +420,7 @@ Proof.
      - simpl in Hl. inversion Hl; omega.
      - simpl in Hl. inversion Hl; omega.
      - omega. }
-   assert (Hla : Delta 1 (2*p::l)).
-   { apply Delta_alt in Hl. apply Hl. }
+   assert (Hla : Delta 1 (2*p::l)) by eauto.
    assert (Hlb := norm_ok Hla).
    assert (Hlc := norm_hd (2*p::l)).
    assert (Hld := norm_le Hla).
@@ -445,8 +444,7 @@ Qed.
 Lemma TwoOdd_12 n : TwoOdd 1 n -> TwoOdd 2 n \/ High 2 n.
 Proof.
  intros (p & l & Hn & Hl).
- assert (Hla : Delta 1 (2*p+1::l)).
- { apply Delta_alt in Hl. apply Hl. }
+ assert (Hla : Delta 1 (2*p+1::l)) by eauto.
  assert (Hlb := norm_ok Hla).
  assert (Hlc := norm_hd (2*p+1::l)).
  assert (Hld := norm_le Hla).
@@ -457,12 +455,7 @@ Proof.
  - destruct (eq_nat_dec k0 3) as [E|N].
    + right. apply High_equiv.
      subst k0.
-     exists 4; exists l0; repeat split; auto.
-     { simpl in *. omega. }
-     { apply Delta_alt in Hlb.
-       apply Delta_alt. split.
-       apply Delta_more with 2; auto. apply Hlb.
-       intros y Hy. apply Hlb in Hy. omega. }
+     exists 4; exists l0; repeat split; auto. simpl in *. omega.
    + simpl in Hlc. destruct Hlc as (p', Hlc).
      replace k0 with (2*(p+p')+1) in * by omega.
      left. exists (p+p'); exists l0; repeat split.
@@ -492,12 +485,7 @@ Proof.
      destruct (eq_nat_dec k0 2) as [E|N].
      * right. apply High_equiv.
        rewrite E in *.
-       exists 3; exists l0; repeat split; auto.
-       { simpl in *. omega. }
-       { apply Delta_alt in Hla.
-         apply Delta_alt. split.
-         apply Delta_21, Hla.
-         intros y Hy. apply Hla in Hy. omega. }
+       exists 3; exists l0; repeat split; auto. simpl in *; omega.
      * left. exists (k0::l0); repeat split.
        { simpl in *; omega. }
        { constructor; auto. omega. }
@@ -647,4 +635,140 @@ Proof.
  unfold odds. apply Delta_map with 1.
  intros. omega.
  apply Delta_seq.
+Qed.
+
+
+(** Interval between two consecutive TwoEven numbers is 5 or 8 *)
+
+Lemma TwoEven_next n :
+  TwoEven 2 n -> TwoEven 2 (n+5) \/ TwoEven 2 (n+8).
+Proof.
+  intros (k & l & E & D).
+  destruct k as [|[|[|k]]].
+  - simpl in D. inversion D. omega.
+  - simpl in D. inversion D. omega.
+  - simpl in *.
+    destruct l as [|k l].
+    + simpl in *.
+      right. exists 3; exists []. subst. split; auto.
+      constructor. omega. constructor.
+    + right. apply TwoEven_equiv.
+      destruct (le_lt_dec k 6).
+      * assert (k=6).
+        { inversion D; subst. inversion H3; subst. omega. }
+        subst k.
+        exists 2; exists (7::l); split.
+        { subst; simpl; omega. }
+        { constructor. omega. constructor. omega. eauto. }
+      * exists 3; exists (k::l); split.
+        { subst; simpl; omega. }
+        { constructor. omega. constructor. omega. eauto. }
+  - left. apply TwoEven_equiv.
+    exists 2; exists (2*(3+k)::l); split.
+    { subst. simpl. omega. }
+    { constructor. omega. constructor. omega. eauto. }
+Qed.
+
+Lemma TwoEven_add_1 n : TwoEven 2 n -> High 1 (n+1).
+Proof.
+  intros (k & l & E & D).
+  exists 3; exists (2*k::l); repeat split.
+  - subst; simpl; omega.
+  - omega.
+  - inversion D; subst. constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_add_2 n : TwoEven 2 n -> One 1 (n+2).
+Proof.
+  intros (k & l & E & D).
+  exists (3::2*k::l); repeat split.
+  - subst; simpl; omega.
+  - inversion D; subst. constructor. omega. constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_add_3 n : TwoEven 2 n -> TwoOdd 1 (n+3) \/ High 1 (n+3).
+Proof.
+  intros (k & l & E & D).
+  destruct k as [|[|[|k]]].
+  - inversion D; omega.
+  - inversion D; omega.
+  - left.
+    exists 2; exists l; split.
+    + subst; simpl; omega.
+    + constructor. omega. simpl. eauto.
+  - right.
+    exists 4; exists (2*(3+k)::l); repeat split.
+    + subst; simpl; omega.
+    + omega.
+    + apply Delta_inv in D. constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_add_4 n : TwoEven 2 n -> One 1 (n+4) \/ High 1 (n+4).
+Proof.
+  intros (k & l & E & D).
+  destruct k as [|[|[|k]]].
+  - inversion D; omega.
+  - inversion D; omega.
+  - right.
+    exists 3; exists (5::l); repeat split.
+    + subst; simpl; omega.
+    + omega.
+    + constructor. omega. eauto.
+  - left.
+    exists (4::2*(3+k)::l); repeat split.
+    + subst; simpl; omega.
+    + constructor. omega. constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_add_6 n : TwoEven 2 n -> High 1 (n+6).
+Proof.
+  intros (k & l & E & D).
+  destruct k as [|[|[|k]]].
+  - inversion D; omega.
+  - inversion D; omega.
+  - exists 4; exists (5::l); repeat split.
+    + subst; simpl; omega.
+    + omega.
+    + constructor. omega. eauto.
+  - exists 5; exists (2*(3+k)::l); repeat split.
+    + subst; simpl; omega.
+    + omega.
+    + constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_add_7 n : TwoEven 2 n -> One 1 (n+7).
+Proof.
+  intros (k & l & E & D).
+  destruct k as [|[|[|k]]].
+  - inversion D; omega.
+  - inversion D; omega.
+  - exists (4::5::l); split.
+    + subst; simpl; omega.
+    + constructor. omega. constructor. omega. eauto.
+  - exists (5::2*(3+k)::l); repeat split.
+    + subst; simpl; omega.
+    + constructor. omega. constructor. omega. eauto.
+Qed.
+
+Lemma TwoEven_itvl n m :
+  TwoEven 2 n -> TwoEven 2 m -> n < m ->
+  (forall p, n < p < m -> ~TwoEven 2 p) ->
+  m = n+5 \/ m = n+8.
+Proof.
+  intros Hn Hm LT Hp.
+  assert (H : m <= n+8).
+  { apply Nat.le_ngt. intro.
+    destruct (TwoEven_next Hn) as [Hn'|Hn'].
+    - elim (Hp (n+5)); auto; omega.
+    - elim (Hp (n+8)); auto; omega. }
+  assert (H' : m = n+1 \/ m = n+2 \/ m = n+3 \/ m = n+4 \/ m = n+5 \/
+               m = n+6 \/ m = n+7 \/ m = n+8) by omega.
+  destruct H' as [H'|[H'|[H'|[H'|[H'|[H'|[H'|H']]]]]]]; subst m; auto;
+   contradict Hm.
+  - apply TwoEven_add_1 in Hn. auto.
+  - apply TwoEven_add_2 in Hn. auto.
+  - apply TwoEven_add_3 in Hn. destruct Hn; auto.
+  - apply TwoEven_add_4 in Hn. destruct Hn; auto.
+  - apply TwoEven_add_6 in Hn. auto.
+  - apply TwoEven_add_7 in Hn. auto.
 Qed.

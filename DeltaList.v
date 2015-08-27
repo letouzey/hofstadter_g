@@ -62,6 +62,14 @@ Proof.
  split; trivial. intros y Hy. apply H' in Hy. omega.
 Qed.
 
+Lemma Delta_21_S x l : Delta 2 (x::l) -> Delta 1 (S x::l).
+Proof.
+  intros D. apply Delta_alt in D. destruct D as (D,D').
+  apply Delta_alt; split; eauto.
+  intros y Hy. apply D' in Hy. omega.
+Qed.
+Hint Resolve Delta_21_S.
+
 Lemma Delta_map p p' f l :
   (forall x y, x+p <= y -> f x + p' <= f y) ->
   Delta p l -> Delta p' (map f l).
@@ -100,11 +108,10 @@ Lemma Delta_app p x l l' :
   (forall y, In y l -> y <= x) -> Delta p (l++l').
 Proof.
  induction l.
- - intros _ Hl' H. simpl. now rewrite Delta_alt in Hl'.
+ - intros _ Hl' H. simpl. eauto.
  - intros Hl Hl' H. simpl. apply Delta_alt. split.
-   + apply IHl; auto.
-     * now rewrite Delta_alt in Hl.
-     * intros y Hy. apply H. now right.
+   + apply IHl; eauto.
+     intros y Hy. apply H. now right.
    + intros y Hy. rewrite in_app_iff in Hy.
      destruct Hy as [Hy|Hy].
      * rewrite Delta_alt in Hl. now apply Hl.
