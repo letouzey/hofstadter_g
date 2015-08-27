@@ -4,15 +4,13 @@ Require Import Arith Omega Wf_nat List Program Program.Wf NPeano.
 Require Import DeltaList Fib FunG.
 Set Implicit Arguments.
 
-(** See first the previous file for the study of:
+(** See first the file [FunG] for the study of:
 
      - [G (S n) + G (G n) = S n]
      - [G 0 = 0]
 
    and the associated tree where nodes are labeled breadth-first
    from left to right.
-
-   Source: Hofstadter's book: Goedel, Escher, Bach.
 
    Now, question by Hofstadter: what if we still label the nodes
    from right to left, but for the mirror tree ?
@@ -32,6 +30,11 @@ Set Implicit Arguments.
       |
       1
 >>
+
+   References:
+    - Hofstadter's book: Goedel, Escher, Bach, page 137.
+    - Sequence #A123070 on the Online Encyclopedia of Integer Sequences
+      http://oeis.org/A123070
 *)
 
 (*=============================================================*)

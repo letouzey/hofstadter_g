@@ -10,7 +10,10 @@ Set Implicit Arguments.
 
     and its relationship with the Fibonacci sequence.
 
-    Source: Hofstadter's book: Goedel, Escher, Bach.
+    References:
+     - Hofstadter's book: Goedel, Escher, Bach, page 137.
+     - Sequence #A005206 on the Online Encyclopedia of Integer Sequences
+       http://oeis.org/A005206
 *)
 
 (** * Statement of the [G] equations as an inductive relation. *)

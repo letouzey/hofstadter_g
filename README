@@ -12,10 +12,16 @@ Use "make gallinahtml" to generate the short html documentation.
 Summary of files:
 ----------------
 
-DeltaList: lists of natural numbers with constrained differences
-Fib: Fibonacci sequence and decomposition
-FunG: Hofstadter's G function and tree
-FunG_prog: Alternative definition of Hofstadter's G function
-Phi: Hofstadter G function and the golden ratio
-FlipG: Hofstadter's flipped G tree
+- DeltaList: lists of natural numbers with constrained differences
+- Fib: Fibonacci sequence and decomposition
+- FunG: Hofstadter's G function and tree
+- FunG_prog: Alternative definition of Hofstadter's G function
+- Phi: Hofstadter G function and the golden ratio
+- FlipG: Hofstadter's flipped G tree
 
+References:
+----------
+
+- Hofstadter's book: Goedel, Escher, Bach, page 137.
+- For G : http://oeis.org/A005206
+- For flipped-G : http://oeis.org/A123070
