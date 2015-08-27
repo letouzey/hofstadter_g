@@ -1,4 +1,4 @@
-(** * FibTree : Hofstadter's G function and tree *)
+(** * FunG : Hofstadter's G function and tree *)
 
 Require Import Arith Omega Wf_nat List NPeano.
 Require Import DeltaList Fib.

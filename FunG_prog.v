@@ -1,10 +1,10 @@
-(** * FibTree_prog : Alternative definition of Hofstadter's G function *)
+(** * FunG_prog : Alternative definition of Hofstadter's G function *)
 
-Require Import FibTree.
+Require Import FunG.
 Require Import Arith Omega Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 
-(** Same as [FibTree.g_spec], but via the Program framework *)
+(** Same as [FunG.g_spec], but via the Program framework *)
 
 Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
  match n with
@@ -32,9 +32,9 @@ Definition g n := let (a,_) := g_spec n in a.
 
 (** This is just an alternative presentation... *)
 
-Lemma nothing_new n : g n = FibTree.g n.
+Lemma nothing_new n : g n = FunG.g n.
 Proof.
  apply G_fun with n.
  unfold g. now destruct g_spec.
- apply FibTree.g_correct.
+ apply FunG.g_correct.
 Qed.

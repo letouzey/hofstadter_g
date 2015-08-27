@@ -83,10 +83,10 @@ endif
 
 VFILES:=DeltaList.v\
   Fib.v\
-  FibTree.v\
-  FibTree_prog.v\
+  FunG.v\
+  FunG_prog.v\
   Phi.v\
-  FlipFibTree.v
+  FlipG.v
 
 -include $(addsuffix .d,$(VFILES))
 .SECONDARY: $(addsuffix .d,$(VFILES))

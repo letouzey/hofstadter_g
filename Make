@@ -1,7 +1,7 @@
 COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
-FlipFibTree.v
+FlipG.v
 Phi.v
-FibTree_prog.v
-FibTree.v
+FunG_prog.v
+FunG.v
 Fib.v
 DeltaList.v

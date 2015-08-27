@@ -1,7 +1,7 @@
 (** * Phi : Hofstadter G function and the golden ratio *)
 
 Require Import Arith Fourier R_Ifp R_sqrt Znumtheory.
-Require Import Fib FibTree.
+Require Import Fib FunG.
 
 Open Scope R.
 

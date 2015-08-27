@@ -1,7 +1,7 @@
-(** FlipFibTree : Hofstadter's flipped G tree *)
+(** * FlipG : Hofstadter's flipped G tree *)
 
 Require Import Arith Omega Wf_nat List Program Program.Wf NPeano.
-Require Import DeltaList Fib FibTree.
+Require Import DeltaList Fib FunG.
 Set Implicit Arguments.
 
 (** See first the previous file for the study of:
@@ -575,13 +575,13 @@ destruct (fg_step n) as [H|H].
 Qed.
 
 Definition lchild n :=
- if eq_nat_dec n 1 then 1 else flip (FibTree.rchild (flip n)).
+ if eq_nat_dec n 1 then 1 else flip (FunG.rchild (flip n)).
  (** leftmost son, always there (but might be equal to
      the rightmost son for unary nodes) *)
 
 Lemma lchild'_alt n : n<>1 -> lchild n = flip (flip n + flip (fg n)).
 Proof.
- unfold lchild, FibTree.rchild, fg.
+ unfold lchild, FunG.rchild, fg.
  destruct eq_nat_dec; [intros; omega|intros].
  f_equal. f_equal.
  symmetry. apply flip_flip.
@@ -613,7 +613,7 @@ Proof.
      destruct eq_nat_dec.
      * generalize (fib_nz k); intros; omega.
      * rewrite flip_Sfib; auto.
-       unfold FibTree.rchild. rewrite g_fib.
+       unfold FunG.rchild. rewrite g_fib.
        rewrite <- fib_eqn.
        rewrite flip_fib; auto.
        replace (S (fib (S k)) - 1) with (fib (S k)) by omega.
@@ -627,7 +627,7 @@ Proof.
      * unfold lchild.
        destruct eq_nat_dec; [omega|].
        rewrite flip_flip.
-       rewrite FibTree.rightmost_child_carac; auto.
+       rewrite FunG.rightmost_child_carac; auto.
        apply g_onto_eqn.
      * change (depth n) with k; apply depth_carac; omega.
      * assert (D : depth (lchild n) = S k).
