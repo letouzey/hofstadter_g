@@ -1157,7 +1157,23 @@ Qed.
 
 (** Note: the positions where [fg] and [g] differ start at 7
     and then are separated by 5 or 8 (see [Fib.TwoEven_next]
-    and related lemmas). *)
+    and related lemmas). Moreover these positions are always
+    unary nodes in [G] (see [FunG.decomp_unary]).
+
+    In fact, the [g] tree can be turned into the [fg] tree
+    by repeating the following transformation whenever [s] below
+    is TwoEven:
+<<
+  r   s t             r s   t
+   \ /  |             |  \ /
+    p   q   becomes   p   q
+     \ /               \ /
+      n                 n
+>>
+
+    In the left pattern above, [s] is TwoEven, hence [r] and
+    [p] and [n] are One, [q] is TwoOdd and [t] is High.
+*)
 
 (** Some immediate consequences: *)
 

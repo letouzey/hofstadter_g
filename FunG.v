@@ -970,6 +970,123 @@ Qed.
     ([fib 1 + fib 2 = fib 3], etc) to regain a canonical
     decomposition (with no consecutive fib terms), see [Fib.norm].*)
 
+(*==============================================================*)
+
+(** * Fibonacci decomposition and [G] node arity *)
+
+Lemma decomp_rchild l : ~In 0 l -> Delta 1 l ->
+  rchild (sumfib l) = sumfib (map S l).
+Proof.
+ intros.
+ unfold rchild.
+ rewrite g_sumfib' by trivial.
+ now apply sumfib_eqn.
+Qed.
+
+Lemma decomp_unary k l : ~In 0 (2*k::l) -> Delta 2 (2*k::l) ->
+ Unary g (sumfib (2*k::l)).
+Proof.
+ intros Hl D.
+ rewrite unary_carac2.
+ unfold lchild. fold (rchild (sumfib (2*k::l))).
+ rewrite decomp_rchild by auto.
+ change (map S (2*k::l)) with (S(2*k)::map S l).
+ rewrite <- Nat.add_1_r.
+ rewrite sumfib_cons.
+ rewrite Nat.add_sub_swap by (generalize (fib_nz (2*k+1)); omega).
+ rewrite Nat.sub_1_r, <- sumfib_evens, <- sumfib_app.
+ rewrite <- S_odds, <- map_app.
+ rewrite g_sumfib.
+ - rewrite sumfib_app, sumfib_odds.
+   generalize (fib_nz (2*k)). simpl. omega.
+ - apply Delta_app with (2*k); auto using Delta_odds.
+   intros y Hy. apply odds_in in Hy. omega.
+Qed.
+
+Lemma decomp_binary k l : Delta 2 (2*k+1::l) ->
+ Binary g (sumfib (2*k+1::l)).
+Proof.
+ intros D.
+ rewrite <- multary_binary, binary_carac2.
+ split.
+ - rewrite sumfib_cons. generalize (fib_nz (2*k+1)). omega.
+ - unfold lchild. fold (rchild (sumfib (2*k+1::l))).
+   assert (~In 0 (2*k+1::l)) by (eapply Delta_nz; eauto; omega).
+   rewrite decomp_rchild by auto.
+   change (map S (2*k+1::l)) with (S(2*k+1)::map S l).
+   replace (S(2*k+1)) with (2*(S k)) by omega.
+   rewrite sumfib_cons.
+   rewrite Nat.add_sub_swap by (generalize (fib_nz (2*(S k))); omega).
+   rewrite Nat.sub_1_r, <- sumfib_odds, <- sumfib_app.
+   rewrite odds_S. simpl app. rewrite <- map_app.
+   change (1::map S (evens k ++ l)) with (map S ((0::evens k) ++ l)).
+   rewrite g_sumfib.
+   + rewrite sumfib_app, !sumfib_cons, sumfib_evens.
+     generalize (fib_nz (2*k+1)). simpl (fib 0). omega.
+   + apply Delta_app with (2*k+1); auto.
+     * apply Delta_alt; split; auto using Delta_evens.
+       intros y Hy. apply evens_in in Hy. omega.
+     * intros y [Hy|Hy]; try apply evens_in in Hy; omega.
+Qed.
+
+Lemma decomp_unary' k l : ~In 0 (2*k::l) -> Delta 1 (2*k::l) ->
+ Unary g (sumfib (2*k::l)).
+Proof.
+ intros Hl D.
+ rewrite <- Fib.norm_sum.
+ assert (Hd := Fib.norm_hd (2*k::l)).
+ assert (D' := Fib.norm_ok D).
+ destruct (Fib.norm (2*k::l)) as [|k' l']; try contradiction.
+ destruct Hd as (p,Hp).
+ replace (2*k+2*p) with (2*(k+p)) in Hp by omega.
+ subst k'.
+ apply decomp_unary; auto.
+ eapply Delta_nz; eauto. simpl in Hl. omega.
+Qed.
+
+Lemma decomp_binary' k l : Delta 1 (2*k+1::l) ->
+ Binary g (sumfib (2*k+1::l)).
+Proof.
+ intros D.
+ rewrite <- Fib.norm_sum.
+ assert (Hd := Fib.norm_hd (2*k+1::l)).
+ assert (D' := Fib.norm_ok D).
+ destruct (Fib.norm (2*k+1::l)) as [|k' l']; try contradiction.
+ destruct Hd as (p,Hp).
+ replace (2*k+1+2*p) with (2*(k+p)+1) in Hp by omega.
+ subst k'.
+ apply decomp_binary; auto.
+Qed.
+
+Lemma decomp_even_iff_unary k l :
+  ~In 0 (k::l) -> Delta 1 (k::l) ->
+  (Unary g (sumfib (k::l)) <-> Nat.Even k).
+Proof.
+ intros Hl D.
+ split; intros H.
+ - destruct (Nat.Even_or_Odd k) as [Hk|(p,Hp)]; trivial.
+   exfalso. eapply unary_xor_multary; eauto. rewrite multary_binary.
+   subst k. clear H.
+   now apply decomp_binary'.
+ - destruct H as (p,Hp). subst k.
+   now apply decomp_unary'.
+Qed.
+
+Lemma decomp_odd_iff_binary k l :
+  ~In 0 (k::l) -> Delta 1 (k::l) ->
+  (Binary g (sumfib (k::l)) <-> Nat.Odd k).
+Proof.
+ intros Hl D.
+ split; intros H.
+ - destruct (Nat.Even_or_Odd k) as [(p,Hp)|Hk]; trivial.
+   exfalso. apply multary_binary in H.
+   eapply unary_xor_multary; eauto.
+   subst k. clear H.
+   now apply decomp_unary'.
+ - destruct H as (p,Hp). subst k.
+   now apply decomp_binary'.
+Qed.
+
 
 (*==============================================================*)
 
