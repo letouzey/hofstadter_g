@@ -804,14 +804,6 @@ Proof.
  rewrite H. omega.
 Qed.
 
-Lemma g_One n : Fib.One 2 n -> g (S n) = g n.
-Proof.
- intros (l & H & Hl).
- rewrite H.
- change (S (sumfib (1::l))) with (sumfib (2::l)).
- rewrite !g_sumfib'; eauto.
-Qed.
-
 (** Now, the proof that [fg(n)] is either [g(n)] or [g(n)+1].
     This proof is split in many cases according to the shape
     of the Fibonacci decomposition of [n]. *)
@@ -821,315 +813,108 @@ Definition IHeq n :=
 Definition IHsucc n :=
  forall m, m<n -> Fib.TwoEven 2 m -> fg m = S (g m).
 
-Lemma fg_g_S n : IHeq n -> Fib.TwoEven 2 n -> fg n = S (g n).
+Lemma fg_g_aux0 n : IHeq n -> Fib.TwoEven 2 n -> fg n = S (g n).
 Proof.
- intros IH (p & l & E & D).
- assert (2 <= p).
- { destruct p as [|[|p]]; inversion D; omega. }
- assert (7 <= n).
- { generalize (@fib_mono 4 (2*p)). simpl in *. omega. }
- apply fg_g_S_inv; [omega|].
- assert (Hl : forall x, In x l -> 4<=x).
- { intros x Hx. apply Delta_alt in D. apply D. simpl. now right. }
- assert (~In 0 l) by (intro X; apply Hl in X; omega).
- set (l' := map pred l).
- assert (Hl' : map S l' = l) by (unfold l'; now apply map_S_pred).
- assert (~In 0 l').
- { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
-   apply Hl in Hx'. omega. }
- assert (D1 : Delta 1 (1::2*p::l)).
- { apply Delta_low_hd with 2; auto. }
- assert (D2 : Delta 2 (1::2*p-1::l')).
- { apply Delta_pred in D; [|eauto]. simpl in D.
-   rewrite Nat.sub_1_r. eauto. }
- assert (E1 : n - 1 = sumfib (1 :: 2*p :: l)).
- { rewrite E. simpl. omega. }
- assert (E2 : g (n-1) = sumfib (1::2*p-1::l')).
- { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
- assert (E3 : S (g (n-1)) = sumfib (2::2*p-1::l')).
- { now rewrite E2. }
- assert (F : One 1 (n-1)). { exists (2*p::l). auto. }
- assert (F' : TwoOdd 1 (S (g (n-1)))).
- { exists (p-1); exists l'.
-   replace (2*(p-1)+1) with (2*p-1) by omega. auto. }
- rewrite (IH (n-1)) by (auto;omega).
- rewrite IH by (auto; generalize (@g_lt (n-1)); omega).
- apply g_One; auto.
- exists (2*p-1::l'); auto.
+ intros IH TE.
+ assert (6 <= n) by now apply TwoEven_le.
+ apply fg_g_S_inv; try omega.
+ rewrite (IH (n-1)), IH; try (generalize (@g_lt (n-1)); omega).
+ - rewrite Even_gP by auto. apply g_One, Two_g; auto.
+ - rewrite Even_gP by auto.
+   now apply TwoOdd_not_TwoEven', TwoEven_Sg.
+ - apply One_not_TwoEven, Even_pred_One; auto.
 Qed.
 
-Lemma fg_g_eq_1 n : IHeq n -> 3<n -> Fib.One 2 n -> fg n = g n.
+Lemma fg_g_aux1 n : IHeq n -> 3<n -> Fib.One 2 n -> fg n = g n.
 Proof.
- intros IH H3n (l & E & D).
+ intros IH N FO.
  apply fg_g_eq_inv; auto.
- assert (Hl : forall x, In x l -> 3<=x).
- { intros x Hx. apply Delta_alt in D. now apply D. }
- assert (~In 0 l) by (intros X; apply Hl in X; omega).
- set (l' := map pred l).
- assert (Hl' : map S l' = l) by (unfold l'; now apply map_S_pred).
- assert (~In 0 l').
- { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
-   apply Hl in Hx'. omega. }
- assert (D1 : Delta 1 (2::l)) by auto.
- assert (D2 : Delta 1 (1::l')). { apply Delta_pred in D1; eauto. }
- assert (E1 : n-1 = sumfib l). { rewrite E. simpl. omega. }
- assert (E2 : g (n-1) = sumfib l'). { rewrite E1, g_sumfib'; eauto. }
- assert (E3 : S (g (n-1)) = sumfib (1::l')). { rewrite E2; auto. }
- assert (F : High 1 (n-1)).
- { destruct l as [|k l]; [simpl in E; omega|].
-   exists k; exists l; repeat split; eauto. inversion D; omega. }
- assert (F' : One 1 (S (g (n-1)))).
- { exists l'; auto. }
+ assert (High 2 (n-1)) by now apply One_pred_High.
+ assert (Odd 2 (g n)) by now apply One_g.
  rewrite (IH (n-1)) by (auto;omega).
- rewrite IH by (auto; generalize (@g_lt (n-1)); omega).
- rewrite E3, E2.
- rewrite !g_sumfib'; eauto.
+ rewrite 2 Odd_gP; auto using One_Odd.
+ assert (g n <> 0) by (apply g_nz; omega).
+ assert (g (g n) <> 0) by now apply g_nz.
+ replace (S (g n - 1)) with (g n) by omega.
+ rewrite IH; auto; try apply g_lt; omega.
 Qed.
 
-Lemma fg_g_eq_2 n :
+Lemma fg_g_aux2 n :
  IHeq n -> IHsucc n -> 3<n -> Fib.TwoOdd 2 n -> fg n = g n.
 Proof.
- intros IH1 IH2 H3n (p & l & E & D).
- assert (1<p).
- { destruct p as [|[|p]]; inversion D; omega. }
- apply fg_g_eq_inv; auto.
- assert (Hl : forall x, In x l -> 4<=x).
- { intros x Hx. apply Delta_alt in D. apply D. now right. }
- assert (~In 0 l) by (intro X; apply Hl in X; omega).
- set (l' := map pred l).
- assert (Hl' : map S l' = l) by (unfold l'; now apply map_S_pred).
- assert (~In 0 l').
- { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
-   apply Hl in Hx'. omega. }
- assert (D1 : Delta 1 (1 :: 2*p+1 :: l)).
- { constructor. omega. eauto. }
- assert (D2 : Delta 2 (1 :: 2*p :: l')).
- { apply Delta_pred in D; eauto. simpl in D.
-   rewrite Nat.add_1_r in D. auto. }
- assert (E1 : n-1 = sumfib (1 :: 2*p+1 :: l)). { now rewrite E. }
- assert (E2 : g (n-1) = sumfib (1::2*p::l')).
- { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
- assert (E3 : S (g (n-1)) = sumfib (2::2*p::l')). { now rewrite E2. }
- assert (F : One 1 (n-1)). { exists (2*p+1::l); auto. }
- assert (F' : TwoEven 2 (S (g (n-1)))).
- { apply TwoEven_equiv. exists p; exists l'; auto. }
- rewrite (IH1 (n-1)) by (auto;omega).
- rewrite IH2 by (auto; generalize (@g_lt (n-1)); omega).
- f_equal.
- apply g_One.
- exists (2*p::l'); auto.
+ intros IH1 IH2 N TO.
+ apply fg_g_eq_inv; try omega.
+ assert (H' := @g_lt (n-1)).
+ rewrite (IH1 (n-1)), IH2; try omega.
+ - rewrite Even_gP by auto.
+   f_equal. apply g_One. apply Two_g; auto.
+ - rewrite Even_gP by auto. now apply TwoOdd_Sg.
+ - apply One_not_TwoEven, Two_pred_One; auto.
 Qed.
 
-Lemma fg_g_eq_3even n k l : IHeq n -> 3<n ->
- n = sumfib (2*k::l) -> 2<=k -> Delta 2 (2*k::l) ->
- fg n = g n.
-Proof.
- intros IH H3n E Hk D.
- apply fg_g_eq_inv; auto.
- assert (Hl : forall x, In x l -> 4<=x).
- { intros x Hx. apply Delta_alt in D. apply D in Hx. omega. }
- assert (~In 0 l) by (intro X; apply Hl in X; omega).
- set (l' := map pred l).
- assert (Hl' : map S l' = l) by (unfold l'; now apply map_S_pred).
- assert (~In 0 l').
- { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
-   apply Hl in Hx'. omega. }
- set (l0 := odds k).
- set (l0' := evens (k-2)).
- assert (~In 0 (l0++l)).
- { rewrite in_app_iff. intros [X|X]; [|intuition].
-   unfold l0 in X. apply odds_in in X. omega. }
- assert (Hl0 : sumfib l0 = pred (fib (2*k))).
- { unfold l0. apply sumfib_odds. }
- assert (Hl0' : l0 = 1::map S (evens (k-1))).
- { unfold l0. rewrite <- odds_S. f_equal. omega. }
- assert (D1 : Delta 1 (l0++l)).
- { apply Delta_app with (2*k); unfold l0; auto using Delta_odds.
-   intros y Hy. apply odds_in in Hy. omega. }
- set (SS := fun x => S (S x)).
- assert (D2 : Delta 1 (1::3::map SS l0' ++ l')).
- { constructor. omega.
-   apply (@Delta_app 1 (2*k) (3::map SS l0')).
-   - apply Delta_alt. split.
-     + apply Delta_map with 2; [|apply Delta_evens].
-       intros; unfold SS; omega.
-     + intros y. rewrite in_map_iff. intros (x,(<-,Hx)).
-       apply evens_in in Hx. unfold SS; omega.
-   - apply (@Delta_pred _ (S (2*k)::l)); auto. simpl; intuition.
-   - intros y. simpl. rewrite in_map_iff.
-     intros [X|(x,(<-,Hx))]. subst y. omega.
-     apply evens_in in Hx. unfold SS; omega. }
- assert (D3 : Delta 1 (1::2::map SS l0' ++ l')).
- { constructor. omega. apply Delta_low_hd with 3; eauto. }
- assert (E1 : n-1 = sumfib (l0 ++ l)).
- { rewrite sumfib_app.
-   rewrite E, Hl0. generalize (fib_nz (2*k)). simpl. omega. }
- assert (E2 : g (n-1) = sumfib (1::2::map SS l0' ++ l')).
- { unfold l'. rewrite E1, g_sumfib'; auto. rewrite Hl0'.
-   simpl. rewrite map_app, map_map, map_id.
-   replace (k-1) with (S (k-2)) by omega.
-   rewrite <- S_odds, odds_S. simpl. now rewrite map_map. }
- assert (E3 : S (g(n-1)) = sumfib (1::3::map SS l0' ++ l')).
- { now rewrite E2. }
- assert (F1 : One 1 (n-1)).
- { rewrite E1. rewrite Hl0' in D1 |- *.
-   exists (map S (evens (k-1)) ++ l); auto. }
- assert (F2 : One 1 (S (g (n-1)))).
- { exists (3::map SS l0' ++ l'); auto. }
- rewrite (IH (n-1)); auto; try omega.
- rewrite IH by (auto; generalize (@g_lt (n-1)); omega).
- rewrite E3, E2.
- rewrite !g_sumfib'; eauto.
-Qed.
-
-Lemma fg_g_eq_33 n l : IHeq n -> IHsucc n -> 3<n ->
- n = sumfib (3::l) -> Delta 2 (3::l) ->
- fg n = g n.
-Proof.
- intros IH1 IH2 Hn E D.
- apply fg_g_eq_inv; auto.
- assert (Hl : forall x, In x l -> 4<=x).
- { intros x Hx. apply Delta_alt in D. apply D in Hx. omega. }
- assert (~In 0 l) by (intro X; apply Hl in X; omega).
- assert (E1 : n - 1 = sumfib (2::l)). { now rewrite E. }
- destruct l as [|k l]; [simpl in *; omega|].
- assert (5 <= k) by (inversion D; omega).
- assert (11 <= n).
- { rewrite E. simpl. generalize (@fib_mono 5 k).
-   change (fib 5) with 8. omega. }
- destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
- - (* next term is even *)
-   assert (D1 : Delta 1 (2::2*p::l)).
-   { apply Delta_low_hd with 3; auto. }
-   assert (D2 : Delta 1 (3 :: 2*p-1 :: map pred l)).
-   { constructor. omega.
-     apply Delta_pred in D1; eauto. simpl in D1.
-     rewrite Nat.sub_1_r; eauto. }
-   assert (D3 : Delta 1 (1 :: 2*p-1 :: map pred l)).
-   { apply Delta_low_hd with 3; auto. }
-   assert (E2 : g (n-1) = sumfib (1::2*p-1::map pred l)).
-   { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
-   assert (E3 : S (S (g (n-1))) = sumfib (3::2*p-1::map pred l)).
-   { now rewrite E2. }
-   assert (F1 : TwoEven 2 (n-1)).
-   { apply TwoEven_equiv. rewrite E1. exists p; exists l; auto. }
-   assert (F2 : High 1 (S (S (g (n-1))))).
-   { exists 3; exists (2*p-1 :: map pred l); auto. }
-   assert (g (n-1) < n-2).
-   { generalize (g_lipschitz 5 (n-1)). change (g 5) with 3. omega. }
-   rewrite (IH2 (n-1)) by (auto; omega).
-   rewrite IH1 by (auto; omega).
-   rewrite E3, E2.
-   rewrite !g_sumfib'; eauto.
- - (* next term is odd *)
-   assert (D1 : Delta 1 (2::2*p+1::l)).
-   { apply Delta_low_hd with 3; auto. }
-   assert (D2 : Delta 2 (2 :: 2*p :: map pred l)).
-   { constructor. omega.
-     apply Delta_pred in D; eauto. simpl in D.
-     replace (2*p) with (pred (2*p+1)); eauto. omega. }
-   assert (D3 : Delta 2 (1 :: 2*p :: map pred l)).
-   { apply Delta_low_hd with 2; auto. }
-   assert (E2 : g (n-1) = sumfib (1::2*p::map pred l)).
-   { rewrite E1, g_sumfib'; eauto. simpl. do 3 f_equal. omega. }
-   assert (E3 : S (g (n-1)) = sumfib (2::2*p::map pred l)).
-   { now rewrite E2. }
-   assert (F1 : TwoOdd 1 (n-1)).
-   { rewrite E. exists p; exists l; auto. }
-   assert (F2 : TwoEven 2 (S (g (n-1)))).
-   { exists p; exists (map pred l); auto. }
-   rewrite (IH1 (n-1)) by (auto; omega).
-   rewrite IH2; [|generalize (@g_lt (n-1)); omega|auto].
-   f_equal.
-   apply g_One.
-   exists (2*p::map pred l); auto.
-Qed.
-
-Lemma fg_g_eq_3odd n k l : IHeq n -> IHsucc n -> 3<n ->
- n = sumfib (2*k+1::l) -> 2<=k -> Delta 2 (2*k+1::l) ->
- fg n = g n.
-Proof.
- intros IH1 IH2 Hn E Hk D.
- apply fg_g_eq_inv; auto.
- assert (Hl : forall x, In x l -> 4<=x).
- { intros x Hx. apply Delta_alt in D. apply D in Hx. omega. }
- assert (~In 0 l) by (intro X; apply Hl in X; omega).
- set (l' := map pred l).
- assert (Hl' : map S l' = l) by (unfold l'; now apply map_S_pred).
- assert (~In 0 l').
- { unfold l'. rewrite in_map_iff. intros (x,(Hx,Hx')).
-   apply Hl in Hx'. omega. }
- set (l0 := evens k).
- assert (Hl0 : sumfib l0 = pred (fib (2*k+1))).
- { unfold l0. apply sumfib_evens. }
- assert (D1 : Delta 1 (l0++l)).
- { apply Delta_app with (2*k+1); auto.
-   - unfold l0. apply Delta_21, Delta_evens.
-   - unfold l0. intros y Hy. apply evens_in in Hy. omega. }
- assert (~In 0 (l0++l)).
- { rewrite in_app_iff. intros [X|X]; [|intuition].
-   unfold l0 in X. apply evens_in in X. omega. }
- assert (E1 : n - 1 = sumfib (l0 ++ l)).
- { rewrite sumfib_app.
-   rewrite E, Hl0. generalize (fib_nz (2*k+1)). simpl; omega. }
- set (S4 := fun x => 4+x).
- set (S3 := fun x => 3+x).
- set (l0' := evens (k-2)).
- assert (E2 : n - 1 = sumfib (2::4::map S4 l0' ++ l)).
- { rewrite E1; unfold l0, l0'.
-   replace k with (S (S (k-2))) at 1 by omega.
-   rewrite <- S_odds, odds_S, <- S_odds, odds_S.
-   simpl map. simpl app. now rewrite !map_map. }
- assert (D2 : Delta 2 (2 :: 4 :: map S4 l0' ++ l)).
- { constructor. omega.
-   apply (@Delta_app 2 (2*k+1) (4::map S4 l0')); auto.
-   - apply Delta_alt. split.
-     + apply Delta_map with 2; [|apply Delta_evens].
-       intros; unfold S4; omega.
-     + intros y. rewrite in_map_iff. intros (x,(Hx,Hx')).
-       apply evens_in in Hx'. unfold S4 in *; omega.
-   - intros y. simpl. rewrite in_map_iff. unfold S4.
-     intros [X|(x,(<-,Hx))]; try (apply evens_in in Hx); omega. }
- assert (D3 : Delta 1 (1 :: 4 :: map S3 l0' ++ l')).
- { constructor. omega.
-   apply Delta_inv in D2.
-   assert (0<4) by omega.
-   apply Delta_pred in D2; [|eauto]. simpl in D2.
-   rewrite map_app, map_map in D2. simpl map in D2. auto. }
- assert (D4 : Delta 1 (1 :: 3 :: map S3 l0' ++ l')).
- { constructor. omega. apply Delta_low_hd with 4; eauto. }
- assert (E3 : g (n-1) = sumfib (1::3::map S3 l0'++l')).
- { rewrite E2, g_sumfib'; eauto.
-   simpl. now rewrite map_app, map_map. }
- assert (E4 : S (S (g (n-1))) = sumfib (1::4::map S3 l0' ++ l')).
- { now rewrite E3. }
- assert (F1 : TwoEven 2 (n-1)).
- { exists 2; exists (map S4 l0' ++ l); auto. }
- assert (F2 : One 1 (S (S (g (n-1))))).
- { exists (4::map S3 l0' ++ l'); auto. }
- assert (g (n-1) < n-2).
- { clear - Hk E.
-   assert (8 <= n).
-   { rewrite E. generalize (@fib_mono 5 (2*k+1)).
-     change (fib 5) with 8. simpl. omega. }
-   generalize (g_lipschitz 5 (n-1)). change (g 5) with 3.
-   omega. }
- rewrite (IH2 (n-1)) by (auto; omega).
- rewrite IH1 by (auto; try omega).
- rewrite E4, E3.
- rewrite !g_sumfib'; eauto.
-Qed.
-
-Lemma fg_g_eq_3 n : IHeq n -> IHsucc n -> 3<n ->
+Lemma fg_g_aux3 n : IHeq n -> IHsucc n -> 3<n ->
  Fib.High 2 n -> fg n = g n.
 Proof.
- intros IH1 IH2 Hn (k & l & E & Hk & D).
+ intros IH1 IH2 Hn (k & K & L).
+ apply fg_g_eq_inv; auto.
  destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
- - apply (@fg_g_eq_3even n p l); auto. omega.
- - destruct p as [|[|p]].
+ - (* even *)
+   assert (High 2 n) by (exists (2*p); auto).
+   assert (Even 2 n) by now exists p.
+   rewrite (IH1 (n-1));
+     [ | omega | now apply One_not_TwoEven, Even_pred_One ].
+   assert (S (g (n-1)) < n) by (generalize (@g_lt (n-1)); omega).
+   rewrite Even_gP in * by auto.
+   rewrite IH1; try omega.
+   + apply g_not_One. now apply High_g.
+   + now apply Odd_not_TwoEven, High_Sg.
+ - (* odd *)
+   assert (E1 : g (n-1) = g n - 1) by (apply Odd_gP; now exists p).
+   assert (S (fg (n-1)) < n) by (generalize (@fg_lt (n-1)); omega).
+   assert (g n <> 0) by (apply g_nz; omega).
+   assert (E2 : S (g n - 1) = g n) by omega.
+   destruct p as [|[|p]].
    + simpl in *. omega.
-   + apply (@fg_g_eq_33 n l); auto.
-   + apply (@fg_g_eq_3odd n (S (S p)) l); auto. omega.
+   + (* three *)
+     simpl in *.
+     assert (Ev : Even 2 (g n)) by now apply Three_g.
+     rewrite E1, Even_gP by auto.
+     destruct L as (l & E & D & _).
+     destruct l as [|k l]; [simpl in E; omega|].
+     destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
+     * (* next term after 3 is even *)
+       assert (TwoEven 2 (n-1)).
+       { exists p; exists l; auto. subst; split; auto.
+         eapply Delta_low_hd with 3; auto. }
+       rewrite (IH2 (n-1)) in * by (auto; omega).
+       rewrite E1, E2, IH1 in *; auto using Even_succ_Odd.
+       apply g_not_One.
+       intro. eapply Even_xor_Odd; eauto using One_Odd.
+     * (* next term after 3 is odd *)
+       assert (TwoOdd 2 (n-1)).
+       { exists p; exists l; auto. subst; split; auto.
+         eapply Delta_low_hd with 3; auto. }
+       rewrite (IH1 (n-1)) in * by (auto; omega).
+       rewrite E1, E2, IH2 in *; auto.
+       replace n with (S (n-1)) by omega.
+       rewrite g_not_One. now apply TwoOdd_Sg.
+       intro. eapply One_not_Two; eauto using TwoOdd_Two.
+   + (* high odd *)
+     remember (S (S p)) as k eqn:K'.
+     assert (1<k) by omega. clear K K'.
+     assert (Odd 2 n) by now exists k.
+     assert (~One 2 n).
+     { intro O. generalize (Low_unique L O). omega. }
+     assert (~Three 2 n).
+     { intro T. generalize (Low_unique L T). omega. }
+     assert (TwoEven 2 (n-1)) by now apply OddHigh_pred_TwoEven.
+     rewrite (IH2 (n-1)) in *; auto; try omega.
+     rewrite E1, E2 in *.
+     assert (Ev : Even 2 (g n)) by now apply Odd_g.
+     rewrite Even_gP by auto.
+     rewrite IH1; auto using Even_succ_Odd.
+     apply g_not_One.
+     intro. eapply Even_xor_Odd; eauto using One_Odd.
 Qed.
 
 (** The main result: *)
@@ -1143,16 +928,17 @@ Proof.
  assert (IH2 := fun m (H:m<n) => proj2 (IH m H)).
  clear IH.
  split.
- - now apply fg_g_S.
+ - now apply fg_g_aux0.
  - intros.
    destruct (le_lt_dec n 3) as [LE|LT].
    + destruct n as [|[|[|n]]]; try reflexivity.
      replace n with 0 by omega. reflexivity.
-   + destruct (decomp_complete LT) as [X|[X|[X|X]]].
-     * now apply fg_g_eq_1.
+   + assert (LT' : 2 < n) by omega.
+     destruct (decomp_complete' LT') as [X|[X|[X|X]]].
+     * now apply fg_g_aux1.
      * intuition.
-     * now apply fg_g_eq_2.
-     * now apply fg_g_eq_3.
+     * now apply fg_g_aux2.
+     * now apply fg_g_aux3.
 Qed.
 
 (** Note: the positions where [fg] and [g] differ start at 7
@@ -1183,7 +969,8 @@ Proof.
  - left.
    destruct n as [|[|[|n]]]; try reflexivity.
    replace n with 0 by omega. reflexivity.
- - destruct (decomp_complete LT) as [X|[X|[X|X]]].
+ - assert (LT' : 2 < n) by omega.
+   destruct (decomp_complete' LT') as [X|[X|[X|X]]].
    * left. apply fg_g. now apply One_not_TwoEven.
    * right. now apply fg_g.
    * left. apply fg_g. now apply TwoOdd_not_TwoEven.
