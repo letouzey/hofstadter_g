@@ -1,0 +1,384 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+\usepackage[english]{babel}
+\usepackage{url}
+\usepackage{amsthm}
+
+\title{Hofstadter's problem for the curious reader}
+\author{Pierre letouzey}
+
+\begin{document}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\maketitle
+
+\newcommand{\FG}{\ensuremath{\overline{G}}}
+\newcommand{\fibrest}{\ensuremath{\Sigma F_i}}
+
+\section{Introduction}
+This document summarizes the proofs made during a Coq development in
+Summer 2015. This development investigates the function $G$ introduced
+by Hofstadter in his famous ``Gödel, Escher, Bach'' book\cite{??}, as
+well as the related infinite $G$ tree. The left/right flipped variant
+$\FG$ of this $G$ tree has also been studied here, following
+Hofstadter ``problem for the curious reader''.
+The initial $G$ function is refered as sequence A005206 in
+OEIS\cite{??}, while the flipped version $\FG$ is the sequence
+A123070.
+
+The detailled and machine-checked proofs can be found in the files
+of this development\footnote{See
+\url{http://www.pps.univ-paris-diderot.fr/~letouzey/hofstadter_g}}
+and can be re-checked by running Coq version 8.4 \cite{??} on it.
+In this document, we'll only give some proof sketchs of the
+main results of this development. No prior knowledge of Coq is assumed
+here.
+
+\section{Prior art and contributions}
+Most of the results proved here were already mentionned elsewhere,
+e.g. on the OEIS pages for $G$ and $\FG$. These results were certified
+in Coq without consulting more the literature, so more elegant proofs
+may exist elsewhere. To the best of my knowledge, the main novelties
+of this development are:
+\begin{enumerate}
+\item
+  A proof of the recursive
+equation for $\FG$ which is currently mentionned as a conjecture in OEIS:
+
+$$\forall n>3, \FG(n) = n+1 - \FG(1+\FG(n-1))$$
+
+\item
+  The statement and proof of another equation for $\FG$:
+
+$$\forall n>3, \FG(\FG(n)) + \FG(n-1) = n$$
+
+Although simpler than the previous one, this equation isn't
+enough to characterize $\FG$ unless an extra monotonocity
+condition on $\FG$ is assumed.
+
+\item
+  The statement and proof of a result comparing $\FG$ and $G$:
+for all $n$, $\FG(n)$ is either $G(n)+1$ or $G(n)$, depending
+on the existence of a decomposition of $n$ as sum of Fibonacci numbers
+of the form $F_2 + F_{2p} + ...$ where $F_2 = 2$. Moreover these
+specific numbers where $\FG$ and $G$ differ are separated by either
+5 or 8.
+
+\item The studies of $G$ and $\FG$ ``derivatives''
+  ($\Delta G(n) = G(n+1)-G(n)$ and similarly for $\Delta\FG$),
+  leading to yet another characterization of $G$ and $\FG$.
+
+\end{enumerate}
+
+\section{Coq jargon}
+For readers without prior knowledge
+of Coq but curious enough to have a look at the actual files
+of this development, here comes a few words about the Coq syntax.
+\begin{itemize}
+\item By default, we're manipulating natural numbers only, corresponding
+ to Coq type {\tt nat}. Only exception: in file {\tt Phi.v}
+ we switch to real numbers to represent the golden ratio.
+\item The symbol {\tt S} denotes the successor of natural numbers.
+  Hence {\tt S(2)} is the same as {\tt 3}.
+\item As in many modern functional languages such as OCaml or Haskell,
+  the usage is to skip parenthesis whenever possible, and
+  in particular around atomic arguments of functions. Hence
+  {\tt S(x)} will rather be written {\tt S x}.
+\item The symbol {\tt pred} is the predecessor for natural numbers.
+  By convention, {\tt pred 0 = 0}. Similarly, the subtraction on
+  natural numbers is rounded: {\tt 3 - 5 = 0}.
+\item Coq allows to define custom predicates to express various
+  properties of numbers, lists, etc. These custom predicates are
+  introduced by the keyword {\tt Inductive}, followed by some
+  ``introduction'' rules for the new predicate. In this development
+  we use capitalized names for these predicates (e.g. {\tt Delta},
+  {\tt Low}, ...).
+\item Coq also accepts new definition of recursive functions via
+  the command {\tt Fixpoint}. But these definitions should satisfy
+  some criterion to guarantee that the new function is well-defined
+  and total. So in this development, we also need sometimes to
+  define new functions via explicit justification of termination,
+  see for instance {\tt norm} in {\tt Fib.v} or {\tt g\_spec} in {\tt FunG.v}.
+\end{itemize}
+
+\section{Fibonacci numbers and decompositions}
+
+This section corresponds to file {\tt Fib.v}.
+
+\paragraph{Convention.} In this document and in the Coq development,
+we took the following non-standard definition of Fibonacci numbers
+$F_n$:
+
+$$F_0 = F_1 = 1$$
+$$\forall n,~~ F_{n+2} = F_{n}+F_{n+1}$$
+
+Please note the unusual $F_0 = 1$ instead of $0$. The ranks are hence
+shifted by one when compared with, say, OEIS's sequence A000045.
+With this choice, we avoid to have to consider zeros in the
+decompositions of numbers as sums of Fibonacci numbers (see
+below). In Coq, these $F_n$ numbers correspond to the {\tt fib}
+function, and we start by proving a few basic properties :
+strict positivity, monotony, strict monotony above 1, etc.
+We also prove {\tt fib\_inv} which states 
+that any positive number can by bounded by
+consecutive Fibonacci numbers :
+$$\forall n>0, \exists k, F_k \le n < F_{k+1}$$
+
+\subsection{Fibonacci decompositions} The rest of the {\tt Fib.v}
+deals with the decompositions of numbers as sums of Fibonacci
+numbers.
+\begin{definition}
+ A decomposition $n = \fibrest$ is said to be \emph{canonical} if:
+\begin{itemize}
+\item[(a)] $F_0$ isn't in the decomposition
+\item[(b)] A Fibonacci number appears at most once in the decomposition
+\item[(c)] Fibonacci numbers in the decomposition aren't consecutive
+\end{itemize}
+A decomposition is said to be \emph{relaxed} if at least conditions
+(a) and (b) hold. 
+\end{definition}
+For instance $11$ admits the canonical decomposition
+$F_3+F_5 = 3 + 8$, but also the relaxed decomposition $F_1+F_2+F_3+F_4
+= 1 + 2 + 3 + 5$.
+On a technical level, we represented in Coq the decompositions
+as sorted lists of ranks, and we used a predicate {\tt Delta $p$ $l$}
+to express that any element in the list $l$ exceeds the previous
+element by at least $p$. We hence use $p=2$ for canonical
+decompositions, and $p=1$ for relaxed ones. See file
+{\tt DeltaList.v} for the definition and properties of this
+predicate.
+
+Then we proved Zeckendorf's theorem (actually discovered earlier by Lekkerkerker):
+
+\begin{theorem}[Zeckendorf]
+Any natural number has a unique canonical decomposition.
+\end{theorem}
+
+\begin{proof}
+The proof of this theorem is quite standard : to decompose
+$n$, take the highest $F_k$ which is less or equal to $n$
+(cf {\tt fib\_inv} below),
+and continue recursively with $n-F_k$. We cannot obtain this way
+two consecutive $F_{k+1}$ and $F_k$, otherwise $F_{k+2}$ could have
+been used in the first place. And $F_0$ isn't necessary in the
+decomposition since we could use $F_1 = 1$ instead.
+For proving the unicity, the key ingredient is that this kind of
+sum cannot exceed the next Fibonacci number. For instance
+$F_1+F_3+F_5 = 1+3+8 = 12 = F_6 - 1$.
+\end{proof}
+
+\begin{definition}
+For a non-empty decomposition, its \emph{lowest rank} is the rank of
+the lowest Fibonacci number in this decomposition. By extension,
+the lowest rank $low(n)$ of a number $n\neq 0$ is the lowest
+rank of its (unique) canonical decomposition.
+\end{definition}
+For instance $low(11)=3$. In Coq, $low(n)=k$ is written
+via the predicate {\tt Low 2 $n$ $k$}. Note that this notion is
+in fact more general : {\tt Low 1 $n$ $k$} says that $n$ can be
+decomposed via a relaxed decomposition of lowest rank $k$.
+
+Interestingly, a relaxed decomposition can be transformed into
+a canonical one (see Coq function {\tt norm}):
+
+\begin{theorem}[normalisation]
+Consider a relaxed decomposition of $n$, made of $k$ terms and
+whose lowest rank is $r$. We can build a canonical decomposition
+of $n$, made of no more than $k$ terms, and whose lowest rank can
+be written $r+2p$ with $p\ge 0$.  
+\end{theorem}
+\begin{proof}
+We simply eliminate the highest consecutive Fibonacci numbers (if any)
+by summing them : $F_m+F_{m+1} \to F_{m+2}$, and repeat this
+process. By dealing with highest numbers first, we avoid the apparition of
+duplicated terms in the decomposition: $F_{m+2}$ wasn't already
+in the decomposition, otherwise we would have considered
+$F_{m+1}+F_{m+2}$ instead. Hence all the obtained decompositions
+during the process are correct relaxed decompositions. The number of
+terms is decreasing by 1 at each step, so the process is garanteed to
+terminate, and will necessarily stops on a decomposition with no
+consecutive Fibonacci numbers : we obtain indeed the canonical
+decomposition of $n$. And finally, it is easy to see that the
+lowest rank is either left intact or raised by 2 at each step
+of the process.
+\end{proof}
+
+\subsection{Classifications of Fibonacci decompositions.}
+The rest of {\tt Fib.v} deals with classifications of numbers
+according to the lowest rank of their canonical decomposition.
+In particular, this lowest rank could be 1, 2 or more. It will
+also be interesting to distinguish between lowest ranks that
+are even or odd. These kind of classifications and their
+properties will be eavily used
+during theorem\ref{??} which compares $\FG$ and $G$.
+For instance:
+\begin{theorem}[decomposition of successor]\label{fibsucc}
+\noindent
+\begin{enumerate}
+\item $low(n) = 1$ implies $low(n+1)$ is even.
+\item $low(n) = 2$ implies $low(n+1)$ is odd and different from 1.
+\item $low(n) > 2$ implies $low(n+1) = 1$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+Let $r$ be $low(n)$. We can write $n = F_r + \fibrest$ in a canonical
+way.
+\begin{enumerate}
+\item If $r = 1$, then $n+1 = F_2 + \fibrest$ is a relaxed decomposition,
+  and we conclude thanks to the previous normalization theorem.
+\item If $r = 2$, then $n+1 = F_3 + \fibrest$ is a relaxed decomposition,
+  and we conclude similarly.
+\item If $r > 2$, then $n+1 = F_1 + F_r + \fibrest$ is directly a
+  canonical decomposition.
+\end{enumerate}
+\end{proof}
+
+We also studied the decomposition of the predecessor
+$n-1$ in function of $n$. This decomposition depends of the parity of
+the lowest rank in $n$, since for $r\neq 0$ we have:
+
+$$ F_{2r} - 1 = F_1 + F_3 + ... + F_{2r-1}$$
+$$ F_{2r+1} - 1 = F_2 + F_4 + ... + F_{2r}$$
+
+Hence:
+
+\begin{theorem}[decomposition of predecessor]
+\noindent
+\begin{enumerate}
+\item If $low(n)$ is even then $low(n-1) = 1$
+\item If $low(n)$ is odd and different from 1, then $low(n-1) = 2$
+\item For $n>3$, if $low(n)=1$ then $low(n-1)>2$
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item Let the canonical decomposition of $n$ be $F_{2r} +
+  \fibrest$. Then we have $n-1 = F_1 + ... + F_{2r-1} + \fibrest$, which
+ is also a canonical decomposition. Moreover $r\neq 0$ since $F_0$
+ isn't allowed in decompositions. Hence the decomposition of $n-1$
+ contains at least the term $F_1$, and $low(n-1)=1$.
+\item When $low(n) = 2r+1$ with $r\neq 0$, we decompose
+ similarly $F_{2r+1}-1$, leading to a lowest rank 2 for $n-1$.
+\item Finally, when $n = F_1 + \fibrest$, then the canonical decomposition
+  of $n-1$ is directly the rest of the decomposition of $n$, which
+  cannot starts by $F_1$ nor $F_2$ for canonicity reasons.
+\end{enumerate}
+\end{proof}
+
+\subsection{Subdivision of decompositions starting by $F_2$}
+
+When $low(n)=2$ and $n>2$, the canonical decomposition of $n$
+admits at least a second-lowest term: $n = F_2 + F_k + ...$ and we
+will sometimes
+need to consider the parity of this second-lowest rank.
+
+\begin{definition}
+\noindent
+\begin{itemize}
+\item A number $n$ is said \emph{2-even} when its canonical decomposition
+  is of the form $F_2 + F_{2p} + ...$.
+\item A number $n$ is said \emph{2-odd} when its canonical decomposition
+  is of the form $F_2 + F_{2p+1} + ...$
+\end{itemize}
+\end{definition}
+In Coq, this corresponds to the {\tt TwoEven} and {\tt TwoOdd}
+predicates.
+In fact, the 2-even numbers will precisely be the locations where
+$G$ and $\FG$ differs (see theorem\ref{??}). The first of these 2-even number is
+$7 = F_2+F_4$, followed by $15 = F_2 + F_6$ and $20 = F_2+F_4+F_6$.
+
+A few properties of 2-even and 2-odd numbers:
+\begin{theorem}
+\noindent
+\begin{enumerate}
+\item A number $n$ is 2-even if and only if it admits
+a \emph{relaxed} decomposition of the form $F_2 + F_{2p}+...$.
+\item A number $n$ is 2-even if and only if $low(n)=2$ and
+$low(n-2)$ is even.
+\item A number $n$ is 2-odd if and only if $low(n)=2$ and
+$low(n-2)$ is odd.
+\item When $low(n)$ is odd and at least 5, then $n-1$ is 2-even.
+\item Two consecutive 2-even numbers are always apart by 5 or 8.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item
+  The left-to-right implication is obvious, since a canonical
+  decomposition can in particular be seen as a relaxed one. Suppose
+  now the existence of such a relaxed decomposition. During its
+  normalization, the $F_2$ will necessarily be left intact, and the
+  term $F_{2p}$ can grow, but only by steps of 2.
+\item Once again, the left-to-right implication is
+  obvious. Conversely, we start with the canonical decomposition of
+  $n-2=F_{2p}+\fibrest$. If $p\neq 1$, this leads to the desired canonical
+  decomposition of $n$ as $F_2+F_{2p}+\fibrest$. And the case $p=1$ is
+  impossible: assume $p=1$, then we could turn the
+  decomposition of $n-2$ into a canonical decomposition of $n-4$
+  whose lowest rank is at least 4. This gives us a relaxed
+  decomposition of $n$ of the form $F_1+F_3+\fibrest$. After normalization,
+  we would obtain that $low(n)$ is odd, which is contradictory with
+  $low(n)=2$.
+\item We proceed similarly for $low(n)=2$ and $low(n-2)$ odd implies
+  that $n$ is 2-odd. First we have a canonical decomposition of
+  $n-2 = F_{2p+1} + \fibrest$. Then $p=0$ would give a relaxed
+  decomposition of $n$ starting by 3, hence $low(n)$ odd, impossible.
+  And $p<>0$ allows to write $n = F_2+F_{2p+1}+\fibrest$ in a canonical way.
+\item When $n = F_{2p+1}+\fibrest$ with $p>1$, then $n-1 = F_2+F_4+F_{2p}+\fibrest$
+  and the condition on $p$ ensures that the terms $F_2$ and $F_4$ are
+  indeed present.
+\item If $n$ is 2-even, it could be written $F_2+F_{2p}+\fibrest$.
+  When $p>2$, then $n+5 = F_2+F_4+F_{2p}+\fibrest$ is also 2-even.
+  When $p=2$, we need to consider the third term in the decomposition
+  (if any).
+  \begin{itemize}
+  \item Either $n$ is of the form $F_2+F_4+F_6+...$
+    Then $n+F_5 = F_2 + F_4 + F_7 + ...$ is a relaxed
+    decomposition of $n+8$, hence $n+8$ is 2-even (see the first
+    part of the current theorem above).
+  \item Either $n$ is of the form $F_2+F_4+\fibrest$
+    where all terms in $\fibrest$ are strictly greater than $F_6$.
+    Then $n+F_5 = F_2 + F_6 + \fibrest$ is a relaxed
+    decomposition of $n+8$, hence $n+8$ is 2-even.
+  \end{itemize}
+  We finish the proof by considering all intermediate numbers between
+  $n$ and $n+8$ and we show that $n+5$ is the only one of them that
+  might be 2-even:
+  \begin{itemize}
+  \item $low(n+1)$ is odd (cf. theorem \ref{fibsucc}).
+  \item $n+2 = F_1+F_3+F_{2p}+\fibrest$, and normalizing this
+    relaxed decomposition shows that $low(n+2)=1$.
+  \item $n+3 = F_2+F_3+F_{2p}+\fibrest$, and normalizing this
+    relaxed decomposition will either combine $F_3$ with some
+    higher terms (leading to an odd second-lowest term and
+    hence $n+3$ is 2-odd) or combine $F_3$ with $F_2$ (in which
+    case $low(n+3)\ge 4$).
+  \item $n+4 = F_1+F_2+F_3+F_{2p}+\fibrest$, hence $low(n+4)$ is
+    odd.
+  \item $n+6 = F_5+F_{2p}+\fibrest$ is a relaxed decomposition
+   whose lowest rank is either 5 (when $p>2$) or 4 (when $p=2$).
+   After normalization, we obtain $low(n+6)\ge 4$.
+  \item Hence $low(n+7)=1$ by last case of theorem \ref{fibsucc}.
+  \end{itemize}
+\end{enumerate}
+\end{proof}
+
+
+
+
+\section{The $G$ function}
+
+This section corresponds to file {\tt FunG.v}
+
+
+\section{The $\FG$ function}
+
+This section corresponds to file {\tt FlipG.v}
+
+
+\end{document}
