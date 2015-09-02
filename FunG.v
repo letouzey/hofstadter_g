@@ -261,6 +261,29 @@ Proof.
    + omega.
 Qed.
 
+Lemma g_SS n : S (g n) <= g (S (S n)).
+Proof.
+ destruct (g_step n) as [E|E].
+ - generalize (g_nonflat _ E). omega.
+ - transitivity (g (S n)). omega. auto using g_mono_S.
+Qed.
+
+Lemma g_double_le n : n <= g (2*n).
+Proof.
+induction n.
+- trivial.
+- replace (2* S n) with (S (S (2*n))) by omega.
+  transitivity (S (g (2*n))). omega. apply g_SS.
+Qed.
+
+Lemma g_div2_le n : n/2 <= g n.
+Proof.
+ rewrite <- Nat.div2_div.
+ rewrite (Nat.div2_odd n) at 2.
+ transitivity (g (2*Div2.div2 n)).
+ apply g_double_le.
+ apply g_mono. omega.
+Qed.
 
 (*==============================================================*)
 
