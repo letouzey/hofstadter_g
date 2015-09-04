@@ -997,15 +997,24 @@ Qed.
     Most of these results will be used in next file about
     the flipped [G] tree. *)
 
-Lemma g_Low n k : 1<k -> Fib.Low 1 n k -> Fib.Low 1 (g n) (k-1).
+Lemma g_Low n k : 1<k -> Fib.Low 2 n k -> Fib.Low 2 (g n) (k-1).
 Proof.
  intros K (l & -> & D & _).
+ assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
  rewrite g_sumfib'; eauto.
  rewrite (Nat.sub_1_r).
  exists (map pred l). repeat split; auto; try omega.
  apply Delta_pred in D; auto.
- eapply Delta_nz; eauto. omega.
- eapply Delta_nz; eauto. omega.
+Qed.
+
+Lemma g_Low' n k : 1<k -> Fib.Low 1 n k -> Fib.Low 1 (g n) (k-1).
+Proof.
+ intros K (l & -> & D & _).
+ assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
+ rewrite g_sumfib'; eauto.
+ rewrite (Nat.sub_1_r).
+ exists (map pred l). repeat split; auto; try omega.
+ apply Delta_pred in D; auto.
 Qed.
 
 Lemma g_One n : Fib.One 2 n -> g (S n) = g n.
@@ -1053,10 +1062,7 @@ Qed.
 
 Lemma Two_g n : Fib.Two 2 n -> Fib.One 2 (g n).
 Proof.
-intros (l & -> & D & _).
-rewrite g_sumfib'; eauto.
-exists (map pred l); simpl; repeat split; auto.
-apply Delta_pred in D; eauto.
+apply g_Low. auto.
 Qed.
 
 Lemma TwoEven_Sg n : Fib.TwoEven 2 n -> Fib.TwoOdd 1 (S (g n)).
@@ -1085,8 +1091,7 @@ Qed.
 Lemma High_g n : Fib.High 2 n -> ~Fib.One 2 (g n).
 Proof.
  intros (k & K & L) L'.
- apply Low_21 in L. apply g_Low in L; try omega.
- apply Low_12 in L. destruct L as (p,L).
+ apply g_Low in L; try omega.
  generalize (Low_unique L L'). omega.
 Qed.
 
@@ -1102,18 +1107,20 @@ eapply Delta_nz; eauto. omega.
 eapply Delta_nz; eauto. omega.
 Qed.
 
+Lemma Even_g n : Fib.Even 2 n -> Fib.Odd 2 (g n).
+Proof.
+ intros (k & L).
+ assert (k<>0) by (apply Low_nz in L; omega).
+ apply g_Low in L; try omega.
+ exists (k-1). now replace (2*(k-1)+1) with (2*k-1) by omega.
+Qed.
+
 Lemma Odd_g n : Fib.Odd 2 n -> ~Fib.One 2 n -> Fib.Even 2 (g n).
 Proof.
  intros (k & L) L'.
  assert (k<>0) by (intros ->; intuition).
- apply Even_12. apply Low_21 in L. apply g_Low in L; try omega.
- replace (2*k+1-1) with (2*k) in L by omega. now exists k.
-Qed.
-
-Lemma Three_g n : Fib.Three 2 n -> Fib.Even 2 (g n).
-Proof.
- intros. apply Odd_g. now exists 1.
- intro. eapply One_not_High; eauto. exists 3; auto.
+ apply g_Low in L; try omega.
+ exists k. now replace (2*k) with (2*k+1-1) by omega.
 Qed.
 
 Lemma Even_gP n : Fib.Even 2 n -> g (n-1) = g n.

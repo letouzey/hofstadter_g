@@ -856,7 +856,7 @@ Proof.
  - apply High_12. exists 3. split; auto. now apply Two_succ_Three.
 Qed.
 
-Lemma High_succ_One n : High 2 n <-> One 2 (S n) /\ 2<n.
+Lemma High_succ_One n : High 2 n <-> One 2 (S n) /\ 0<n.
 Proof.
  split.
  - intros (k & K & L); split.
@@ -919,7 +919,7 @@ Proof.
  + omega.
 Qed.
 
-Lemma One_pred_High n : 3<n -> One 2 n -> High 2 (n-1).
+Lemma One_pred_High n : 1<n -> One 2 n -> High 2 (n-1).
 Proof.
  intros N O.
  rewrite High_succ_One. split; try omega.

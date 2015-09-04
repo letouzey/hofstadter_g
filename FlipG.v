@@ -829,7 +829,7 @@ Lemma fg_g_aux1 n : IHeq n -> 3<n -> Fib.One 2 n -> fg n = g n.
 Proof.
  intros IH N FO.
  apply fg_g_eq_inv; auto.
- assert (High 2 (n-1)) by now apply One_pred_High.
+ assert (High 2 (n-1)). { apply One_pred_High; auto; omega. }
  assert (Odd 2 (g n)) by now apply One_g.
  rewrite (IH (n-1)) by (auto;omega).
  rewrite 2 Odd_gP; auto using One_Odd.
@@ -877,7 +877,7 @@ Proof.
    + simpl in *. omega.
    + (* three *)
      simpl in *.
-     assert (Ev : Even 2 (g n)) by now apply Three_g.
+     assert (T : Two 2 (g n)) by (revert L; apply g_Low; auto).
      rewrite E1, Even_gP by auto.
      destruct L as (l & E & D & _).
      destruct l as [|k l]; [simpl in E; omega|].
