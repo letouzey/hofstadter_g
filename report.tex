@@ -3,7 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8x]{inputenc}
 \usepackage[english]{babel}
-\usepackage{url}
+\usepackage{hyperref}
 \usepackage{amsfonts, amsthm, amsmath}
 \usepackage{tikz-qtree}
 
@@ -15,30 +15,37 @@
 \newtheorem{definition}{Definition}
 \maketitle
 
+
+\newcommand{\docgen}[2]{\href{http://www.pps.univ-paris-diderot.fr/~letouzey/hofstadter_g/doc/#1.html#2}{\tt #1.v}}
+\newcommand{\doc}[1]{\docgen{#1}{}}
+\newcommand{\doclab}[2]{\docgen{#1}{\##2}}
 \newcommand{\FG}{\ensuremath{\overline{G}}}
 \newcommand{\fibrest}{\ensuremath{\Sigma F_i}}
 
 \section{Introduction}
 This document summarizes the proofs made during a Coq development in
 Summer 2015. This development investigates the function $G$ introduced
-by Hofstadter in his famous ``Gödel, Escher, Bach'' book\cite{??}, as
-well as a related infinite tree. The left/right flipped variant
+by Hofstadter in his famous ``Gödel, Escher, Bach'' book\cite{GEB},
+as well as a related infinite tree. The left/right flipped variant
 $\FG$ of this $G$ tree has also been studied here, following
 Hofstadter's ``problem for the curious reader''.
 The initial $G$ function is refered as sequence A005206 in
-OEIS\cite{??}, while the flipped version $\FG$ is the sequence
+OEIS\cite{OEIS-G}, while the flipped version $\FG$ is the sequence
 A123070.
 
-The detailled and machine-checked proofs can be found in the files
+The detailed and machine-checked proofs can be found in the files
 of this development\footnote{See
 \url{http://www.pps.univ-paris-diderot.fr/~letouzey/hofstadter_g}}
-and can be re-checked by running Coq version 8.4 \cite{??} on it.
-In this document, we'll only give some proof sketchs of the
-main results of this development. No prior knowledge of Coq is assumed
-here.
+and can be re-checked by running Coq \cite{Coq} version 8.4 on it.
+No prior knowledge of Coq is assumed here, on the contrary this
+document has rather been a ``Coq-to-English'' translation
+exercise for the author. Nonetheless, some proofs given in this
+document are still quite sketchy: in this case, the interested
+reader is encouraged to consult the Coq files given as references.
+
 
 \section{Prior art and contributions}
-Most of the results proved here were already mentionned elsewhere,
+Most of the results proved here were already mentioned elsewhere,
 e.g. on the OEIS pages for $G$ and $\FG$. These results were certified
 in Coq without consulting the existing proofs in the literature, so
 the proofs presented here might still be improved. To the best of
@@ -46,7 +53,7 @@ my knowledge, the main novelties of this development are:
 \begin{enumerate}
 \item
   A proof of the recursive
-equation for $\FG$ which is currently mentionned as a conjecture in OEIS:
+equation for $\FG$ which is currently mentioned as a conjecture in OEIS:
 
 $$\forall n>3, \FG(n) = n+1 - \FG(1+\FG(n-1))$$
 
@@ -79,7 +86,7 @@ of Coq but curious enough to have a look at the actual files
 of this development, here comes a few words about the Coq syntax.
 \begin{itemize}
 \item By default, we're manipulating natural numbers only, corresponding
- to Coq type {\tt nat}. Only exception: in file {\tt Phi.v}
+ to Coq type {\tt nat}. Only exception: in file \doc{Phi},
  we switch to real numbers to represent the golden ratio.
 \item The symbol {\tt S} denotes the successor of natural numbers.
   Hence {\tt S($2$)} is the same as $3$.
@@ -102,12 +109,13 @@ of this development, here comes a few words about the Coq syntax.
   some criterion to guarantee that the new function is well-defined
   and total. So in this development, we also need sometimes to
   define new functions via explicit justification of termination,
-  see for instance {\tt norm} in {\tt Fib.v} or {\tt g\_spec} in {\tt FunG.v}.
+  see for instance {\tt norm} in \doclab{Fib}{norm}\ or {\tt g\_spec} in
+  \doclab{FunG}{g\_spec}.
 \end{itemize}
 
 \section{Fibonacci numbers and decompositions}
 
-This section corresponds to file {\tt Fib.v}.
+This section corresponds to file \doc{Fib}.
 
 \paragraph{Convention.} In this document and in the Coq development,
 we took the following non-standard definition of Fibonacci numbers
@@ -117,8 +125,9 @@ $$F_0 = F_1 = 1$$
 $$\forall n,~~ F_{n+2} = F_{n}+F_{n+1}$$
 
 Please note the unusual $F_0 = 1$ instead of $0$. The ranks are hence
-shifted by one when compared with, say, OEIS's sequence A000045.
-With this choice, we avoid to have to consider zeros in the
+shifted by one when compared with, say, OEIS's sequence A000045
+\cite{OEIS-Fib}.
+With this choice, we avoid considering zeros in the
 decompositions of numbers as sums of Fibonacci numbers (see
 below). In Coq, these $F_n$ numbers correspond to the {\tt fib}
 function, and we start by proving a few basic properties :
@@ -131,7 +140,7 @@ consecutive Fibonacci numbers :
 $\forall n>0, \exists k, F_k \le n < F_{k+1}$
 \end{theorem}
 
-\subsection{Fibonacci decompositions} The rest of the {\tt Fib.v}
+\subsection{Fibonacci decompositions} The rest of the file \doc{Fib}\
 deals with the decompositions of numbers as sums of Fibonacci
 numbers.
 \begin{definition}
@@ -152,7 +161,7 @@ as sorted lists of ranks, and we used a predicate {\tt Delta $p$ $l$}
 to express that any element in the list $l$ exceeds the previous
 element by at least $p$. We hence use $p=2$ for canonical
 decompositions, and $p=1$ for relaxed ones. See file
-{\tt DeltaList.v} for the definition and properties of this
+\doc{DeltaList}\ for the definition and properties of this
 predicate.
 
 Then we proved Zeckendorf's theorem (actually discovered earlier by Lekkerkerker):
@@ -169,7 +178,7 @@ and continue recursively with $n-F_k$. We cannot obtain this way
 two consecutive $F_{k+1}$ and $F_k$, otherwise $F_{k+2}$ could have
 been used in the first place. And $F_0$ isn't necessary in the
 decomposition since we could use $F_1 = 1$ instead.
-For proving the unicity, the key ingredient is that this kind of
+For proving the uniqueness, the key ingredient is that this kind of
 sum cannot exceed the next Fibonacci number. For instance
 $F_1+F_3+F_5 = 1+3+8 = 12 = F_6 - 1$.
 \end{proof}
@@ -202,7 +211,7 @@ duplicated terms in the decomposition: $F_{m+2}$ wasn't already
 in the decomposition, otherwise we would have considered
 $F_{m+1}+F_{m+2}$ instead. Hence all the obtained decompositions
 during the process are correct relaxed decompositions. The number of
-terms is decreasing by 1 at each step, so the process is garanteed to
+terms is decreasing by 1 at each step, so the process is guaranteed to
 terminate, and will necessarily stops on a decomposition with no
 consecutive Fibonacci numbers : we obtain indeed the canonical
 decomposition of $n$. And finally, it is easy to see that the
@@ -211,12 +220,12 @@ of the process.
 \end{proof}
 
 \subsection{Classifications of Fibonacci decompositions.}
-The rest of {\tt Fib.v} deals with classifications of numbers
+The end of \doc{Fib}\ deals with classifications of numbers
 according to the lowest rank of their canonical decomposition.
 In particular, this lowest rank could be 1, 2 or more. It will
 also be interesting to distinguish between lowest ranks that
 are even or odd. These kind of classifications and their
-properties will be eavily used
+properties will be heavily used
 during theorem\ref{comp-fg-g} which compares $\FG$ and $G$.
 For instance:
 \begin{theorem}[decomposition of successor]\label{fibsucc}
@@ -379,7 +388,7 @@ $low(n-2)$ is odd.
 
 \section{The $G$ function}
 
-This section corresponds to file {\tt FunG.v}.
+This section corresponds to file \doc{FunG}.
 
 \subsection{Definition and initial study of $G$}
 
@@ -415,7 +424,7 @@ numbers, which can also be seen as a function
 $G:\mathbb{N}\to\mathbb{N}$, that satisfy the desired equations
 by construction.
 
-For the unicity, we should first prove that any function $f$
+For the uniqueness, we should first prove that any function $f$
 satisfying $f(0)=0$ and our recursive equation above is such that
 $\forall n, 0\le f(n)\le n$. This proof can be done by strong
 induction over $n$, and a bit of upper and lower bound manipulation.
@@ -474,7 +483,7 @@ $\forall n, G(n+G(n))=n$.
 We've just proved that $n$ has at least one antecedent, and
 no more than two. Let $k$ be the largest of these antecedents.
 Hence $G(k)=n$ and $G(k+1)\neq n$, leading to $G(k+1)=G(k)+1$.
-If we reinject this into the defining equation $G(k+1) = k+1 -
+If we re-inject this into the defining equation $G(k+1) = k+1 -
 G(G(k))$, we obtain that $G(k)+G(G(k))=k$ hence $n+G(n)=k$,
 and finally $G(n+G(n))=G(k)=n$.
 \end{proof}
@@ -518,7 +527,7 @@ $G(n) + G(G(n+1)-1) = G(n+1)-1 + G(G(n)) = (n+1)-1 = n$.
 Hofstadter proposed to associate the $G$ function with an infinite
 tree satisfying the following properties:
 \begin{itemize}
-\item The nodes are labelled by all the positive numbers,
+\item The nodes are labeled by all the positive numbers,
  in the order of a left-to-right breadth-first traversal,
  starting at 1 for the root of the tree.
 \item For $n\neq 0$, the node $n$ is a child of the node $g(n)$.
@@ -570,7 +579,7 @@ We complete this definition by choosing arbitrarily $depth(0)=0$.
 \end{definition}
 
 For $n>0$, such a number $d$ is guaranteed to exists since $G(k)<k$ as long as
-$k$ is still not $1$, hence the sequence $G^k(n)$ is stricly
+$k$ is still not $1$, hence the sequence $G^k(n)$ is strictly
 decreasing as long as it hasn't reached 1.
 In particular, we have $depth(1)=0$, and for all $n>1$ we have
 $depth(n) = 1+depth(G(n))$. Hence our depth function is compatible
@@ -595,7 +604,7 @@ with the usual notion of depth in a tree.
 $depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
 \item Consequence of the minimality of depth.
 \item Consequence of the monotony of $G$ :
-  forall $k$, $G^k(n)\le G^k(m)$ hence the iterates of $n$ will reach
+  for all $k$, $G^k(n)\le G^k(m)$ hence the iterates of $n$ will reach
   1 faster than the iterates of $m$.
 \item $G$ maps a Fibonacci number to the previous one, $k-1$
   iterations of $G$ on $F_k$ leads to $F_1=1$.
@@ -609,7 +618,7 @@ otherwise $n \ge 1+F_{k+1}$ and hence $depth(n)\ge k+1$.
 \end{enumerate}
 \end{proof}
 
-The previous caracterization of $depth(n)$ via Fibonacci bounds shows
+The previous characterization of $depth(n)$ via Fibonacci bounds shows
 that depth could also have been defined thanks to {\tt
   fib\_inv$(n-1)$} see \ref{fibinv}. It also shows that the number of
 nodes at depth $k$ is $F_{k+1}-(1+F_k)+1 = F_{k-1}$.
@@ -619,7 +628,7 @@ nodes at depth $k$ is $F_{k+1}-(1+F_k)+1 = F_{k-1}$.
 
 If we ignore the node labels and concentrate on the shape of the $G$
 tree, we encounter a great regularity. $G$ starts with two unary
-nodes that are particular cases (labelled 1 and 2), and after that
+nodes that are particular cases (labeled 1 and 2), and after that
 we encounter a sub-tree $G'$ whose shape is obtained by repetitions
 of the same basic pattern:
 
@@ -635,10 +644,10 @@ G' =
 \Tree [.$\bullet$ [.G' ] [.$\bullet$ [.G' ] ]]
 \end{tikzpicture}
 
-G' has hence a fractal shape: it appears as a subtree of itself. To
+G' has hence a fractal shape: it appears as a sub-tree of itself. To
 prove the existence of such a pattern, we study the arity of children
 nodes.
-\begin{theorem}
+\begin{theorem}\label{Gnodes}
 In the $G$ tree, a binary node has a left child which is also binary,
 and a right child which is unary, while the unique child of a unary
 node is itself binary.
@@ -649,7 +658,7 @@ First, we show that the leftmost child of a node is always binary.
 Let $n$ be a node, and $p$ its leftmost child, i.e. $G(p)=n$ and
 $G(p-1)=n-1$. We already know one child $q=p+G(p)$ of $p$, let's now
 show that $q-1$ is also a child of $p$. For that, we consider $p-1$
-and its rigthmost child $q'=p-1+G(p-1)$. Rightmost means that
+and its rightmost child $q'=p-1+G(p-1)$. Rightmost means that
 $G(q'+1)=p$. So $G(q-1)=G(p+G(p)-1)=G(p+n-1)=G(p+G(p-1))=G(q'+1)=p$
 and we can conclude.
 
@@ -683,7 +692,7 @@ For instance $G(11) = G(F_3+F_5) = F_2 + F_4 = 7$. Note that the
 obtained decomposition isn't necessarily relaxed anymore, since a
 $F_0$ might have appeared if $F_1$ was part of the initial
 decomposition. The theorem also holds for canonical decompositions
-since they are a particular case of relaxed decompostions. Once again,
+since they are a particular case of relaxed decompositions. Once again,
 the obtained decompositions might not be canonical since $F_0$ might
 appear, but in this case we could turn this $F_0$ into a $F_1$. This
 gives us a relaxed decomposition that we can re-normalize. For
@@ -761,11 +770,11 @@ is a correct relaxed decomposition, leading to
 $G(n+1)=1+\Sigma F_{i-1}=1+G(n)$. So $low(n)\neq 1$ implies
 $G(n+1)\neq G(n)$.
 
-\item If $low(n)$ is even, we've already shown in theorem \ref{??}
+\item If $low(n)$ is even, we've already shown in theorem \ref{fibpred}
   that $low(n-1)=1$ hence $G(n)=G(n-1)$ by the previous point.
 
 \item If $low(n)$ is odd, the same theorem
- \ref{??} shows that $low(n-1)$ is 2 or more, provided that $n>1$.
+ \ref{fibpred} shows that $low(n-1)$ is 2 or more, provided that $n>1$.
  and the first point above allows to conclude. And we check separately
  the cases $n=0$ (irrelevant here since $low(0)$ doesn't exists) and
  $n=1$ (for which $G(1-1)$ is indeed $G(1)-1$).
@@ -838,13 +847,14 @@ will hence end with a lowest rank of at least 4.
 \end{proof}
 
 \subsection{$G$ and its ``derivative'' $\Delta G$}
+\label{deltaG}
 
 We consider now the ``derivative'' $\Delta G$ of $G$, defined via
 $\Delta G(n) = G(n+1)-G(n)$. We already know from theorem
 \ref{Gprops} that the output of $\Delta G$ is always either 0 or 1.
 
 \begin{theorem}\label{Gdelta}
-For all $n$, $\Delta G(n+1) = 1 - \Delta G(n).(1 - \Delta G(G(n)))$
+For all $n$, $\Delta G(n+1) = 1 - \Delta G(n).\Delta G(G(n))$
 \end{theorem}
 \begin{proof}
 We already know that $\Delta G(n)=0$ implies $\Delta G(n+1)=1$:
@@ -867,8 +877,8 @@ satisfy these equations (see {\tt GD\_unique} and
 
 \section{The $\FG$ function}
 
-This section corresponds to file {\tt FlipG.v}.
-Here is a quote from page 137 of Hofstadter's book \cite{??}:
+This section corresponds to file \doc{FlipG}.
+Here is a quote from page 137 of Hofstadter's book \cite{GEB}:
 \begin{quote}
 A problem for curious readers is: suppose you flip Diagram G
 around as if in a mirror, and label the nodes of the new tree so they
@@ -876,14 +886,14 @@ increase from left to right. Can you find a recursive \emph{algebraic}
 definition for this ``flip-tree'' ?
 \end{quote}
 
-\subsection*{The $flip$ function}
+\subsection{The $flip$ function}
 
 Flipping the $G$ tree as if in a mirror is equivalent to keeping
-its shape unchanged, but labelling the nodes from right to left
+its shape unchanged, but labeling the nodes from right to left
 during the breadth-first traversal. Let us call $flip(n)$ the
 new label of node $n$ after this transformation.
 We've seen in the previous section that given a depth $k\neq 0$,
-the nodes at this depth are labelled from $1+F_k$ till $F_{k+1}$.
+the nodes at this depth are labeled from $1+F_k$ till $F_{k+1}$.
 After the $flip$ transformation, the $1+F_k$ node and
 the $F_{k+1}$ node will hence have exchanged their label.
 Similarly, $2+F_k$ will become $F_{k+1}-1$ and vice-versa.
@@ -923,13 +933,13 @@ A few properties of this $flip$ function:
 For $n>1$, if we name $k$ the depth of $n$, we have
 $flip(n) = 1+F_{k+2}-n$. Since $1+F_k \le n \le F_{k+1}$,
 we hence have $1+F_{k+2}-F_{k+1} \le flip(n) \le 1+F_{k+2}-1-F_k$.
-And finally $1+F_k \le flip(n) \le F_{k+1}$, and this caracterizes
+And finally $1+F_k \le flip(n) \le F_{k+1}$, and this characterizes
 the node at depth $k$, hence $depth(flip(n)=k=depth(n)$.
 \item We know that $n$ and $flip(n)$ have the same depth, and
 we've already seen that being less or equal to 1 is equivalent
 to having depth 0.
 \item For $k>1$ and $n<F_{k-1}$, we know that $depth(1+F_k+n)=k$
-(still via the same caracterization of nodes at depth $k$).
+(still via the same characterization of nodes at depth $k$).
 Moreover $1+F_k+n \le 1+F_k \le 2$, so
 $flip(1+F_k+n) = 1+F_{k+2}-(1+F_k+n) = F_{k+1}-n$.
 \item If $n\le 1$ then $flip(n)=n$ is still less or equal to 1,
@@ -948,7 +958,7 @@ In particular, the third point above shows that for $k\neq 0$
 we indeed have $flip(1+F_k) = F_{k+1}$ (and vice-versa since $flip$
 is involutive).
 
-\subsection*{Definition of $\FG$ and initial properties}
+\subsection{Definition of $\FG$ and initial properties}
 
 We can now take advantage of this $flip$ function to obtain
 a first definition of the $\FG$ function, corresponding to the
@@ -1063,10 +1073,10 @@ an onto function.
 \end{enumerate}
 \end{proof}
 
-\subsection*{An recursive algebraic definition for $\FG$}
+\subsection{An recursive algebraic definition for $\FG$}
 
 The following result is an answer to Hofstadter's problem.
-It was already mentionned on OEIS page \cite{??}, but only as
+It was already mentioned on OEIS page \cite{OEIS-FG}, but only as
 a conjecture.
 
 \newcommand{\nn}{\overline{n}}
@@ -1161,9 +1171,74 @@ and finally $F(n)=\FG(n)$ thanks to the recursive equations
 for $F$ and $\FG$.
 \end{proof}
 
-\subsection*{Shape of the $\FG$ tree}
+\subsection{The $\FG$ tree}
 
-\subsection*{Comparison between $\FG$ and $G$}
+Since $\FG$ has been obtained as the mirror of $G$, we already
+know its shape: it's the mirror of the shape of $G$. We'll
+nonetheless be slightly more precise here. The proofs given
+in this section will be deliberately sketchy, please consult
+theorem {\tt unary\_flip} and alii in file \doclab{FlipG}{unary\_flip}\ for
+more detailed and rigorous justifications.
+
+First, a node
+$n$ has a child $p$ in the tree $\FG$ is and only if the
+node $flip(n)$ has a child $flip(p)$ in the tree $G$.
+Indeed, $\FG(p)=n$ iff $flip(G(flip(p)))=n$ iff
+$G(flip(p))=flip(n)$. Moreover, a rightmost child in $\FG$
+corresponds by $flip$ with a leftmost child in $G$ and vice-versa.
+Indeed, if $p$ and $n$ aren't on the borders of the trees,
+then the next node will become the previous by flip, and vice-versa
+(see theorem \ref{flipprops}). And if $p$ and/or $n$ are on the
+border, they are Fibonacci numbers or successors of Fibonacci
+numbers, and we check these cases directly.
+
+Similarly, the arity of $n$ in $\FG$ is equal to the arity of
+$flip(n)$ in $G$.
+For instance, if we take a unary node $n$ and its unique
+child $p$ in $\FG$, this means that $\FG(p+1)=n+1$ and
+$\FG(p-1)=n-1$. In the most general case $flip$ will lead
+to similar properties about $flip(p)$ and $flip(n)$ in $G$,
+hence the fact that $flip(n)$ is unary in $G$. And we handle
+particular cases about Fibonacci numbers on the border as usual.
+
+\begin{theorem}
+For all $n>1$, $flip(flip(n)+G(flip(n)))$, which could also be
+written $flip(flip(n)+flip(\FG(n)))$, is the leftmost child
+of $n$ in the $\FG$ tree. 
+\end{theorem}
+\begin{proof}
+See the previous paragraph: $flip(n)+G(flip(n))$ is rightmost
+child of $flip(n)$ in $G$, hence the result about $\FG$.
+\end{proof}
+
+\begin{theorem}
+For all $n>1$, $n-1+\FG(n+1)$ is the rightmost child of $n$ in the
+$\FG$ tree.
+\end{theorem}
+\begin{proof}
+We already know that all nodes $n$ in the $\FG$ tree have at
+least one antecedent, and no more than two.
+Take $n>1$, and let $k$ be the largest of its antecedents by $\FG$.
+Hence $\FG(k)=n$ and $\FG(k+1)\neq n$, leading to $\FG(k+1)=n+1$.
+If we re-inject this into the previous recursive equation
+$\FG(k+1) = k+2 - \FG(\FG(k)+1)$,
+we obtain that $n+1 = k+2-\FG(n+1)$ hence $k=n-1+\FG(n+1)$.
+\end{proof}
+
+Of course, for unary nodes, there is only one child, hence the
+leftmost and rightmost children given above coincide. Otherwise,
+for binary nodes, they are apart by 1.
+
+\begin{theorem}
+In the $\FG$ tree, a binary node has a right child which is also binary,
+and a left child which is unary, while the unique child of a unary
+node is itself binary.
+\end{theorem}
+\begin{proof}
+Flipped version of theorem \ref{Gnodes}.
+\end{proof}
+
+\subsection{Comparison between $\FG$ and $G$}
 
 We already noticed earlier that $\FG$ and $G$ produce very similar
 answers. Let us study this property closely now.
@@ -1198,7 +1273,7 @@ of $n$ and study its classification.
   By theorem \ref{Gclass2}, we know that $G(n)$ has an odd lowest
   rank, so it cannot be 2-even, and the second IH is
   $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$.
-  Since $\low(G(n))$ is odd, we can use theorem \ref{Gclass1} once
+  Since $low(G(n))$ is odd, we can use theorem \ref{Gclass1} once
   more: $G(G(n)-1) = G(G(n))-1$.
   Finally: $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)=G(G(n))=1+G(G(n-1))$.
 \item Case $n$ 2-even. We're trying to prove
@@ -1256,13 +1331,15 @@ of $n$ and study its classification.
   the first IH is $\FG(n-1)=1+G(n-1)$. We also know that
   $G(n-1)=G(n)-1$ by theorem \ref{Gclass1}.
   By theorem \ref{Glow} we know that $low(G(n))=low(n)-1 > 2$, so
-  by theorem \ref{fibsucc} $\low(G(n)+1)=1$, and
+  by theorem \ref{fibsucc} $low(G(n)+1)=1$, and
   $\FG(n-1)+1=1+G(n)$ cannot be 2-even : the second IH is hence
   $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$. Moreover $low(G(n))$ is
   also known to be even, so 
   by theorem \ref{Gclass1} we have $G(G(n-1))=G(G(n)-1)=G(G(n))$.
   The final step is 
-  $G(1+G(n))=1+G(G(n))$ also by \ref{Gclass1} (since $\low(G(n))\neq 1$).
+  $G(1+G(n))=1+G(G(n))$ also by \ref{Gclass1} (since $low(G(n))\neq
+  1$).
+\end{itemize}
 \end{proof}
 
 As an immediate consequence, $\FG$ is always greater or equal
@@ -1271,9 +1348,164 @@ the distance between 2-even numbers, which is always 5 or 8,
 while the first 2-even number is 7. So $\FG$ and $G$ are actually
 equal more than 80\% of the time.
 
-\subsection*{$\FG$ and its ``derivative'' $\Delta \FG$}
+\subsection{$\FG$ and its ``derivative'' $\Delta\FG$}
 
-\subsection*{An alternative recursive equation for $\FG$}
+We consider now the ``derivative'' $\Delta\FG$ of $\FG$, defined via
+$\Delta \FG(n) = \FG(n+1)-\FG(n)$. This study will be quite
+similar to the corresponding section \ref{deltaG} for $G$.
+We already know from theorem
+\ref{FGprops} that the output of $\Delta\FG$ is always either 0 or 1.
 
+\begin{theorem}\label{FGdelta}
+  For all $n>2$, $\Delta\FG(n+1) = 1 - \Delta\FG(n).\Delta\FG(\FG(n+1))$
+\end{theorem}
+\begin{proof}
+We already know that $\Delta\FG(n)=0$ implies $\Delta\FG(n+1)=1$:
+we cannot have $\FG(n)=\FG(n+1)=\FG(n+2)$.
+Consider now some $n>2$ such that
+$\FG(n+1)-\FG(n)=1$. By using the recursive equation of $\FG$
+for $n+1>3$ and $n+2>3$, we have as expected
+\begin{align*}
+ \Delta\FG(n+1) & = \FG(n+2)-\FG(n+1) \\
+                & =(n+3-\FG(\FG(n+1)+1))-(n+2-\FG(\FG(n)+1)) \\
+                & = 1 - (\FG(\FG(n+1)+1)-\FG(\FG(n)+1) \\
+                & = 1 - (\FG(\FG(n+1)+1)-\FG(\FG(n+1)) \\
+                & = 1 - \Delta\FG(\FG(n+1))
+\end{align*}
+\end{proof}
+
+Note: when compared with theorem \ref{Gdelta} about $\Delta G$, 
+the equation
+above looks similar, but has a different inner call
+($\Delta\FG(\FG(n+1))$ instead of $\Delta G(G(n))$), and doesn't
+hold for $n=2$.
+
+For $n>2$, this equation provides a way to express $\FG(n+2)$ in terms of
+$\FG(n+1)$ and $\FG(n)$ and $\FG(\FG(n+1))$ and $\FG(\FG(n+1)+1)$.
+For $n>1$, we know that $G(n+1)<n+1$ hence $\FG(n+1)+1<n+2$.
+It is also clear that $n+1$ and $n$ and $\FG(n+1)$ are all
+strictly less than $n+2$.
+So we could use this equation as an alternative way to define
+recursively $\FG$,
+alongside  initial equations $\FG(0)=0$ and $\FG(1)=\FG(2)=1$ and
+$\FG(3)=2$ and $\FG(4)=3$.
+We proved in Coq that $\FG$ is indeed the unique function to
+satisfy these equations (see {\tt FD\_unique} and
+{\tt  fg\_implements\_FD}).
+
+\subsection{An alternative recursive equation for $\FG$}
+
+During the search for an algebraic definition of $\FG$, we
+first discovered and proved correct the following result,
+which unfortunately doesn't uniquely characterize $\FG$.
+We mention it here nonetheless, for completeness sake.
+
+\begin{theorem}
+For all $n>3$ we have $\FG(n-1) +\FG(\FG(n)) = n$.
+\end{theorem}
+\begin{proof}
+We proceed as for theorem \ref{FGeqn}, except that we
+use internally the original recursive equation for $G$
+instead the alternative equation of theorem \ref{Galt}.
+We take $n>3$ call $k$ its depth (which is greater or equal to 3).
+We note $\nn = flip n$. First:
+$$\FG(\FG(n))=flip(G(flip(flip(G(\nn)))))=flip(G(G(\nn)))$$
+The depth of $G(G(\nn))$ is $k-2\neq 0$, so the definition
+of flip gives:
+$$\FG(\FG(n)) = flip(G(G(\nn))) = 1+F_k-G(G(\nn))$$
+Now, thanks to the recursive definition of $G$ at $\nn+1$, we have
+$$\FG(\FG(n)) = 1+F_k+G(\nn+1)-\nn-1$$
+\begin{itemize}
+\item If $depth(n-1)=k$ then $flip(n-1)=\nn+1$ and we
+conclude by more uses of the flip definition:
+$depth(G(\nn+1))=depth(G(flip(n-1))=depth(n-1)-1=k-1$ so
+$$\FG(n-1)=flip(G(flip(n-1)))=flip(G(\nn+1))= 1+F_{k+1}-G(\nn+1)$$
+And finally:
+$$\FG(\FG(n)) = F_k + (1+F_{k+1}-\FG(n-1))-(1+F_{k+2}-n) = n-\FG(n-1)$$
+
+\item If $depth(n-1)\neq k$ then $n$ is the least number at
+depth $k$, so $n=1+F_k$, and:
+$$\FG(n-1) + \FG(\FG(n)) = \FG(F_k)+\FG(\FG(1+F_k)) =
+F_{k-1}+(1+F_{k-2}) = n$$
+\end{itemize}
+\end{proof}
+
+The following function $f:\mathbb{N}\to\mathbb{N}$
+also satisfies this equation, even with the same initial
+values than $\FG$:
+\begin{align*}
+   f(0) & = 0 \\
+   f(1) & = f(2)=1  \\
+   f(3) & = 2 \\
+   f(4) & =f(5) = 3 \\
+   f(6) & = 5 \\
+   f(7) & = 3 \\
+ \forall n\le 4, ~ f(2n) & = n-2 \\
+ \forall n\le 4, ~ f(2n+1) & = 4
+\end{align*}
+This function isn't monotone. We proved in Coq that
+$\FG$ is the only monotone function that satisfies the previous
+equation and the initial constraints $0\mapsto 0$, $1\mapsto 1$, $2\mapsto 1$, $3\mapsto
+2$ (see {\tt alt\_mono\_unique} and {\tt alt\_mono\_is\_fg}).
+We will not detail these proofs here, the key ingredient is to
+prove that any monotone function satisfying these equations
+will grow by at most 1 at a time.
+
+
+
+\section{Conclusion}
+
+The proofs for theorems \ref{FGeqn} and \ref{comp-fg-g} are
+surprisingly tricky, all our attempts at simplifying them
+have been rather unsuccessful. But there's probably still room
+for improvements here, please let us know if you find or
+encounter nicer proofs. Perhaps using the definition of $G$
+via real numbers could help shortening some proofs.
+We discovered this definition\footnote{
+$\forall n, G(n)=\lfloor n/\varphi\rfloor$ where $\varphi$
+is the golden ratio $(1+\sqrt{5})/2$}
+at the end of this development, and proved it in file \doc{Phi}.
+But relating this definition with the flipped function $\FG$
+doesn't seem obvious.
+
+As possible extensions of this work, we might consider later
+the other recursive functions proposed by Hofstadter :
+\begin{itemize}
+\item $H$ defined via $H(n)=n-H(H(H(n-1)))$, or its generalized
+   version with an arbitrary number of sub-calls instead of 2
+   for $G$ and 3 for $H$.
+\item $\overline{H}$, the flipped version of $H$.
+\item $M$ and $F$, the mutually recursive functions (``Male''
+and ``Female'').
+\end{itemize}
+We've already done on paper a large part of the analysis of
+$M$ and $F$, and should simply take the time to certify
+it in Coq. The study of $H$ and $\overline{H}$ remains to be
+done, it looks like a direct generalization of what we've
+done here, but surprises are always possible.
+
+\begin{thebibliography}{1}
+\bibitem{GEB}
+ Hofstadter, Douglas R.,
+ {\it Godel, Escher, Bach: An Eternal Golden Braid},
+ 1979, Basic Books, Inc, NY.
+
+\bibitem{Coq}
+ {\it The Coq Proof Assistant Reference Manual}, 2015,\\
+ \mbox{\url{http://coq.inria.fr}}.
+
+\bibitem{OEIS-Fib}
+ {\it The On-Line Encyclopedia of Integer Sequences}, Sequence
+ A000045: Fibonacci numbers, \url{http://oeis.org/A000045}
+
+\bibitem{OEIS-G}
+ {\it The On-Line Encyclopedia of Integer Sequences}, Sequence
+ A005206: Hofstadter G-sequence, \url{http://oeis.org/A005206}
+
+\bibitem{OEIS-FG}
+ {\it The On-Line Encyclopedia of Integer Sequences}, Sequence
+ A123070: Hofstadter Flip-G-sequence, \url{http://oeis.org/A123070}
+
+\end{thebibliography}
 
 \end{document}
