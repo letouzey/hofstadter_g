@@ -4,9 +4,10 @@
 \usepackage[utf8x]{inputenc}
 \usepackage[english]{babel}
 \usepackage{url}
-\usepackage{amsthm}
+\usepackage{amsfonts, amsthm, amsmath}
+\usepackage{tikz-qtree}
 
-\title{Hofstadter's problem for the curious reader}
+\title{A problem for Hofstadter's curious readers}
 \author{Pierre letouzey}
 
 \begin{document}
@@ -21,9 +22,9 @@
 This document summarizes the proofs made during a Coq development in
 Summer 2015. This development investigates the function $G$ introduced
 by Hofstadter in his famous ``Gödel, Escher, Bach'' book\cite{??}, as
-well as the related infinite $G$ tree. The left/right flipped variant
+well as a related infinite tree. The left/right flipped variant
 $\FG$ of this $G$ tree has also been studied here, following
-Hofstadter ``problem for the curious reader''.
+Hofstadter's ``problem for the curious reader''.
 The initial $G$ function is refered as sequence A005206 in
 OEIS\cite{??}, while the flipped version $\FG$ is the sequence
 A123070.
@@ -39,9 +40,9 @@ here.
 \section{Prior art and contributions}
 Most of the results proved here were already mentionned elsewhere,
 e.g. on the OEIS pages for $G$ and $\FG$. These results were certified
-in Coq without consulting more the literature, so more elegant proofs
-may exist elsewhere. To the best of my knowledge, the main novelties
-of this development are:
+in Coq without consulting the existing proofs in the literature, so
+the proofs presented here might still be improved. To the best of
+my knowledge, the main novelties of this development are:
 \begin{enumerate}
 \item
   A proof of the recursive
@@ -81,14 +82,15 @@ of this development, here comes a few words about the Coq syntax.
  to Coq type {\tt nat}. Only exception: in file {\tt Phi.v}
  we switch to real numbers to represent the golden ratio.
 \item The symbol {\tt S} denotes the successor of natural numbers.
-  Hence {\tt S(2)} is the same as {\tt 3}.
+  Hence {\tt S($2$)} is the same as $3$.
 \item As in many modern functional languages such as OCaml or Haskell,
   the usage is to skip parenthesis whenever possible, and
   in particular around atomic arguments of functions. Hence
   {\tt S(x)} will rather be written {\tt S x}.
 \item The symbol {\tt pred} is the predecessor for natural numbers.
-  By convention, {\tt pred 0 = 0}. Similarly, the subtraction on
-  natural numbers is rounded: {\tt 3 - 5 = 0}.
+  In Coq, all functions must be total, and {\tt pred $0$} has been
+  chosen to be equal to $0$. Similarly, the subtraction on
+  natural numbers is rounded: {\tt $3$ - $5$ = $0$}.
 \item Coq allows to define custom predicates to express various
   properties of numbers, lists, etc. These custom predicates are
   introduced by the keyword {\tt Inductive}, followed by some
@@ -121,10 +123,13 @@ decompositions of numbers as sums of Fibonacci numbers (see
 below). In Coq, these $F_n$ numbers correspond to the {\tt fib}
 function, and we start by proving a few basic properties :
 strict positivity, monotony, strict monotony above 1, etc.
-We also prove {\tt fib\_inv} which states 
+We also prove the theorem {\tt fib\_inv} which states 
 that any positive number can by bounded by
 consecutive Fibonacci numbers :
-$$\forall n>0, \exists k, F_k \le n < F_{k+1}$$
+
+\begin{theorem}[Fibonacci inverse]\label{fibinv}
+$\forall n>0, \exists k, F_k \le n < F_{k+1}$
+\end{theorem}
 
 \subsection{Fibonacci decompositions} The rest of the {\tt Fib.v}
 deals with the decompositions of numbers as sums of Fibonacci
@@ -132,7 +137,7 @@ numbers.
 \begin{definition}
  A decomposition $n = \fibrest$ is said to be \emph{canonical} if:
 \begin{itemize}
-\item[(a)] $F_0$ isn't in the decomposition
+\item[(a)] $F_0$ does not appear in the decomposition
 \item[(b)] A Fibonacci number appears at most once in the decomposition
 \item[(c)] Fibonacci numbers in the decomposition aren't consecutive
 \end{itemize}
@@ -152,7 +157,7 @@ predicate.
 
 Then we proved Zeckendorf's theorem (actually discovered earlier by Lekkerkerker):
 
-\begin{theorem}[Zeckendorf]
+\begin{theorem}[Zeckendorf]\label{zeck}
 Any natural number has a unique canonical decomposition.
 \end{theorem}
 
@@ -183,7 +188,7 @@ decomposed via a relaxed decomposition of lowest rank $k$.
 Interestingly, a relaxed decomposition can be transformed into
 a canonical one (see Coq function {\tt norm}):
 
-\begin{theorem}[normalisation]
+\begin{theorem}[normalization]\label{norm}
 Consider a relaxed decomposition of $n$, made of $k$ terms and
 whose lowest rank is $r$. We can build a canonical decomposition
 of $n$, made of no more than $k$ terms, and whose lowest rank can
@@ -212,7 +217,7 @@ In particular, this lowest rank could be 1, 2 or more. It will
 also be interesting to distinguish between lowest ranks that
 are even or odd. These kind of classifications and their
 properties will be eavily used
-during theorem\ref{??} which compares $\FG$ and $G$.
+during theorem\ref{comp-fg-g} which compares $\FG$ and $G$.
 For instance:
 \begin{theorem}[decomposition of successor]\label{fibsucc}
 \noindent
@@ -232,6 +237,9 @@ way.
   and we conclude similarly.
 \item If $r > 2$, then $n+1 = F_1 + F_r + \fibrest$ is directly a
   canonical decomposition.
+\item Mere consequence of the previous points: $low(n)$ even
+means 2 or 
+
 \end{enumerate}
 \end{proof}
 
@@ -244,12 +252,12 @@ $$ F_{2r+1} - 1 = F_2 + F_4 + ... + F_{2r}$$
 
 Hence:
 
-\begin{theorem}[decomposition of predecessor]
+\begin{theorem}[decomposition of predecessor]\label{fibpred}
 \noindent
 \begin{enumerate}
 \item If $low(n)$ is even then $low(n-1) = 1$
 \item If $low(n)$ is odd and different from 1, then $low(n-1) = 2$
-\item For $n>3$, if $low(n)=1$ then $low(n-1)>2$
+\item For $n>1$, if $low(n)=1$ then $low(n-1)>2$
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -264,7 +272,8 @@ Hence:
  similarly $F_{2r+1}-1$, leading to a lowest rank 2 for $n-1$.
 \item Finally, when $n = F_1 + \fibrest$, then the canonical decomposition
   of $n-1$ is directly the rest of the decomposition of $n$, which
-  cannot starts by $F_1$ nor $F_2$ for canonicity reasons.
+  isn't empty (thanks to the condition $n>1$) and
+  cannot starts by $F_1$ nor $F_2$ (for canonicity reasons).
 \end{enumerate}
 \end{proof}
 
@@ -287,11 +296,11 @@ need to consider the parity of this second-lowest rank.
 In Coq, this corresponds to the {\tt TwoEven} and {\tt TwoOdd}
 predicates.
 In fact, the 2-even numbers will precisely be the locations where
-$G$ and $\FG$ differs (see theorem\ref{??}). The first of these 2-even number is
+$G$ and $\FG$ differs (see theorem\ref{comp-fg-g}). The first of these 2-even number is
 $7 = F_2+F_4$, followed by $15 = F_2 + F_6$ and $20 = F_2+F_4+F_6$.
 
 A few properties of 2-even and 2-odd numbers:
-\begin{theorem}
+\begin{theorem}\label{twoevenodd}
 \noindent
 \begin{enumerate}
 \item A number $n$ is 2-even if and only if it admits
@@ -368,17 +377,903 @@ $low(n-2)$ is odd.
 \end{enumerate}
 \end{proof}
 
-
-
-
 \section{The $G$ function}
 
-This section corresponds to file {\tt FunG.v}
+This section corresponds to file {\tt FunG.v}.
 
+\subsection{Definition and initial study of $G$}
+
+\begin{theorem}\label{defG}There exists a unique function
+  $G:\mathbb{N}\to\mathbb{N}$ which satisfies the following
+  equations:
+  $$G(0) = 0$$
+  $$\forall n>0,~~ G(n) = n - G(G(n-1))$$
+\end{theorem}
+\begin{proof}
+The difficulty is the second recursive call of $G$ on $G(n-1)$.
+A priori $G(n-1)$ could be arbitrary, so how could we refer to it
+during a recursive definition of $G$ ? Fortunately $G(n-1)$ will
+always be strictly lower than $n$, and that will allow this recursive
+call. More formally, we prove by induction on $n$ the following
+statement: for all $n$, there exists a sequence $G_0...G_n$
+of numbers in $[0..n]$ such that $G_0=0$ and
+$\forall k\in[1..n], G_k = k - G_{k'}$ where $k' = G_{k-1}$.
+\begin{itemize}
+\item For $n=0$, an adequate sequence is obviously $G_0 = 0$.
+\item For some $n$, suppose we have already proved the existence
+  of an adequate sequence $G_0...G_n$.
+  In particular $G_n \in [0..n]$, hence $G_{G_n}$
+  is well-defined and is also in $[0..n]$. Finally $(n+1)-G_{G_n}$
+  is in $[1..(n+1)]$. We define $G_{n+1}$ to be equal to this
+  $(n+1)-G_{G_n}$ and obviously keep the previous values of the
+  sequence. All these values are indeed in $[0..(n+1)]$, and the
+  recursive equations are satisfied up to $k=n+1$. 
+\end{itemize}
+All these finite sequences that extend each other
+lead to an infinite sequence $(G_n)_{n\in\mathbb{N}}$ of natural
+numbers, which can also be seen as a function
+$G:\mathbb{N}\to\mathbb{N}$, that satisfy the desired equations
+by construction.
+
+For the unicity, we should first prove that any function $f$
+satisfying $f(0)=0$ and our recursive equation above is such that
+$\forall n, 0\le f(n)\le n$. This proof can be done by strong
+induction over $n$, and a bit of upper and lower bound manipulation.
+Then we could prove (still via strong induction
+over $n$) that $\forall n, f(n)=g(n)$ when $f$ and $g$
+are any functions satisfying our equations. 
+\end{proof}
+
+The initial values are $G(0)=0, G(1)=G(2)=1, G(3)=2, G(4)=G(5)=3$.
+We can then establish some basic properties of $G$:
+\begin{theorem}\label{Gprops}
+\noindent
+\begin{enumerate}
+\item $\forall n, 0 \le G(n) \le n$
+\item $\forall n\neq 0, G(n)=G(n-1)$ implies $G(n+1)=G(n)+1$
+\item $\forall n, G(n+1)-G(n) \in \{0,1\}$
+\item $\forall n,m, n\le m$ implies $0 \le G(m)-G(n) \le m-n$
+\item $\forall n, G(n)=0$ if and only if $n=0$
+\item $\forall n>1, G(n)<n$
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item Already seen during the definition of $G$
+\item $G(n+1)-G(n) = (n+1)-G(G(n)-n+G(G(n-1)) = 1 - (G(G(n))-G(G(n-1)))$.
+If $G(n)=G(n-1)$ then the previous expression is equal to 1.
+\item By strong induction over $n$. First, $G(1)-G(0)=1-0$. Then
+for a given $n\neq 0$, We assume $\forall k<n, G(k+1)-G(k) \in \{0,1\}$.
+We reuse the same formulation of $G(n+1)-G(n)$ as before.
+By induction hypothesis for $k=n-1$, $G(n)-G(n-1) \in\{0,1\}$.
+If it's 0, then $G(n+1)-G(n) = 1$ as before. If it's 1, we could use another
+induction hypothesis for $k=G(n-1)$ (and hence $k+1 = G(n)$), leading
+to $G(G(n))-G(G(n-1)) \in \{0,1\}$ and the desired result.
+\item Mere iteration of the previous result between $n$ and $m$.
+\item For all $n\le1$, $0 \le G(n)-G(1)$ and $G(1)=1$.
+\item For all $n\le2$, $G(n)-G(2) \le n-2$ and $G(2)=1$.
+\end{enumerate}
+\end{proof}
+
+We can also say that $lim_{+\infty} G = +\infty$, since $G$ is
+monotone, and grows by at least 1 every 2 steps (any stagnation
+is followed by a growth). Taking into account this limit, and
+$G(0)=0$, and the growth by steps of ones, we can also deduce
+that $G$ is onto: any natural number has at least one antecedent
+by $G$. Moreover there cannot exists more than two antecedents
+for a given value: by monotonicity, these antecedents are neighbors,
+and having more than two would contradict the ``stagnation followed
+by growth'' rule.
+We can even provide explicitly one of these antecedent:
+
+\begin{theorem}\label{Gonto}
+$\forall n, G(n+G(n))=n$.
+\end{theorem}
+\begin{proof}
+We've just proved that $n$ has at least one antecedent, and
+no more than two. Let $k$ be the largest of these antecedents.
+Hence $G(k)=n$ and $G(k+1)\neq n$, leading to $G(k+1)=G(k)+1$.
+If we reinject this into the defining equation $G(k+1) = k+1 -
+G(G(k))$, we obtain that $G(k)+G(G(k))=k$ hence $n+G(n)=k$,
+and finally $G(n+G(n))=G(k)=n$.
+\end{proof}
+
+As shown during the previous proof, $n+G(n)$ is the largest antecedent
+of $n$ by $G$. In particular $G(n+G(n)+1)=n+1$. And if $n$ has another
+antecedent, it will hence be $n+G(n)-1$.
+
+From this, we can deduce a first relationship between $G$ and
+Fibonacci numbers.
+\begin{theorem}\label{Gfib} For all $k\neq0$, $G(F_k)=F_{k-1}$.
+\end{theorem}
+\begin{proof}By induction over $k$. First, $G(F_1)=G(1)=1=F_0$
+and $G(1+F_2)=G(3)=2=1+F_1$. Take now a $k\neq 0$ and assume the
+result for $k$. Then $G(F_{k+1})=G(F_k+F_{k-1})=G(F_k+G(F_k))=F_k$.
+\end{proof}
+
+Moreover, for $k>1$, $F_k = F_{k-1}+G(F_{k-1})$ is the largest antecedent of
+$F_{k-1}$, hence $G(1+F_k)=1+F_{k-1}$.
+
+We could also establish a alternative equation for $G$, which will be
+used during the study of function $\FG$:
+
+\begin{theorem}\label{Galt} For all $n$ we have $G(n) + G(G(n+1)-1) = n$.
+\end{theorem}
+\begin{proof}
+First, this equation holds when $n=0$ since
+$G(0)+G(G(1)-1) = G(0) + G(1-1) = 0$.
+We consider now a number $n\neq 0$. Either $G(n+1)=G(n)$ or $G(n+1)=G(n)+1$.
+\begin{itemize}
+\item In the first case, $G(n-1)$ cannot be equal to $G(n)$ as well,
+otherwise $G$ would stay flat longer than possible. Hence $G(n-1)=G(n)-1$.
+Hence $G(n)+G(G(n+1)-1) = G(n) + G(G(n)-1) = G(n)+G(G(n-1)) = n$.
+\item In the second case:
+$G(n) + G(G(n+1)-1) = G(n+1)-1 + G(G(n)) = (n+1)-1 = n$.
+\end{itemize}
+\end{proof}
+
+\subsection{The associated $G$ tree}
+
+Hofstadter proposed to associate the $G$ function with an infinite
+tree satisfying the following properties:
+\begin{itemize}
+\item The nodes are labelled by all the positive numbers,
+ in the order of a left-to-right breadth-first traversal,
+ starting at 1 for the root of the tree.
+\item For $n\neq 0$, the node $n$ is a child of the node $g(n)$.
+\end{itemize}
+
+In practice, the tree can be constructed progressively, node after node.
+For instance, the node $2$ is the only child of $1$, and $3$
+is the only child of $2$, while $4$ and $5$ are the children of $3$.
+Now come the nodes $6$ and $7$ on top of $4$, and so on. The picture
+below represents the tree up to depth 7 (assuming than the root is
+at depth 0).
+
+\bigskip
+
+\begin{tikzpicture}[grow'=up]
+\Tree
+ [.1 [.2 [.3
+       [.4 [.6 [.9 [.14 22 23 ] [.15 24 ] ]
+               [.10 [.16 25 26 ]]]
+           [.7 [.11 [.17 27 28 ] [.18 29 ]]]]
+       [.5 [.8 [.12 [.19 30 31 ] [.20 32 ]]
+               [.13 [.21 33 34 ]]]]]]]
+\end{tikzpicture}
+
+This construction process will always be successful : when adding the
+new node $n$, this new node $n$ will be linked
+to a parent node already constructed, since $G(n)<n$ as soon as $n>1$.
+Moreover, $G$ is monotone and
+grows by at most 1 at each step, hence the position of the new node
+$n$ will be compatible with the left-to-right breadth-first ordering:
+$n$ has either the same parent as $n-1$, and we place $n$ to the right
+of $n-1$, or $G(n)=G(n-1)+1$ in which case $n$ is either to be placed
+on the right of $n-1$, or at a greater depth.
+
+Moreover, since $G$ is onto, each node will have at least one child,
+and we have already seen that each number has at most two antecedents
+by $G$, hence the node arities are 1 or 2.
+
+\subsubsection*{Tree depth.}
+On the previous picture, we can notice that the rightmost nodes are
+the Fibonacci numbers, while the leftmost nodes have the form $1+F_k$.
+Before proving this fact, let us first define more properly a depth
+function.
+
+\begin{definition}
+For a number $n>0$, we note $depth(n)$ the least number $d$ such that
+$G^d(n)$ (the $d$-th iteration of $G$ on $n$) reaches 1.
+We complete this definition by choosing arbitrarily $depth(0)=0$.
+\end{definition}
+
+For $n>0$, such a number $d$ is guaranteed to exists since $G(k)<k$ as long as
+$k$ is still not $1$, hence the sequence $G^k(n)$ is stricly
+decreasing as long as it hasn't reached 1.
+In particular, we have $depth(1)=0$, and for all $n>1$ we have
+$depth(n) = 1+depth(G(n))$. Hence our depth function is compatible
+with the usual notion of depth in a tree.
+
+\begin{theorem}\label{depthprops}
+\noindent
+\begin{enumerate}
+\item For all $n$, $depth(n)=0$ if and only if $n\le 1$
+\item For $n>1$ and $k<depth(n)$, we have $G^k(n) > 1$
+\item For $n,m>0$, $n\le m$ implies $depth(n)\le depth(m)$
+\item For $k>0$, $depth(F_k) = k-1$
+\item For $k>0$, $depth(1+F_k) = k$ (when $k\neq 0$)
+\item For $k>0,n>0$, $depth(n)=k$ if and only if $1+F_k \leq n \leq
+  F_{k+1}$
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item The statement is valid when $n=0$. For a $n>0$, 
+$depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
+\item Consequence of the minimality of depth.
+\item Consequence of the monotony of $G$ :
+  forall $k$, $G^k(n)\le G^k(m)$ hence the iterates of $n$ will reach
+  1 faster than the iterates of $m$.
+\item $G$ maps a Fibonacci number to the previous one, $k-1$
+  iterations of $G$ on $F_k$ leads to $F_1=1$.
+\item $G$ maps a successor of a Fibonacci number to the previous such
+  number, $k-1$ iterations of $G$ on $1+F_k$ leads to $1+F_1 = 2$.
+\item If $1+F_k \leq n \leq F_{k+1}$, the monotony of depth and the
+previous facts gives $k \le depth(n) \le (k+1)-1$, hence $depth(n)=k$.
+Conversely, when $depth(n)=k$, we cannot have $n < 1 + F_k$ otherwise
+$n \le F_k$ and hence $depth(n)\le k-1$, and we cannot have $n > F_{k+1}$
+otherwise $n \ge 1+F_{k+1}$ and hence $depth(n)\ge k+1$.
+\end{enumerate}
+\end{proof}
+
+The previous caracterization of $depth(n)$ via Fibonacci bounds shows
+that depth could also have been defined thanks to {\tt
+  fib\_inv$(n-1)$} see \ref{fibinv}. It also shows that the number of
+nodes at depth $k$ is $F_{k+1}-(1+F_k)+1 = F_{k-1}$.
+
+
+\subsubsection*{The shape of the $G$ tree}
+
+If we ignore the node labels and concentrate on the shape of the $G$
+tree, we encounter a great regularity. $G$ starts with two unary
+nodes that are particular cases (labelled 1 and 2), and after that
+we encounter a sub-tree $G'$ whose shape is obtained by repetitions
+of the same basic pattern:
+
+\bigskip
+
+G = 
+\begin{tikzpicture}[grow'=up]
+\Tree [.$\bullet$ [.$\bullet$ G' ]]
+\end{tikzpicture}
+~~and~~
+G' =
+\begin{tikzpicture}[grow'=up]
+\Tree [.$\bullet$ [.G' ] [.$\bullet$ [.G' ] ]]
+\end{tikzpicture}
+
+G' has hence a fractal shape: it appears as a subtree of itself. To
+prove the existence of such a pattern, we study the arity of children
+nodes.
+\begin{theorem}
+In the $G$ tree, a binary node has a left child which is also binary,
+and a right child which is unary, while the unique child of a unary
+node is itself binary.
+
+\end{theorem}
+\begin{proof}
+First, we show that the leftmost child of a node is always binary.
+Let $n$ be a node, and $p$ its leftmost child, i.e. $G(p)=n$ and
+$G(p-1)=n-1$. We already know one child $q=p+G(p)$ of $p$, let's now
+show that $q-1$ is also a child of $p$. For that, we consider $p-1$
+and its rigthmost child $q'=p-1+G(p-1)$. Rightmost means that
+$G(q'+1)=p$. So $G(q-1)=G(p+G(p)-1)=G(p+n-1)=G(p+G(p-1))=G(q'+1)=p$
+and we can conclude.
+
+We can now affirm that the unique child of a unary node is itself
+binary, since this child is in particular the leftmost one.
+
+Let's now consider a binary node $n$, with its right child $p=n+G(n)$
+and its left child $p-1$: $G(p)=G(p-1)=n$.
+
+\begin{tikzpicture}[grow'=up]
+\Tree [.$n$ [.$p-1$ $q-2$ $q-1$ ] [.$p$ $q$ ]]
+\end{tikzpicture}
+
+The leftmost child $p-1$
+is already known to be binary. Let's now show that its right child $p$
+is unary. If $p$ has a second child, it will be $q-1$, but:
+$G(q-1) = G(p+G(p)-1) = G(p-1+G(p-1)) = p-1$.
+so $q-1$ is a child of $p-1$ rather than $p$, and $p$ is indeed
+a unary node.
+\end{proof}
+
+\subsection{$G$ and Fibonacci decompositions}
+
+\begin{theorem}\label{Gshift}
+Let $n = \Sigma F_i$ be a relaxed Fibonacci decomposition.
+Then $G(n) = \Sigma F_{i-1}$, the Fibonacci decomposition obtained
+by removing 1 at all the ranks in the initial decomposition.
+\end{theorem}
+
+For instance $G(11) = G(F_3+F_5) = F_2 + F_4 = 7$. Note that the
+obtained decomposition isn't necessarily relaxed anymore, since a
+$F_0$ might have appeared if $F_1$ was part of the initial
+decomposition. The theorem also holds for canonical decompositions
+since they are a particular case of relaxed decompostions. Once again,
+the obtained decompositions might not be canonical since $F_0$ might
+appear, but in this case we could turn this $F_0$ into a $F_1$. This
+gives us a relaxed decomposition that we can re-normalize. For
+instance $G(12) = G(F_1+F_3+F_5) = F_0+F_2+F_4 = F_1+F_2+F_4 = F_3+F_4
+= F_5 = 8$.
+ 
+\begin{proof}
+We proceed by strong induction over $n$. The case $0$ is obvious,
+since the only possible decomposition is the empty one, and the
+``shifted'' decomposition is still empty, as required by $G(0)=0$.
+We now consider a number $n\neq 0$, with a non-empty relaxed decomposition
+$n = F_k+\Sigma F_i$, and assume the statement to be true for all $m<n$.
+We will use the recursive equation $G(n)=n-G(G(n-1))$, and distinguish
+many cases according to the value of $k$.
+\begin{itemize}
+\item Case $k=1$. Then $n-1 = \Sigma F_i$. A first induction
+  hypothesis gives $G(n-1) = \Sigma F_{i-1}$. Since the initial
+  decomposition was relaxed, $\Sigma F_i$ cannot contain $F_1$,
+  hence $\Sigma F_{i-1}$ is still a relaxed decomposition. As seen
+  many times now, $G(n-1)<n$ here, and we're free to use a second
+  induction hypothesis leading to $G(G(n-1)) = \Sigma F_{i-2}$.
+  Finally $G(n) = 1+\Sigma F_i - \Sigma F_{i-2} = 1 + \Sigma (F_i-F_{i-2})
+   = F_0 + \Sigma F_{i-1}$, as required.
+\item Case $k$ even. Then $k$ can be written $2p$ with $p>0$.
+  Then $n-1 = F_{2p}-1 + \Sigma F_i = F_1+F_3+...+F_{2p-1}+\Sigma F_i$.
+  The induction hypothesis on $n-1$ gives:
+  $$G(n-1) = F_0+F_2+...+F_{2p-2}+\Sigma F_{i-1}$$
+  We turn the $F_0$ above into a $F_1$, obtaining again a relaxed
+  decomposition, for which a second induction hypothesis gives:
+  $$G(G(n-1)) = F_0+F_1+...+F_{2p-3}+\Sigma F_{i-2}$$
+  $$G(G(n-1)) = 1 + (F_{2p-2}-1)+\Sigma F_{i-2}$$
+  And so:
+  $$G(n) = F_{2p}-F_{2p-2} + \Sigma (F_i - F_{i-2}) =
+           F_{2p-1} + \Sigma F_{i-1}$$
+
+\item Case $k$ odd and distinct from 1. Then $k$ can be written $2p+1$ with $p>0$.
+  Then $n-1 = F_{2p+1}-1 + \Sigma F_i = F_2+F_4+...+F_{2p}+\Sigma F_i$.
+  The induction hypothesis on $n-1$ gives:
+  $$G(n-1) = F_1+F_3+...+F_{2p-1}+\Sigma F_{i-1}$$
+  Since this is still a relaxed decomposition, we use a second
+  induction hypothesis on it, hence:
+  $$G(G(n-1)) = F_0+F_2+...+F_{2p-2}+\Sigma F_{i-2}$$
+  $$G(G(n-1)) = 1 + (F_{2p-1}-1)+\Sigma F_{i-2}$$
+  And so:
+  $$G(n) = F_{2p+1}-F_{2p-1} + \Sigma (F_i - F_{i-2}) =
+           F_{2p} + \Sigma F_{i-1}$$
+\end{itemize}
+\end{proof}
+
+Thanks to this characterization of the effect of $G$ on Fibonacci
+decomposition, we can now derive a few interesting properties.
+
+\begin{theorem}\label{Gclass1}
+\noindent
+\begin{enumerate}
+\item $G(n+1)=G(n)$ if and only if $low(n)=1$.
+\item If $low(n)$ is even, then $G(n-1)=G(n)$.
+\item If $low(n)$ is odd, then $G(n-1)=G(n)-1$.
+\item For $n\neq 0$, the node $n$ in the $G$ tree
+ is unary if and only if $low(n)$ is even.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item
+If $low(n)=1$, then we can write a canonical decomposition
+$n=F_1+\Sigma F_i$, hence
+$n+1=F_2+\Sigma F_i$ is a relaxed decomposition. By the previous
+theorem, $G(n) = F_0 + \Sigma F_{i-1}$ while
+$G(n+1) = F_1 + \Sigma F_{i-1}$, hence the desired equality.
+Conversely, we consider a canonical decomposition of $n$ as $\Sigma F_i$.
+If $F_1$ isn't part of this decomposition, then $n+1=F_1+\sigma F_i$
+is a correct relaxed decomposition, leading to
+$G(n+1)=1+\Sigma F_{i-1}=1+G(n)$. So $low(n)\neq 1$ implies
+$G(n+1)\neq G(n)$.
+
+\item If $low(n)$ is even, we've already shown in theorem \ref{??}
+  that $low(n-1)=1$ hence $G(n)=G(n-1)$ by the previous point.
+
+\item If $low(n)$ is odd, the same theorem
+ \ref{??} shows that $low(n-1)$ is 2 or more, provided that $n>1$.
+ and the first point above allows to conclude. And we check separately
+ the cases $n=0$ (irrelevant here since $low(0)$ doesn't exists) and
+ $n=1$ (for which $G(1-1)$ is indeed $G(1)-1$).
+
+\item We've already seen that a node $n$ is binary whenever 
+$G(n+G(n)-1) = n$. When $low(n)$ is even, we have
+$G(n-1)=G(n)$, hence $G(n+G(n)-1) = G(n-1+G(n-1)) = n-1$, hence $n$ is
+  unary. When $low(n)$ is odd, we have
+$n+G(n)-1 = (n-1+G(n-1))+1$ : this is the next node to the right after
+the rightmost child of $n-1$, its image by $G$ is hence $n$, and
+finally $n$ is indeed binary.
+\end{enumerate}
+\end{proof}
+
+
+\begin{theorem}\label{Glow}
+If $low(n)>1$, then $low(G(n))=low(n)-1$. In particular,
+if $low(n)$ is even, then $low(G(n))$ is odd, and if $low(n)$
+is odd and different from 1, then $low(G(n))$ is even.
+\end{theorem}
+\begin{proof}
+This is a direct application of the previous theorem:
+when $low(n)>1$, the decomposition we obtain for $G(n)$ is
+still canonical, and its lowest rank is $low(n)-1$.
+The statements about parity are immediate consequences.
+\end{proof}
+
+\begin{theorem}\label{Gclass2}
+\noindent
+\begin{enumerate}
+\item If $low(n)=1$, then $low(G(n))$ is odd.
+\item If $low(n)=2$, then $low(G(n))=1$.
+\item If $low(n)>2$, then $low(G(n))>1$ and $low(G(n)+1)$ is odd.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item Once again, we consider a canonical decomposition
+$n = F_1 + \fibrest$. Then $G(n) = F_0 + \Sigma F_{i-1}$. If we
+turn the $F_0$ into a $F_1$, we obtain a relaxed decomposition,
+that can be normalized into a canonical decomposition whose
+lowest rank will hence be odd.
+\item Direct application of previous theorem: $low(G(n))=low(n)-1$.
+\item Here also, $low(G(n))=low(n)-1$, hence $low(G(n))$ cannot
+be 1 here. Then the theorem \ref{fibsucc} implies that $low(G(n)+1)$ is odd.
+\end{enumerate}
+\end{proof}
+
+\begin{theorem}\label{Gtwo}
+\noindent
+\begin{enumerate}
+\item If $n$ is 2-odd, then $G(n)+1$ is 2-even.
+\item If $n$ is 2-even, then either $G(n)+1$ is 2-odd or $low(G(n)+1)>2$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item Take a canonical decomposition $n=F_2+F_{2p+1}+\fibrest$.
+Hence $G(n)+1=1+F_1+F_{2p}+\Sigma F_{i-1}=F_2+F_{2p}+\Sigma F_{i-1}$,
+and this decomposition is still canonical (for canonicity reasons,
+$p$ cannot be $1$).
+\item Similarly, $n=F_2+F_{2p}+\fibrest$ implies
+$G(n)+1=F_2+F_{2p-1}+\Sigma F_{i-1}$. When $p>1$, this decomposition
+is canonical and $G(n)+1$ is 2-odd. When $p=1$, this decomposition
+is only a relaxed one, starting by $F_2+F_3+...$. Its normalization
+will hence end with a lowest rank of at least 4.
+\end{enumerate}
+\end{proof}
+
+\subsection{$G$ and its ``derivative'' $\Delta G$}
+
+We consider now the ``derivative'' $\Delta G$ of $G$, defined via
+$\Delta G(n) = G(n+1)-G(n)$. We already know from theorem
+\ref{Gprops} that the output of $\Delta G$ is always either 0 or 1.
+
+\begin{theorem}\label{Gdelta}
+For all $n$, $\Delta G(n+1) = 1 - \Delta G(n).(1 - \Delta G(G(n)))$
+\end{theorem}
+\begin{proof}
+We already know that $\Delta G(n)=0$ implies $\Delta G(n+1)=1$:
+we cannot have $G(n)=G(n+1)=G(n+2)$.
+Consider now a $n$ such that
+$G(n+1)-G(n)=1$. By using the recursive definition of $G$, we have
+$G(n+2)-G(n+1)=(n+2-G(G(n+1)))-(n+1-G(G(n))) = 1 - (G(G(n+1))-G(G(n))$.
+Hence $\Delta G(n+1) = 1 - (G(G(n)+1)-G(G(n)) = 1 - \Delta G(G(n))$.
+\end{proof}
+
+This equation provides a way to express $G(n+2)$ in terms of
+$G(n+1)$ and $G(n)$ and $G(G(n))$ and $G(G(n)+1)$. Since
+$n+1$, $n$, $G(n)$ and $G(n)+1$ are all strictly less than $n+2$,
+we could use this equation as an alternative way to define
+recursively $G$,
+alongside two initial equations $G(0)=0$ and $G(1)=1$.
+We proved in Coq that $G$ is indeed the unique function to
+satisfy these equations (see {\tt GD\_unique} and
+{\tt  g\_implements\_GD}).
 
 \section{The $\FG$ function}
 
-This section corresponds to file {\tt FlipG.v}
+This section corresponds to file {\tt FlipG.v}.
+Here is a quote from page 137 of Hofstadter's book \cite{??}:
+\begin{quote}
+A problem for curious readers is: suppose you flip Diagram G
+around as if in a mirror, and label the nodes of the new tree so they
+increase from left to right. Can you find a recursive \emph{algebraic}
+definition for this ``flip-tree'' ?
+\end{quote}
+
+\subsection*{The $flip$ function}
+
+Flipping the $G$ tree as if in a mirror is equivalent to keeping
+its shape unchanged, but labelling the nodes from right to left
+during the breadth-first traversal. Let us call $flip(n)$ the
+new label of node $n$ after this transformation.
+We've seen in the previous section that given a depth $k\neq 0$,
+the nodes at this depth are labelled from $1+F_k$ till $F_{k+1}$.
+After the $flip$ transformation, the $1+F_k$ node and
+the $F_{k+1}$ node will hence have exchanged their label.
+Similarly, $2+F_k$ will become $F_{k+1}-1$ and vice-versa.
+More generally, if $depth(n)=k$, the distance between
+$flip(n)$ and the leftmost node $1+F_{k}$ will be the same
+as the distance between $n$ and the rightmost node $F_{k+1}$,
+hence:
+$$flip(n) - (1+F_{k}) = F_{k+1} - n$$
+So:
+$$flip(n) = 1+F_{k+2}-n$$
+We finally complete this definition to handle the case $n\le 1$.
+\begin{definition}
+We define the function $flip : \mathbb{N}\to\mathbb{N}$
+in the following way:
+$$flip(n) = if~(n\le 1)~then~n~else~1+F_{2+depth(n)}-n$$
+\end{definition}
+
+A few properties of this $flip$ function:
+\begin{theorem}\label{flipprops}
+\noindent
+\begin{enumerate}
+\item For all $n\in\mathbb{N}$, depth(flip(n)) = depth(n).
+\item For all $n$, $n>1$ if and only if $flip(n)>1$.
+\item For $k>0$ and $n<F_{k-1}$, we have
+ $flip(1+F_k+n) = F_{k+1}-n$.
+\item $flip$ is involutive.
+\item For all $n>1$, if $depth(n+1)=depth(n)$ then
+  $flip(n+1)=flip(n)-1$.
+\item For all $n>1$, if $depth(n-1)=depth(n)$ then
+  $flip(n-1)=flip(n)+1$.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item If $n\le 1$, then $flip(n)=n$ and the property is obvious.
+For $n>1$, if we name $k$ the depth of $n$, we have
+$flip(n) = 1+F_{k+2}-n$. Since $1+F_k \le n \le F_{k+1}$,
+we hence have $1+F_{k+2}-F_{k+1} \le flip(n) \le 1+F_{k+2}-1-F_k$.
+And finally $1+F_k \le flip(n) \le F_{k+1}$, and this caracterizes
+the node at depth $k$, hence $depth(flip(n)=k=depth(n)$.
+\item We know that $n$ and $flip(n)$ have the same depth, and
+we've already seen that being less or equal to 1 is equivalent
+to having depth 0.
+\item For $k>1$ and $n<F_{k-1}$, we know that $depth(1+F_k+n)=k$
+(still via the same caracterization of nodes at depth $k$).
+Moreover $1+F_k+n \le 1+F_k \le 2$, so
+$flip(1+F_k+n) = 1+F_{k+2}-(1+F_k+n) = F_{k+1}-n$.
+\item If $n\le 1$ then $flip(n)=n$ is still less or equal to 1,
+so $flip(flip(n))=flip(n)=n$.
+Consider now $n>1$. We know already that $flip(n)>1$ and
+$flip(n)$ and $n$ have same depth (let us name it $k$). So:
+$flip(flip(n)) = 1+F_{k+2}-flip(n)=1+F_{k+2}-(1+F_{2+k}-n) = n$.
+\item Let us name $k$ the common depth of $n+1$ and $n$.
+In these conditions
+$flip(n+1) = 1+F_{k+2}-(n+1) = (1+F_{k+2}-n)-1 = flip(n)-1$.
+\item Same proof as for $flip(n+1)$.
+\end{enumerate}
+\end{proof}
+
+In particular, the third point above shows that for $k\neq 0$
+we indeed have $flip(1+F_k) = F_{k+1}$ (and vice-versa since $flip$
+is involutive).
+
+\subsection*{Definition of $\FG$ and initial properties}
+
+We can now take advantage of this $flip$ function to obtain
+a first definition of the $\FG$ function, corresponding to the
+flipped $G$ tree:
+
+\begin{definition}
+The function $\FG : \mathbb{N}\to\mathbb{N}$ is defined via
+$\FG(n) = flip(G(flip(n))$.
+\end{definition}
+
+We benefit from the involutive aspect of $flip$ to switch
+from right-left to left-right diagrams, use $G$, and then
+switch back to right-left diagram. The corresponding Coq function
+is named {\tt fg}.
+
+By following this definition, the initial values of $\FG$ are
+$\FG(0)=0$, $\FG(1)=\FG(2)=1$, $\FG(3)=2$. The first difference
+between $\FG$ and $G$ appears for $\FG(7)=5=G(7)+1$. We'll dedicate a
+whole section later on the comparison between $\FG$ and $G$.
+Here is the initial levels of this flipped tree $\FG$,
+the boxed values being the places where $\FG$ and $G$ differ.
+
+\bigskip
+
+\begin{tikzpicture}[grow'=up]
+\Tree
+ [.1 [.2 [.3
+       [.4 [.6 [.9 [.14 22 23 ] ]
+               [.10 [.\fbox{15} 24 ] 
+                    [.16 25 26 ]]]]
+       [.5 [.\fbox{7} [.11 [.17 27 ] [.18 \fbox{28} 29 ]]]
+           [.8 [.12 [.19 30 31 ] ]
+               [.13 [.\fbox{20} 32 ]
+                    [.21 33 34 ]]]]]]]
+\end{tikzpicture}
+
+We now show that $\FG$ enjoys the same basic properties as $G$:
+
+\begin{theorem}\label{FGprops}
+\noindent
+\begin{enumerate}
+\item For all $n>1$, $depth(\FG(n)) = depth(n)-1$.
+\item For all $k$, $\FG(F_{k+1}) = F_k$.
+\item For all $k\neq 0$, $\FG(1+F_{k+1}) = 1+F_k$.
+\item For all $n$, $\FG(n+1)-\FG(n) \in \{0,1\}$.
+\item For all $n,m$, $n\le m$ implies $0 \le \FG(m)-\FG(n) \le m-n$.
+\item For all $n$, $0 \le \FG(n) \le n$.
+\item For all $n$, $\FG(n)=0$ if and only if $n=0$
+\item For all $n>1$, $\FG(n)<n$.
+\item For all $n\neq 0, \FG(n)=\FG(n-1)$ implies $\FG(n+1)=\FG(n)+1$.
+\item $\FG$ is onto.
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+\noindent
+\begin{enumerate}
+\item Since $flip$ doesn't modify the depth, we reuse the
+result about the depth of $G(n)$.
+\item $\FG(F_{k+1}) = flip(G(flip(F_{k+1}))) = flip(G(1+F_k)) =
+       flip(1+F_{k-1}) = F_k$.
+\item Similar to the previous proof.
+\item The property is true for $n=0$ and $n=1$.
+We consider now $n>1$. Let $k$ be the depth of $n$, which is
+hence different from 0. We have $1+F_k \le n \le F_{k+1}$.
+If $n$ is $F_{k+1}$, we have already seen that
+$\FG(1+F_{k+1}) = 1+F_k = 1+\FG(F_{k+1})$. Otherwise $n < F_{k+1}$
+and $n+1$ has hence the same depth as $n$. Then
+$flip(n+1)=flip(n)-1$. Now, by applying $G$ on these two consecutive values
+of same depth $flip(n)$ and $flip(n)-1$, we obtain two results that
+are either equal or consecutive, and of same depth. By applying $flip$
+again on these $G$ results, we ends on two consecutive or equal 
+$\FG$ results.
+\item Iteration of the previous results between $n$ and $m$.
+\item Thanks to the previous point, $0 \le \FG(m)-\FG(0) \le m-0$
+and $\FG(0)=0$.
+\item $\FG(1)=1$ and $0 \le \FG(m)-\FG(1)$ as soon as $m\ge 1$.
+\item $\FG(2)=1$ and $\FG(m)-\FG(2) \le m-2$ as soon as $m \ge 2$.
+\item If $n=1$, then the precondition $\FG(1)=\FG(0)$ isn't
+  satisfied. If $n=2$ or $n=3$, the conclusion is satisfied:
+  $\FG(3)=2=\FG(2)+1$ and $\FG(4)=3=\FG(3)+1$.
+  We now consider $n>3$ such that
+  $\FG(n)=\FG(n-1)$. We have already seen that $\FG(n+1)-\FG(n)$
+  is either 0 or 1. If it is 1, we can conclude. We proceed by
+  contradiction and suppose it is 0. We hence have
+  $\FG(n-1)=\FG(n)=\FG(n+1)$, or said otherwise
+  $flip(G(flip(n-1))) = flip(G(flip(n))) = flip(G(flip(n+1)))$.
+  Since $flip$ is involutive hence bijective, this implies that
+  $G(flip(n-1))=G(flip(n))=G(flip(n+1))$. To be able to commute
+  $flip$ and the successor/predecessor, we now study the depth
+  of these values.
+  \begin{itemize}
+  \item If $n+1$ has a different depth than $n$, then
+    $n$ is a Fibonacci number $F_k$, with $k>3$ since $n>3$.
+    Then $flip(n+1)=F_{k+1}$ and $flip(n)=1+F_{k-1}$. These values
+    aren't equal or consecutive, hence $G$ cannot give the same
+    result for them, this situation is indeed contradictory.
+  \item Similarly, if $n-1$ has a different depth than $n$, then
+    $n-1$ is a Fibonacci number $F_k$, with $k>2$ since $n>3$.
+    Then $flip(n-1)=1+F_{k-1}$ while $flip(n)=F_{k+1}$.
+    Once again, these values aren't equal or consecutive,
+    hence $G$ cannot give the same result for them. Contradiction.
+  \item In the last remaining case, 
+    $depth(n-1)=depth(n)=depth(n+1)$.
+    Then $flip(n+1)=flip(n)-1$ and $flip(n-1)=flip(n)+1$ and
+    these value are non equal or consecutive, while having the
+    same result by $G$, which is contradictory.
+  \end{itemize}
+\item We reason as we did earlier for $G$: $\FG$ starts with
+$\FG(0)=0$, it grows by steps of 0 or 1, and it grows by at
+least 1 every two steps. Hence its limit is $+\infty$ and it is
+an onto function.
+\end{enumerate}
+\end{proof}
+
+\subsection*{An recursive algebraic definition for $\FG$}
+
+The following result is an answer to Hofstadter's problem.
+It was already mentionned on OEIS page \cite{??}, but only as
+a conjecture.
+
+\newcommand{\nn}{\overline{n}}
+
+\begin{theorem}\label{FGeqn}
+For all $n>3$ we have $\FG(n) = n+1 - \FG(1+\FG(n-1))$.
+And $\FG$ is uniquely characterized by this equation,
+alongside initial equations $\FG(0)=0$, $\FG(1)=\FG(2)=1$ and
+$\FG(3)=2$.
+\end{theorem}
+\begin{proof}
+We consider $n>3$. Let $k$ be its depth, which is hence at
+least 3. We know that $1+F_k \le n \le F_{k+1}$. We will note
+$flip(n)$ below as $\nn$. Roughly speaking, this proof is
+essentially a use of theorem \ref{Galt} which implies that
+$G(G(\nn+1)-1) = \nn - G(\nn)$, and then some
+play with flip and predecessors and successors, when possible,
+or direct particular proofs otherwise.
+\begin{itemize}
+\item We start with the most favorable case : we suppose
+$depth(n-1)=depth(n)$ and $depth(\FG(n-1)+1)=depth(\FG(n-1)$.
+Let us shorten $\FG(n-1)+1$ as $p$. In particular
+$depth(p)=depth(\FG(n-1))=depth(n-1)-1=depth(n)-1=k-1$.
+Due to the equalities between depths, and the facts that
+$n>1$ and $\FG(n-1)>1$, we're allowed to use the
+last properties of theorem \ref{flipprops} : $flip(n-1)=\nn+1$ and
+\begin{align*}
+flip(p) &= flip(\FG(n-1)+1) \\
+        &= flip(\FG(n-1))-1 \\
+        &= flip(flip(G(flip(n-1))))-1 \\
+        &= G(flip(n-1))-1 \\
+        &= G(\nn+1)-1
+\end{align*}
+We now exploit the definition of $flip$ three times:
+\begin{enumerate}
+\item $depth(n)=k\neq 0$ implies $\nn=1+F_{k+2}-n$
+\item
+We have
+$depth(G(flip(p)))=depth(p)-1=k-2 \neq 0$ hence:
+$$\FG(p) = flip(G(flip(p))) = 1+F_k-G(flip(p))$$
+\item $depth(G(\nn))=depth(\nn)-1=depth(n)-1=k-1 \neq 0$, so:
+$$\FG(n)=flip(G(\nn))=1+F_{k+1}-G(\nn)$$
+\end{enumerate}
+All in all:
+\begin{align*}
+n+1-\FG(1+\FG(n-1)) & = n+1-\FG(p) \\
+                    & = n+1-(1+F_k-G(flip(p))) \\
+                    & = n-F_k+G(G(\nn+1)-1)) \\
+                    & = n-F_k+(\nn-G(\nn)) \\
+                    & = n-F_k+(1+F_{k+2}-n)-G(\nn) \\
+                    & = 1+F_{k+1}-G(\nn) \\
+                    & = \FG(n)
+\end{align*}
+\item We now consider the case where $depth(n-1)\neq depth(n)$.
+So $n$ is the least number of depth $k$, hence $n=1+F_k$.
+In this case:
+\begin{align*}
+1+n-\FG(1+\FG(n-1)) & = 2+F_k-\FG(1+\FG(F_k)) \\
+                    & = 2+F_k-\FG(1+F_{k-1}) \\
+                    & = 2+F_k-(1+F_{k-2}) \\
+                    & = 1+F_{k-1} \\
+                    & = \FG(n)
+\end{align*}
+\item The last case to consider is $depth(n-1)=depth(n)$ but
+$depth(\FG(n-1)+1)\neq depth(\FG(n-1))$. As earlier, we prove
+that $depth(\FG(n-1))=depth(n-1)-1=depth(n)-1=k-1$. So
+$\FG(n-1)$ is the greatest number of depth $k-1$, hence
+$\FG(n-1)=F_k$. Since $\FG(F_{k+1})$ is also $F_k$, then $n-1$
+and $F_{k+1}$ are at a distance of at most 1. But we know that
+$depth(n)=k$, hence $n \le F_{k+1}$, so $n-1 < F_{k+1}$.
+Finally $n=F_{k+1}$ and:
+\begin{align*}
+1+n-\FG(1+\FG(n-1)) & = 1+F_{k+1}-\FG(1+F_k) \\
+                    & = 1+F_{k+1}-(1+F_{k-1}) \\
+                    & = F_{k} \\
+                    & = \FG(n)
+\end{align*}
+\end{itemize}
+
+Finally, if we consider another function $F$ satisfying
+the same recursive equation, as well as the same initial values
+for $n\le 3$, then we prove by strong induction over $n$ that
+$\forall n, F(n)=\FG(n)$. This is clear for $n\le 3$. Consider now
+some $n>3$, and assume that $F(k)=\FG(k)$ for all $k<n$.
+In particular $F(n-1)=\FG(n-1)$ by induction hypothesis for
+$n-1<n$.
+Moreover $n-1>1$ hence $\FG(n-1) < n-1$ hence $\FG(n-1)+1<n$.
+So we could use a second induction hypothesis at this position:
+$F(\FG(n-1)+1)=\FG(\FG(n-1)+1)$. This combined with the first
+induction hypothesis above gives $F(F(n-1)+1)=\FG(\FG(n-1)+1)$
+and finally $F(n)=\FG(n)$ thanks to the recursive equations
+for $F$ and $\FG$.
+\end{proof}
+
+\subsection*{Shape of the $\FG$ tree}
+
+\subsection*{Comparison between $\FG$ and $G$}
+
+We already noticed earlier that $\FG$ and $G$ produce very similar
+answers. Let us study this property closely now.
+
+\begin{theorem}\label{comp-fg-g}
+For all $n$, we have $\FG(n)=1+G(n)$ whenever $n$ is 2-even,
+and $\FG(n)=G(n)$ otherwise.
+\end{theorem}
+\begin{proof}
+We proceed by strong induction over $n$.
+When $n\le 3$, $n$ is never 2-even, and we indeed have
+$\FG(n)=G(n)$. We now consider $n>3$, and assume that
+the result is true at all positions strictly less than $n$.
+For comparing $\FG(n)$ and $G(n)$ we use their corresponding
+recursive equations: when $n$ is 2-even we need to prove that
+$\FG(\FG(n-1)+1)=G(G(n-1))$, and otherwise we need to establish
+that $\FG(\FG(n-1)+1)=1+G(G(n-1))$. So we'll need
+induction hypotheses (IH) for $n-1<n$ and for $\FG(n-1)+1$
+(which is indeed strictly less than $n$:
+since $1<n-1$, we have $\FG(n-1)<n-1$). But the exact equations
+given by these two IH will depend on the
+status of $n-1$ and $\FG(n-1)+1$ : are these numbers 2-even or not ?
+For determining that, we'll consider the Fibonacci decomposition
+of $n$ and study its classification.
+\begin{itemize}
+\item Case $low(n)=1$. Hence $n$ isn't 2-even and we try to prove
+  $\FG(\FG(n-1)+1)=1+G(G(n-1))$. Theorem \ref{fibpred} implies that
+  $low(n-1)>2$, and in particular $n-1$ isn't 2-even.
+  So the first IH is $\FG(n-1)=G(n-1)$. By theorem
+  \ref{Gclass1}, we also know that $G(n-1)=G(n)-1$.
+  So $\FG(n-1)+1=G(n-1)+1=G(n)$
+  By theorem \ref{Gclass2}, we know that $G(n)$ has an odd lowest
+  rank, so it cannot be 2-even, and the second IH is
+  $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$.
+  Since $\low(G(n))$ is odd, we can use theorem \ref{Gclass1} once
+  more: $G(G(n)-1) = G(G(n))-1$.
+  Finally: $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)=G(G(n))=1+G(G(n-1))$.
+\item Case $n$ 2-even. We're trying to prove
+  $\FG(\FG(n-1)+1)=G(G(n-1))$. Theorem \ref{fibpred} implies that
+  $low(n-1) = 1$, and in particular $n-1$ isn't 2-even.
+  So the first IH is $\FG(n-1)=G(n-1)$.
+  By theorem \ref{Gclass1}, we also know that $G(n-1)=G(n)$.
+  Moreover theorem \ref{Gtwo} shows that $\FG(n-1)+1 = G(n)+1$
+  cannot be 2-even.
+  So the second IH gives $\FG(\FG(n-1)+1) = G(\FG(n-1)+1)$.
+  Now, $low(G(n))=1$ by theorem \ref{Gclass2} so $G(G(n)+1)=G(G(n)$
+  by theorem \ref{Gclass1}, or equivalently $G(\FG(n-1)+1)=G(G(n-1))$,
+  hence the desired equation.
+\item Case $n$ 2-odd. As in all the forthcoming cases, we're now trying here
+  to prove $\FG(\FG(n-1)+1)=1+G(G(n-1))$.
+  This case is very similar to the previous one until the point
+  where we study $G(n)+1$ which is now 2-even (still thanks to theorem
+  \ref{Gtwo}).
+  So the second induction hypothesis gives now
+  $\FG(\FG(n-1)+1) = 1+G(\FG(n-1)+1)$. And we conclude just as before
+  by ensuring for the same reasons that $G(\FG(n-1)+1)=G(G(n-1))$.
+\item Case $low(n)=3$.
+  Since 3 is odd, we also have $G(n-1)=G(n)-1$.
+  Hence $low(G(n))=2$ by theorem \ref{Glow}, and $G(G(n)-1)=G(G(n))$
+  and $G(G(n)+1)=1+G(G(n))$, both by theorem \ref{Gclass1}.
+  Finally $1+G(G(n-1)) = 1+G(G(n)) = G(G(n)+1)$.
+  Now, to determine whether $n-1$ is 2-even,
+  we need to look deeper in the canonical decomposition of
+  $n = F_3+F_k+\fibrest$.
+  \begin{itemize}
+  \item If the second lowest rank $k$ is even, then
+    $n-1 = F_2+F_k+\fibrest$ is hence 2-even, and the first IH is
+    $\FG(n-1)=1+G(n-1)$. So
+    $\FG(n-1)+1=G(n)+1$, and this number has an odd lowest rank
+    (theorem \ref{Gclass2}), it cannot be 2-even, and the second IH
+    is:
+    $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$. And this is known to be equal
+    to $G(G(n)+1)=1+G(G(n-1))$.
+  \item Otherwise $k$ is odd and $n-1$ is 2-odd
+    and hence not 2-even, so the first IH is $\FG(n-1)=G(n-1)$.
+    Moreover, since $n-1$ is 2-odd then $\FG(n-1)+1=G(n-1)+1$ is 2-even by
+    theorem \ref{Gtwo}. So the second IH is:
+    $\FG(\FG(n-1)+1)=1+G(\FG(n-1)+1)$. And this is known to be equal
+    to $1+G(G(n-1)+1)=1+G(G(n))=1+G(G(n-1))$.
+  \end{itemize}
+\item Case $low(n)>3$ and even.
+  By theorem \ref{fibpred}, $low(n-1)=1$ hence the first IH is
+  $\FG(n-1)=G(n-1)$. We also know that $G(n-1)=G(n)$ by theorem
+  \ref{Gclass1}, and that $low(\FG(n-1)+1)=low(G(n)+1)$ is odd
+  by theorem \ref{Gclass2}. The second IH is hence:
+  $\FG(\FG(n-1)+1) = G(\FG(n-1)+1)$. Finally
+  $G(G(n)+1)=1+G(G(n))$ since $low(G(n))=2\neq 1$.
+\item Case $low(n)>3$ and odd.
+  In this case, $n-1$ is 2-even (theorem \ref{twoevenodd}), so
+  the first IH is $\FG(n-1)=1+G(n-1)$. We also know that
+  $G(n-1)=G(n)-1$ by theorem \ref{Gclass1}.
+  By theorem \ref{Glow} we know that $low(G(n))=low(n)-1 > 2$, so
+  by theorem \ref{fibsucc} $\low(G(n)+1)=1$, and
+  $\FG(n-1)+1=1+G(n)$ cannot be 2-even : the second IH is hence
+  $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$. Moreover $low(G(n))$ is
+  also known to be even, so 
+  by theorem \ref{Gclass1} we have $G(G(n-1))=G(G(n)-1)=G(G(n))$.
+  The final step is 
+  $G(1+G(n))=1+G(G(n))$ also by \ref{Gclass1} (since $\low(G(n))\neq 1$).
+\end{proof}
+
+As an immediate consequence, $\FG$ is always greater or equal
+than $G$, but never more than $G+1$. And we've already studied
+the distance between 2-even numbers, which is always 5 or 8,
+while the first 2-even number is 7. So $\FG$ and $G$ are actually
+equal more than 80\% of the time.
+
+\subsection*{$\FG$ and its ``derivative'' $\Delta \FG$}
+
+\subsection*{An alternative recursive equation for $\FG$}
 
 
 \end{document}
