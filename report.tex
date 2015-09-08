@@ -7,8 +7,12 @@
 \usepackage{amsfonts, amsthm, amsmath}
 \usepackage{tikz-qtree}
 
-\title{A problem for Hofstadter's curious readers}
+\title{Hofstadter's problem for curious readers}
 \author{Pierre letouzey}
+\date{\small
+{\tt pierre.letouzey@inria.fr}\\
+team $\pi r^2$, PPS, Univ Paris Diderot \& INRIA Paris-Rocquencourt}
+
 
 \begin{document}
 \newtheorem{theorem}{Theorem}
@@ -31,7 +35,7 @@ $\FG$ of this $G$ tree has also been studied here, following
 Hofstadter's ``problem for the curious reader''.
 The initial $G$ function is refered as sequence A005206 in
 OEIS\cite{OEIS-G}, while the flipped version $\FG$ is the sequence
-A123070.
+A123070 \cite{OEIS-FG}.
 
 The detailed and machine-checked proofs can be found in the files
 of this development\footnote{See
@@ -1459,14 +1463,33 @@ The proofs for theorems \ref{FGeqn} and \ref{comp-fg-g} are
 surprisingly tricky, all our attempts at simplifying them
 have been rather unsuccessful. But there's probably still room
 for improvements here, please let us know if you find or
-encounter nicer proofs. Perhaps using the definition of $G$
+encounter nicer proofs.
+
+Perhaps using the definition of $G$
 via real numbers could help shortening some proofs.
-We discovered this definition\footnote{
+We proved in file \doc{Phi} this definition
 $\forall n, G(n)=\lfloor n/\varphi\rfloor$ where $\varphi$
-is the golden ratio $(1+\sqrt{5})/2$}
-at the end of this development, and proved it in file \doc{Phi}.
-But relating this definition with the flipped function $\FG$
+is the golden ratio $(1+\sqrt{5})/2$. But this has been done
+quite late in our development, and we haven't tried to use this
+fact for earlier proofs. Anyway,
+relating this definition with the flipped function $\FG$
 doesn't seem obvious.
+
+Another approach might be to relate
+$\FG$ more directly to some kind of Fibonacci decomposition.
+Of course, now that theorem \ref{comp-fg-g} is proved, we
+know that $\FG$ shifts the ranks of the Fibonacci decompositions
+just as $G$, except for 2-even numbers where a small $+1$
+correction is needed. But could this fact be established more
+directly ? For the moment, we are only aware of the following
+``easy'' formulation of $\FG$ via decompositions:
+if $n$ is written as $F_{k+1}-\fibrest$ where $k=depth(n)$
+and $\fibrest$ form a canonical decomposition of $F_{k+1}-n$, then
+$\FG(n)=F_k-\Sigma F_{i-1}+\epsilon$, where $\epsilon=1$ whenever
+the decomposition above includes $F_1$, and $\epsilon=0$
+otherwise. But this statement didn't brought any new insights
+for the proof of theorem \ref{comp-fg-g}, so we haven't formulated
+it in Coq.
 
 As possible extensions of this work, we might consider later
 the other recursive functions proposed by Hofstadter :
