@@ -13,6 +13,7 @@ Usage
 To be compiled with Coq 8.4.
 
 Use "make gallinahtml" to generate the short html documentation.
+Use "pdflatex report" to generate the pdf of the technical report.
 
 Summary of files:
 ----------------
