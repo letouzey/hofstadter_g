@@ -12,7 +12,7 @@
 \date{\small
 {\tt pierre.letouzey@inria.fr}\\
 Team $\pi r^2$, PPS, Univ Paris Diderot \& INRIA Paris-Rocquencourt\\
-Technical report version 1.3, Sept 2015, \href{http://creativecommons.org/licenses/by/4.0/}{license CC-BY}
+Technical report version 1.4, Oct. 2015, \href{http://creativecommons.org/licenses/by/4.0/}{license CC-BY}
 }
 
 
@@ -75,8 +75,11 @@ condition on $\FG$ is assumed.
 \item
   The statement and proof of a result comparing $\FG$ and $G$:
 for all $n$, $\FG(n)$ is either $G(n)+1$ or $G(n)$, depending
-on the existence of a decomposition of $n$ as sum of Fibonacci numbers
-of the form $F_2 + F_{2p} + ...$ where $F_2 = 2$. Moreover these
+of the shape of the Zeckendorf decomposition of $n$ as a sum
+of Fibonacci numbers. More precisely, when this decomposition
+of $n$ starts with $F_3$ and has a second smallest term $F_k$
+with $k$ odd, then $\FG(n)=G(n)+1$, otherwise $\FG(n)=G(n)$.
+Moreover these
 specific numbers where $\FG$ and $G$ differ are separated by either
 5 or 8.
 
@@ -123,27 +126,29 @@ of this development, here comes a few words about the Coq syntax.
 
 This section corresponds to file \doc{Fib}.
 
-\paragraph{Convention.} In this document and in the Coq development,
-we took the following non-standard definition of Fibonacci numbers
-$F_n$:
-
-$$F_0 = F_1 = 1$$
+\paragraph{Convention.} We use here\footnote{
+Please note that earlier versions of this Coq development
+and of this document were using a non-standard definition
+of the Fibonacci sequence, where the leading 0 was omitted.
+This non-standard definition $F_0=F_1=1, F_2=2, ...$ was meant
+to ease some Coq proofs, but was actually providing little gain,
+while being quite confusing for external readers.}
+the following definition of the Fibonacci numbers $F_n$ :
+$$F_0 = 0 $$
+$$F_1 = 1 $$
 $$\forall n,~~ F_{n+2} = F_{n}+F_{n+1}$$
-
-Please note the unusual $F_0 = 1$ instead of $0$. The ranks are hence
-shifted by one when compared with, say, OEIS's sequence A000045
+This definition is standard, see for instance OEIS's sequence A000045
 \cite{OEIS-Fib}.
-With this choice, we avoid considering zeros in the
-decompositions of numbers as sums of Fibonacci numbers (see
-below). In Coq, these $F_n$ numbers correspond to the {\tt fib}
+In Coq, these $F_n$ numbers correspond to the {\tt fib}
 function, and we start by proving a few basic properties :
-strict positivity, monotony, strict monotony above 1, etc.
+strict positivity except for $F_0$, monotony, strict monotony
+above 2, etc. 
 We also prove the theorem {\tt fib\_inv} which states 
 that any positive number can by bounded by
 consecutive Fibonacci numbers :
 
 \begin{theorem}[Fibonacci inverse]\label{fibinv}
-$\forall n>0, \exists k, F_k \le n < F_{k+1}$.
+$\forall n, \exists k, F_k \le n < F_{k+1}$.
 \end{theorem}
 
 \subsection{Fibonacci decompositions} The rest of the file \doc{Fib}\
@@ -152,7 +157,7 @@ numbers.
 \begin{definition}
  A decomposition $n = \fibrest$ is said to be \emph{canonical} if:
 \begin{itemize}
-\item[(a)] $F_0$ does not appear in the decomposition
+\item[(a)] $F_0$ and $F_1$ do not appear in the decomposition
 \item[(b)] A Fibonacci number appears at most once in the decomposition
 \item[(c)] Fibonacci numbers in the decomposition aren't consecutive
 \end{itemize}
@@ -160,7 +165,7 @@ A decomposition is said to be \emph{relaxed} if at least conditions
 (a) and (b) hold. 
 \end{definition}
 For instance, $11$ admits the canonical decomposition
-$F_3+F_5 = 3 + 8$, but also the relaxed decomposition $F_1+F_2+F_3+F_4
+$F_4+F_6 = 3 + 8$, but also the relaxed decomposition $F_2+F_3+F_4+F_5
 = 1 + 2 + 3 + 5$.
 On a technical level, we represented in Coq the decompositions
 as sorted lists of ranks, and we used a predicate {\tt Delta $p$ $l$}
@@ -177,16 +182,18 @@ Any natural number has a unique canonical decomposition.
 \end{theorem}
 
 \begin{proof}
-The proof of this theorem is quite standard : to decompose
-$n$, take the highest $F_k$ which is less or equal to $n$
+The proof of this theorem is quite standard : for $n=0$ we take
+the empty decomposition (and not the useless $F_0$), while for
+$n>0$, we take first the highest $k$ such that $F_k$ is less or equal to $n$
 (cf {\tt fib\_inv} below),
 and continue recursively with $n-F_k$. We cannot obtain this way
 two consecutive $F_{k+1}$ and $F_k$, otherwise $F_{k+2}$ could have
-been used in the first place. And $F_0$ isn't necessary in the
-decomposition since we could use $F_1 = 1$ instead.
+been used in the first place. This process will never use $F_1$,
+since $F_2$ has the same value for a higher rank, and will hence
+be preferred.
 For proving the uniqueness, the key ingredient is that this kind of
 sum cannot exceed the next Fibonacci number. For instance
-$F_1+F_3+F_5 = 1+3+8 = 12 = F_6 - 1$.
+$F_2+F_4+F_6 = 1+3+8 = 12 = F_7 - 1$.
 \end{proof}
 
 \begin{definition}
@@ -195,7 +202,7 @@ the lowest Fibonacci number in this decomposition. By extension,
 the lowest rank $low(n)$ of a number $n\neq 0$ is the lowest
 rank of its (unique) canonical decomposition.
 \end{definition}
-For instance $low(11)=3$. In Coq, $low(n)=k$ is written
+For instance $low(11)=4$. In Coq, $low(n)=k$ is written
 via the predicate {\tt Low 2 $n$ $k$}. Note that this notion is
 in fact more general : {\tt Low 1 $n$ $k$} says that $n$ can be
 decomposed via a relaxed decomposition of lowest rank $k$.
@@ -228,7 +235,7 @@ of the process.
 \subsection{Classifications of Fibonacci decompositions.}
 The end of \doc{Fib}\ deals with classifications of numbers
 according to the lowest rank of their canonical decomposition.
-In particular, this lowest rank could be 1, 2 or more. It will
+In particular, this lowest rank could be 2, 3 or more. It will
 also be interesting to distinguish between lowest ranks that
 are even or odd. These kind of classifications and their
 properties will be heavily used
@@ -237,20 +244,20 @@ For instance:
 \begin{theorem}[decomposition of successor]\label{fibsucc}
 \noindent
 \begin{enumerate}
-\item $low(n) = 1$ implies $low(n+1)$ is even.
-\item $low(n) = 2$ implies $low(n+1)$ is odd and different from 1.
-\item $low(n) > 2$ implies $low(n+1) = 1$.
+\item $low(n) = 2$ implies $low(n+1)$ is odd.
+\item $low(n) = 3$ implies $low(n+1)$ is even and different from 2.
+\item $low(n) > 3$ implies $low(n+1) = 2$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 Let $r$ be $low(n)$. We can write $n = F_r + \fibrest$ in a canonical
 way.
 \begin{enumerate}
-\item If $r = 1$, then $n+1 = F_2 + \fibrest$ is a relaxed decomposition,
-  and we conclude thanks to the previous normalization theorem.
 \item If $r = 2$, then $n+1 = F_3 + \fibrest$ is a relaxed decomposition,
+  and we conclude thanks to the previous normalization theorem.
+\item If $r = 3$, then $n+1 = F_4 + \fibrest$ is a relaxed decomposition,
   and we conclude similarly.
-\item If $r > 2$, then $n+1 = F_1 + F_r + \fibrest$ is directly a
+\item If $r > 3$, then $n+1 = F_2 + F_r + \fibrest$ is directly a
   canonical decomposition.
 \end{enumerate}
 \end{proof}
@@ -259,7 +266,7 @@ We also studied the decomposition of the predecessor
 $n-1$ in function of $n$. This decomposition depends of the parity of
 the lowest rank in $n$, since for $r\neq 0$ we have:
 
-$$ F_{2r} - 1 = F_1 + F_3 + ... + F_{2r-1}$$
+$$ F_{2r} - 1 = F_3 + ... + F_{2r-1}$$
 $$ F_{2r+1} - 1 = F_2 + F_4 + ... + F_{2r}$$
 
 Hence:
@@ -267,62 +274,62 @@ Hence:
 \begin{theorem}[decomposition of predecessor]\label{fibpred}
 \noindent
 \begin{enumerate}
-\item If $low(n)$ is even then $low(n-1) = 1$.
-\item If $low(n)$ is odd and different from 1, then $low(n-1) = 2$.
-\item For $n>1$, if $low(n)=1$ then $low(n-1)>2$.
+\item If $low(n)$ is odd then $low(n-1) = 2$.
+\item If $low(n)$ is even and different from 2, then $low(n-1) = 3$.
+\item For $n>1$, if $low(n)=2$ then $low(n-1)>3$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \noindent
 \begin{enumerate}
-\item Let the canonical decomposition of $n$ be $F_{2r} +
-  \fibrest$. Then we have $n-1 = F_1 + ... + F_{2r-1} + \fibrest$, which
- is also a canonical decomposition. Moreover $r\neq 0$ since $F_0$
+\item Let the canonical decomposition of $n$ be $F_{2r+1} +
+  \fibrest$. Then we have $n-1 = F_2 + ... + F_{2r} + \fibrest$, which
+ is also a canonical decomposition. Moreover $r\neq 0$ since $F_1$
  isn't allowed in decompositions. Hence the decomposition of $n-1$
- contains at least the term $F_1$, and $low(n-1)=1$.
-\item When $low(n) = 2r+1$ with $r\neq 0$, we decompose
- similarly $F_{2r+1}-1$, leading to a lowest rank 2 for $n-1$.
-\item Finally, when $n = F_1 + \fibrest$, then the canonical decomposition
+ contains at least the term $F_2$, and $low(n-1)=2$.
+\item When $low(n) = 2r$ with $r\neq 0$, we decompose
+ similarly $F_{2r}-1$, leading to a lowest rank 3 for $n-1$.
+\item Finally, when $n = F_2 + \fibrest$, then the canonical decomposition
   of $n-1$ is directly the rest of the decomposition of $n$, which
   isn't empty (thanks to the condition $n>1$) and
-  cannot starts by $F_1$ nor $F_2$ (for canonicity reasons).
+  cannot starts by $F_2$ nor $F_3$ (for canonicity reasons).
 \end{enumerate}
 \end{proof}
 
-\subsection{Subdivision of decompositions starting by $F_2$}
+\subsection{Subdivision of decompositions starting by $F_3$}
 
-When $low(n)=2$ and $n>2$, the canonical decomposition of $n$
-admits at least a second-lowest term: $n = F_2 + F_k + ...$ and we
+When $low(n)=3$ and $n>2$, the canonical decomposition of $n$
+admits at least a second-lowest term: $n = F_3 + F_k + ...$ and we
 will sometimes
 need to consider the parity of this second-lowest rank.
 
 \begin{definition}
 \noindent
 \begin{itemize}
-\item A number $n$ is said \emph{2-even} when its canonical decomposition
-  is of the form $F_2 + F_{2p} + ...$.
-\item A number $n$ is said \emph{2-odd} when its canonical decomposition
-  is of the form $F_2 + F_{2p+1} + ...$
+\item A number $n$ is said \emph{3-even} when its canonical decomposition
+  is of the form $F_3 + F_{2p} + ...$.
+\item A number $n$ is said \emph{3-odd} when its canonical decomposition
+  is of the form $F_3 + F_{2p+1} + ...$
 \end{itemize}
 \end{definition}
-In Coq, this corresponds to the {\tt TwoEven} and {\tt TwoOdd}
+In Coq, this corresponds to the {\tt ThreeEven} and {\tt ThreeOdd}
 predicates.
-In fact, the 2-even numbers will precisely be the locations where
-$G$ and $\FG$ differs (see theorem \ref{comp-fg-g}). The first of these 2-even number is
-$7 = F_2+F_4$, followed by $15 = F_2 + F_6$ and $20 = F_2+F_4+F_6$.
+In fact, the 3-odd numbers will precisely be the locations where
+$G$ and $\FG$ differs (see theorem \ref{comp-fg-g}). The first of these 3-odd numbers is
+$7 = F_3+F_5$, followed by $15 = F_3 + F_7$ and $20 = F_3+F_5+F_7$.
 
-A few properties of 2-even and 2-odd numbers:
-\begin{theorem}\label{twoevenodd}
+A few properties of 3-even and 3-odd numbers:
+\begin{theorem}\label{threeevenodd}
 \noindent
 \begin{enumerate}
-\item A number $n$ is 2-even if and only if it admits
-a \emph{relaxed} decomposition of the form $F_2 + F_{2p}+...$.
-\item A number $n$ is 2-even if and only if $low(n)=2$ and
-$low(n-2)$ is even.
-\item A number $n$ is 2-odd if and only if $low(n)=2$ and
+\item A number $n$ is 3-odd if and only if it admits
+a \emph{relaxed} decomposition of the form $F_3 + F_{2p+1}+...$.
+\item A number $n$ is 3-odd if and only if $low(n)=3$ and
 $low(n-2)$ is odd.
-\item When $low(n)$ is odd and at least 5, then $n-1$ is 2-even.
-\item Two consecutive 2-even numbers are always apart by 5 or 8.
+\item A number $n$ is 3-even if and only if $low(n)=3$ and
+$low(n-2)$ is even.
+\item When $low(n)$ is even and at least 6, then $n-1$ is 3-odd.
+\item Two consecutive 3-odd numbers are always apart by 5 or 8.
 \end{enumerate}
 \end{theorem}
 
@@ -333,58 +340,62 @@ $low(n-2)$ is odd.
   The left-to-right implication is obvious, since a canonical
   decomposition can in particular be seen as a relaxed one. Suppose
   now the existence of such a relaxed decomposition. During its
-  normalization, the $F_2$ will necessarily be left intact, and the
-  term $F_{2p}$ can grow, but only by steps of 2.
+  normalization, the $F_3$ will necessarily be left intact, and the
+  term $F_{2p+1}$ can grow, but only by steps of 2.
 \item Once again, the left-to-right implication is
   obvious. Conversely, we start with the canonical decomposition of
-  $n-2=F_{2p}+\fibrest$. If $p\neq 1$, this leads to the desired canonical
-  decomposition of $n$ as $F_2+F_{2p}+\fibrest$. And the case $p=1$ is
-  impossible: assume $p=1$, then we could turn the
+  $n-2=F_{2p+1}+\fibrest$. If $p>1$, this leads to the desired canonical
+  decomposition of $n$ as $F_2+F_{2p+1}+\fibrest$. And the case $p\le 1$ is
+  impossible: $p=0$ leads to $F_1$ being part of a relaxed
+  decomposition, and if we assume $p=1$, then we could turn the
   decomposition of $n-2$ into a canonical decomposition of $n-4$
-  whose lowest rank is at least 4. This gives us a relaxed
-  decomposition of $n$ of the form $F_1+F_3+\fibrest$. After normalization,
-  we would obtain that $low(n)$ is odd, which is contradictory with
-  $low(n)=2$.
-\item We proceed similarly for $low(n)=2$ and $low(n-2)$ odd implies
-  that $n$ is 2-odd. First we have a canonical decomposition of
-  $n-2 = F_{2p+1} + \fibrest$. Then $p=0$ would give a relaxed
-  decomposition of $n$ starting by 3, hence $low(n)$ odd, impossible.
-  And $p<>0$ allows to write $n = F_2+F_{2p+1}+\fibrest$ in a canonical way.
-\item When $n = F_{2p+1}+\fibrest$ with $p>1$, then $n-1 = F_2+F_4+F_{2p}+\fibrest$
-  and the condition on $p$ ensures that the terms $F_2$ and $F_4$ are
+  whose lowest rank is at least 5. This gives us a relaxed
+  decomposition of $n$ of the form $F_2+F_4+\fibrest$. After normalization,
+  we would obtain that $low(n)$ is even, which is contradictory with
+  $low(n)=3$.
+\item We proceed similarly for $low(n)=3$ and $low(n-2)$ even implies
+  that $n$ is 3-even. First we have a canonical decomposition of
+  $n-2 = F_{2p} + \fibrest$. Then $p=0$ is illegal, and $p=1$
+  would give a relaxed
+  decomposition of $n$ starting by 3, hence $low(n)$ even, impossible.
+  And $p>1$ allows to write $n = F_3+F_{2p}+\fibrest$ in a canonical way.
+\item When $n = F_{2p}+\fibrest$ with $p\ge 3$, then
+  $n-1 = F_3+F_5+...+F_{2p-1}+\fibrest$
+  and the condition on $p$ ensures that the terms $F_3$ and $F_5$ are
   indeed present.
-\item If $n$ is 2-even, it could be written $F_2+F_{2p}+\fibrest$.
-  When $p>2$, then $n+5 = F_2+F_4+F_{2p}+\fibrest$ is also 2-even.
-  When $p=2$, we need to consider the third term in the decomposition
-  (if any).
+\item If $n$ is 3-odd, it could be written $F_3+F_{2p+1}+\fibrest$.
+  When $p>2$, then $n+5 = F_3+F_5+F_{2p+1}+\fibrest$ is also 3-odd.
+  When $p=2$, then $n+8$ is also 3-odd. For justifying that,
+  we need to consider the third term in the 
+  canonical decomposition (if any).
   \begin{itemize}
-  \item Either $n$ is of the form $F_2+F_4+F_6+...$
-    Then $n+F_5 = F_2 + F_4 + F_7 + ...$ is a relaxed
-    decomposition of $n+8$, hence $n+8$ is 2-even (see the first
+  \item Either $n$ is of the form $F_3+F_5+F_7+...$
+    Then $n+F_6 = F_3 + F_5 + F_8 + ...$ is a relaxed
+    decomposition of $n+8$, hence $n+8$ is 3-odd (see the first
     part of the current theorem above).
-  \item Either $n$ is of the form $F_2+F_4+\fibrest$
-    where all terms in $\fibrest$ are strictly greater than $F_6$.
-    Then $n+F_5 = F_2 + F_6 + \fibrest$ is a relaxed
-    decomposition of $n+8$, hence $n+8$ is 2-even.
+  \item Either $n$ is of the form $F_3+F_5+\fibrest$
+    where all terms in $\fibrest$ are strictly greater than $F_7$.
+    Then $n+F_6 = F_3 + F_7 + \fibrest$ is a relaxed
+    decomposition of $n+8$, hence $n+8$ is 3-odd.
   \end{itemize}
   We finish the proof by considering all intermediate numbers between
   $n$ and $n+8$ and we show that $n+5$ is the only one of them that
-  might be 2-even:
+  might be 3-odd:
   \begin{itemize}
-  \item $low(n+1)$ is odd (cf. theorem \ref{fibsucc}).
-  \item $n+2 = F_1+F_3+F_{2p}+\fibrest$, and normalizing this
-    relaxed decomposition shows that $low(n+2)=1$.
-  \item $n+3 = F_2+F_3+F_{2p}+\fibrest$, and normalizing this
-    relaxed decomposition will either combine $F_3$ with some
+  \item $low(n+1)$ is even (cf. theorem \ref{fibsucc}).
+  \item $n+2 = F_2+F_4+F_{2p+1}+\fibrest$, and normalizing this
+    relaxed decomposition shows that $low(n+2)=2$.
+  \item $n+3 = F_3+F_4+F_{2p+1}+\fibrest$, and normalizing this
+    relaxed decomposition will either combine $F_4$ with some
     higher terms (leading to an odd second-lowest term and
-    hence $n+3$ is 2-odd) or combine $F_3$ with $F_2$ (in which
-    case $low(n+3)\ge 4$).
-  \item $n+4 = F_1+F_2+F_3+F_{2p}+\fibrest$, hence $low(n+4)$ is
-    odd.
-  \item $n+6 = F_5+F_{2p}+\fibrest$ is a relaxed decomposition
-   whose lowest rank is either 5 (when $p>2$) or 4 (when $p=2$).
-   After normalization, we obtain $low(n+6)\ge 4$.
-  \item Hence $low(n+7)=1$ by last case of theorem \ref{fibsucc}.
+    hence $n+3$ is 3-even) or combine $F_4$ with $F_3$ (in which
+    case $low(n+3)\ge 5$).
+  \item $n+4 = F_2+F_3+F_4+F_{2p+1}+\fibrest$, hence $low(n+4)$ is
+    even.
+  \item $n+6 = F_6+F_{2p+1}+\fibrest$ is a relaxed decomposition
+   whose lowest rank is either 6 (when $p>2$) or 5 (when $p=2$).
+   After normalization, we obtain $low(n+6)\ge 5$.
+  \item Hence $low(n+7)=2$ by last case of theorem \ref{fibsucc}.
   \end{itemize}
 \end{enumerate}
 \end{proof}
@@ -497,14 +508,14 @@ antecedent, it will hence be $n+G(n)-1$.
 
 From this, we can deduce a first relationship between $G$ and
 Fibonacci numbers.
-\begin{theorem}\label{Gfib} For all $k\neq0$, $G(F_k)=F_{k-1}$.
+\begin{theorem}\label{Gfib} For all $k\ge 2$, $G(F_k)=F_{k-1}$.
 \end{theorem}
-\begin{proof}By induction over $k$. First, $G(F_1)=G(1)=1=F_0$
-and $G(1+F_2)=G(3)=2=1+F_1$. Take now a $k\neq 0$ and assume the
-result for $k$. Then $G(F_{k+1})=G(F_k+F_{k-1})=G(F_k+G(F_k))=F_k$.
+\begin{proof}By induction over $k$. First, $G(F_2)=G(1)=1=F_1$.
+Take now a $k\ge 2$ and assume that $G(F_k)=F_{k-1}$.
+Then $G(F_{k+1})=G(F_k+F_{k-1})=G(F_k+G(F_k))=F_k$.
 \end{proof}
 
-Moreover, for $k>1$, $F_k = F_{k-1}+G(F_{k-1})$ is the largest antecedent of
+Moreover, for $k>2$, $F_k = F_{k-1}+G(F_{k-1})$ is the largest antecedent of
 $F_{k-1}$, hence $G(1+F_k)=1+F_{k-1}$.
 
 We could also establish a alternative equation for $G$, which will be
@@ -571,7 +582,7 @@ by $G$, hence the node arities are 1 or 2.
 
 \subsubsection*{Tree depth}
 On the previous picture, we can notice that the rightmost nodes are
-the Fibonacci numbers, while the leftmost nodes have the form $1+F_k$.
+Fibonacci numbers, while the leftmost nodes have the form $1+F_k$.
 Before proving this fact, let us first define more properly a depth
 function.
 
@@ -594,10 +605,10 @@ with the usual notion of depth in a tree.
 \item For all $n$, $depth(n)=0$ if and only if $n\le 1$.
 \item For $n>1$ and $k<depth(n)$, we have $G^k(n) > 1$.
 \item For $n,m>0$, $n\le m$ implies $depth(n)\le depth(m)$.
-\item For $k>0$, $depth(F_k) = k-1$.
-\item For $k>0$, $depth(1+F_k) = k$.
-\item For $k>0,n>0$, $depth(n)=k$ if and only if $1+F_k \leq n \leq
-  F_{k+1}$.
+\item For $k>1$, $depth(F_k) = k-2$.
+\item For $k>1$, $depth(1+F_k) = k-1$.
+\item For $k>0,n>0$, $depth(n)=k$ if and only if $1+F_{k+1} \leq n \leq
+  F_{k+2}$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
@@ -609,22 +620,23 @@ $depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
 \item Consequence of the monotony of $G$ :
   for all $k$, $G^k(n)\le G^k(m)$ hence the iterates of $n$ will reach
   1 faster than the iterates of $m$.
-\item $G$ maps a Fibonacci number to the previous one, $k-1$
-  iterations of $G$ on $F_k$ leads to $F_1=1$.
+\item $G$ maps a Fibonacci number to the previous one, $k-2$
+  iterations of $G$ on $F_k$ leads to $F_2=1$.
 \item $G$ maps a successor of a Fibonacci number to the previous such
-  number, $k-1$ iterations of $G$ on $1+F_k$ leads to $1+F_1 = 2$.
-\item If $1+F_k \leq n \leq F_{k+1}$, the monotony of depth and the
-previous facts gives $k \le depth(n) \le (k+1)-1$, hence $depth(n)=k$.
-Conversely, when $depth(n)=k$, we cannot have $n < 1 + F_k$ otherwise
-$n \le F_k$ and hence $depth(n)\le k-1$, and we cannot have $n > F_{k+1}$
-otherwise $n \ge 1+F_{k+1}$ and hence $depth(n)\ge k+1$.
+  number, $k-2$ iterations of $G$ on $1+F_k$ leads to $1+F_2 = 2$.
+\item If $1+F_{k+1} \leq n \leq F_{k+2}$, the monotony of depth and the
+previous facts gives $k \le depth(n) \le k$, hence $depth(n)=k$.
+Conversely, when $depth(n)=k$, we cannot have $n < 1 + F_{k+1}$ otherwise
+$n \le F_{k+1}$ and hence $depth(n)\le k-1$, and we cannot have $n > F_{k+2}$
+otherwise $n \ge 1+F_{k+2}$ and hence $depth(n)\ge k+1$.
 \end{enumerate}
 \end{proof}
 
 The previous characterization of $depth(n)$ via Fibonacci bounds shows
 that depth could also have been defined thanks to {\tt
-  fib\_inv$(n-1)$}, see \ref{fibinv}. It also shows that the number of
-nodes at depth $k$ is $F_{k+1}-(1+F_k)+1 = F_{k-1}$.
+  fib\_inv$(n-1)-1$}, see \ref{fibinv}. It also shows that the number of
+nodes at depth $k$ is $F_{k+2}-(1+F_{k+1})+1 = F_{k}$ as soon as
+$k\neq 0$.
 
 
 \subsubsection*{The shape of the $G$ tree}
@@ -690,16 +702,16 @@ Then $G(n) = \Sigma F_{i-1}$, the Fibonacci decomposition obtained
 by removing 1 at all the ranks in the initial decomposition.
 \end{theorem}
 
-For instance $G(11) = G(F_3+F_5) = F_2 + F_4 = 7$. Note that the
+For instance $G(11) = G(F_4+F_6) = F_3 + F_5 = 7$. Note that the
 obtained decomposition isn't necessarily relaxed anymore, since a
-$F_0$ might have appeared if $F_1$ was part of the initial
+$F_1$ might have appeared if $F_2$ was part of the initial
 decomposition. The theorem also holds for canonical decompositions
 since they are a particular case of relaxed decompositions. Once again,
-the obtained decompositions might not be canonical since $F_0$ might
-appear, but in this case we could turn this $F_0$ into a $F_1$. This
+the obtained decompositions might not be canonical since $F_1$ might
+appear, but in this case we could turn this $F_1$ into a $F_2$. This
 gives us a relaxed decomposition that we can re-normalize. For
-instance $G(12) = G(F_1+F_3+F_5) = F_0+F_2+F_4 = F_1+F_2+F_4 = F_3+F_4
-= F_5 = 8$.
+instance $G(12) = G(F_2+F_4+F_6) = F_1+F_3+F_5 = F_2+F_3+F_5 = F_4+F_5
+= F_6 = 8$.
  
 \begin{proof}
 We proceed by strong induction over $n$. The case $0$ is obvious,
@@ -710,33 +722,34 @@ $n = F_k+\fibrest$, and assume the statement to be true for all $m<n$.
 We will use the recursive equation $G(n)=n-G(G(n-1))$, and distinguish
 many cases according to the value of $k$.
 \begin{itemize}
-\item Case $k=1$. Then $n-1 = \fibrest$. A first induction
+\item Case $k=2$. Then $n-1 = \fibrest$. A first induction
   hypothesis gives $G(n-1) = \Sigma F_{i-1}$. Since the initial
-  decomposition was relaxed, $\fibrest$ cannot contain $F_1$,
+  decomposition was relaxed, $\fibrest$ cannot contain $F_2$,
   hence $\Sigma F_{i-1}$ is still a relaxed decomposition. As seen
   many times now, $G(n-1)<n$ here, and we're free to use a second
   induction hypothesis leading to $G(G(n-1)) = \Sigma F_{i-2}$.
   Finally $G(n) = 1+\Sigma F_i - \Sigma F_{i-2} = 1 + \Sigma (F_i-F_{i-2})
-   = F_0 + \Sigma F_{i-1}$, as required.
-\item Case $k$ even. Then $k$ can be written $2p$ with $p>0$.
-  Then $n-1 = F_{2p}-1 + \Sigma F_i = F_1+F_3+...+F_{2p-1}+\Sigma F_i$.
+   = F_1 + \Sigma F_{i-1}$, as required.
+
+\item Case $k$ even and distinct from 2. Then $k$ can be written $2p$ with $p>1$.
+  Then $n-1 = F_{2p}-1 + \Sigma F_i = F_3+F_5+...+F_{2p-1}+\Sigma F_i$.
   The induction hypothesis on $n-1$ gives:
-  $$G(n-1) = F_0+F_2+...+F_{2p-2}+\Sigma F_{i-1}$$
-  We turn the $F_0$ above into a $F_1$, obtaining again a relaxed
-  decomposition, for which a second induction hypothesis gives:
-  $$G(G(n-1)) = F_0+F_1+...+F_{2p-3}+\Sigma F_{i-2}$$
+  $$G(n-1) = F_2+F_4+...+F_{2p-2}+\Sigma F_{i-1}$$
+  Since this is still a relaxed decomposition, we use a second
+  induction hypothesis on it, hence:
+  $$G(G(n-1)) = F_1+F_3+...+F_{2p-3}+\Sigma F_{i-2}$$
   $$G(G(n-1)) = 1 + (F_{2p-2}-1)+\Sigma F_{i-2}$$
   And so:
   $$G(n) = F_{2p}-F_{2p-2} + \Sigma (F_i - F_{i-2}) =
            F_{2p-1} + \Sigma F_{i-1}$$
 
-\item Case $k$ odd and distinct from 1. Then $k$ can be written $2p+1$ with $p>0$.
+\item Case $k$ odd. Then $k$ can be written $2p+1$ with $p>0$.
   Then $n-1 = F_{2p+1}-1 + \Sigma F_i = F_2+F_4+...+F_{2p}+\Sigma F_i$.
   The induction hypothesis on $n-1$ gives:
   $$G(n-1) = F_1+F_3+...+F_{2p-1}+\Sigma F_{i-1}$$
-  Since this is still a relaxed decomposition, we use a second
-  induction hypothesis on it, hence:
-  $$G(G(n-1)) = F_0+F_2+...+F_{2p-2}+\Sigma F_{i-2}$$
+  We turn the $F_1$ above into a $F_2$, obtaining again a relaxed
+  decomposition, for which a second induction hypothesis gives:
+  $$G(G(n-1)) = F_1+F_2+...+F_{2p-2}+\Sigma F_{i-2}$$
   $$G(G(n-1)) = 1 + (F_{2p-1}-1)+\Sigma F_{i-2}$$
   And so:
   $$G(n) = F_{2p+1}-F_{2p-1} + \Sigma (F_i - F_{i-2}) =
@@ -750,41 +763,41 @@ decomposition, we can now derive a few interesting properties.
 \begin{theorem}\label{Gclass1}
 \noindent
 \begin{enumerate}
-\item $G(n+1)=G(n)$ if and only if $low(n)=1$.
-\item If $low(n)$ is even, then $G(n-1)=G(n)$.
-\item If $low(n)$ is odd, then $G(n-1)=G(n)-1$.
+\item $G(n+1)=G(n)$ if and only if $low(n)=2$.
+\item If $low(n)$ is odd, then $G(n-1)=G(n)$.
+\item If $low(n)$ is even, then $G(n-1)=G(n)-1$.
 \item For $n\neq 0$, the node $n$ of tree $G$
- is unary if and only if $low(n)$ is even.
+ is unary if and only if $low(n)$ is odd.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \noindent
 \begin{enumerate}
 \item
-If $low(n)=1$, then we can write a canonical decomposition
-$n=F_1+\fibrest$, hence
-$n+1=F_2+\fibrest$ is a relaxed decomposition. By the previous
-theorem, $G(n) = F_0 + \Sigma F_{i-1}$ while
-$G(n+1) = F_1 + \Sigma F_{i-1}$, hence the desired equality.
+If $low(n)=2$, then we can write a canonical decomposition
+$n=F_2+\fibrest$, hence
+$n+1=F_3+\fibrest$ is a relaxed decomposition. By the previous
+theorem, $G(n) = F_1 + \Sigma F_{i-1}$ while
+$G(n+1) = F_2 + \Sigma F_{i-1}$, hence the desired equality.
 Conversely, we consider a canonical decomposition of $n$ as $\fibrest$.
-If $F_1$ isn't part of this decomposition, then $n+1=F_1+\fibrest$
+If $F_2$ isn't part of this decomposition, then $n+1=F_2+\fibrest$
 is a correct relaxed decomposition, leading to
-$G(n+1)=1+\Sigma F_{i-1}=1+G(n)$. So $low(n)\neq 1$ implies
+$G(n+1)=1+\Sigma F_{i-1}=1+G(n)$. So $low(n)\neq 2$ implies
 $G(n+1)\neq G(n)$.
 
-\item If $low(n)$ is even, we've already shown in theorem \ref{fibpred}
-  that $low(n-1)=1$ hence $G(n)=G(n-1)$ by the previous point.
+\item If $low(n)$ is odd, we've already shown in theorem \ref{fibpred}
+  that $low(n-1)=2$ hence $G(n)=G(n-1)$ by the previous point.
 
-\item If $low(n)$ is odd, the same theorem
- \ref{fibpred} shows that $low(n-1)$ is 2 or more, provided that $n>1$.
+\item If $low(n)$ is even, the same theorem
+ \ref{fibpred} shows that $low(n-1)$ is 3 or more, provided that $n>1$.
  In this case the first point above allows to conclude. We now check separately
  the cases $n=0$ (irrelevant here since $low(0)$ doesn't exists) and
  $n=1$ (for which $G(1-1)$ is indeed $G(1)-1$).
 
 \item We've already seen that a node $n$ is binary whenever 
-$G(n+G(n)-1) = n$. When $low(n)$ is even, we have
+$G(n+G(n)-1) = n$. When $low(n)$ is odd, we have
 $G(n-1)=G(n)$, hence $G(n+G(n)-1) = G(n-1+G(n-1)) = n-1$, hence $n$ is
-  unary. When $low(n)$ is odd, we have
+  unary. When $low(n)$ is even, we have
 $n+G(n)-1 = (n-1+G(n-1))+1$ : this is the next node to the right after
 the rightmost child of $n-1$, its image by $G$ is hence $n$, and
 finally $n$ is indeed binary.
@@ -793,13 +806,13 @@ finally $n$ is indeed binary.
 
 
 \begin{theorem}\label{Glow}
-If $low(n)>1$, then $low(G(n))=low(n)-1$. In particular,
-if $low(n)$ is even, then $low(G(n))$ is odd, and if $low(n)$
-is odd and different from 1, then $low(G(n))$ is even.
+If $low(n)>2$, then $low(G(n))=low(n)-1$. In particular,
+if $low(n)$ is odd, then $low(G(n))$ is even, and if $low(n)$
+is even and different from 2, then $low(G(n))$ is odd.
 \end{theorem}
 \begin{proof}
 This is a direct application of theorem \ref{Gshift}:
-when $low(n)>1$, the decomposition we obtain for $G(n)$ is
+when $low(n)>2$, the decomposition we obtain for $G(n)$ is
 still canonical, and its lowest rank is $low(n)-1$.
 The statements about parity are immediate consequences.
 \end{proof}
@@ -807,44 +820,44 @@ The statements about parity are immediate consequences.
 \begin{theorem}\label{Gclass2}
 \noindent
 \begin{enumerate}
-\item If $low(n)=1$, then $low(G(n))$ is odd.
-\item If $low(n)=2$, then $low(G(n))=1$.
-\item If $low(n)>2$, then $low(G(n))>1$ and $low(G(n)+1)$ is odd.
+\item If $low(n)=2$, then $low(G(n))$ is even.
+\item If $low(n)=3$, then $low(G(n))=2$.
+\item If $low(n)>3$, then $low(G(n))>2$ and $low(G(n)+1)$ is even.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \noindent
 \begin{enumerate}
 \item Once again, we consider a canonical decomposition
-$n = F_1 + \fibrest$. Then $G(n) = F_0 + \Sigma F_{i-1}$. If we
-turn the $F_0$ into a $F_1$, we obtain a relaxed decomposition,
+$n = F_2 + \fibrest$. Then $G(n) = F_1 + \Sigma F_{i-1}$. If we
+turn the $F_1$ into a $F_2$, we obtain a relaxed decomposition,
 that can be normalized into a canonical decomposition whose
-lowest rank will hence be odd.
+lowest rank will hence be even.
 \item Direct application of previous theorem: $low(G(n))=low(n)-1$.
 \item Here also, $low(G(n))=low(n)-1$, hence $low(G(n))$ cannot
-be 1 here. Then the theorem \ref{fibsucc} implies that $low(G(n)+1)$ is odd.
+be 2 here. Then the theorem \ref{fibsucc} implies that $low(G(n)+1)$ is even.
 \end{enumerate}
 \end{proof}
 
-\begin{theorem}\label{Gtwo}
+\begin{theorem}\label{Gthree}
 \noindent
 \begin{enumerate}
-\item If $n$ is 2-odd, then $G(n)+1$ is 2-even.
-\item If $n$ is 2-even, then either $G(n)+1$ is 2-odd or $low(G(n)+1)>2$.
+\item If $n$ is 3-even, then $G(n)+1$ is 3-odd.
+\item If $n$ is 3-odd, then either $G(n)+1$ is 3-even or $low(G(n)+1)>3$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \noindent
 \begin{enumerate}
-\item Take a canonical decomposition $n=F_2+F_{2p+1}+\fibrest$.
-Hence $G(n)+1=1+F_1+F_{2p}+\Sigma F_{i-1}=F_2+F_{2p}+\Sigma F_{i-1}$,
+\item Take a canonical decomposition $n=F_3+F_{2p}+\fibrest$.
+Hence $G(n)+1=1+F_2+F_{2p-1}+\Sigma F_{i-1}=F_3+F_{2p-1}+\Sigma F_{i-1}$,
 and this decomposition is still canonical (for canonicity reasons,
-$p$ cannot be $1$).
-\item Similarly, $n=F_2+F_{2p}+\fibrest$ implies
-$G(n)+1=F_2+F_{2p-1}+\Sigma F_{i-1}$. When $p>1$, this decomposition
-is canonical and $G(n)+1$ is 2-odd. When $p=1$, this decomposition
-is only a relaxed one, starting by $F_2+F_3+...$. Its normalization
-will hence end with a lowest rank of at least 4.
+$p>2$).
+\item Similarly, $n=F_3+F_{2p+1}+\fibrest$ implies
+$G(n)+1=F_3+F_{2p}+\Sigma F_{i-1}$. When $p>1$, this decomposition
+is canonical and $G(n)+1$ is 3-even. When $p=1$, this decomposition
+is only a relaxed one, starting by $F_3+F_4+...$. Its normalization
+will hence end with a lowest rank of at least 5.
 \end{enumerate}
 \end{proof}
 
@@ -895,22 +908,22 @@ its shape unchanged, but labeling the nodes from right to left
 during the breadth-first traversal. Let us call $flip(n)$ the
 new label of node $n$ after this transformation.
 We've seen in the previous section that given a depth $k\neq 0$,
-the nodes at this depth are labeled from $1+F_k$ till $F_{k+1}$.
-After the $flip$ transformation, the $1+F_k$ node and
-the $F_{k+1}$ node will hence have exchanged their label.
-Similarly, $2+F_k$ will become $F_{k+1}-1$ and vice-versa.
+the nodes at this depth are labeled from $1+F_{k+1}$ till $F_{k+2}$.
+After the $flip$ transformation, the $1+F_{k+1}$ node and
+the $F_{k+2}$ node will hence have exchanged their label.
+Similarly, $2+F_{k+1}$ will become $F_{k+2}-1$ and vice-versa.
 More generally, if $depth(n)=k$, the distance between
-$flip(n)$ and the leftmost node $1+F_{k}$ will be equal to
-the distance between $n$ and the rightmost node $F_{k+1}$,
+$flip(n)$ and the leftmost node $1+F_{k+1}$ will be equal to
+the distance between $n$ and the rightmost node $F_{k+2}$,
 hence:
-$$flip(n) - (1+F_{k}) = F_{k+1} - n$$
+$$flip(n) - (1+F_{k+1}) = F_{k+2} - n$$
 So:
-$$flip(n) = 1+F_{k+2}-n$$
+$$flip(n) = 1+F_{k+3}-n$$
 We finally complete this definition to handle the case $n\le 1$:
 \begin{definition}
 We define the function $flip : \mathbb{N}\to\mathbb{N}$
 in the following way:
-$$flip(n) = if~(n\le 1)~then~n~else~1+F_{2+depth(n)}-n$$
+$$flip(n) = if~(n\le 1)~then~n~else~1+F_{3+depth(n)}-n$$
 \end{definition}
 
 A few properties of this $flip$ function:
@@ -919,8 +932,8 @@ A few properties of this $flip$ function:
 \begin{enumerate}
 \item For all $n\in\mathbb{N}$, depth(flip(n)) = depth(n).
 \item For all $n$, $n>1$ if and only if $flip(n)>1$.
-\item For $k>0$ and $n<F_{k-1}$, we have
- $flip(1+F_k+n) = F_{k+1}-n$.
+\item For $1 \le n \le F_{k}$, we have
+ $flip(F_{k+1}+n) = 1+F_{k+2}-n$.
 \item $flip$ is involutive.
 \item For all $n>1$, if $depth(n+1)=depth(n)$ then
   $flip(n+1)=flip(n)-1$.
@@ -933,17 +946,21 @@ A few properties of this $flip$ function:
 \begin{enumerate}
 \item If $n\le 1$, then $flip(n)=n$ and the property is obvious.
 For $n>1$, if we name $k$ the depth of $n$, we have
-$flip(n) = 1+F_{k+2}-n$. Since $1+F_k \le n \le F_{k+1}$,
-we hence have $1+F_{k+2}-F_{k+1} \le flip(n) \le 1+F_{k+2}-1-F_k$.
-And finally $1+F_k \le flip(n) \le F_{k+1}$, and this characterizes
+$flip(n) = 1+F_{k+3}-n$. Since $1+F_{k+1} \le n \le F_{k+2}$,
+we hence have $1+F_{k+3}-F_{k+2} \le flip(n) \le 1+F_{k+3}-1-F_{k+1}$.
+And finally $1+F_{k+1} \le flip(n) \le F_{k+2}$, and this characterizes
 the nodes at depth $k$, hence $depth(flip(n))=k=depth(n)$.
 \item We know that $n$ and $flip(n)$ have the same depth, and
 we've already seen that being less or equal to 1 is equivalent
 to having depth 0.
-\item For $k>1$ and $n<F_{k-1}$, we know that $depth(1+F_k+n)=k$
+\item Consider $1 \le n \le F_{k}$. Hence $k$ is at least 1,
+otherwise $1 \le F_0 = 0$. We have
+$1+F_{k+1}\le F_{k+1}+n \le F_{k+1}+F_{k} = F_{k+2}$, so the depth
+of $F_{k+1}+n$ is $k$
 (still via the same characterization of nodes at depth $k$).
-Moreover $1+F_k+n \ge 1+F_k \ge 2$, so
-$flip(1+F_k+n) = 1+F_{k+2}-(1+F_k+n) = F_{k+1}-n$.
+Moreover $F_{k+1}+n$ is more than 2,
+so the definition of $flip$ gives:
+$flip(F_{k+1}+n)=1+F_{k+3}-F_{k+1}-n = 1+F_{k+2}-n$.
 \item If $n\le 1$ then $flip(n)=n$ is still less or equal to 1,
 so $flip(flip(n))=flip(n)=n$.
 Consider now $n>1$. We already know that $flip(n)>1$ and
@@ -956,7 +973,7 @@ $flip(n+1) = 1+F_{k+2}-(n+1) = (1+F_{k+2}-n)-1 = flip(n)-1$.
 \end{enumerate}
 \end{proof}
 
-In particular, the third point above shows that for $k\neq 0$
+In particular, the third point above shows that for $k>1$
 we indeed have $flip(1+F_k) = F_{k+1}$ (and vice-versa since $flip$
 is involutive).
 
@@ -1003,8 +1020,8 @@ We now show that $\FG$ enjoys the same basic properties as $G$:
 \noindent
 \begin{enumerate}
 \item For all $n>1$, $depth(\FG(n)) = depth(n)-1$.
-\item For all $k$, $\FG(F_{k+1}) = F_k$.
-\item For all $k\neq 0$, $\FG(1+F_{k+1}) = 1+F_k$.
+\item For all $k>0$, $\FG(F_{k+1}) = F_k$.
+\item For all $k>1$, $\FG(1+F_{k+1}) = 1+F_k$.
 \item For all $n$, $\FG(n+1)-\FG(n) \in \{0,1\}$.
 \item For all $n,m$, $n\le m$ implies $0 \le \FG(m)-\FG(n) \le m-n$.
 \item For all $n$, $0 \le \FG(n) \le n$.
@@ -1024,9 +1041,9 @@ result about the depth of $G(n)$.
 \item Similar proof.
 \item The property is true for $n=0$ and $n=1$.
 Consider now $n>1$. Let $k$ be $depth(n)$, which is
-hence different from 0. We have $1+F_k \le n \le F_{k+1}$.
-If $n$ is $F_{k+1}$, we have already seen that
-$\FG(1+F_{k+1}) = 1+F_k = 1+\FG(F_{k+1})$. Otherwise $n < F_{k+1}$
+hence different from 0. We have $1+F_{k+1} \le n \le F_{k+2}$.
+If $n$ is $F_{k+2}$, we have already seen that
+$\FG(1+F_{k+2}) = 1+F_{k+1} = 1+\FG(F_{k+2})$. Otherwise $n < F_{k+2}$
 and $n+1$ has hence the same depth as $n$. Then
 $flip(n+1)=flip(n)-1$. Now, by applying $G$ on the two consecutive values
 of same depth $flip(n)$ and $flip(n)-1$, we obtain two results that
@@ -1053,12 +1070,12 @@ and $\FG(0)=0$.
   of these values.
   \begin{itemize}
   \item If $n+1$ has a different depth than $n$, then
-    $n$ is a Fibonacci number $F_k$, with $k>3$ since $n>3$.
+    $n$ is a Fibonacci number $F_{k}$, with $k>4$ since $n>3$.
     Then $flip(n+1)=F_{k+1}$ and $flip(n)=1+F_{k-1}$. These values
     aren't equal nor consecutive, hence $G$ cannot give the same
     result for them, this situation is indeed contradictory.
   \item Similarly, if $n-1$ has a different depth than $n$, then
-    $n-1$ is a Fibonacci number $F_k$, with $k>2$ since $n>3$.
+    $n-1$ is a Fibonacci number $F_k$, with $k>3$ since $n>3$.
     Then $flip(n-1)=1+F_{k-1}$ while $flip(n)=F_{k+1}$.
     Once again, these values aren't equal nor consecutive,
     hence $G$ cannot give the same result for them. Contradiction.
@@ -1091,7 +1108,7 @@ $\FG(3)=2$.
 \end{theorem}
 \begin{proof}
 We consider $n>3$. Let $k$ be its depth, which is hence at
-least 3. We know that $1+F_k \le n \le F_{k+1}$. We will note
+least 3. We know that $1+F_{k+1} \le n \le F_{k+2}$. We will note
 $flip(n)$ below as $\nn$. Roughly speaking, this proof is
 essentially a use of theorem \ref{Galt} which implies that
 $G(G(\nn+1)-1) = \nn - G(\nn)$, and then some
@@ -1114,44 +1131,44 @@ flip(p) &= flip(\FG(n-1)+1) \\
 \end{align*}
 We now exploit the definition of $flip$ three times:
 \begin{enumerate}
-\item $depth(n)=k\neq 0$ implies $\nn=1+F_{k+2}-n$
+\item $depth(n)=k\neq 0$ implies $\nn=1+F_{k+3}-n$
 \item $depth(G(flip(p)))=depth(p)-1=k-2 \neq 0$ hence:
-$$\FG(p) = flip(G(flip(p))) = 1+F_k-G(flip(p))$$
+$$\FG(p) = flip(G(flip(p))) = 1+F_{k+1}-G(flip(p))$$
 \item $depth(G(\nn))=depth(\nn)-1=depth(n)-1=k-1 \neq 0$, so:
-$$\FG(n)=flip(G(\nn))=1+F_{k+1}-G(\nn)$$
+$$\FG(n)=flip(G(\nn))=1+F_{k+2}-G(\nn)$$
 \end{enumerate}
 All in all:
 \begin{align*}
 n+1-\FG(1+\FG(n-1)) & = n+1-\FG(p) \\
-                    & = n+1-(1+F_k-G(flip(p))) \\
-                    & = n-F_k+G(G(\nn+1)-1)) \\
-                    & = n-F_k+(\nn-G(\nn)) \\
-                    & = n-F_k+(1+F_{k+2}-n)-G(\nn) \\
-                    & = 1+F_{k+1}-G(\nn) \\
+                    & = n+1-(1+F_{k+1}-G(flip(p))) \\
+                    & = n-F_{k+1}+G(G(\nn+1)-1)) \\
+                    & = n-F_{k+1}+(\nn-G(\nn)) \\
+                    & = n-F_{k+1}+(1+F_{k+3}-n)-G(\nn) \\
+                    & = 1+F_{k+2}-G(\nn) \\
                     & = \FG(n)
 \end{align*}
 \item We now consider the case where $depth(n-1)\neq depth(n)$.
-So $n$ is the least number of depth $k$, hence $n=1+F_k$.
+So $n$ is the least number of depth $k$, hence $n=1+F_{k+1}$.
 In this case:
 \begin{align*}
-1+n-\FG(1+\FG(n-1)) & = 2+F_k-\FG(1+\FG(F_k)) \\
-                    & = 2+F_k-\FG(1+F_{k-1}) \\
-                    & = 2+F_k-(1+F_{k-2}) \\
-                    & = 1+F_{k-1} \\
+1+n-\FG(1+\FG(n-1)) & = 2+F_{k+1}-\FG(1+\FG(F_{k+1})) \\
+                    & = 2+F_{k+1}-\FG(1+F_{k}) \\
+                    & = 2+F_{k+1}-(1+F_{k-1}) \\
+                    & = 1+F_{k} \\
                     & = \FG(n)
 \end{align*}
 \item The last case to consider is $depth(n-1)=depth(n)$ but
 $depth(\FG(n-1)+1)\neq depth(\FG(n-1))$. As earlier, we prove
 that $depth(\FG(n-1))=depth(n-1)-1=depth(n)-1=k-1$. So
 $\FG(n-1)$ is the greatest number of depth $k-1$, hence
-$\FG(n-1)=F_k$. Since $\FG(F_{k+1})$ is also $F_k$, then $n-1$
-and $F_{k+1}$ are at a distance of 0 or 1. But we know that
-$depth(n)=k$, hence $n \le F_{k+1}$, so $n-1 < F_{k+1}$.
-Finally $n=F_{k+1}$ and:
+$\FG(n-1)=F_{k+1}$. Since $\FG(F_{k+2})$ is also $F_{k+1}$, then $n-1$
+and $F_{k+2}$ are at a distance of 0 or 1. But we know that
+$depth(n)=k$, hence $n \le F_{k+2}$, so $n-1 < F_{k+2}$.
+Finally $n=F_{k+2}$ and:
 \begin{align*}
-1+n-\FG(1+\FG(n-1)) & = 1+F_{k+1}-\FG(1+F_k) \\
-                    & = 1+F_{k+1}-(1+F_{k-1}) \\
-                    & = F_{k} \\
+1+n-\FG(1+\FG(n-1)) & = 1+F_{k+2}-\FG(1+F_{k+1}) \\
+                    & = 1+F_{k+2}-(1+F_{k}) \\
+                    & = F_{k+1} \\
                     & = \FG(n)
 \end{align*}
 \end{itemize}
@@ -1244,108 +1261,108 @@ We already noticed earlier that $\FG$ and $G$ produce very similar
 answers. Let us study this property closely now.
 
 \begin{theorem}\label{comp-fg-g}
-For all $n$, we have $\FG(n)=1+G(n)$ whenever $n$ is 2-even,
+For all $n$, we have $\FG(n)=1+G(n)$ whenever $n$ is 3-odd,
 and $\FG(n)=G(n)$ otherwise.
 \end{theorem}
 \begin{proof}
 We proceed by strong induction over $n$.
-When $n\le 3$, $n$ is never \mbox{2-even}, and we indeed have
+When $n\le 3$, $n$ is never \mbox{3-odd}, and we indeed have
 $\FG(n)=G(n)$. We now consider $n>3$, and assume that
 the result is true at all positions strictly less than $n$.
 For comparing $\FG(n)$ and $G(n)$ we use their corresponding
-recursive equations: when $n$ is 2-even we need to prove that
+recursive equations: when $n$ is 3-odd we need to prove that
 $\FG(\FG(n-1)+1)=G(G(n-1))$, and otherwise we need to establish
 that $\FG(\FG(n-1)+1)=1+G(G(n-1))$. So we'll need
 induction hypotheses (IH) for $n-1<n$ and for $\FG(n-1)+1$
 (which is indeed strictly less than $n$:
 since $1<n-1$, we have $\FG(n-1)<n-1$). But the exact equations
 given by these two IH will depend on the
-status of $n-1$ and $\FG(n-1)+1$ : are these numbers 2-even or not ?
+status of $n-1$ and $\FG(n-1)+1$ : are these numbers 3-odd or not ?
 For determining that, we'll consider the Fibonacci decomposition
 of $n$ and study its classification.
 \begin{itemize}
-\item Case $low(n)=1$. Hence $n$ isn't 2-even and we try to prove
+\item Case $low(n)=2$. Hence $n$ isn't 3-odd and we try to prove
   $\FG(\FG(n-1)+1)=1+G(G(n-1))$. Theorem \ref{fibpred} implies that
-  $low(n-1)>2$, and in particular $n-1$ isn't 2-even.
+  $low(n-1)>3$, and in particular $n-1$ isn't 3-odd.
   So the first IH is $\FG(n-1)=G(n-1)$. By theorem
   \ref{Gclass1}, we also know that $G(n-1)=G(n)-1$.
   So $\FG(n-1)+1=G(n-1)+1=G(n)$
-  By theorem \ref{Gclass2}, we know that $G(n)$ has an odd lowest
-  rank, so it cannot be 2-even, and the second IH is
+  By theorem \ref{Gclass2}, we know that $G(n)$ has an even lowest
+  rank, so it cannot be 3-odd, and the second IH is
   $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$.
-  Since $low(G(n))$ is odd, we can use theorem \ref{Gclass1} once
+  Since $low(G(n))$ is even, we can use theorem \ref{Gclass1} once
   more: $G(G(n)-1) = G(G(n))-1$.
   Finally: $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)=G(G(n))=1+G(G(n-1))$.
-\item Case $n$ 2-even. We're trying to prove
+\item Case $n$ 3-odd. We're trying to prove
   $\FG(\FG(n-1)+1)=G(G(n-1))$. Theorem \ref{fibpred} implies that
-  $low(n-1) = 1$, and in particular $n-1$ isn't 2-even.
+  $low(n-1) = 2$, and in particular $n-1$ isn't 3-odd.
   So the first IH is $\FG(n-1)=G(n-1)$.
   By theorem \ref{Gclass1}, we also know that $G(n-1)=G(n)$.
-  Moreover theorem \ref{Gtwo} shows that $\FG(n-1)+1 = G(n)+1$
-  cannot be 2-even.
+  Moreover theorem \ref{Gthree} shows that $\FG(n-1)+1 = G(n)+1$
+  cannot be 3-odd.
   So the second IH gives $\FG(\FG(n-1)+1) = G(\FG(n-1)+1)$.
-  Now, $low(G(n))=1$ by theorem \ref{Gclass2} so $G(G(n)+1)=G(G(n)$
+  Now, $low(G(n))=2$ by theorem \ref{Gclass2} so $G(G(n)+1)=G(G(n)$
   by theorem \ref{Gclass1}, or equivalently $G(\FG(n-1)+1)=G(G(n-1))$,
   hence the desired equation.
-\item Case $n$ 2-odd. As in all the remaining cases, we're now trying here
+\item Case $n$ 3-even. As in all the remaining cases, we're now trying here
   to prove $\FG(\FG(n-1)+1)=1+G(G(n-1))$.
   This case is very similar to the previous one until the point
-  where we study $G(n)+1$ which is now 2-even (still thanks to theorem
-  \ref{Gtwo}).
+  where we study $G(n)+1$ which is now 3-odd (still thanks to theorem
+  \ref{Gthree}).
   So the second IH gives now
   $\FG(\FG(n-1)+1) = 1+G(\FG(n-1)+1)$. And we conclude just as before
   by ensuring for the same reasons that $G(\FG(n-1)+1)=G(G(n-1))$.
-\item Case $low(n)=3$.
-  Since 3 is odd, we also have $G(n-1)=G(n)-1$.
-  Hence $low(G(n))=2$ by theorem \ref{Glow}, and $G(G(n)-1)=G(G(n))$
+\item Case $low(n)=4$.
+  Since 4 is even, we also have $G(n-1)=G(n)-1$.
+  Hence $low(G(n))=3$ by theorem \ref{Glow}, and $G(G(n)-1)=G(G(n))$
   and $G(G(n)+1)=1+G(G(n))$, both by theorem \ref{Gclass1}.
   Finally $1+G(G(n-1)) = 1+G(G(n)) = G(G(n)+1)$.
-  Now, to determine whether $n-1$ is 2-even,
+  Now, to determine whether $n-1$ is 3-odd,
   we need to look deeper in the canonical decomposition of
-  $n = F_3+F_k+\fibrest$.
+  $n = F_4+F_k+\fibrest$.
   \begin{itemize}
-  \item If the second lowest rank $k$ is even, then
-    $n-1 = F_2+F_k+\fibrest$ is hence 2-even, and the first IH is
+  \item If the second lowest rank $k$ is odd, then
+    $n-1 = F_3+F_k+\fibrest$ is hence 3-odd, and the first IH is
     $\FG(n-1)=1+G(n-1)$. So
-    $\FG(n-1)+1=G(n)+1$, and this number has an odd lowest rank
-    (theorem \ref{Gclass2}), it cannot be 2-even, and the second IH
+    $\FG(n-1)+1=G(n)+1$, and this number has an even lowest rank
+    (theorem \ref{Gclass2}), it cannot be 3-odd, and the second IH
     is:
     $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$. And this is known to be equal
     to $G(G(n)+1)=1+G(G(n-1))$.
-  \item Otherwise $k$ is odd and $n-1$ is 2-odd
-    and hence not 2-even, so the first IH is $\FG(n-1)=G(n-1)$.
-    Moreover, since $n-1$ is 2-odd then $\FG(n-1)+1=G(n-1)+1$ is 2-even by
-    theorem \ref{Gtwo}. So the second IH is:
+  \item Otherwise $k$ is even and $n-1$ is 3-even
+    and hence not 3-odd, so the first IH is $\FG(n-1)=G(n-1)$.
+    Moreover, since $n-1$ is 3-even then $\FG(n-1)+1=G(n-1)+1$ is 3-odd by
+    theorem \ref{Gthree}. So the second IH is:
     $\FG(\FG(n-1)+1)=1+G(\FG(n-1)+1)$. And this is known to be equal
     to $1+G(G(n-1)+1)=1+G(G(n))=1+G(G(n-1))$.
   \end{itemize}
-\item Case $low(n)>3$ and even.
-  By theorem \ref{fibpred}, $low(n-1)=1$ hence the first IH is
+\item Case $low(n)>4$ and odd.
+  By theorem \ref{fibpred}, $low(n-1)=2$ hence the first IH is
   $\FG(n-1)=G(n-1)$. We also know that $G(n-1)=G(n)$ by theorem
-  \ref{Gclass1}, and that $low(\FG(n-1)+1)=low(G(n)+1)$ is odd
+  \ref{Gclass1}, and that $low(\FG(n-1)+1)=low(G(n)+1)$ is even
   by theorem \ref{Gclass2}. The second IH is hence:
   $\FG(\FG(n-1)+1) = G(\FG(n-1)+1)$. Finally
   $G(G(n)+1)=1+G(G(n))$ since $low(G(n))=2\neq 1$.
-\item Case $low(n)>3$ and odd.
-  In this case, $n-1$ is 2-even (theorem \ref{twoevenodd}), so
+\item Case $low(n)>4$ and even.
+  In this case, $n-1$ is 3-odd (theorem \ref{threeevenodd}), so
   the first IH is $\FG(n-1)=1+G(n-1)$. We also know that
   $G(n-1)=G(n)-1$ by theorem \ref{Gclass1}.
-  By theorem \ref{Glow} we know that $low(G(n))=low(n)-1 > 2$, so
-  by theorem \ref{fibsucc} $low(G(n)+1)=1$, and
-  $\FG(n-1)+1=1+G(n)$ cannot be 2-even : the second IH is hence
+  By theorem \ref{Glow} we know that $low(G(n))=low(n)-1 > 3$, so
+  by theorem \ref{fibsucc} $low(G(n)+1)=2$, and
+  $\FG(n-1)+1=1+G(n)$ cannot be 3-odd : the second IH is hence
   $\FG(\FG(n-1)+1)=G(\FG(n-1)+1)$. Moreover $low(G(n))$ is
-  also known to be even, so 
+  also known to be odd, so 
   by theorem \ref{Gclass1} we have $G(G(n-1))=G(G(n)-1)=G(G(n))$.
-  The final step is 
+  The final step is
   $G(1+G(n))=1+G(G(n))$ also by theorem \ref{Gclass1} (since $low(G(n))\neq
-  1$).
+  2$).
 \end{itemize}
 \end{proof}
 
 As an immediate consequence, $\FG$ is always greater or equal
 than $G$, but never more than $G+1$. And we've already studied
-the distance between 2-even numbers, which is always 5 or 8,
-while the first 2-even number is 7. So $\FG$ and $G$ are actually
+the distance between 3-odd numbers, which is always 5 or 8,
+while the first 3-odd number is 7. So $\FG$ and $G$ are actually
 equal more than 80\% of the time.
 
 \subsection{$\FG$ and its ``derivative'' $\Delta\FG$}
@@ -1412,21 +1429,21 @@ and note $\nn = flip(n)$. First:
 $$\FG(\FG(n))=flip(G(flip(flip(G(\nn)))))=flip(G(G(\nn)))$$
 The depth of $G(G(\nn))$ is $k-2\neq 0$, so the definition
 of $flip$ gives:
-$$\FG(\FG(n)) = flip(G(G(\nn))) = 1+F_k-G(G(\nn))$$
+$$\FG(\FG(n)) = flip(G(G(\nn))) = 1+F_{k+1}-G(G(\nn))$$
 Now, thanks to the recursive definition of $G$ at $\nn+1$, we have
-$$\FG(\FG(n)) = 1+F_k+G(\nn+1)-\nn-1$$
+$$\FG(\FG(n)) = 1+F_{k+1}+G(\nn+1)-\nn-1$$
 \begin{itemize}
 \item If $depth(n-1)=k$ then $flip(n-1)=\nn+1$ and we
 conclude by more uses of the $flip$ definition:
 $depth(G(\nn+1))=depth(G(flip(n-1))=depth(n-1)-1=k-1$, so:
-$$\FG(n-1)=flip(G(flip(n-1)))=flip(G(\nn+1))= 1+F_{k+1}-G(\nn+1)$$
+$$\FG(n-1)=flip(G(flip(n-1)))=flip(G(\nn+1))= 1+F_{k+2}-G(\nn+1)$$
 And finally:
-$$\FG(\FG(n)) = F_k + (1+F_{k+1}-\FG(n-1))-(1+F_{k+2}-n) = n-\FG(n-1)$$
+$$\FG(\FG(n)) = F_{k+1} + (1+F_{k+2}-\FG(n-1))-(1+F_{k+3}-n) = n-\FG(n-1)$$
 
 \item If $depth(n-1)\neq k$ then $n$ is the least number at
-depth $k$, so $n=1+F_k$, and:
-$$\FG(n-1) + \FG(\FG(n)) = \FG(F_k)+\FG(\FG(1+F_k)) =
-F_{k-1}+(1+F_{k-2}) = n$$
+depth $k$, so $n=1+F_{k+1}$, and:
+$$\FG(n-1) + \FG(\FG(n)) = \FG(F_{k+1})+\FG(\FG(1+F_{k+1})) =
+F_{k}+(1+F_{k-1}) = n$$
 \end{itemize}
 \end{proof}
 
@@ -1475,14 +1492,14 @@ Another approach might be to relate
 $\FG$ more directly to some kind of Fibonacci decomposition.
 Of course, now that theorem \ref{comp-fg-g} is proved, we
 know that $\FG$ shifts the ranks of the Fibonacci decompositions
-just as $G$, except for 2-even numbers where a small $+1$
+just as $G$, except for 3-odd numbers where a small $+1$
 correction is needed. But could this fact be established more
 directly ? For the moment, we are only aware of the following
 ``easy'' formulation of $\FG$ via decompositions:
-if $n$ is written as $F_{k+1}-\fibrest$ where $k=depth(n)$
-and $\fibrest$ form a canonical decomposition of $F_{k+1}-n$, then
-$\FG(n)=F_k-\Sigma F_{i-1}+\epsilon$, where $\epsilon=1$ whenever
-the decomposition above includes $F_1$, and $\epsilon=0$
+if $n$ is written as $F_{k+2}-\fibrest$ where $k=depth(n)$
+and $\fibrest$ form a canonical decomposition of $F_{k+2}-n$, then
+$\FG(n)=F_{k+1}-\Sigma F_{i-1}+\epsilon$, where $\epsilon=1$ whenever
+the decomposition above includes $F_2$, and $\epsilon=0$
 otherwise. But this statement didn't brought any new insights
 for the proof of theorem \ref{comp-fg-g}, so we haven't formulated
 it in Coq.

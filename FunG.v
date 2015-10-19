@@ -430,26 +430,39 @@ Qed.
 (** This provides easily a first relationship between g and
     Fibonacci numbers *)
 
-Lemma g_fib n : g (fib (S n)) = fib n.
+Lemma g_fib n : n <> 0 -> g (fib (S n)) = fib n.
 Proof.
 induction n.
-- reflexivity.
-- rewrite fib_eqn.
-  rewrite <- IHn.
-  apply g_onto_eqn.
+- now destruct 1.
+- destruct n.
+  + reflexivity.
+  + intros _. rewrite fib_eqn.
+    rewrite <- IHn; auto.
+    apply g_onto_eqn.
 Qed.
 
-Lemma g_Sfib n : n <> 0 -> g (S (fib (S n))) = S (fib n).
+Lemma g_fib' n : 1 < n -> g (fib n) = fib (n-1).
 Proof.
  destruct n.
- - now destruct 1.
- - intros _.
-   rewrite <- (g_fib (S n)).
-   apply rightmost_child_carac; trivial.
-   unfold rchild.
-   now rewrite !g_fib.
+ - omega.
+ - intros. rewrite g_fib; f_equal; omega.
 Qed.
 
+Lemma g_Sfib n : 1 < n -> g (S (fib (S n))) = S (fib n).
+Proof.
+ intros.
+ rewrite <- (@g_fib n) by omega.
+ apply rightmost_child_carac; trivial.
+ unfold rchild.
+ now rewrite g_fib, g_fib', fib_eqn' by omega.
+Qed.
+
+Lemma g_Sfib' n : 2 < n -> g (S (fib n)) = S (fib (n-1)).
+Proof.
+ destruct n.
+ - omega.
+ - intros. rewrite g_Sfib; do 2 f_equal; omega.
+Qed.
 
 (*==============================================================*)
 
@@ -756,25 +769,27 @@ Proof.
    + now apply g_mono.
 Qed.
 
-Lemma depth_fib k : depth (fib k) = k-1.
+Lemma depth_fib k : depth (fib k) = k-2.
 Proof.
- induction k as [|[|k] IH].
+ induction k as [|[|[|k]] IH].
+ - reflexivity.
  - reflexivity.
  - reflexivity.
  - rewrite depth_eqn.
-   + rewrite g_fib, IH. omega.
-   + unfold lt. change 2 with (fib 2). apply fib_mono. omega.
+   + rewrite g_fib, IH; auto. omega.
+   + unfold lt. change 2 with (fib 3). apply fib_mono. omega.
 Qed.
 
-Lemma depth_Sfib k : k <> 0 -> depth (S (fib k)) = k.
+Lemma depth_Sfib k : 1 < k -> depth (S (fib k)) = k-1.
 Proof.
- induction k as [|[|k] IH].
- - now destruct 1.
+ induction k as [|[|[|k]] IH].
+ - omega.
+ - omega.
  - reflexivity.
  - intros _.
    rewrite depth_eqn.
    + rewrite g_Sfib, IH; omega.
-   + unfold lt. apply le_n_S. apply fib_nz.
+   + unfold lt. apply le_n_S. now apply fib_nz.
 Qed.
 
 Lemma depth_0 n : depth n = 0 <-> n <= 1.
@@ -786,14 +801,14 @@ Proof.
 Qed.
 
 Lemma depth_carac k n : k <> 0 ->
-  (depth n = k <-> S (fib k) <= n <= fib (S k)).
+  (depth n = k <-> S (fib (S k)) <= n <= fib (S (S k))).
 Proof.
  intros Hk.
  split; intros H.
  - split.
-   + destruct (le_lt_dec n (fib k)) as [LE|LT]; trivial.
-     apply depth_mono in LE. rewrite depth_fib in LE. omega.
    + destruct (le_lt_dec n (fib (S k))) as [LE|LT]; trivial.
+     apply depth_mono in LE. rewrite depth_fib in LE. omega.
+   + destruct (le_lt_dec n (fib (S (S k)))) as [LE|LT]; trivial.
      unfold lt in LT. apply depth_mono in LT.
      rewrite depth_Sfib in LT; omega.
  - destruct H as (H1,H2).
@@ -801,10 +816,10 @@ Proof.
    rewrite depth_fib in H2; rewrite depth_Sfib in H1; omega.
 Qed.
 
-(** Conclusion:
-   - [(fib k)+1] is the leftmost node at depth [k]
-   - [fib (k+1)] is the rightmost node at depth [k]
-   - hence we have [fib (k+1) - fib k = fib (k-1)] nodes at depth [k].
+(** Conclusion: for k>0,
+   - [1+fib (k+1)] is the leftmost node at depth [k]
+   - [fib (k+2)] is the rightmost node at depth [k]
+   - hence we have [fib (k+2) - fib (k+1) = fib k] nodes at depth [k].
 *)
 
 (** Alternatively, we could also have considered
@@ -850,126 +865,131 @@ Qed.
 
    For proving this result, we need to consider relaxed
    decompositions where consecutive fibonacci terms may occur
-   (but still no (fib 0)). These decompositions aren't unique.
-   We also consider these decomposition in the lowest terms first,
-   simply for technical reasons.
+   (but still no [fib 0] nor [fib 1] in the decomposition).
+   These decompositions aren't unique. We consider here
+   these decomposition with the lowest terms first, to ease
+   the following proof.
 *)
 
 Lemma g_sumfib l :
-  Delta 1 l -> g (sumfib (List.map S l)) = sumfib l.
+  Delta 1 (0::l) -> g (sumfib (List.map S l)) = sumfib l.
 Proof.
  remember (sumfib (List.map S l)) as n eqn:E.
  revert l E.
  induction n  as [[|n] IH] using lt_wf_rec; intros [|k l].
  - trivial.
- - intros E. symmetry in E. now apply sumfib_0 in E.
+ - intros E D. symmetry in E.
+   apply sumfib_0 in E; [discriminate|].
+   rewrite in_map_iff. now intros (x & Hx & IN).
  - discriminate.
  - simpl map. rewrite sumfib_cons.
    intros E Hl.
    rewrite g_S.
-   case (eq_nat_dec k 0) as [Hk|Hk].
-   + (* k = 0 *)
+   inversion_clear Hl.
+   case (eq_nat_dec k 1) as [Hk|Hk].
+   + (* k = 1 *)
      subst k. simpl sumfib. injection E as E'.
      assert (Nz : ~In 0 l).
-     { intro H0. apply Delta_alt in Hl. apply Hl in H0. omega. }
+     { intro IN. apply Delta_alt in H0. apply H0 in IN. omega. }
      assert (E1 : g n = sumfib l).
-     { apply IH; auto. inversion Hl; auto; constructor. }
+     { apply IH; auto. eauto using Delta_low_hd. }
      assert (E2 : g (g n) = sumfib (map pred l)).
      { apply IH; auto.
        - generalize (g_le n); omega.
        - now rewrite map_S_pred.
-       - apply Delta_pred; eauto. }
+       - change (Delta 1 (map pred (1::l))).
+         apply Delta_pred; eauto. }
      rewrite E' at 1. rewrite <- sumfib_eqn; trivial.
      rewrite <- E2, <- E1. omega.
-   + (* k <> 0 *)
+   + (* 1 < k *)
      destruct (Nat.Even_or_Odd k) as [(k2,Hk2)|(k2,Hk2)].
      * (* k even *)
-       set (l0 := odds k2).
+       set (l0 := odds (k2-1)).
        assert (Hl0 : sumfib l0 = pred (fib k)).
-       { rewrite Hk2. unfold l0. apply sumfib_odds. }
-       assert (Hl0' : S (sumfib (map S l0)) = fib (S k)).
-       { unfold l0. rewrite S_odds, sumfib_evens.
-         rewrite Nat.add_1_r, <- Hk2.
-         generalize (fib_nz (S k)); omega. }
-       assert (Delta 1 (l0++l)).
+       { rewrite Hk2. unfold l0. rewrite sumfib_odds.
+         do 2 f_equal. omega. }
+       assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
+       { unfold l0.
+         rewrite Nat.add_succ_r.
+         change (sumfib (2 :: map S (odds (k2-1))) + 1 = fib (S k)).
+         rewrite <- evens_S, sumfib_evens.
+         replace (2 * S (k2-1)+1) with (S k) by omega.
+         generalize (@fib_nz (S k)); omega. }
+       assert (Delta 1 ((2::l0)++l)).
        { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_21, Delta_odds.
-         - intros y Hy. apply odds_in in Hy. omega. }
+         - apply Delta_21_S, Delta_odds.
+         - simpl. intros y [Hy|Hy]; try apply odds_in in Hy; omega. }
+       simpl app in *.
+       assert (IN : forall x, In x (l0++l) -> 2<x).
+       { apply Delta_alt in H1. intuition. }
        assert (~In 0 (l0++l)).
-       { rewrite in_app_iff. intros [H0|H0].
-         - unfold l0, odds in H0.
-           rewrite in_map_iff in H0. destruct H0 as (x,(Hx,_)).
-           omega.
-         - apply Delta_alt in Hl. apply Hl in H0. omega. }
-       assert (G : g n = sumfib (l0 ++ l)).
+       { intro I0. apply IN in I0. omega. }
+       assert (G : g n = sumfib (1 :: l0 ++ l)).
        { apply IH; auto.
+         simpl. rewrite map_app, sumfib_app. omega.
+         constructor; eauto using Delta_low_hd. }
+       assert (GG : g (g n) = sumfib (map pred (2 :: l0++l))).
+       { apply IH.
+         - generalize (g_le n); omega.
+         - rewrite G. simpl. f_equal. now rewrite map_S_pred.
+         - change (Delta 1 (map pred (1::2::l0++l))).
+           apply Delta_pred. simpl; intuition.
+           constructor; auto. }
+       simpl sumfib.
+       rewrite GG, E, <- Hl0'. simpl.
+       rewrite Nat.add_shuffle0, <- sumfib_app, <- map_app.
+       transitivity (S (sumfib (l0++l))).
+       rewrite <- sumfib_eqn; auto; omega.
+       rewrite sumfib_app. generalize (@fib_nz k); omega.
+     * (* k odd *)
+       set (l0 := evens k2).
+       assert (Hl0 : sumfib l0 = pred (fib k)).
+       { rewrite Hk2. unfold l0. apply sumfib_evens. }
+       assert (Hl0' : S (sumfib (map S l0)) = fib (S k)).
+       { unfold l0.
+         rewrite S_evens, sumfib_odds.
+         replace (2*(S k2)) with (S k) by omega.
+         generalize (@fib_nz (S k)); omega. }
+       assert (Delta 1 ((1::l0)++l)).
+       { apply Delta_app with k; auto; unfold l0.
+         - apply Delta_21_S, Delta_evens.
+         - simpl. intros y [Hy|Hy]; try apply evens_in in Hy; omega. }
+       simpl app in *.
+       assert (~In 0 (l0++l)).
+       { apply Delta_alt in H1. intro I0. apply H1 in I0. omega. }
+       assert (G : g n = sumfib (l0 ++ l)).
+       { apply IH; eauto using Delta_low_hd.
          rewrite map_app, sumfib_app. omega. }
        assert (GG : g (g n) = sumfib (map pred (l0++l))).
        { apply IH.
          - generalize (g_le n); omega.
          - now rewrite map_S_pred.
-         - apply Delta_pred; auto. }
+         - change (Delta 1 (map pred (1::l0++l))).
+           apply Delta_pred; eauto using Delta_low_hd. }
        simpl sumfib.
        rewrite GG, E, <- Hl0'.
        simpl plus.
        rewrite <- sumfib_app, <- map_app.
        transitivity (S (sumfib (l0++l))).
        rewrite <- sumfib_eqn; auto; omega.
-       rewrite sumfib_app. generalize (fib_nz k); omega.
-     * (* k odd *)
-       set (l0 := evens k2).
-       assert (Hl0 : sumfib l0 = pred (fib k)).
-       { rewrite Hk2. unfold l0. apply sumfib_evens. }
-       assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
-       { unfold l0.
-         rewrite Nat.add_succ_r.
-         change (sumfib (1 :: map S (evens k2)) + 1 = fib (S k)).
-         rewrite <- odds_S, sumfib_odds.
-         replace (2 * S k2) with (S k) by omega.
-         generalize (fib_nz (S k)); omega. }
-       assert (Delta 1 (l0++l)).
-       { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_21, Delta_evens.
-         - intros y Hy. apply evens_in in Hy. omega. }
-       assert (IN : forall x, In x (l0++l) -> 1<x).
-       { intros x. rewrite in_app_iff. intros [Hx|Hx].
-         - unfold l0 in Hx. apply evens_in in Hx. omega.
-         - apply Delta_alt in Hl. apply Hl in Hx. omega. }
-       assert (~In 0 (l0++l)).
-       { intro H0. apply IN in H0. omega. }
-       assert (G : g n = sumfib (0 :: l0 ++ l)).
-       { apply IH; auto.
-         - simpl. rewrite map_app, sumfib_app. omega.
-         - apply Delta_alt. split; auto.
-           intros y Hy. apply IN in Hy. omega. }
-       assert (GG : g (g n) = sumfib (map pred (0 :: l0++l))).
-       { apply IH.
-         - generalize (g_le n); omega.
-         - rewrite G. simpl. f_equal. now rewrite map_S_pred.
-         - simpl. apply Delta_alt. split.
-           + now apply Delta_pred.
-           + intros y Hy.
-             rewrite in_map_iff in Hy. destruct Hy as (y0,(<-,Hy0)).
-             generalize (IN y0 Hy0). omega. }
-       simpl sumfib.
-       rewrite GG, E, <- Hl0'. simpl.
-       rewrite Nat.add_shuffle0, <- sumfib_app, <- map_app.
-       transitivity (S (sumfib (l0++l))).
-       rewrite <- sumfib_eqn; auto; omega.
-       rewrite sumfib_app. generalize (fib_nz k); omega.
+       rewrite sumfib_app. generalize (@fib_nz k); omega.
 Qed.
 
-Lemma g_sumfib' l : ~In 0 l -> Delta 1 l ->
+Lemma g_sumfib' l : Delta 1 (1::l) ->
  g (sumfib l) = sumfib (map pred l).
 Proof.
  intros.
+ assert (~In 0 (1::l)) by eauto.
+ assert (~In 0 l) by (simpl in *; intuition).
  rewrite <- (map_S_pred l) at 1; auto.
- apply g_sumfib. apply Delta_pred; auto.
+ apply g_sumfib.
+ change (Delta 1 (map pred (1::l))).
+ apply Delta_pred; auto.
 Qed.
 
 (** same result, for canonical decomposition expressed in rev order *)
 
-Lemma g_sumfib_rev l : ~In 0 l -> DeltaRev 2 l ->
+Lemma g_sumfib_rev l : ~In 0 l -> ~In 1 l -> DeltaRev 2 l ->
  g (sumfib l) = sumfib (map pred l).
 Proof.
  intros.
@@ -980,16 +1000,20 @@ Proof.
  rewrite Hl, !map_rev, !sumfib_rev.
  rewrite g_sumfib.
  - f_equal. rewrite map_map. simpl. symmetry. apply map_id.
- - apply Delta_21. unfold l'. apply Delta_pred.
-   + now rewrite <- in_rev.
-   + now apply Delta_rev.
+ - apply Delta_alt; split.
+   + apply Delta_21. unfold l'. apply Delta_pred.
+     * now rewrite <- in_rev.
+     * now apply Delta_rev.
+   + intros y. unfold l'. rewrite in_map_iff.
+     intros (x & Hx & IN). rewrite <- in_rev in IN.
+     destruct x as [|[|x]]; simpl in *; intuition.
 Qed.
 
-(** Beware! In the previous statement, [map pred l] might
-    not be a canonical decomposition anymore, since 0 could appear.
-    In this case, 0 could be turned into a 1 (since [fib 0 = fib 1]),
+(** Beware! In the previous statements, [map pred l] might
+    not be a canonical decomposition anymore, since 1 could appear.
+    In this case, 1 could be turned into a 2 (since [fib 1 = fib 2]),
     and then we should saturate with Fibonacci equations
-    ([fib 1 + fib 2 = fib 3], etc) to regain a canonical
+    ([fib 2 + fib 3 = fib 4], etc) to regain a canonical
     decomposition (with no consecutive fib terms), see [Fib.norm].*)
 
 (** * [g] and classification of Fibonacci decompositions.
@@ -997,7 +1021,7 @@ Qed.
     Most of these results will be used in next file about
     the flipped [G] tree. *)
 
-Lemma g_Low n k : 1<k -> Fib.Low 2 n k -> Fib.Low 2 (g n) (k-1).
+Lemma g_Low n k : 2<k -> Fib.Low 2 n k -> Fib.Low 2 (g n) (k-1).
 Proof.
  intros K (l & -> & D & _).
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
@@ -1007,79 +1031,66 @@ Proof.
  apply Delta_pred in D; auto.
 Qed.
 
-Lemma g_Low' n k : 1<k -> Fib.Low 1 n k -> Fib.Low 1 (g n) (k-1).
+Lemma g_Low' n k : 2<k -> Fib.Low 1 n k -> Fib.Low 1 (g n) (k-1).
 Proof.
  intros K (l & -> & D & _).
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
- rewrite g_sumfib'; eauto.
+ rewrite g_sumfib'; auto with arith.
  rewrite (Nat.sub_1_r).
  exists (map pred l). repeat split; auto; try omega.
  apply Delta_pred in D; auto.
 Qed.
 
-Lemma g_One n : Fib.One 2 n -> g (S n) = g n.
+Lemma g_Two n : Fib.Two 2 n -> g (S n) = g n.
 Proof.
  intros (l & H & Hl & _).
  rewrite H.
- change (S (sumfib (1::l))) with (sumfib (2::l)).
+ change (S (sumfib (2::l))) with (sumfib (3::l)).
  rewrite !g_sumfib'; eauto.
 Qed.
 
-Lemma g_One_iff n : Fib.One 2 n <-> g (S n) = g n.
+Lemma g_Two_iff n : Fib.Two 2 n <-> g (S n) = g n.
 Proof.
- split. apply g_One.
- destruct (decomp_exists n) as (l & E & D & Hl).
+ split. apply g_Two.
+ destruct (decomp_exists n) as (l & E & D).
  destruct l as [|k l].
  - simpl in E. now subst.
- - destruct k as [|[|k]].
-   + simpl in *; intuition.
-   + intros _. exists l; split; auto.
+ - destruct k as [|[|[|k]]].
+   + inversion_clear D; omega.
+   + inversion_clear D; omega.
+   + intros _. exists l; repeat split; eauto.
    + intros E'. exfalso.
      subst n.
-     change (S (sumfib (S (S k) :: l))) with
-     (sumfib (1::S (S k)::l)) in E'.
+     change (S (sumfib (S (S (S k)) :: l))) with
+     (sumfib (2::S (S (S k))::l)) in E'.
      rewrite !g_sumfib' in *; auto.
      * simpl map in *.
        rewrite sumfib_cons in E'. simpl fib in E'. omega.
-     * remember (S (S k)::l). simpl. intuition.
-     * constructor. omega. eauto.
+     * do 2 (constructor; eauto); omega.
 Qed.
 
-Lemma g_not_One n : ~Fib.One 2 n -> g (S n) = S (g n).
+Lemma g_not_Two n : ~Fib.Two 2 n -> g (S n) = S (g n).
 Proof.
- rewrite g_One_iff. generalize (g_step n). omega.
+ rewrite g_Two_iff. generalize (g_step n). omega.
 Qed.
 
-Lemma One_g n : Fib.One 2 n -> Fib.Odd 2 (g n).
+Lemma Two_g n : Fib.Two 2 n -> Fib.Even 2 (g n).
 Proof.
  intros (l & -> & D & _).
- apply Odd_12. apply One_Odd.
+ apply Even_12. apply Two_Even.
  exists (map pred l); repeat split; auto.
  rewrite g_sumfib'; eauto.
- change (Delta 1 (map pred (2::l))).
- apply Delta_pred; eauto.
+ apply Delta_21_S, Delta_pred in D; eauto.
 Qed.
 
-Lemma Two_g n : Fib.Two 2 n -> Fib.One 2 (g n).
+Lemma Three_g n : Fib.Three 2 n -> Fib.Two 2 (g n).
 Proof.
 apply g_Low. auto.
 Qed.
 
-Lemma TwoEven_Sg n : Fib.TwoEven 2 n -> Fib.TwoOdd 1 (S (g n)).
+Lemma ThreeOdd_Sg n : Fib.ThreeOdd 2 n -> Fib.ThreeEven 1 (S (g n)).
 Proof.
 intros (k & l & -> & D).
-assert (1<k) by (inversion_clear D; omega).
-rewrite g_sumfib'; eauto.
-exists (k-1); exists (map pred l); split; auto.
-- simpl. do 4 f_equal. omega.
-- apply Delta_pred in D; eauto. simpl in D.
-  replace (2*(k-1)+1) with (pred (2*k)) by omega. auto.
-Qed.
-
-Lemma TwoOdd_Sg n : Fib.TwoOdd 2 n -> Fib.TwoEven 2 (S (g n)).
-Proof.
-intros (k & l & -> & D).
-apply TwoEven_12.
 assert (1<k) by (inversion_clear D; omega).
 rewrite g_sumfib'; eauto.
 exists k; exists (map pred l); split; auto.
@@ -1088,153 +1099,170 @@ exists k; exists (map pred l); split; auto.
   replace (2*k) with (pred (2*k+1)) by omega. auto.
 Qed.
 
-Lemma High_g n : Fib.High 2 n -> ~Fib.One 2 (g n).
+Lemma ThreeEven_Sg n : Fib.ThreeEven 2 n -> Fib.ThreeOdd 2 (S (g n)).
+Proof.
+intros (k & l & -> & D).
+apply ThreeOdd_12.
+assert (1<k) by (inversion_clear D; omega).
+rewrite g_sumfib'; eauto.
+exists (k-1); exists (map pred l); split; auto.
+- simpl. do 4 f_equal. omega.
+- apply Delta_pred in D; eauto. simpl in D.
+  replace (2*(k-1)+1) with (pred (2*k)) by omega. auto.
+Qed.
+
+Lemma High_g n : Fib.High 2 n -> ~Fib.Two 2 (g n).
 Proof.
  intros (k & K & L) L'.
  apply g_Low in L; try omega.
  generalize (Low_unique L L'). omega.
 Qed.
 
-Lemma High_Sg n : Fib.High 2 n -> Fib.Odd 2 (S (g n)).
+Lemma High_Sg n : Fib.High 2 n -> Fib.Even 2 (S (g n)).
 Proof.
 intros (k & K & l & -> & D & _).
-apply Odd_12. apply One_Odd.
+apply Even_12. apply Two_Even.
 rewrite g_sumfib'; eauto.
 exists (map pred (k::l)). repeat split; simpl; auto.
 constructor. omega. change (Delta 1 (map pred (k :: l))).
 apply Delta_pred; eauto.
 eapply Delta_nz; eauto. omega.
-eapply Delta_nz; eauto. omega.
+constructor. omega. eauto.
 Qed.
 
-Lemma Even_g n : Fib.Even 2 n -> Fib.Odd 2 (g n).
+Lemma Odd_g n : Fib.Odd 2 n -> Fib.Even 2 (g n).
 Proof.
  intros (k & L).
  assert (k<>0) by (apply Low_nz in L; omega).
  apply g_Low in L; try omega.
- exists (k-1). now replace (2*(k-1)+1) with (2*k-1) by omega.
-Qed.
-
-Lemma Odd_g n : Fib.Odd 2 n -> ~Fib.One 2 n -> Fib.Even 2 (g n).
-Proof.
- intros (k & L) L'.
- assert (k<>0) by (intros ->; intuition).
- apply g_Low in L; try omega.
  exists k. now replace (2*k) with (2*k+1-1) by omega.
 Qed.
 
-Lemma Even_gP n : Fib.Even 2 n -> g (n-1) = g n.
+Lemma Even_g n : Fib.Even 2 n -> ~Fib.Two 2 n -> Fib.Odd 2 (g n).
 Proof.
- intros DE. apply Even_pred_One in DE.
- destruct n; trivial.
- simpl in *. rewrite Nat.sub_0_r in *. symmetry. now apply g_One.
+ intros (k & L) L'.
+ assert (k<>0) by (intros ->; now destruct L).
+ assert (k<>1) by (intros ->; intuition).
+ apply g_Low in L; try omega.
+ exists (k-1). now replace (2*(k-1)+1) with (2*k-1) by omega.
 Qed.
 
-Lemma Odd_gP n : Fib.Odd 2 n -> g (n-1) = (g n) - 1.
+Lemma Odd_gP n : Fib.Odd 2 n -> g (n-1) = g n.
+Proof.
+ intros DE. apply Odd_pred_Two in DE.
+ destruct n; trivial.
+ simpl in *. rewrite Nat.sub_0_r in *. symmetry. now apply g_Two.
+Qed.
+
+Lemma Even_gP n : Fib.Even 2 n -> g (n-1) = (g n) - 1.
 Proof.
  intros DO.
- assert (DE : ~Fib.Even 2 n).
+ assert (DE : ~Fib.Odd 2 n).
  { intro. eapply Even_xor_Odd; eauto. }
- rewrite Even_pred_One in DE.
- rewrite g_One_iff in DE.
+ rewrite Odd_pred_Two in DE.
+ rewrite g_Two_iff in DE.
  destruct n; trivial.
  simpl in *; rewrite Nat.sub_0_r in *.
  destruct (g_step n); omega.
 Qed.
 
-Lemma g_pred_fib_even k : k<>0 -> g (pred (fib (2*k))) = fib (2*k-1).
+Lemma g_pred_fib_odd k : g (pred (fib (2*k+1))) = fib (2*k).
 Proof.
- intros Hk.
- rewrite <- Nat.sub_1_r.
- rewrite Even_gP.
- - replace (2*k) with (S (2*k -1)) at 1 by omega. apply g_fib.
- - exists k. exists (@nil nat); repeat split; simpl; auto. omega.
+ destruct k.
+ - reflexivity.
+ - rewrite <- Nat.sub_1_r.
+   rewrite Odd_gP.
+   + rewrite g_fib'. f_equal; omega. omega.
+   + exists (S k). exists (@nil nat); repeat split; simpl; auto. omega.
 Qed.
 
-Lemma g_pred_fib_odd k : g (pred (fib (2*k+1))) = fib (2*k) - 1.
+Lemma g_pred_fib_even k : g (pred (fib (2*k))) = fib (2*k-1) - 1.
 Proof.
- rewrite <- Nat.sub_1_r.
- rewrite Odd_gP.
- - rewrite Nat.add_1_r. now rewrite g_fib.
- - exists k; exists (@nil nat); repeat split; simpl; auto. omega.
+ destruct k.
+ - reflexivity.
+ - rewrite <- Nat.sub_1_r.
+   rewrite Even_gP.
+   + rewrite g_fib'; auto. omega.
+   + exists (S k); exists (@nil nat); repeat split; simpl; auto. omega.
 Qed.
 
 Lemma g_pred_pred_fib k : g (fib k - 2) = fib (k-1) - 1.
 Proof.
- destruct k as [|[|k]].
- - reflexivity.
- - reflexivity.
- - replace (fib (S (S k)) - 2) with (fib (S (S k)) - 1 - 1) by omega.
-   destruct (Nat.Even_or_Odd (S (S k))) as [(k',Hk)|(k',Hk)];
-   rewrite Hk.
+ destruct (le_lt_dec k 2).
+ - destruct k as [|[|[|k]]]; try reflexivity. omega.
+ - replace (fib k - 2) with (fib k - 1 - 1) by omega.
+   destruct (Nat.Even_or_Odd k) as [(k',->)|(k',->)].
    + rewrite Odd_gP.
-     * f_equal. rewrite Nat.sub_1_r. apply g_pred_fib_even. omega.
-     * apply One_Odd, Even_pred_One.
-       exists k'; exists (@nil nat).
-       simpl; repeat split; auto. omega.
-   + rewrite Even_gP.
-     * rewrite Nat.sub_1_r. rewrite g_pred_fib_odd.
-       do 2 f_equal. omega.
-     * apply OddHigh_pred_Even.
+     * rewrite Nat.sub_1_r. apply g_pred_fib_even.
+     * apply EvenHigh_pred_Odd.
        { exists k'; exists (@nil nat).
          repeat split; simpl; auto. omega. }
-       { exists (2*k'+1). split. omega.
+       { exists (2*k'). split. omega.
          exists (@nil nat); repeat split; simpl; auto; omega. }
+   + rewrite Even_gP.
+     * f_equal. rewrite Nat.sub_1_r. rewrite g_pred_fib_odd.
+       f_equal. omega.
+     * apply Two_Even, Odd_pred_Two.
+       exists k'; exists (@nil nat).
+       simpl; repeat split; auto. omega.
 Qed.
 
 (*==============================================================*)
 
 (** * Fibonacci decomposition and [G] node arity *)
 
-Lemma decomp_rchild l : ~In 0 l -> Delta 1 l ->
+Lemma decomp_rchild l : Delta 1 (1::l) ->
   rchild (sumfib l) = sumfib (map S l).
 Proof.
  intros.
  unfold rchild.
  rewrite g_sumfib' by trivial.
- now apply sumfib_eqn.
+ apply sumfib_eqn.
+ apply Delta_alt in H. intro IN. apply H in IN. omega.
 Qed.
 
-Lemma decomp_unary n : Fib.Even 2 n -> Unary g n.
+Lemma decomp_unary n : Fib.Odd 2 n -> Unary g n.
 Proof.
  intros D.
  rewrite unary_carac2.
  unfold lchild.
- rewrite <- (Even_gP D).
+ rewrite <- (Odd_gP D).
  replace (n + g (n-1) - 1) with (n - 1 + g (n-1)).
  - apply g_onto_eqn.
  - destruct n; trivial; omega.
 Qed.
 
-Lemma decomp_binary n : Fib.Odd 2 n -> Binary g n.
+Lemma decomp_binary n : Fib.Even 2 n -> Binary g n.
 Proof.
  intros D.
  rewrite <- multary_binary, binary_carac2.
  assert (n<>0).
- { destruct D as (k & l & -> & _). now rewrite sumfib_0. }
+ { destruct D as (k & l & -> & D & H). rewrite sumfib_0.
+   discriminate. eapply Delta_nz; eauto. omega. }
  split; trivial.
  unfold lchild.
  rewrite Nat.add_comm, Nat.add_sub_swap, Nat.add_comm
   by (apply (@g_mono 1 n); omega).
- rewrite <- (Odd_gP D).
+ rewrite <- (Even_gP D).
  replace (n+g(n-1)) with (S (n-1+g(n-1))) by omega.
  replace n with (S (n-1)) at 3 by omega.
  apply rightmost_child_carac; eauto using g_onto_eqn.
 Qed.
 
-Lemma decomp_unary_iff n : Fib.Even 2 n <-> (n<>0 /\ Unary g n).
+Lemma decomp_unary_iff n : Fib.Odd 2 n <-> (n<>0 /\ Unary g n).
 Proof.
  split.
  - split.
-   + destruct H as (k & l & -> & _). now rewrite sumfib_0.
+   + destruct H as (k & l & -> & D & H). rewrite sumfib_0.
+     discriminate. eapply Delta_nz; eauto. omega.
    + now apply decomp_unary.
  - intros (Hn,H).
    destruct (Fib.Even_or_Odd Hn) as [Ev|Od]; trivial.
-   apply decomp_binary in Od. apply multary_binary in Od.
-   elim (unary_xor_multary H Od).
+   apply decomp_binary in Ev. apply multary_binary in Ev.
+   elim (unary_xor_multary H Ev).
 Qed.
 
-Lemma decomp_binary_iff n : Fib.Odd 2 n <-> Binary g n.
+Lemma decomp_binary_iff n : Fib.Even 2 n <-> Binary g n.
 Proof.
  split.
  - apply decomp_binary.
@@ -1242,8 +1270,8 @@ Proof.
    assert (Hn : n<>0).
    { intros ->. rewrite binary_carac2 in B. intuition. }
    destruct (Fib.Even_or_Odd Hn) as [Ev|Od]; trivial.
-   apply decomp_unary in Ev.
-   elim (unary_xor_multary Ev B).
+   apply decomp_unary in Od.
+   elim (unary_xor_multary Od B).
 Qed.
 
 
