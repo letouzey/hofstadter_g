@@ -465,7 +465,7 @@ We can then establish some basic properties of $G$:
 \noindent
 \begin{enumerate}
 \item Already seen during the definition of $G$.
-\item $G(n+1)-G(n) = (n+1)-G(G(n)-n+G(G(n-1)) = 1 - (G(G(n))-G(G(n-1)))$.
+\item $G(n+1)-G(n) = (n+1)-G(G(n))-n+G(G(n-1)) = 1 - (G(G(n))-G(G(n-1)))$.
 If $G(n)=G(n-1)$ then the previous expression is equal to 1.
 \item By strong induction over $n$. First, $G(1)-G(0)=1-0$. Then
 for a given $n\neq 0$, we assume $\forall k<n, G(k+1)-G(k) \in \{0,1\}$.
