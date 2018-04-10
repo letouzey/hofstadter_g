@@ -6,7 +6,7 @@
 
 <https://github.com/letouzey/hofstadter_g>
 
-## Apéritif : Escarfibo
+## Apéritif : fiboscargot
 
 ~~~ocaml
 let rec f n l a = match n,l with
@@ -14,7 +14,7 @@ let rec f n l a = match n,l with
  | (0|1), m::l -> f m l (succ a)
  | _ -> f (n-1) (n-2 :: l) a
 
-let escarfibo n = f n [] 0
+let fiboscargot n = f n [] 0
 ~~~
 
 <!--- Variant : List.map (fun k -> 1 lsl k) (n::l)  -->
@@ -153,7 +153,7 @@ Def: le *rang* d'une décomposition est l'indice du plus petit terme.
 Algo: canonisation d'une décomposition faible de n
 
  - le nombre de termes croît ou stagne
- - le rang diminue (par pas de 2) ou stagne
+ - le rang augmente (par pas de 2) ou stagne
 
 ## Etude de G
 
@@ -198,7 +198,7 @@ Conséquence:
 ## G et Fibonacci
 
  - \ensuremath{G(F_i) = F_{i-1}}
- - Plus généralement: $G(\Sigma F_i) = \Sigma G(F_{i-1})$,
+ - Plus généralement: $G(\Sigma F_i) = \Sigma F_{i-1}$,
    en partant d'une décomposition faible
  - Preuve selon le rang de la décomposition
    (2, pair>2, impair).
@@ -272,7 +272,7 @@ commence par $F_3 + F_{2p+1} + ...$.
 \bigskip
 
 Thm: $\overline{G}(n)=1+G(n)$ si $n$ est de rang 3-impair,
-sinon $\overline{G}(n)=1+G(n)$.
+sinon $\overline{G}(n)=G(n)$.
 
 \bigskip
 
@@ -302,7 +302,7 @@ Anciens essais: pour n>3, $\overline{G}(n-1)+\overline{G}(\overline{G}(n))= n$
 
 \bigskip
 
-Mais ceci ne caractérise une unique fonction
+Mais ceci ne caractérise pas une unique fonction
 (sauf à exiger qu'elle soit monotone).
 
 ## Conclusions & Perspectives
@@ -314,4 +314,5 @@ Mais ceci ne caractérise une unique fonction
 - Preuves Coq moins pédestres (quasi 5000 lignes en tout) ?
 - Généralisation à $H(n)=n-H(H(H(n-1))$, etc ?
 - Fonctions mutuelles d'Hofstadter ($M$ et $F$) ?
-
+- Autres apparitions de $G$ à étudier
+  (jeu de Wythoff...)
