@@ -12,8 +12,9 @@ The technical report is now on HAL: http://hal.inria.fr/hal-01195587
 Usage
 -----
 
-To be compiled with Coq 8.4.
+To be compiled with Coq >= 8.5. For Coq 8.4, see the coq8.4 git branch.
 
+Use "make" to compile the Coq files.
 Use "make gallinahtml" to generate the short html documentation.
 Use "pdflatex report" to generate the pdf of the technical report.
 

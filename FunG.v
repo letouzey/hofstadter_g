@@ -1,6 +1,6 @@
 (** * FunG : Hofstadter's G function and tree *)
 
-Require Import Arith Omega Wf_nat List NPeano.
+Require Import Arith Omega Wf_nat List.
 Require Import DeltaList Fib.
 Set Implicit Arguments.
 
@@ -280,7 +280,7 @@ Lemma g_div2_le n : n/2 <= g n.
 Proof.
  rewrite <- Nat.div2_div.
  rewrite (Nat.div2_odd n) at 2.
- transitivity (g (2*Div2.div2 n)).
+ transitivity (g (2*Nat.div2 n)).
  apply g_double_le.
  apply g_mono. omega.
 Qed.
@@ -679,7 +679,7 @@ Qed.
 (** The depth of a node in the [G] tree is the number of
     iteration of [g] needed before reaching node 1 *)
 
-Notation "f ^^ n" := (nat_iter n f) (at level 30, right associativity).
+Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).
 
 Lemma iter_S (f:nat->nat) n p : (f^^(S n)) p = (f^^n) (f p).
 Proof.

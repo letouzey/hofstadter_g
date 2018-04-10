@@ -127,7 +127,7 @@ Proof.
    intros Hn.
    set (k := depth n).
    assert (k<>0).
-   { contradict Hn. subst. rewrite depth_0 in Hn. omega. }
+   { contradict Hn. unfold k in *. rewrite depth_0 in Hn. omega. }
    assert (Hn' : S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    rewrite fib_eqn.

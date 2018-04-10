@@ -16,11 +16,11 @@ Next Obligation.
 Defined.
 Next Obligation.
  program_simpl.
- destruct (g_spec n0) as (a,Ha).
+ destruct (g_spec _) as (a,Ha).
  program_simpl.
- destruct (g_spec a) as (b,Hb).
+ destruct (g_spec _) as (b,Hb).
  program_simpl.
- eapply GS; eauto. change (S n0 = S n0 - b + b).
+ eapply GS; eauto. change (S n = S n - b + b).
  generalize (G_le Ha) (G_le Hb). omega.
 Defined.
 
