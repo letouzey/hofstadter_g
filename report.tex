@@ -28,6 +28,8 @@ Technical report version 1.4, Oct. 2015, \href{http://creativecommons.org/licens
 \newcommand{\doclab}[2]{\docgen{#1}{\##2}}
 \newcommand{\FG}{\ensuremath{\overline{G}}}
 \newcommand{\fibrest}{\ensuremath{\Sigma F_i}}
+\newcommand{\flip}{\textit{flip}}
+\newcommand{\depth}{\textit{depth}}
 
 \section{Introduction}
 This document summarizes the proofs made during a Coq development in
@@ -588,27 +590,27 @@ Before proving this fact, let us first define more properly a depth
 function.
 
 \begin{definition}
-For a number $n>0$, we note $depth(n)$ the least number $d$ such that
+For a number $n>0$, we note $\depth(n)$ the least number $d$ such that
 $G^d(n)$ (the $d$-th iteration of $G$ on $n$) reaches 1.
-We complete this definition by choosing arbitrarily $depth(0)=0$.
+We complete this definition by choosing arbitrarily $\depth(0)=0$.
 \end{definition}
 
 For $n>0$, such a number $d$ is guaranteed to exists since $G(k)<k$ as long as
 $k$ is still not $1$, hence the sequence $G^k(n)$ is strictly
 decreasing as long as it hasn't reached 1.
-In particular, we have $depth(1)=0$, and for all $n>1$ we have
-$depth(n) = 1+depth(G(n))$. Hence our depth function is compatible
+In particular, we have $\depth(1)=0$, and for all $n>1$ we have
+$\depth(n) = 1+\depth(G(n))$. Hence our depth function is compatible
 with the usual notion of depth in a tree.
 
 \begin{theorem}\label{depthprops}
 \noindent
 \begin{enumerate}
-\item For all $n$, $depth(n)=0$ if and only if $n\le 1$.
-\item For $n>1$ and $k<depth(n)$, we have $G^k(n) > 1$.
-\item For $n,m>0$, $n\le m$ implies $depth(n)\le depth(m)$.
-\item For $k>1$, $depth(F_k) = k-2$.
-\item For $k>1$, $depth(1+F_k) = k-1$.
-\item For $k>0,n>0$, $depth(n)=k$ if and only if $1+F_{k+1} \leq n \leq
+\item For all $n$, $\depth(n)=0$ if and only if $n\le 1$.
+\item For $n>1$ and $k<\depth(n)$, we have $G^k(n) > 1$.
+\item For $n,m>0$, $n\le m$ implies $\depth(n)\le \depth(m)$.
+\item For $k>1$, $\depth(F_k) = k-2$.
+\item For $k>1$, $\depth(1+F_k) = k-1$.
+\item For $k>0,n>0$, $\depth(n)=k$ if and only if $1+F_{k+1} \leq n \leq
   F_{k+2}$.
 \end{enumerate}
 \end{theorem}
@@ -616,7 +618,7 @@ with the usual notion of depth in a tree.
 \noindent
 \begin{enumerate}
 \item The statement is valid when $n=0$. For a $n>0$, 
-$depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
+$\depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
 \item Consequence of the minimality of depth.
 \item Consequence of the monotony of $G$ :
   for all $k$, $G^k(n)\le G^k(m)$ hence the iterates of $n$ will reach
@@ -626,14 +628,14 @@ $depth(n)=0$ means $G^0(n)=1$ i.e. $n=1$.
 \item $G$ maps a successor of a Fibonacci number to the previous such
   number, $k-2$ iterations of $G$ on $1+F_k$ leads to $1+F_2 = 2$.
 \item If $1+F_{k+1} \leq n \leq F_{k+2}$, the monotony of depth and the
-previous facts gives $k \le depth(n) \le k$, hence $depth(n)=k$.
-Conversely, when $depth(n)=k$, we cannot have $n < 1 + F_{k+1}$ otherwise
-$n \le F_{k+1}$ and hence $depth(n)\le k-1$, and we cannot have $n > F_{k+2}$
-otherwise $n \ge 1+F_{k+2}$ and hence $depth(n)\ge k+1$.
+previous facts gives $k \le \depth(n) \le k$, hence $\depth(n)=k$.
+Conversely, when $\depth(n)=k$, we cannot have $n < 1 + F_{k+1}$ otherwise
+$n \le F_{k+1}$ and hence $\depth(n)\le k-1$, and we cannot have $n > F_{k+2}$
+otherwise $n \ge 1+F_{k+2}$ and hence $\depth(n)\ge k+1$.
 \end{enumerate}
 \end{proof}
 
-The previous characterization of $depth(n)$ via Fibonacci bounds shows
+The previous characterization of $\depth(n)$ via Fibonacci bounds shows
 that depth could also have been defined thanks to {\tt
   fib\_inv$(n-1)-1$}, see \ref{fibinv}. It also shows that the number of
 nodes at depth $k$ is $F_{k+2}-(1+F_{k+1})+1 = F_{k}$ as soon as
@@ -902,56 +904,56 @@ increase from left to right. Can you find a recursive \emph{algebraic}
 definition for this ``flip-tree'' ?
 \end{quote}
 
-\subsection{The $flip$ function}
+\subsection{The $\flip$ function}
 
 Flipping the $G$ tree as if in a mirror is equivalent to keeping
 its shape unchanged, but labeling the nodes from right to left
-during the breadth-first traversal. Let us call $flip(n)$ the
+during the breadth-first traversal. Let us call $\flip(n)$ the
 new label of node $n$ after this transformation.
 We've seen in the previous section that given a depth $k\neq 0$,
 the nodes at this depth are labeled from $1+F_{k+1}$ till $F_{k+2}$.
-After the $flip$ transformation, the $1+F_{k+1}$ node and
+After the $\flip$ transformation, the $1+F_{k+1}$ node and
 the $F_{k+2}$ node will hence have exchanged their label.
 Similarly, $2+F_{k+1}$ will become $F_{k+2}-1$ and vice-versa.
-More generally, if $depth(n)=k$, the distance between
-$flip(n)$ and the leftmost node $1+F_{k+1}$ will be equal to
+More generally, if $\depth(n)=k$, the distance between
+$\flip(n)$ and the leftmost node $1+F_{k+1}$ will be equal to
 the distance between $n$ and the rightmost node $F_{k+2}$,
 hence:
-$$flip(n) - (1+F_{k+1}) = F_{k+2} - n$$
+$$\flip(n) - (1+F_{k+1}) = F_{k+2} - n$$
 So:
-$$flip(n) = 1+F_{k+3}-n$$
+$$\flip(n) = 1+F_{k+3}-n$$
 We finally complete this definition to handle the case $n\le 1$:
 \begin{definition}
-We define the function $flip : \mathbb{N}\to\mathbb{N}$
+We define the function $\flip : \mathbb{N}\to\mathbb{N}$
 in the following way:
-$$flip(n) = if~(n\le 1)~then~n~else~1+F_{3+depth(n)}-n$$
+$$\flip(n) = if~(n\le 1)~then~n~else~1+F_{3+\depth(n)}-n$$
 \end{definition}
 
-A few properties of this $flip$ function:
+A few properties of this $\flip$ function:
 \begin{theorem}\label{flipprops}
 \noindent
 \begin{enumerate}
-\item For all $n\in\mathbb{N}$, depth(flip(n)) = depth(n).
-\item For all $n$, $n>1$ if and only if $flip(n)>1$.
+\item For all $n\in\mathbb{N}$, $\depth(\flip(n)) = \depth(n)$.
+\item For all $n$, $n>1$ if and only if $\flip(n)>1$.
 \item For $1 \le n \le F_{k}$, we have
- $flip(F_{k+1}+n) = 1+F_{k+2}-n$.
-\item $flip$ is involutive.
-\item For all $n>1$, if $depth(n+1)=depth(n)$ then
-  $flip(n+1)=flip(n)-1$.
-\item For all $n>1$, if $depth(n-1)=depth(n)$ then
-  $flip(n-1)=flip(n)+1$.
+ $\flip(F_{k+1}+n) = 1+F_{k+2}-n$.
+\item $\flip$ is involutive.
+\item For all $n>1$, if $\depth(n+1)=\depth(n)$ then
+  $\flip(n+1)=\flip(n)-1$.
+\item For all $n>1$, if $\depth(n-1)=\depth(n)$ then
+  $\flip(n-1)=\flip(n)+1$.
 \end{enumerate}
 \end{theorem}
 \begin{proof}
 \noindent
 \begin{enumerate}
-\item If $n\le 1$, then $flip(n)=n$ and the property is obvious.
+\item If $n\le 1$, then $\flip(n)=n$ and the property is obvious.
 For $n>1$, if we name $k$ the depth of $n$, we have
-$flip(n) = 1+F_{k+3}-n$. Since $1+F_{k+1} \le n \le F_{k+2}$,
-we hence have $1+F_{k+3}-F_{k+2} \le flip(n) \le 1+F_{k+3}-1-F_{k+1}$.
-And finally $1+F_{k+1} \le flip(n) \le F_{k+2}$, and this characterizes
-the nodes at depth $k$, hence $depth(flip(n))=k=depth(n)$.
-\item We know that $n$ and $flip(n)$ have the same depth, and
+$\flip(n) = 1+F_{k+3}-n$. Since $1+F_{k+1} \le n \le F_{k+2}$,
+we hence have $1+F_{k+3}-F_{k+2} \le \flip(n) \le 1+F_{k+3}-1-F_{k+1}$.
+And finally $1+F_{k+1} \le \flip(n) \le F_{k+2}$, and this characterizes
+the nodes at depth $k$, hence $\depth(\flip(n))=k=\depth(n)$.
+\item We know that $n$ and $\flip(n)$ have the same depth, and
 we've already seen that being less or equal to 1 is equivalent
 to having depth 0.
 \item Consider $1 \le n \le F_{k}$. Hence $k$ is at least 1,
@@ -960,36 +962,36 @@ $1+F_{k+1}\le F_{k+1}+n \le F_{k+1}+F_{k} = F_{k+2}$, so the depth
 of $F_{k+1}+n$ is $k$
 (still via the same characterization of nodes at depth $k$).
 Moreover $F_{k+1}+n$ is more than 2,
-so the definition of $flip$ gives:
-$flip(F_{k+1}+n)=1+F_{k+3}-F_{k+1}-n = 1+F_{k+2}-n$.
-\item If $n\le 1$ then $flip(n)=n$ is still less or equal to 1,
-so $flip(flip(n))=flip(n)=n$.
-Consider now $n>1$. We already know that $flip(n)>1$ and
-$flip(n)$ and $n$ have same depth (let us name it $k$). Hence:
-$flip(flip(n)) = 1+F_{k+2}-flip(n)=1+F_{k+2}-(1+F_{2+k}-n) = n$.
+so the definition of $\flip$ gives:
+$\flip(F_{k+1}+n)=1+F_{k+3}-F_{k+1}-n = 1+F_{k+2}-n$.
+\item If $n\le 1$ then $\flip(n)=n$ is still less or equal to 1,
+so $\flip(\flip(n))=\flip(n)=n$.
+Consider now $n>1$. We already know that $\flip(n)>1$ and
+$\flip(n)$ and $n$ have same depth (let us name it $k$). Hence:
+$\flip(\flip(n)) = 1+F_{k+2}-\flip(n)=1+F_{k+2}-(1+F_{2+k}-n) = n$.
 \item Let us name $k$ the common depth of $n+1$ and $n$.
 In these conditions
-$flip(n+1) = 1+F_{k+2}-(n+1) = (1+F_{k+2}-n)-1 = flip(n)-1$.
+$\flip(n+1) = 1+F_{k+2}-(n+1) = (1+F_{k+2}-n)-1 = \flip(n)-1$.
 \item Similar proof.
 \end{enumerate}
 \end{proof}
 
 In particular, the third point above shows that for $k>1$
-we indeed have $flip(1+F_k) = F_{k+1}$ (and vice-versa since $flip$
+we indeed have $\flip(1+F_k) = F_{k+1}$ (and vice-versa since $\flip$
 is involutive).
 
 \subsection{Definition of $\FG$ and initial properties}
 
-We can now take advantage of this $flip$ function to obtain
+We can now take advantage of this $\flip$ function to obtain
 a first definition of the $\FG$ function, corresponding to the
 flipped $G$ tree:
 
 \begin{definition}
 The function $\FG : \mathbb{N}\to\mathbb{N}$ is defined via:
-$$\FG(n) = flip(G(flip(n))$$
+$$\FG(n) = \flip(G(\flip(n))$$
 \end{definition}
 
-We benefit from the involutive aspect of $flip$ to switch
+We benefit from the involutive aspect of $\flip$ to switch
 from right-left to left-right diagrams, use $G$, and then
 switch back to right-left diagram. The corresponding Coq function
 is named {\tt fg}.
@@ -1020,7 +1022,7 @@ We now show that $\FG$ enjoys the same basic properties as $G$:
 \begin{theorem}\label{FGprops}
 \noindent
 \begin{enumerate}
-\item For all $n>1$, $depth(\FG(n)) = depth(n)-1$.
+\item For all $n>1$, $\depth(\FG(n)) = \depth(n)-1$.
 \item For all $k>0$, $\FG(F_{k+1}) = F_k$.
 \item For all $k>1$, $\FG(1+F_{k+1}) = 1+F_k$.
 \item For all $n$, $\FG(n+1)-\FG(n) \in \{0,1\}$.
@@ -1035,20 +1037,20 @@ We now show that $\FG$ enjoys the same basic properties as $G$:
 \begin{proof}
 \noindent
 \begin{enumerate}
-\item Since $flip$ doesn't modify the depth, we reuse the
+\item Since $\flip$ doesn't modify the depth, we reuse the
 result about the depth of $G(n)$.
-\item $\FG(F_{k+1}) = flip(G(flip(F_{k+1}))) = flip(G(1+F_k)) =
-       flip(1+F_{k-1}) = F_k$.
+\item $\FG(F_{k+1}) = \flip(G(\flip(F_{k+1}))) = \flip(G(1+F_k)) =
+       \flip(1+F_{k-1}) = F_k$.
 \item Similar proof.
 \item The property is true for $n=0$ and $n=1$.
-Consider now $n>1$. Let $k$ be $depth(n)$, which is
+Consider now $n>1$. Let $k$ be $\depth(n)$, which is
 hence different from 0. We have $1+F_{k+1} \le n \le F_{k+2}$.
 If $n$ is $F_{k+2}$, we have already seen that
 $\FG(1+F_{k+2}) = 1+F_{k+1} = 1+\FG(F_{k+2})$. Otherwise $n < F_{k+2}$
 and $n+1$ has hence the same depth as $n$. Then
-$flip(n+1)=flip(n)-1$. Now, by applying $G$ on the two consecutive values
-of same depth $flip(n)$ and $flip(n)-1$, we obtain two results that
-are either equal or consecutive, and of same depth. By applying $flip$
+$\flip(n+1)=\flip(n)-1$. Now, by applying $G$ on the two consecutive values
+of same depth $\flip(n)$ and $\flip(n)-1$, we obtain two results that
+are either equal or consecutive, and of same depth. By applying $\flip$
 again on these $G$ results, we end on two consecutive or equal
 $\FG$ results.
 \item Iteration of the previous results between $n$ and $m$.
@@ -1064,25 +1066,25 @@ and $\FG(0)=0$.
   is either 0 or 1. If it is 1, we can conclude. We proceed by
   contradiction and suppose it is 0. We hence have
   $\FG(n-1)=\FG(n)=\FG(n+1)$, or said otherwise
-  $flip(G(flip(n-1))) = flip(G(flip(n))) = flip(G(flip(n+1)))$.
-  Since $flip$ is involutive hence bijective, this implies that
-  $G(flip(n-1))=G(flip(n))=G(flip(n+1))$. To be able to commute
-  $flip$ and the successor/predecessor, we now study the depth
+  $\flip(G(\flip(n-1))) = \flip(G(\flip(n))) = \flip(G(\flip(n+1)))$.
+  Since $\flip$ is involutive hence bijective, this implies that
+  $G(\flip(n-1))=G(\flip(n))=G(\flip(n+1))$. To be able to commute
+  $\flip$ and the successor/predecessor, we now study the depth
   of these values.
   \begin{itemize}
   \item If $n+1$ has a different depth than $n$, then
     $n$ is a Fibonacci number $F_{k}$, with $k>4$ since $n>3$.
-    Then $flip(n+1)=F_{k+1}$ and $flip(n)=1+F_{k-1}$. These values
+    Then $\flip(n+1)=F_{k+1}$ and $\flip(n)=1+F_{k-1}$. These values
     aren't equal nor consecutive, hence $G$ cannot give the same
     result for them, this situation is indeed contradictory.
   \item Similarly, if $n-1$ has a different depth than $n$, then
     $n-1$ is a Fibonacci number $F_k$, with $k>3$ since $n>3$.
-    Then $flip(n-1)=1+F_{k-1}$ while $flip(n)=F_{k+1}$.
+    Then $\flip(n-1)=1+F_{k-1}$ while $\flip(n)=F_{k+1}$.
     Once again, these values aren't equal nor consecutive,
     hence $G$ cannot give the same result for them. Contradiction.
   \item In the last remaining case, 
-    $depth(n-1)=depth(n)=depth(n+1)$.
-    Then $flip(n+1)=flip(n)-1$ and $flip(n-1)=flip(n)+1$ and
+    $\depth(n-1)=\depth(n)=\depth(n+1)$.
+    Then $\flip(n+1)=\flip(n)-1$ and $\flip(n-1)=\flip(n)+1$ and
     these value are at distance 2, while having the
     same result by $G$, which is contradictory.
   \end{itemize}
@@ -1110,45 +1112,45 @@ $\FG(3)=2$.
 \begin{proof}
 We consider $n>3$. Let $k$ be its depth, which is hence at
 least 3. We know that $1+F_{k+1} \le n \le F_{k+2}$. We will note
-$flip(n)$ below as $\nn$. Roughly speaking, this proof is
+$\flip(n)$ below as $\nn$. Roughly speaking, this proof is
 essentially a use of theorem \ref{Galt} which implies that
 $G(G(\nn+1)-1) = \nn - G(\nn)$, and then some
 play with flip and predecessors and successors, when possible,
 or direct particular proofs otherwise.
 \begin{itemize}
 \item We start with the most general case : we suppose here
-$depth(n-1)=depth(n)$ and $depth(\FG(n-1)+1)=depth(\FG(n-1)$.
+$\depth(n-1)=\depth(n)$ and $\depth(\FG(n-1)+1)=\depth(\FG(n-1)$.
 Let us shorten $\FG(n-1)+1$ as $p$. In particular
-$depth(p)=depth(\FG(n-1))=depth(n-1)-1=depth(n)-1=k-1$.
+$\depth(p)=\depth(\FG(n-1))=\depth(n-1)-1=\depth(n)-1=k-1$.
 Due to the equalities between depths, and the facts that
 $n>1$ and $\FG(n-1)>1$, we're allowed to use the
-last properties of theorem \ref{flipprops} : $flip(n-1)=\nn+1$ and
+last properties of theorem \ref{flipprops} : $\flip(n-1)=\nn+1$ and
 \begin{align*}
-flip(p) &= flip(\FG(n-1)+1) \\
-        &= flip(\FG(n-1))-1 \\
-        &= flip(flip(G(flip(n-1))))-1 \\
-        &= G(flip(n-1))-1 \\
+\flip(p) &= \flip(\FG(n-1)+1) \\
+        &= \flip(\FG(n-1))-1 \\
+        &= \flip(\flip(G(\flip(n-1))))-1 \\
+        &= G(\flip(n-1))-1 \\
         &= G(\nn+1)-1
 \end{align*}
-We now exploit the definition of $flip$ three times:
+We now exploit the definition of $\flip$ three times:
 \begin{enumerate}
-\item $depth(n)=k\neq 0$ implies $\nn=1+F_{k+3}-n$
-\item $depth(G(flip(p)))=depth(p)-1=k-2 \neq 0$ hence:
-$$\FG(p) = flip(G(flip(p))) = 1+F_{k+1}-G(flip(p))$$
-\item $depth(G(\nn))=depth(\nn)-1=depth(n)-1=k-1 \neq 0$, so:
-$$\FG(n)=flip(G(\nn))=1+F_{k+2}-G(\nn)$$
+\item $\depth(n)=k\neq 0$ implies $\nn=1+F_{k+3}-n$
+\item $\depth(G(\flip(p)))=\depth(p)-1=k-2 \neq 0$ hence:
+$$\FG(p) = \flip(G(\flip(p))) = 1+F_{k+1}-G(\flip(p))$$
+\item $\depth(G(\nn))=\depth(\nn)-1=\depth(n)-1=k-1 \neq 0$, so:
+$$\FG(n)=\flip(G(\nn))=1+F_{k+2}-G(\nn)$$
 \end{enumerate}
 All in all:
 \begin{align*}
 n+1-\FG(1+\FG(n-1)) & = n+1-\FG(p) \\
-                    & = n+1-(1+F_{k+1}-G(flip(p))) \\
+                    & = n+1-(1+F_{k+1}-G(\flip(p))) \\
                     & = n-F_{k+1}+G(G(\nn+1)-1)) \\
                     & = n-F_{k+1}+(\nn-G(\nn)) \\
                     & = n-F_{k+1}+(1+F_{k+3}-n)-G(\nn) \\
                     & = 1+F_{k+2}-G(\nn) \\
                     & = \FG(n)
 \end{align*}
-\item We now consider the case where $depth(n-1)\neq depth(n)$.
+\item We now consider the case where $\depth(n-1)\neq \depth(n)$.
 So $n$ is the least number of depth $k$, hence $n=1+F_{k+1}$.
 In this case:
 \begin{align*}
@@ -1158,13 +1160,13 @@ In this case:
                     & = 1+F_{k} \\
                     & = \FG(n)
 \end{align*}
-\item The last case to consider is $depth(n-1)=depth(n)$ but
-$depth(\FG(n-1)+1)\neq depth(\FG(n-1))$. As earlier, we prove
-that $depth(\FG(n-1))=depth(n-1)-1=depth(n)-1=k-1$. So
+\item The last case to consider is $\depth(n-1)=\depth(n)$ but
+$\depth(\FG(n-1)+1)\neq \depth(\FG(n-1))$. As earlier, we prove
+that $\depth(\FG(n-1))=\depth(n-1)-1=\depth(n)-1=k-1$. So
 $\FG(n-1)$ is the greatest number of depth $k-1$, hence
 $\FG(n-1)=F_{k+1}$. Since $\FG(F_{k+2})$ is also $F_{k+1}$, then $n-1$
 and $F_{k+2}$ are at a distance of 0 or 1. But we know that
-$depth(n)=k$, hence $n \le F_{k+2}$, so $n-1 < F_{k+2}$.
+$\depth(n)=k$, hence $n \le F_{k+2}$, so $n-1 < F_{k+2}$.
 Finally $n=F_{k+2}$ and:
 \begin{align*}
 1+n-\FG(1+\FG(n-1)) & = 1+F_{k+2}-\FG(1+F_{k+1}) \\
@@ -1200,10 +1202,10 @@ more detailed and rigorous justifications.
 
 First, a node
 $n$ has a child $p$ in the tree $\FG$ is and only if the
-node $flip(n)$ has a child $flip(p)$ in the tree $G$.
-Indeed, $\FG(p)=n$ iff $flip(G(flip(p)))=n$ iff
-$G(flip(p))=flip(n)$. Moreover, a rightmost child in $\FG$
-corresponds by $flip$ with a leftmost child in $G$ and vice-versa.
+node $\flip(n)$ has a child $\flip(p)$ in the tree $G$.
+Indeed, $\FG(p)=n$ iff $\flip(G(\flip(p)))=n$ iff
+$G(\flip(p))=\flip(n)$. Moreover, a rightmost child in $\FG$
+corresponds by $\flip$ with a leftmost child in $G$ and vice-versa.
 Indeed, if $p$ and $n$ aren't on the borders of the trees,
 then the next node will become the previous by flip, and vice-versa
 (see theorem \ref{flipprops}). And if $p$ and/or $n$ are on the
@@ -1211,22 +1213,22 @@ border, they are Fibonacci numbers or successors of Fibonacci
 numbers, and we check these cases directly.
 
 Similarly, the arity of $n$ in $\FG$ is equal to the arity of
-$flip(n)$ in $G$.
+$\flip(n)$ in $G$.
 For instance, if we take a unary node $n$ and its unique
 child $p$ in $\FG$, this means that $\FG(p+1)=n+1$ and
-$\FG(p-1)=n-1$. In the most general case $flip$ will lead
-to similar properties about $flip(p)$ and $flip(n)$ in $G$,
-hence the fact that $flip(n)$ is unary in $G$. And we handle
+$\FG(p-1)=n-1$. In the most general case $\flip$ will lead
+to similar properties about $\flip(p)$ and $\flip(n)$ in $G$,
+hence the fact that $\flip(n)$ is unary in $G$. And we handle
 particular cases about Fibonacci numbers on the border as usual.
 
 \begin{theorem}
-For all $n>1$, $flip(flip(n)+G(flip(n)))$, which could also be
-written $flip(flip(n)+flip(\FG(n)))$, is the leftmost child
+For all $n>1$, $\flip(\flip(n)+G(\flip(n)))$, which could also be
+written $\flip(\flip(n)+\flip(\FG(n)))$, is the leftmost child
 of $n$ in the $\FG$ tree. 
 \end{theorem}
 \begin{proof}
-See the previous paragraph: $flip(n)+G(flip(n))$ is rightmost
-child of $flip(n)$ in $G$, hence the result about $\FG$.
+See the previous paragraph: $\flip(n)+G(\flip(n))$ is rightmost
+child of $\flip(n)$ in $G$, hence the result about $\FG$.
 \end{proof}
 
 \begin{theorem}
@@ -1426,22 +1428,22 @@ We proceed as for theorem \ref{FGeqn}, except that we
 use internally the original recursive equation for $G$
 instead of the alternative equation of theorem \ref{Galt}.
 We take $n>3$, call $k$ its depth (which is greater or equal to 3),
-and note $\nn = flip(n)$. First:
-$$\FG(\FG(n))=flip(G(flip(flip(G(\nn)))))=flip(G(G(\nn)))$$
+and note $\nn = \flip(n)$. First:
+$$\FG(\FG(n))=\flip(G(\flip(\flip(G(\nn)))))=\flip(G(G(\nn)))$$
 The depth of $G(G(\nn))$ is $k-2\neq 0$, so the definition
-of $flip$ gives:
-$$\FG(\FG(n)) = flip(G(G(\nn))) = 1+F_{k+1}-G(G(\nn))$$
+of $\flip$ gives:
+$$\FG(\FG(n)) = \flip(G(G(\nn))) = 1+F_{k+1}-G(G(\nn))$$
 Now, thanks to the recursive definition of $G$ at $\nn+1$, we have
 $$\FG(\FG(n)) = 1+F_{k+1}+G(\nn+1)-\nn-1$$
 \begin{itemize}
-\item If $depth(n-1)=k$ then $flip(n-1)=\nn+1$ and we
-conclude by more uses of the $flip$ definition:
-$depth(G(\nn+1))=depth(G(flip(n-1))=depth(n-1)-1=k-1$, so:
-$$\FG(n-1)=flip(G(flip(n-1)))=flip(G(\nn+1))= 1+F_{k+2}-G(\nn+1)$$
+\item If $\depth(n-1)=k$ then $\flip(n-1)=\nn+1$ and we
+conclude by more uses of the $\flip$ definition:
+$\depth(G(\nn+1))=\depth(G(\flip(n-1))=\depth(n-1)-1=k-1$, so:
+$$\FG(n-1)=\flip(G(\flip(n-1)))=\flip(G(\nn+1))= 1+F_{k+2}-G(\nn+1)$$
 And finally:
 $$\FG(\FG(n)) = F_{k+1} + (1+F_{k+2}-\FG(n-1))-(1+F_{k+3}-n) = n-\FG(n-1)$$
 
-\item If $depth(n-1)\neq k$ then $n$ is the least number at
+\item If $\depth(n-1)\neq k$ then $n$ is the least number at
 depth $k$, so $n=1+F_{k+1}$, and:
 $$\FG(n-1) + \FG(\FG(n)) = \FG(F_{k+1})+\FG(\FG(1+F_{k+1})) =
 F_{k}+(1+F_{k-1}) = n$$
@@ -1497,7 +1499,7 @@ just as $G$, except for 3-odd numbers where a small $+1$
 correction is needed. But could this fact be established more
 directly ? For the moment, we are only aware of the following
 ``easy'' formulation of $\FG$ via decompositions:
-if $n$ is written as $F_{k+2}-\fibrest$ where $k=depth(n)$
+if $n$ is written as $F_{k+2}-\fibrest$ where $k=\depth(n)$
 and $\fibrest$ form a canonical decomposition of $F_{k+2}-n$, then
 $\FG(n)=F_{k+1}-\Sigma F_{i-1}+\epsilon$, where $\epsilon=1$ whenever
 the decomposition above includes $F_2$, and $\epsilon=0$
