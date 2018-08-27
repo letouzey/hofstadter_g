@@ -1,7 +1,31 @@
 
+(** utils *)
+
 let float = float_of_int
 let int = int_of_float
 
+let round f = float (int (f *. 1e8)) /. 1e8
+
+let extrems tab =
+  let mi = ref tab.(0) and ma = ref tab.(0) in
+  Array.iter (fun x -> mi := min x !mi; ma := max x !ma) tab;
+  !mi, !ma
+
+let histo tab =
+  let t = Array.copy tab in
+  let () = Array.sort compare t in
+  let rec cumul a k i =
+    if i >= Array.length t then [(a,k)]
+    else if t.(i) = a then cumul a (k+1) (i+1)
+    else (a,k)::cumul t.(i) 1 (i+1)
+  in cumul t.(0) 1 1
+
+let output_gnuplot_file file tab =
+  let c = open_out file in
+  Array.iter (fun (a,b) -> Printf.fprintf c "%f %f\n" a b) tab;
+  close_out c
+
+(** the recursive functions *)
 
 let rec d n = if n = 0 then 0 else n - d(n-1);;
 let rec g n = if n = 0 then 0 else n - g (g (n-1));;
@@ -58,7 +82,7 @@ let lims = Array.init 20 newton
 
 let _ = lims.(2)-.tau;;
 let _ = lims.(3)-.limh;;
-let _ = lims.(4)-.1./.expo4;;
+let _ = lims.(4)-.1. /. expo4;;
 
 
 
@@ -87,6 +111,7 @@ let check k n a =
 
 let _ = check 1000 1000 a
 
+let a = tabulate 10 1000000
 
 (** FLOAT EXPRESSIONS OR APPROXIMATIONS *)
 
@@ -106,11 +131,135 @@ let _ = t1' = a.(1)
 
 (* Justification:
 (n+1)/phi = n/phi + 0.618
-donc floor ((n+1)/phi) is either floor(n/phi) or
+hence floor ((n+1)/phi) is either floor(n/phi) or
  floor(n/phi)+1 = ceil(n/phi) (as soon as n<>0, phi being irrational)
  *)
 
 let t2 = Array.init 1000 @@ fun i -> int ( float (i+1) /. phi)
+
+let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a.(2).(i))
+
+let delta' = Array.init 1000 @@ fun i -> if i = 0 then 0. else
+            2.*.tau -. tau *. delta.(i-1) -. delta.(a.(2).(i-1))
+
+let _ = delta.(7)
+let _ = delta.(6)
+let _ = delta.(a.(2).(6))
+let _ = 2.*.tau-.tau*.0.18-.0.32
+
+let _ = 2.*.tau
+
+let delta'' = Array.init 1000 @@ fun i ->
+              (delta.(i),delta.(a.(2).(i)))
+
+let _ = output_gnuplot_file "/tmp/out" delta''
+
+let delta3 = Array.init 1000000 @@ fun i -> float i *. lims.(3) -. float a.(3).(i))
+
+let _ = extrems delta3
+
+let delta3bis = Array.init 10000 @@ fun i ->
+              (delta3.(i),delta3.(a.(3).(i)))
+
+let _ = output_gnuplot_file "/tmp/out3" delta3bis
+(* donne une figure fractale proche du "dragon" (ou d'un julia ?) *)
+
+let delta3ter = Array.init 10000 @@ fun i ->
+              let k1 = a.(3).(i) in
+              let k2 = a.(3).(k1) in
+              (delta3.(i),lims.(3)*.delta3.(k1)+.delta3.(k2))
+
+(* ligne du haut (lorsque f3 grimpe) :
+((-0.535727138340007514, 0.785146282035457332),
+ (0.707284644711762667, -1.03657602805559979))
+
+ligne du bas (lorsque f3 stagne):
+((-0.853399334533605725, 0.250717513904961442),
+ (0.0249568408762570471, -1.03657602805559979))
+
+*)
+
+let _ = output_gnuplot_file "/tmp/out3ter" delta3ter
+(* donne deux lignes *)
+
+let delta3qu = Array.init 1000 @@ fun i ->
+              let k1 = a.(3).(i) in
+              let k2 = a.(3).(k1) in
+              round (delta3.(k2) +. lims.(3)*.delta3.(k1) +. delta3.(i)/.lims.(3))
+(* toujours egal à 0 ou -1 *)
+
+let _ = lims.(4)
+
+let delta4 =
+  Array.init 1000000 @@ fun i ->
+    float i *. lims.(4) -. float a.(4).(i))
+
+let _ = extrems delta4
+
+let delta4bis = Array.init 1000 @@ fun i ->
+              (delta4.(i),delta4.(a.(4).(i)))
+
+let _ = output_gnuplot_file "/tmp/out4" delta4bis
+(* pas de fractale clairement visible, plutot un oval de points *)
+
+let delta4ter = Array.init 999999 @@ fun i ->
+   if a.(4).(i) <> a.(4).(i+1) then 0.,0. else
+              let k1 = a.(4).(i) in
+              let k2 = a.(4).(k1) in
+              let k3 = a.(4).(k2) in
+              (delta4.(i),
+               lims.(4)**2.*.delta4.(k1)+.
+               lims.(4)*.delta4.(k2)+.
+               delta4.(k3))
+
+let _ = extrems delta4ter
+
+(* ligne du haut (lorsque f4 grimpe):
+((-1.18651591357775033, 1.63772130094070367),
+ (1.40104105672799051, -1.93382554394093065))
+
+ligne du bas (lorsque f4 stagne)
+((-1.46202395457657985, 1.01799887003979084),
+ (0.676549097755923867, -1.93382554394093065))
+*)
+
+let _ = output_gnuplot_file "/tmp/out4ter" delta4ter
+
+let delta4ter = Array.init 1000 @@ fun i ->
+              let k1 = a.(4).(i) in
+              let k2 = a.(4).(k1) in
+              let k3 = a.(4).(k2) in
+              round
+               (lims.(4)**2.*.delta4.(k1)+.
+                lims.(4)*.delta4.(k2)+.
+                delta4.(k3) +.
+                delta4.(i)/.lims.(4))
+(* que des 0 ou -1 *)
+
+
+
+let _ = extrems (Array.map snd delta3ter)
+
+let _ = 0.755 *. lims.(3)
+
+let _ = lims.(3)*.lims.(3)
+let _ = lims.(3)+.lims.(3)*.lims.(3)
+
+let _ = Array.init 999 @@ fun i ->
+        round (lims.(3)-.1.+.delta3.(i)-.delta3.(i+1))
+
+let _ = lims.(3)-.1.-.0.5
+
+let _ = -0.83-.0.83*.lims.(3)
+
+let _ = extrems delta''
+
+
+(* tau*n - g(n) in ]-tau;1-tau[ *)
+
+let _ = extrems delta'
+
+let _ = 1.-.tau
 
 let t2' = Array.init 1000 @@ fun i -> float i /. phi)
 
@@ -187,15 +336,6 @@ let out = Array.init 1000 @@ fun n ->
 let out = Array.init 1000 @@ fun n ->
         a.(5).(n) - int(float n *. lims.(5))
   (* histo : (-1, 55); (0, 475); (1, 411); (2, 59) *)
-
-let histo a =
-  let t = Array.copy a in
-  let () = Array.sort compare t in
-  let rec cumul a k i =
-    if i >= Array.length t then [(a,k)]
-    else if t.(i) = a then cumul a (k+1) (i+1)
-    else (a,k)::cumul t.(i) 1 (i+1)
-  in cumul t.(0) 1 1
 
 let _ = histo out
 
