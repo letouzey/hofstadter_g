@@ -146,7 +146,7 @@ hence floor ((n+1)/phi) is either floor(n/phi) or
 
 let t2 = Array.init 1000 @@ fun i -> int ( float (i+1) /. phi)
 
-let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a.(2).(i))
+let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a.(2).(i)
 
 let delta' = Array.init 1000 @@ fun i -> if i = 0 then 0. else
             2.*.tau -. tau *. delta.(i-1) -. delta.(a.(2).(i-1))
@@ -163,7 +163,7 @@ let delta'' = Array.init 1000 @@ fun i ->
 
 let _ = output_gnuplot_file "/tmp/out" delta''
 
-let delta3 = Array.init 1000000 @@ fun i -> float i *. lims.(3) -. float a.(3).(i))
+let delta3 = Array.init 1000000 @@ fun i -> float i *. lims.(3) -. float a.(3).(i)
 
 let _ = extrems delta3
 
@@ -201,7 +201,7 @@ let _ = lims.(4)
 
 let delta4 =
   Array.init 1000000 @@ fun i ->
-    float i *. lims.(4) -. float a.(4).(i))
+    float i *. lims.(4) -. float a.(4).(i)
 
 let _ = extrems delta4
 
@@ -332,9 +332,9 @@ let out = Array.init 1000 @@ fun n ->
         else failwith "AWAY"
 
 let out = Array.init 100000 @@ fun n ->
-                             float aa.(3).(n) -. limh *. float n
+                             float a.(3).(n) -. limh *. float n
 
-let _ = extrem out
+let _ = extrems out
 
 let _ = Array.init 1000 @@ fun n ->
         int (limh *. (float (n+1))) - a.(3).(n)
@@ -348,7 +348,7 @@ let out = Array.init 1000 @@ fun n ->
   (* histo : (-1, 4); (0, 504); (1, 482); (2, 10) *)
 
 let out = Array.init 100000 @@ fun n ->
-        aa.(4).(n) - int(float n /. expo4)
+        a.(4).(n) - int(float n /. expo4)
   (* histo : (-1, 746); (0, 49930); (1, 47971); (2, 1353) *)
 
 let _ = histo out
@@ -358,7 +358,7 @@ let out = Array.init 1000 @@ fun n ->
   (* histo : (-1, 55); (0, 475); (1, 411); (2, 59) *)
 
 let out = Array.init 100000 @@ fun n ->
-        aa.(5).(n) - int(float n *. lims.(5))
+        a.(5).(n) - int(float n *. lims.(5))
   (* histo : (-2, 712); (-1, 15182); (0, 42821); (1, 33705); (2, 7345); (3, 235) *)
 
 let _ = histo out
