@@ -5,49 +5,22 @@ Require Extraction.
 Set Implicit Arguments.
 
 (** Study of the functional equation:
-     - [Fk (S n) + Fk^k (n) = S n]
      - [Fk 0 = 0]
+     - [Fk (S n) + Fk^k (n) = S n]
+    where [Fk^k (n)] is [k] repeated applications of [Fk] at [n].
+
+    Note that Hofstadter's [G] is [F2], [H] is [F3].
 *)
 
-(* k : cf au dessus, p.ex. Hoftadter G = F 2, H = F 3
-   p : iteration (p+1)-ieme. Donc 0 valeur par défaut
-   n : input
-   m : output *)
-
-Module V1.
-
-Inductive F : nat -> nat -> nat -> nat -> Prop :=
-| Hk0 p n : F 0 p n n
-| Hn0 k p : F k p 0 0
-| HSp k p a b c : F (S k) p a b -> F (S k) 0 b c -> F (S k) (S p) a c
-| HSn k n a b : F (S k) k n a -> S n = a+b -> F (S k) 0 (S n) b.
-Hint Constructors F.
-
-Lemma F_1 k p : F k p 1 1.
-Proof.
- revert k.
- induction p.
- - intros.
-   destruct k.
-   + apply Hk0.
-   + eapply HSn. apply Hn0. reflexivity.
- - intros.
-   destruct k.
-   + apply Hk0.
-   + eapply HSp.
-     apply IHp.
-     eapply HSn.
-     * apply Hn0.
-     * reflexivity.
-Qed.
-
-End V1.
-
-Module V2.
+(** Coq representation of [F] as an inductive relation. This way,
+    no need to convince Coq yet that [F] is indeed a function.
+    - [F k n a] means that [Fk(n) = a].
+    - [Fs p k n a] means that [Fk^p (n) = a].
+*)
 
 Inductive F : nat -> nat -> nat -> Prop :=
-| F0 n : F 0 n n
-| Fk0 k : F k 0 0
+| F0l n : F 0 n n
+| F0r k : F k 0 0
 | FS k n a b : Fs (S k) (S k) n a -> S n = a+b -> F (S k) (S n) b
 
 with Fs : nat -> nat -> nat -> nat -> Prop :=
@@ -56,27 +29,27 @@ with Fs : nat -> nat -> nat -> nat -> Prop :=
 
 Hint Constructors F Fs.
 
+(** Behavior of [F] and [Fs] when [n=0] and [1] *)
+
 Lemma Fs_0 p k : Fs p k 0 0.
 Proof.
- revert k.
- induction p; intros.
- - apply Fs0.
- - eapply FsS. apply IHp. apply Fk0.
+ induction p; eauto.
 Qed.
+Hint Resolve Fs_0.
 
 Lemma F_1 k : F k 1 1.
 Proof.
- induction k.
- - apply F0.
- - eapply FS. eapply Fs_0. reflexivity.
+ induction k; eauto.
 Qed.
+Hint Resolve F_1.
 
 Lemma Fs_1 p k : Fs p k 1 1.
 Proof.
- induction p; intros.
- - apply Fs0.
- - eapply FsS. apply IHp. apply F_1.
+ induction p; eauto.
 Qed.
+Hint Resolve Fs_1.
+
+(** [F] and [Fs] aren't above the identity line *)
 
 Lemma F_le k n a : F k n a -> a <= n.
 Proof.
@@ -85,11 +58,12 @@ Qed.
 
 Lemma Fs_le p k n a : Fs p k n a -> a <= n.
 Proof.
- induction 1.
- - reflexivity.
- - apply F_le in H0. omega.
+ induction 1 as [k n | p k a b c H IH H']; trivial.
+ apply F_le in H'. omega.
 Qed.
 Hint Resolve F_le Fs_le.
+
+(** [F] and [Fs] are functional relations : unique output *)
 
 Scheme F_ind2 := Induction for F Sort Prop
   with Fs_ind2  := Induction for Fs Sort Prop.
@@ -103,14 +77,13 @@ Proof.
 apply F_Fs_ind.
 - inversion_clear 1; auto.
 - inversion_clear 1; auto.
-- intros.
-  inversion_clear H0; auto.
-  apply H in H1. omega.
+- intros k n a b HFs IH Hab a' HF.
+  inversion_clear HF; auto.
+  apply IH in H; omega.
 - inversion_clear 1; auto.
-- intros.
-  inversion_clear H1; auto.
-  apply H in H2. subst b0.
-  apply H0 in H3. auto.
+- intros p k a b c HFs IH HF IH' a' HFs'.
+  inversion_clear HFs'; auto.
+  apply IH in H; subst; auto.
 Qed.
 
 Lemma F_fun k n a a' : F k n a -> F k n a' -> a = a'.
@@ -118,40 +91,13 @@ Proof.
  intro. now apply F_Fs_fun.
 Qed.
 
-
-(* Diverge à Qed, peut importe si induction 1 ou induction 2
-Lemma F_fun k n a a' : F k n a -> F k n a' -> a = a'
-with Fs_fun p k n a a' : Fs p k n a -> Fs p k n a' -> a = a'.
+Lemma Fs_fun p k n a a' : Fs p k n a -> Fs p k n a' -> a = a'.
 Proof.
- - induction 2.
-   + inversion H; subst; auto.
-   + inversion H; subst; auto.
-   + inversion H; subst; auto.
-     assert (a0 = a1). { eapply Fs_fun; eauto. }
-     omega.
- - induction 2.
-   + inversion H; subst; auto.
-   + inversion H; subst; auto.
-     assert (b = b0). { eapply Fs_fun; eauto. }
-     subst b0.
-     eapply F_fun; eauto.
+ intro. now apply F_Fs_fun.
 Qed.
-*)
 
-(*
-Lemma F_rec k (P:nat->nat->Set) :
-P k 0 ->
-(forall n, P k n -> (forall a, F k n a -> P k a) -> P k (S n)) ->
-forall n, P k n.
-Proof.
-intros P_0 P_S.
-induction n as [[|n] IH] using lt_wf_rec.
-- apply P_0.
-- apply P_S.
-  + apply IH. auto.
-  + intros. apply IH. eauto with arith.
-Defined.
-*)
+(** [F] does have an implementation : there exists a function [f]
+    satisfying these equations. *)
 
 Definition f_spec k n : { a : nat | F k n a }.
 Proof.
@@ -159,15 +105,15 @@ induction n as [[|n] IH ] using lt_wf_rec.
 - now exists 0.
 - destruct k.
   + now exists (S n).
-  + assert (forall p m, m <= n -> { a : nat | Fs p (S k) m a }).
+  + assert (Hs : forall p m, m <= n -> { a : nat | Fs p (S k) m a }).
     { induction p.
       - intros. now exists m.
       - intros.
         destruct (IHp m H) as (a,Ha).
         destruct (IH a) as (b,Hb).
         apply Fs_le in Ha. omega.
-        exists b. eapply FsS; eauto. }
-    destruct (H (S k) n) as (a,Ha); auto.
+        exists b; eauto. }
+    destruct (Hs (S k) n) as (a,Ha); auto.
     exists (S n - a).
     eapply FS; eauto.
     apply Fs_le in Ha. omega.
@@ -175,44 +121,50 @@ Defined.
 
 Definition f k n := let (a,_) := f_spec k n in a.
 
-Extraction Inline lt_wf_rec induction_ltof2.
-Recursive Extraction f.
-
-Definition test := List.seq 0 20.
-
-Compute List.map (f 1) test.
-Compute List.map (f 2) test. (* 0 1 1 2 3 3 4 4 5 6 6 7 8 8 *)
-Compute List.map (f 3) test. (* 0 1 1 2 3 4 4 5 5 6 7 7 8 9 *)
-
-Lemma f_correct k n : F k n (f k n).
+Lemma f_sound k n : F k n (f k n).
 Proof.
 unfold f; now destruct (f_spec k n).
 Qed.
-Hint Resolve f_correct.
+Hint Resolve f_sound.
 
-Lemma f_complete k n p : F k n p <-> p = f k n.
+Lemma f_complete k n a : F k n a <-> f k n = a.
 Proof.
 split; intros H.
-- apply (F_fun H (f_correct k n)).
-- subst. apply f_correct.
+- apply (F_fun (f_sound k n) H).
+- subst; auto.
+Qed.
+
+(** A few tests *)
+
+Definition test := List.seq 0 20.
+
+Compute List.map (f 0) test. (* 0 1 2 3 4 5 6 ... *)
+Compute List.map (f 1) test. (* 0 1 1 2 2 3 3 4 4 5 5 6 6 ... *)
+Compute List.map (f 2) test. (* 0 1 1 2 3 3 4 4 5 6 6 7 8 8 *)
+Compute List.map (f 3) test. (* 0 1 1 2 3 4 4 5 5 6 7 7 8 9 *)
+Compute List.map (f 4) test.
+
+Extraction Inline lt_wf_rec induction_ltof2.
+Recursive Extraction f.
+
+(** Basic equations over [f] : the same as [F] *)
+
+Lemma f_k_0 k : f k 0 = 0.
+Proof.
+ reflexivity.
 Qed.
 
 Lemma f_0_n n : f 0 n = n.
 Proof.
-symmetry. rewrite <- f_complete. auto.
-Qed.
-
-Lemma f_k_0 k : f k 0 = 0.
-Proof.
-symmetry. rewrite <- f_complete. auto.
+ now apply f_complete.
 Qed.
 
 Lemma f_k_1 k : f k 1 = 1.
 Proof.
-symmetry. rewrite <- f_complete. apply F_1.
+ now apply f_complete.
 Qed.
 
-Lemma Fs_iter_f p k n : Fs p k n (((f k)^^p) n).
+Lemma Fs_iter_f p k n : Fs p k n ((f k ^^p) n).
 Proof.
 induction p.
 - simpl. auto.
@@ -220,7 +172,7 @@ induction p.
   now rewrite f_complete.
 Qed.
 
-Lemma fs_k_0 p k : ((f k)^^p) 0 = 0.
+Lemma fs_k_0 p k : (f k ^^p) 0 = 0.
 Proof.
  induction p; simpl; auto.
  rewrite IHp. apply f_k_0.
@@ -231,9 +183,9 @@ Proof.
 destruct k.
  - now destruct 1.
  - intros _.
-   assert (H := f_correct (S k) (S n)).
+   assert (H := f_sound (S k) (S n)).
    inversion_clear H.
-   assert (Nat.iter (S k) (f (S k)) n = a).
+   assert ((f (S k) ^^(S k)) n = a).
    { revert H0. apply F_Fs_fun. apply Fs_iter_f. }
    omega.
 Qed.
@@ -246,19 +198,19 @@ destruct n.
 - now apply f_eqn.
 Qed.
 
-Lemma f_S k n : k<>0 -> f k (S n) = S n - Nat.iter k (f k) n.
+Lemma f_S k n : k<>0 -> f k (S n) = S n - (f k ^^k) n.
 Proof.
  intros H. generalize (f_eqn n H). omega.
 Qed.
 
-Lemma f_pred k n : k<>0 -> f k n = n - Nat.iter k (f k) (pred n).
+Lemma f_pred k n : k<>0 -> f k n = n - (f k ^^k) (pred n).
 Proof.
 intros H. generalize (f_eqn_pred n H). omega.
 Qed.
 
-(* Particular case *)
+(** Particular case *)
 
-Lemma f_g n : f 2 n = g n.
+Lemma f_2_g n : f 2 n = g n.
 Proof.
 revert n.
 apply g_unique.
@@ -441,76 +393,3 @@ Proof.
  apply f_double_le.
  apply f_mono. omega.
 Qed.
-
-Lemma f_monok k n :
- k<>0 ->
- f (S k) (f (S k) n) <= f k n <= f (S k) n.
-Proof.
- intros Hk.
- induction n as [[|n] IH] using lt_wf_ind.
- - now rewrite !f_k_0.
- - split.
-   + admit.
-   + rewrite f_S; auto.
-     rewrite f_S; auto.
-     simpl Nat.iter.
-   
-
-
-
-(* Pour F1 = moitié sup : arbre binaire
-9 10 11 12 13 14 15 16
- 5     6     7     8
-    3           4
-          2
-          |
-          1
-
-*)
-
-
-(* pour F3 :
-14 15 16 17 18 19
-  \/  |  |   \/
-  10 11 12   13
-   \/   |    |
-    7   8    9
-     \ /     |
-      5      6
-       \   /
-         4
-         3
-         2
-         1
-*)
-
-
-(* Limite infinie de Fk(n)/n
-
-D(n) = n - D(n-1)
-
-D(n)/n = 1 - [D(n-1)/(n-1)]*(1-1/n)
-
-alpha = 1 - alpha
-alpha = 0.5
-
-
-G n = n - G (G (n-1))
-
-G(n) = 1 - [G (G (n-1))/(G (n-1))]*[G(n-1)/(n-1)]*(n-1)/n
-alpha = 1 - alpha*alpha
-alpha = 0.618
-
-
-H(n) = n - H (H (H (n-1)))
-alpha = 1 - alpha^3
-alpha = 0.682
-
-Pour F4 : alpha = 1 - alpha^4
-          alpha = 0.724
-
-*)
-
-End V2.
-
-
