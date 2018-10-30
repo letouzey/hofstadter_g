@@ -5,3 +5,5 @@ FunG_prog.v
 FunG.v
 Fib.v
 DeltaList.v
+GenFib.v
+GenG.v
