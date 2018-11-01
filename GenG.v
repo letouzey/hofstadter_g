@@ -1,6 +1,6 @@
 
 Require Import Arith Omega Wf_nat List.
-Require Import DeltaList Fib FunG.
+Require Import DeltaList Fib FunG GenFib.
 Import ListNotations.
 Require Extraction.
 Set Implicit Arguments.
@@ -174,6 +174,12 @@ Proof.
  rewrite IHp. apply f_k_0.
 Qed.
 
+Lemma fs_k_1 p k : (f k ^^p) 1 = 1.
+Proof.
+ induction p; simpl; auto.
+ rewrite IHp. apply f_k_1.
+Qed.
+
 Lemma f_eqn k n : f k (S n) + (f k ^^ S k) n = S n.
 Proof.
  assert (H := f_sound k (S n)).
@@ -300,24 +306,24 @@ Proof.
  unfold lt. intros. rewrite <- (f_k_1 k). now apply f_mono.
 Qed.
 
-Lemma f_0_inv k n : f k n = 0 -> n = 0.
-Proof.
-destruct n; trivial.
-assert (0 < f k (S n)) by (apply f_nonzero; auto with arith).
-omega.
-Qed.
-
-Lemma fs_0_inv p k n : (f k ^^p) n = 0 -> n = 0.
-Proof.
- induction p.
- - now simpl.
- - simpl.
-   intros. apply IHp. eapply f_0_inv; eauto.
-Qed.
-
 Lemma f_nz k n : n <> 0 -> f k n <> 0.
 Proof.
-intros H. contradict H. now apply (f_0_inv k).
+ generalize (@f_nonzero k n). omega.
+Qed.
+
+Lemma f_0_inv k n : f k n = 0 -> n = 0.
+Proof.
+ generalize (@f_nz k n). omega.
+Qed.
+
+Lemma fs_nonzero k n p : 0 < n -> 0 < (f k ^^p) n.
+Proof.
+ revert n. induction p; simpl; auto using f_nonzero.
+Qed.
+
+Lemma fs_0_inv k n p : (f k ^^p) n = 0 -> n = 0.
+Proof.
+ generalize (@fs_nonzero k n p). omega.
 Qed.
 
 Lemma f_fix k n : f k n = n <-> n <= 1.
@@ -386,3 +392,361 @@ Proof.
  now apply f_double_le.
  apply f_mono. omega.
 Qed.
+
+Lemma fs_bound k n p :
+  1 < n -> 1 < (f k ^^p) n -> (f k ^^p) n <= n-p.
+Proof.
+ revert n.
+ induction p.
+ - simpl. intros. omega.
+ - intros. simpl in *.
+   assert (LE : 1 <= (f k ^^p) n).
+   { generalize (@fs_nonzero k n p). omega. }
+   assert (NE : (f k^^p) n <> 1).
+   { intros EQ; rewrite EQ, f_k_1 in *. omega. }
+   specialize (IHp n H).
+   generalize (@f_lt k ((f k^^p) n)). omega.
+Qed.
+
+Lemma fs_init k n : 1 <= n <= k+2 -> (f k^^(S k)) n = 1.
+Proof.
+ intros.
+ destruct (Nat.eq_dec n 1) as [->|NE].
+ - now rewrite fs_k_1.
+ - destruct (le_lt_dec ((f k^^S k) n) 1) as [LE|LT].
+   + generalize (@fs_nonzero k n (S k)). omega.
+   + apply fs_bound in LT; try omega.
+     generalize (@fs_nonzero k n (S k)). omega.
+Qed.
+
+Lemma f_init k n : 2 <= n <= k+3 -> f k n = n-1.
+Proof.
+ intros. rewrite f_pred. rewrite fs_init; omega.
+Qed.
+
+
+(*==============================================================*)
+
+(** * Antecedents by [f k]
+
+    Study of the reverse problem [f k n = a] for some [a]. *)
+
+Lemma f_max_two_antecedents k n m :
+  f k n = f k m -> n<m -> m = S n.
+Proof.
+ intros H H'.
+ destruct (le_lt_dec (2+n) m) as [LE|LT]; try omega.
+ apply (f_mono k) in LE.
+ rewrite (f_nonflat k n) in LE. omega.
+ apply Nat.le_antisymm.
+ - rewrite H. now apply f_mono.
+ - apply f_mono_S.
+Qed.
+
+(** Another formulation of the same fact *)
+
+Lemma f_inv k n m :
+  f k n = f k m -> (n = m \/ n = S m \/ m = S n).
+Proof.
+ intros.
+ destruct (lt_eq_lt_dec n m) as [[LT|EQ]|LT]; auto.
+ - generalize (@f_max_two_antecedents k n m); auto.
+ - generalize (@f_max_two_antecedents k m n); auto.
+Qed.
+
+(** [f] is an onto map *)
+
+Lemma f_onto k a : exists n, f k n = a.
+Proof.
+induction a.
+- exists 0; trivial.
+- destruct IHa as (n,Ha).
+  destruct (f_step k n); [ | exists (S n); omega].
+  destruct (f_step k (S n)); [ | exists (S (S n)); omega].
+  exfalso.
+  generalize (@f_max_two_antecedents k n (S (S n))). omega.
+Qed.
+
+(** We even have an explicit expression of one antecedent *)
+
+Definition rchild k n := n + (f k ^^ k) n.
+Definition lchild k n := n + (f k ^^ k) n - 1. (** left son, if there's one *)
+
+Lemma rightmost_child_carac k a n : f k n = a ->
+ (f k (S n) = S a <-> n = rchild k a).
+Proof.
+ intros Hn.
+ assert (H' := f_eqn k n).
+ rewrite iter_S in H'.
+ rewrite Hn in H'.
+ unfold rchild; omega.
+Qed.
+
+Lemma f_onto_eqn k a : f k (rchild k a) = a.
+Proof.
+destruct (f_onto k a) as (n,Hn).
+destruct (f_step k n) as [H|H].
+- unfold rchild.
+  rewrite <- Hn. rewrite <- H at 1 3. f_equal.
+  rewrite <- iter_S. apply f_eqn.
+- rewrite Hn in H.
+  rewrite rightmost_child_carac in H; trivial. congruence.
+Qed.
+
+Lemma f_children k a n : f k n = a ->
+  n = rchild k a \/ n = lchild k a.
+Proof.
+intros Hn.
+destruct (f_step k n) as [H|H].
+- right.
+  destruct (f_step k (S n)) as [H'|H'].
+  + exfalso.
+    generalize (@f_max_two_antecedents k n (S (S n))). omega.
+  + rewrite rightmost_child_carac in H'; trivial.
+    rewrite H, Hn in H'. unfold lchild, rchild in *; omega.
+- rewrite <- (@rightmost_child_carac k a n); omega.
+Qed.
+
+Lemma f_lchild k a :
+ f k (lchild k a) = a - 1 \/ f k (lchild k a) = a.
+Proof.
+ destruct (le_gt_dec a 0).
+  + replace a with 0 by omega. unfold lchild.
+    rewrite fs_k_0. simpl. rewrite f_k_0. now left.
+  + assert (0 < rchild k a)
+     by (unfold rchild; generalize (@f_nonzero k a); omega).
+    destruct (f_step k (lchild k a)) as [H'|H'];
+    replace (S (lchild k a)) with (rchild k a) in * by
+      (unfold lchild, rchild in *; omega);
+    rewrite f_onto_eqn in *; omega.
+Qed.
+
+
+(** This provides easily a first relationship between f and
+    generalized Fibonacci numbers *)
+
+Lemma fs_A k n p : (f k ^^p) (A k n) = A k (n-p).
+Proof.
+revert p.
+induction n; intros.
+- simpl. apply fs_k_1.
+- destruct p; auto.
+  rewrite iter_S; simpl. rewrite <- (IHn p). f_equal.
+  rewrite <- (IHn k). apply f_onto_eqn.
+Qed.
+
+Lemma f_A k n : f k (A k n) = A k (n-1).
+Proof.
+ apply (fs_A k n 1).
+Qed.
+
+Lemma f_SA k n : n<>0 -> f k (S (A k n)) = S (A k (n-1)).
+Proof.
+ intros.
+ rewrite <- (@f_A k n).
+ apply rightmost_child_carac; trivial.
+ unfold rchild.
+ rewrite f_A, fs_A.
+ replace (n-1-k) with (n-S k) by omega.
+ now apply A_sum.
+Qed.
+
+
+(*
+Compute decompred 1 9. (* [0; 2; 4; 6; 8] *)
+Compute decompred 1 8. (*    [1; 3; 5; 7] *)
+
+Compute A 2 0.
+Compute A 2 1.
+Compute A 2 2.
+Compute A 2 3.
+Compute A 2 4.
+Compute A 2 5.
+
+Compute f 2 (1 + 2 + 3 + 4 + 6 + 9).
+Compute 1+1+2+3+4+6.
+
+
+Lemma fs_sum k p l :
+  Delta 1 l ->
+    (f k ^^p) (sumA k l) = sumA k (map (flipsub p) l).
+Proof.
+ remember (sumA k l) as n eqn:Hn.
+ revert p l Hn.
+ induction n as [n IH] using lt_wf_rec.
+ intros.
+ destruct p.
+ - rewrite map_ext with (g:=id).
+   rewrite map_id. auto.
+   intros; unfold flipsub, id. omega.
+ - rewrite iter_S.
+   assert (RC : forall l, Delta 1 (0::l) -> sumA k (map (flipsub 1) l) < n ->
+            rchild k (sumA k (map (flipsub 1) l)) = sumA k l).
+   { clear l Hn H.
+     intros l Hl Hn.
+     unfold rchild.
+     rewrite IH with (l:=map (flipsub 1) l); auto.
+     - rewrite <- map_flipsub. symmetry. apply sumA_eqn_pred.
+       rewrite Delta_alt in Hl. destruct Hl as (_,Hl).
+       intros IN; generalize (Hl 0 IN). omega.
+     - clear IH p Hn.
+       apply Delta_alt in Hl. destruct Hl as (Hl,Hl').
+       induction l; auto.
+       destruct l as [|b l]; simpl; auto.
+       inversion_clear Hl.
+       constructor.
+       unfold flipsub.
+       simpl in Hl'.
+       generalize (Hl' a) (Hl' b); intuition; omega.
+       apply IHl; auto.
+       intros y Hy. apply Hl'; simpl; intuition. }
+   assert (One : f k n = sumA k (map (flipsub 1) l)).
+   { destruct l as [|[|a] l].
+     - simpl in *. subst. apply f_k_0.
+     - simpl in *. subst.
+       apply rightmost_child_carac; trivial.
+       * apply IH with (p:=1); auto.
+         now apply Delta_alt in H.
+       * symmetry. apply RC; auto.
+         clear.
+         induction l; auto.
+         simpl. unfold flipsub at 1.
+         generalize (@A_mono k (a-1) a). omega.
+     - rewrite Hn.
+       rewrite <- RC.
+       apply f_onto_eqn.
+       constructor; auto; omega.
+       subst n. clear IH RC.
+       simpl. unfold flipsub at 1.
+       assert (sumA k (map (flipsub 1) l) <= sumA k l).
+       { clear. induction l; simpl; auto.
+         unfold flipsub at 1.
+         generalize (@A_mono k (a-1) a). omega. }
+       rewrite Nat.sub_0_r.
+       generalize (A_nz k (a-k)). omega. }
+   clear RC.
+   rewrite One.
+   
+   si l commence par <> 0 alors Delta 1 (map (flipsub 1) l)
+     et < n donc
+      (flipsub p (flipsub 1) : banco
+
+   si l commence par 0 ??
+
+
+
+Lemma fs_sum k p l :
+  Delta (S k) l ->
+    (f k ^^p) (sumA k l) = sumA k (map (flipsub p) l).
+Proof.
+ remember (sumA k l) as n eqn:Hn.
+ revert p l Hn.
+ induction n as [n IH] using lt_wf_rec.
+ intros.
+ destruct l as [|a l].
+ - simpl in *; subst. now rewrite fs_k_0.
+ - destruct p.
+   + rewrite map_ext with (g:=id).
+     rewrite map_id. auto.
+     intros; unfold flipsub, id. omega.
+   + rewrite iter_S.
+     assert (f k n = sumA k (map (flipsub 1) (a :: l))).
+     { destruct a.
+       - simpl. simpl in Hn. subst n.
+         apply rightmost_child_carac; trivial.
+         * apply IH with (p:=1); auto.
+           now apply Delta_alt in H.
+         * unfold rchild.
+           rewrite IH with (l:=map (flipsub 1) l); auto.
+           admit.
+           admit.
+           admit.
+       - assert (EQ : n = rchild k (sumA k (map (flipsub 1) (S a :: l)))).
+         { admit. }
+         rewrite EQ.
+         apply f_onto_eqn. }
+     rewrite H0.
+
+
+
+
+
+l avec Delta (S k) l (donc seul hd(l) peut être <= k)
+
+si 0 <= p <= k alors
+
+fk^^p (sumA k l) = sumA k (map (-p) l)
+
+pour p=1
+
+si hd(l)<>0, alors map pred l est encore Delta (S k)
+et map pred l a un total plus petit donc
+fk^^k (sumA k (map pred l)) = sumA k (map (-S k) l)
+donc sumA k (map pred l) + fk^^k (sumA k (map pred l)) =
+     sumA k l
+
+(avec cas particulier au début
+  si a-Sk = 0 c'est que a<=k et donc Ak(a-1) + 1 = Ak(a))
+
+donc fk(sumA k l) = sumA k (map pred l)
+
+si l=0::l', on montre d'abord fk(sumA k l') = sumA k (map pred l')
+ puis on a ce qu'il faut via rightmost_child_carac,
+ on se retrouve a montrer
+   sumA k l' = rchild k (sumA k (map pred l')
+
+
+fk (sumA k (map pred l) + fk^^k (sumA k (map pred l))) =
+      sumA k (map pred l)
+
+
+
+
+onto_eqn:
+fk (sumA k l + fk^^k (sumA k l)) = sumA k l
+fk (sumA k l + sumA k (map (-k) l)) = sumA k l   /!\ si >= k partout dans l
+fk (sumA k (map S l)) = sumA k l
+
+
+
+
+Invariant en entrée du thm:
+ - l avec Delta (S k) l
+ - 0::l avec Delta (S k) l et hd(l)>=1.
+
+alors fk (sumA k l) = sumA k (map pred l)
+
+
+n = sumA k (0::a::l)   et a >=1
+n-1 = sumA k (a::l)
+fk^^(S k) (n-1) = A k (a-Sk) + sumA k (map (flipsub (S k)) l)
+   si a <= k alors a-(S k)=0, avec un arrondi
+
+n - fk^^(S k)(n-1) =
+ 1 + Ak a - Ak (a-S k) + sumA k l - sumA k (map (flipsub (S k)) l)
+
+a<>0 donc Ak a - Ak (a-S k) = Ak (a-1)
+idem pour les termes suivants
+
+----
+
+n = sumA k (a::l)
+n-1 = sumA k (decompred(a) ++ l)     <--- Delta (S k)
+
+  soit b et p tels que a-1 = b+p*(S k)
+
+           b :: b+S k :: ... :: b+p*(S k)  ++ l
+b etapes
+           0 :: S k :: ...
+S k etapes
+           0 :: b :: ...    (oui b peut être 0, mais le dernier
+                             appel rec était ok, 0 :: 1 :: ...).
+
+n -fk^^(S k) (n-1) =
+ 1+ (n-1) - fk^^(S k) (n-1) =
+ 1+ Ak b - 1 + Ak (b+S k) -Ak b ...
+ Ak (b+p(S k)) ++ sumA k (map pred l)
+
+= Ak(a-1) ++ sumA k (map pred l)
+
+*)
