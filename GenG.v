@@ -145,6 +145,10 @@ Compute map (f 1) test. (* [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9] *)
 Compute map (f 2) test. (* [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10] *)
 Compute map (f 3) test. (* [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10] *)
 
+Compute map (fun x => (x,(f 2^^3) x)) test.
+Compute proj1_sig (decomp_exists 2 27).
+
+
 Extraction Inline lt_wf_rec induction_ltof2.
 Recursive Extraction f.
 
@@ -552,201 +556,120 @@ Proof.
 Qed.
 
 
-(*
-Compute decompred 1 9. (* [0; 2; 4; 6; 8] *)
-Compute decompred 1 8. (*    [1; 3; 5; 7] *)
+Definition h k n := sumA k (map Nat.pred (decomp k n)).
 
-Compute A 2 0.
-Compute A 2 1.
-Compute A 2 2.
-Compute A 2 3.
-Compute A 2 4.
-Compute A 2 5.
-
-Compute f 2 (1 + 2 + 3 + 4 + 6 + 9).
-Compute 1+1+2+3+4+6.
-
-
-Lemma fs_sum k p l :
-  Delta 1 l ->
-    (f k ^^p) (sumA k l) = sumA k (map (flipsub p) l).
+Lemma hs k p n : p <= S k ->
+ (h k^^p) n = sumA k (map (flipsub p) (decomp k n)).
 Proof.
- remember (sumA k l) as n eqn:Hn.
- revert p l Hn.
- induction n as [n IH] using lt_wf_rec.
- intros.
- destruct p.
- - rewrite map_ext with (g:=id).
-   rewrite map_id. auto.
+ intros Hp.
+ revert n.
+ induction p; intros.
+ - simpl. rewrite map_ext with (g:=id).
+   rewrite map_id. symmetry. apply decomp_ok.
    intros; unfold flipsub, id. omega.
  - rewrite iter_S.
-   assert (RC : forall l, Delta 1 (0::l) -> sumA k (map (flipsub 1) l) < n ->
-            rchild k (sumA k (map (flipsub 1) l)) = sumA k l).
-   { clear l Hn H.
-     intros l Hl Hn.
-     unfold rchild.
-     rewrite IH with (l:=map (flipsub 1) l); auto.
-     - rewrite <- map_flipsub. symmetry. apply sumA_eqn_pred.
-       rewrite Delta_alt in Hl. destruct Hl as (_,Hl).
-       intros IN; generalize (Hl 0 IN). omega.
-     - clear IH p Hn.
-       apply Delta_alt in Hl. destruct Hl as (Hl,Hl').
-       induction l; auto.
-       destruct l as [|b l]; simpl; auto.
-       inversion_clear Hl.
-       constructor.
-       unfold flipsub.
-       simpl in Hl'.
-       generalize (Hl' a) (Hl' b); intuition; omega.
-       apply IHl; auto.
-       intros y Hy. apply Hl'; simpl; intuition. }
-   assert (One : f k n = sumA k (map (flipsub 1) l)).
-   { destruct l as [|[|a] l].
-     - simpl in *. subst. apply f_k_0.
-     - simpl in *. subst.
-       apply rightmost_child_carac; trivial.
-       * apply IH with (p:=1); auto.
-         now apply Delta_alt in H.
-       * symmetry. apply RC; auto.
-         clear.
-         induction l; auto.
-         simpl. unfold flipsub at 1.
-         generalize (@A_mono k (a-1) a). omega.
-     - rewrite Hn.
-       rewrite <- RC.
-       apply f_onto_eqn.
-       constructor; auto; omega.
-       subst n. clear IH RC.
-       simpl. unfold flipsub at 1.
-       assert (sumA k (map (flipsub 1) l) <= sumA k l).
-       { clear. induction l; simpl; auto.
-         unfold flipsub at 1.
-         generalize (@A_mono k (a-1) a). omega. }
-       rewrite Nat.sub_0_r.
-       generalize (A_nz k (a-k)). omega. }
-   clear RC.
-   rewrite One.
-   
-   si l commence par <> 0 alors Delta 1 (map (flipsub 1) l)
-     et < n donc
-      (flipsub p (flipsub 1) : banco
+   unfold h at 2.
+   rewrite IHp; try omega.
+   assert (EQ : decomp k (sumA k (map Nat.pred (decomp k n))) =
+                renorm k (map Nat.pred (decomp k n))).
+   { apply (@decomp_unique k).
+     - apply decomp_ok.
+     - apply renorm_delta.
+       apply Delta_map with (S k).
+       intros; omega. apply decomp_ok.
+     - rewrite renorm_sum. apply decomp_ok. }
+   rewrite EQ.
+   rewrite renorm_mapsub; try omega. f_equal.
+   rewrite map_map.
+   apply map_ext. intros. unfold flipsub. omega.
+Qed.
 
-   si l commence par 0 ??
-
-
-
-Lemma fs_sum k p l :
-  Delta (S k) l ->
-    (f k ^^p) (sumA k l) = sumA k (map (flipsub p) l).
+(* TODO: preuve a nettoyer *)
+(* TODO: quid de k = 0 ? *)
+Lemma f_is_h k n : k<>0 -> f k n = h k n.
 Proof.
- remember (sumA k l) as n eqn:Hn.
- revert p l Hn.
- induction n as [n IH] using lt_wf_rec.
+ intros Hk. symmetry.
+ apply f_unique.
+ - reflexivity.
+ - clear n. intros n.
+   rewrite hs; auto.
+   remember (decomp k n) as l.
+   unfold h.
+   destruct l as [|a l].
+   + assert (n = 0).
+     { destruct (decomp_ok k n). now rewrite <- Heql in *. }
+     now subst n.
+   + destruct (le_lt_dec a k) as [LE|LT].
+     * assert (EQ : decomp k (S n) = renorm k (a+1 :: l)).
+       { apply (@decomp_unique k).
+         - apply decomp_ok.
+         - apply renorm_delta.
+           destruct (decomp_ok k n) as (H,H').
+           rewrite <- Heql in H'.
+           apply Delta_alt in H'. destruct H' as (H',IN).
+           apply Delta_alt; split.
+           + apply Delta_more with (S k); auto.
+           + intros y Hy. specialize (IN y Hy). omega.
+         - rewrite renorm_sum.
+           destruct (decomp_ok k (S n)) as (->,_).
+           simpl.
+           rewrite A_base by omega.
+           simpl. f_equal.
+           rewrite Nat.add_1_r.
+           rewrite <- (@A_base k a) by omega.
+           change (n = sumA k (a::l)).
+           rewrite Heql. symmetry. apply decomp_ok. }
+       rewrite EQ.
+       rewrite map_ext with (g:=flipsub 1)
+         by (intros; unfold flipsub; omega).
+       rewrite renorm_mapsub by omega.
+       simpl.
+       rewrite Nat.add_shuffle3.
+       rewrite <- Nat.add_assoc.
+       rewrite <- sumA_eqn_pred.
+       unfold flipsub.
+       rewrite Nat.add_assoc.
+       replace (a+1-1) with a by omega.
+       replace (a-S k) with 0 by omega.
+       simpl. f_equal.
+       change (n = sumA k (a::l)).
+       rewrite Heql. symmetry. apply decomp_ok.
+       assert (Delta (S k) (a::l)).
+       { rewrite Heql. apply decomp_ok. }
+       apply Delta_alt in H. destruct H as (H,H').
+       intros IN.
+       specialize (H' 0 IN). omega.
+     * assert (EQ : decomp k (S n) = 0 :: a :: l).
+       { apply (@decomp_unique k).
+         - apply decomp_ok.
+         - assert (Delta (S k) (a::l))
+            by (rewrite Heql; apply decomp_ok).
+           constructor; auto.
+         - rewrite sumA_cons, Heql.
+           destruct (decomp_ok k n) as (->,_).
+           apply decomp_ok. }
+       rewrite EQ.
+       rewrite map_cons, sumA_cons.
+       rewrite <- Nat.add_assoc.
+       rewrite map_ext with (g:=flipsub 1)
+         by (intros; unfold flipsub; omega).
+       rewrite <- sumA_eqn_pred.
+       simpl Nat.pred. rewrite A_k_0.
+       rewrite Heql. simpl. f_equal. symmetry. apply decomp_ok.
+       destruct (decomp_ok k n) as (H,H').
+       rewrite <- Heql in H'.
+       apply Delta_nz in H'; auto; omega.
+Qed.
+
+Lemma f_sumA k l : k<>0 -> Delta (S k) l ->
+ f k (sumA k l) = sumA k (map Nat.pred l).
+Proof.
  intros.
- destruct l as [|a l].
- - simpl in *; subst. now rewrite fs_k_0.
- - destruct p.
-   + rewrite map_ext with (g:=id).
-     rewrite map_id. auto.
-     intros; unfold flipsub, id. omega.
-   + rewrite iter_S.
-     assert (f k n = sumA k (map (flipsub 1) (a :: l))).
-     { destruct a.
-       - simpl. simpl in Hn. subst n.
-         apply rightmost_child_carac; trivial.
-         * apply IH with (p:=1); auto.
-           now apply Delta_alt in H.
-         * unfold rchild.
-           rewrite IH with (l:=map (flipsub 1) l); auto.
-           admit.
-           admit.
-           admit.
-       - assert (EQ : n = rchild k (sumA k (map (flipsub 1) (S a :: l)))).
-         { admit. }
-         rewrite EQ.
-         apply f_onto_eqn. }
-     rewrite H0.
-
-
-
-
-
-l avec Delta (S k) l (donc seul hd(l) peut être <= k)
-
-si 0 <= p <= k alors
-
-fk^^p (sumA k l) = sumA k (map (-p) l)
-
-pour p=1
-
-si hd(l)<>0, alors map pred l est encore Delta (S k)
-et map pred l a un total plus petit donc
-fk^^k (sumA k (map pred l)) = sumA k (map (-S k) l)
-donc sumA k (map pred l) + fk^^k (sumA k (map pred l)) =
-     sumA k l
-
-(avec cas particulier au début
-  si a-Sk = 0 c'est que a<=k et donc Ak(a-1) + 1 = Ak(a))
-
-donc fk(sumA k l) = sumA k (map pred l)
-
-si l=0::l', on montre d'abord fk(sumA k l') = sumA k (map pred l')
- puis on a ce qu'il faut via rightmost_child_carac,
- on se retrouve a montrer
-   sumA k l' = rchild k (sumA k (map pred l')
-
-
-fk (sumA k (map pred l) + fk^^k (sumA k (map pred l))) =
-      sumA k (map pred l)
-
-
-
-
-onto_eqn:
-fk (sumA k l + fk^^k (sumA k l)) = sumA k l
-fk (sumA k l + sumA k (map (-k) l)) = sumA k l   /!\ si >= k partout dans l
-fk (sumA k (map S l)) = sumA k l
-
-
-
-
-Invariant en entrée du thm:
- - l avec Delta (S k) l
- - 0::l avec Delta (S k) l et hd(l)>=1.
-
-alors fk (sumA k l) = sumA k (map pred l)
-
-
-n = sumA k (0::a::l)   et a >=1
-n-1 = sumA k (a::l)
-fk^^(S k) (n-1) = A k (a-Sk) + sumA k (map (flipsub (S k)) l)
-   si a <= k alors a-(S k)=0, avec un arrondi
-
-n - fk^^(S k)(n-1) =
- 1 + Ak a - Ak (a-S k) + sumA k l - sumA k (map (flipsub (S k)) l)
-
-a<>0 donc Ak a - Ak (a-S k) = Ak (a-1)
-idem pour les termes suivants
-
-----
-
-n = sumA k (a::l)
-n-1 = sumA k (decompred(a) ++ l)     <--- Delta (S k)
-
-  soit b et p tels que a-1 = b+p*(S k)
-
-           b :: b+S k :: ... :: b+p*(S k)  ++ l
-b etapes
-           0 :: S k :: ...
-S k etapes
-           0 :: b :: ...    (oui b peut être 0, mais le dernier
-                             appel rec était ok, 0 :: 1 :: ...).
-
-n -fk^^(S k) (n-1) =
- 1+ (n-1) - fk^^(S k) (n-1) =
- 1+ Ak b - 1 + Ak (b+S k) -Ak b ...
- Ak (b+p(S k)) ++ sumA k (map pred l)
-
-= Ak(a-1) ++ sumA k (map pred l)
-
-*)
+ rewrite f_is_h; auto.
+ unfold h.
+ f_equal. f_equal.
+ apply (@decomp_unique k).
+ - apply decomp_ok.
+ - auto.
+ - apply decomp_ok.
+Qed.

@@ -251,6 +251,15 @@ Proof.
    assert (p' < p - k); [|omega].
    apply (A_lt_inv k).
    simpl in EQ. rewrite A_S in Hp. omega.
+Defined.
+
+Definition decomp_rev k n :=
+  let (l,_) := decomp_exists_rev k n in l.
+
+Lemma decomp_rev_ok k n :
+  sumA k (decomp_rev k n) = n /\ DeltaRev (S k) (decomp_rev k n).
+Proof.
+ unfold decomp_rev. now destruct decomp_exists_rev.
 Qed.
 
 Lemma decomp_unique_rev k l l' :
@@ -289,6 +298,15 @@ Proof.
  exists (rev l); repeat split.
  - now rewrite sumA_rev.
  - now apply Delta_rev.
+Defined.
+
+Definition decomp k n :=
+  let (l,_) := decomp_exists k n in l.
+
+Lemma decomp_ok k n :
+  sumA k (decomp k n) = n /\ Delta (S k) (decomp k n).
+Proof.
+ unfold decomp. now destruct decomp_exists.
 Qed.
 
 Lemma decomp_unique k l l' :
@@ -322,88 +340,155 @@ Qed.
     steps of [S k] during the process (or stays equal).
 *)
 
+Fixpoint renorm_loop k l n :=
+ match n with
+ | 0 => []
+ | S n =>
+   match l with
+   | [] => []
+   | p::l =>
+     match renorm_loop k l n with
+     | [] => [p]
+     | p'::l' =>
+       if p+k =? p' then
+         renorm_loop k (S p' :: l') n
+       else
+         p::p'::l'
+     end
+   end
+ end.
+
+Definition renorm k l := renorm_loop k l (length l).
+
+Compute renorm 1 [0;1;3;4;5;7].
+Compute renorm 2 [1;3;5;8].
+
+Lemma renorm_loop_length k l n :
+  length l <= n -> length (renorm_loop k l n) <= length l.
+Proof.
+ revert l.
+ induction n.
+ - inversion 1. rewrite H1. simpl; auto.
+ - intros. simpl.
+   destruct l as [|p l]; simpl in *; auto.
+   assert (LE : length l <= n) by omega.
+   assert (Hl := IHn l LE).
+   destruct (renorm_loop k l n) as [|p' l']; simpl in *.
+   + omega.
+   + case Nat.eqb_spec; simpl in *; intros; try omega.
+     assert (LE' : length (S p' :: l') <= n).
+     { simpl. omega. }
+     specialize (IHn _ LE'). simpl in *. omega.
+Qed.
+
+Lemma renorm_length k l : length (renorm k l) <= length l.
+Proof.
+ unfold renorm. now apply renorm_loop_length.
+Qed.
+
+Lemma renorm_loop_sum k l n :
+  length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
+Proof.
+ revert l.
+ induction n.
+ - inversion 1. rewrite H1. simpl.
+   rewrite length_zero_iff_nil in *. now subst.
+ - intros. simpl.
+   destruct l as [|p l]; simpl in *; auto.
+   assert (LE : length l <= n) by omega.
+   assert (Hl := IHn l LE).
+   generalize (renorm_loop_length k l LE).
+   destruct (renorm_loop k l n) as [|p' l']; simpl in *.
+   + omega.
+   + case Nat.eqb_spec; simpl in *; intros; try omega.
+     assert (LE' : length (S p' :: l') <= n).
+     { simpl. omega. }
+     rewrite (IHn _ LE'). simpl in *.
+     rewrite <- Hl.
+     replace (p'-k) with p; omega.
+Qed.
+
+Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
+Proof.
+ unfold renorm. now apply renorm_loop_sum.
+Qed.
+
 Definition HeadStep k l l' := match l, l' with
 | [], [] => True
 | p::_, p'::_ => exists m, p' = p + m*(S k)
 | _, _ => False
 end.
 
-Lemma renorm_spec k l :
- { l' | sumA k l' = sumA k l /\
-        length l' <= length l /\
-        (Delta k l -> Delta (S k) l') /\
-        HeadStep k l l' }.
+Lemma renorm_loop_head k l n :
+  length l <= n -> HeadStep k l (renorm_loop k l n).
 Proof.
- remember (length l) as n eqn:Hn. revert l Hn.
- induction n as [n IH] using lt_wf_rec.
- destruct l as [|p l].
- - exists []; repeat split; simpl; auto with arith.
- - intros Hn. simpl in Hn.
-   assert (Hn' : length l < n) by omega.
-   destruct (IH (length l) Hn' l) as (l' & Eq & Le & St & Hd); trivial.
-   destruct l' as [|p' l'].
-   + exists [p].
-     simpl in *. repeat split; subst; auto with arith.
-     now exists 0.
-   + assert (Delta k (p::l) -> p + k <= p').
-     { intros Hl.
-       destruct l as [|x l0]. elim Hd. simpl in Hd.
-       apply Delta_alt in Hl. destruct Hl as (Hl,Hl').
-       specialize (Hl' x). simpl in Hl'.
-       transitivity x; auto with arith.
-       destruct Hd as (m,Hd). subst p'. auto with arith. }
-     destruct (Nat.eq_dec (p + k) p') as [E|N].
-     * assert (Lt : length (S p' :: l') < n).
-       { simpl in *; omega. }
-       destruct (IH _ Lt (S p' :: l')) as (l'' & Eq' & Le' & St' & Hd');
-        trivial; clear IH.
-       exists l''; repeat split; auto.
-       { rewrite Eq'; simpl. rewrite <- Eq. simpl.
-         replace (p'-k) with p; omega. }
-       { simpl in *; omega. }
-       { intros Hl.
-         apply St'.
-         rewrite Delta_alt in St, Hl.
-         apply Delta_alt. split.
-         - apply Delta_more with (S k); auto. apply St, Hl.
-         - intros y Hy. apply St in Hy; [|apply Hl]. omega. }
-       { destruct l'' as [|x3 l3]. elim Hd'. simpl in Hd'.
-         destruct Hd' as (m,Hd').
-         simpl. exists (S m). subst. simpl. omega. }
-     * exists (p::p'::l'); repeat split; simpl in *; auto.
-         { omega. }
-         { intros Hl.
-           specialize (H Hl).
-           constructor. omega. eauto. }
-         { now exists 0. }
-Defined.
-
-Definition renorm k l := let (l',_) := renorm_spec k l in l'.
-
-Compute renorm 1 [0;1;3;4;5;7].
-Compute renorm 2 [1;3;5;8].
-
-Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
-Proof.
- unfold renorm. destruct renorm_spec. intuition.
+ revert l.
+ induction n.
+ - inversion 1. rewrite H1. simpl.
+   rewrite length_zero_iff_nil in *. now subst.
+ - intros l Hl. simpl.
+   destruct l as [|p l]; simpl in *; auto.
+   assert (LE : length l <= n) by omega.
+   assert (Hd := IHn l LE).
+   generalize (renorm_loop_length k l LE).
+   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
+   + intros. now exists 0.
+   + case Nat.eqb_spec; simpl in *; intros.
+     * assert (LE' : length (S p' :: l') <= n) by (simpl; omega).
+       generalize (IHn _ LE').
+       destruct (renorm_loop k (S p' :: l') n); simpl; auto.
+       intros (m,E).
+       subst p'.
+       exists (S m). simpl. omega.
+     * exists 0; omega.
 Qed.
 
-Lemma renorm_ok k l : Delta k l -> Delta (S k) (renorm k l).
+Lemma renorm_head k l : HeadStep k l (renorm k l).
 Proof.
- unfold renorm. destruct renorm_spec. intuition.
+ unfold renorm. now apply renorm_loop_head.
 Qed.
 
-Lemma renorm_hd k l : HeadStep k l (renorm k l).
+Lemma renorm_loop_delta k l n :
+  length l <= n -> Delta k l -> Delta (S k) (renorm_loop k l n).
 Proof.
- unfold renorm. destruct renorm_spec. intuition.
+ revert l.
+ induction n.
+ - inversion 1. rewrite H1. simpl.
+   rewrite length_zero_iff_nil in *. now subst.
+ - intros l Hl D. simpl.
+   destruct l as [|p l]; simpl in *; auto.
+   assert (LE : length l <= n) by omega.
+   apply Delta_alt in D. destruct D as (D,IN).
+   assert (D' := IHn l LE D).
+   assert (LE' := renorm_loop_length k l LE).
+   assert (Hd := renorm_loop_head k l LE).
+   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
+   case Nat.eqb_spec; simpl in *; intros.
+   + assert (LE'' : length (S p' :: l') <= n) by (simpl; omega).
+     apply Delta_alt in D'. destruct D' as (D',IN').
+     assert (D'' : Delta k (S p' :: l')).
+     { apply Delta_alt. split.
+       - apply Delta_more with (S k); auto.
+       - intros y Hy. simpl. rewrite <- Nat.add_succ_r; auto. }
+     apply IHn; auto.
+   + destruct l as [|x l]; simpl in *; [intuition|].
+     constructor; auto.
+     assert (p+k <= x). { apply IN; auto. }
+     destruct Hd as (m,Hd).
+     zify; omega.
+Qed.
+
+Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
+Proof.
+ unfold renorm. now apply renorm_loop_delta.
 Qed.
 
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.
 Proof.
  intros H y Hy.
- apply renorm_ok in H.
- assert (Hd := renorm_hd k (x::l)).
+ apply renorm_delta in H.
+ assert (Hd := renorm_head k (x::l)).
  destruct (renorm k (x::l)) as [|p l'].
  - elim Hy.
  - simpl in Hd. destruct Hd as (m,Hd).
@@ -412,6 +497,41 @@ Proof.
    + apply Delta_alt in H.
      simpl in Hy. destruct Hy as [->|Hy]; auto.
      destruct H as (_,H). specialize (H y Hy). omega.
+Qed.
+
+Lemma renorm_loop_mapsub k m l n : m < S k -> length l <= n ->
+  sumA k (map (flipsub m) (renorm_loop k l n)) =
+  sumA k (map (flipsub m) l).
+Proof.
+ intros Hm.
+ revert l.
+ induction n.
+ - inversion 1. rewrite H1. simpl.
+   rewrite length_zero_iff_nil in *. now subst.
+ - intros l H. simpl.
+   destruct l as [|p l]; simpl in *; auto.
+   assert (LE : length l <= n) by omega. clear H.
+   assert (H' := IHn l LE).
+   assert (LE' := renorm_loop_length k l LE).
+   assert (Hd := renorm_loop_head k l LE).
+   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
+   case Nat.eqb_spec; simpl in *; intros.
+   + rewrite IHn.
+     subst p'. rewrite <- H'.
+     rewrite <- Nat.add_succ_r. simpl.
+     rewrite Nat.add_assoc. f_equal.
+     unfold flipsub.
+     rewrite (@A_sum k (p+S k -m)).
+     rewrite Nat.add_comm. f_equal; f_equal; omega.
+     omega.
+     simpl; try omega.
+   + now rewrite <- H'.
+Qed.
+
+Lemma renorm_mapsub k m l : m < S k ->
+  sumA k (map (flipsub m) (renorm k l)) = sumA k (map (flipsub m) l).
+Proof.
+ unfold renorm. intros. now apply renorm_loop_mapsub.
 Qed.
 
 (** ** Classification of decompositions *)
