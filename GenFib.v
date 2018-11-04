@@ -156,6 +156,22 @@ Qed.
 
 Definition decr x y := Nat.sub y x.
 
+Lemma decr_0 x : decr 0 x = x.
+Proof.
+ apply Nat.sub_0_r.
+Qed.
+
+Lemma map_decr_1 l : map (decr 1) l = map pred l.
+Proof.
+ apply map_ext. intros; unfold decr. omega.
+Qed.
+
+Lemma map_decr_S k l :
+ map (decr (S k)) l = map (decr k) (map pred l).
+Proof.
+ rewrite map_map. apply map_ext. intros. unfold decr. omega.
+Qed.
+
 Lemma sumA_eqn k l :
  sumA k l + sumA k (map (decr k) l) = sumA k (map S l).
 Proof.
@@ -178,14 +194,6 @@ Proof.
  simpl map. simpl. intros. rewrite IHl by intuition.
  unfold decr at 3 5.
  rewrite (@A_sum k a); omega.
-Qed.
-
-Lemma map_decr k l :
- map (decr (S k)) l = map (decr k) (map (decr 1) l).
-Proof.
- rewrite map_map.
- apply map_ext.
- intros. unfold decr. omega.
 Qed.
 
 Lemma sumA_app k l l' : sumA k (l++l') = sumA k l + sumA k l'.
@@ -525,6 +533,47 @@ Lemma renorm_mapdecr k m l : m < S k ->
   sumA k (map (decr m) (renorm k l)) = sumA k (map (decr m) l).
 Proof.
  unfold renorm. intros. now apply renorm_loop_mapdecr.
+Qed.
+
+Definition LeHd m l :=
+  match l with [] => True | a::_ => m <= a end.
+
+Lemma renorm_loop_mapdecr' k m l n :
+  length l <= n ->
+  Delta k l ->
+  LeHd m l ->
+  sumA k (map (decr m) (renorm_loop k l n)) =
+  sumA k (map (decr m) l).
+Proof.
+ revert l.
+ induction n; intros [|a l] LE D H; simpl in *; auto.
+ - inversion LE.
+ - apply Nat.succ_le_mono in LE.
+   apply Delta_alt in D. destruct D as (D,IN).
+   assert (LH : LeHd m l).
+   { destruct l as [|x l]; simpl in *; [intuition|].
+     assert (a+k <= x) by auto. omega. }
+   assert (H' := IHn l LE D LH).
+   assert (LE' := renorm_loop_length k l LE).
+   assert (Hd := renorm_loop_head k l LE).
+   assert (D' := @renorm_loop_delta k l n LE D).
+   destruct renorm_loop as [|p' l']; simpl in *; auto.
+   case Nat.eqb_spec; simpl in *; intros.
+   + rewrite IHn; auto; try (simpl; omega).
+     subst p'. rewrite <- H'; auto.
+     rewrite <- Nat.add_succ_r. simpl.
+     rewrite Nat.add_assoc. f_equal.
+     unfold decr.
+     rewrite A_sum by omega.
+     rewrite Nat.add_comm. f_equal; f_equal; omega.
+   + rewrite <- H'; auto.
+Qed.
+
+Lemma renorm_mapdecr' k m l :
+  Delta k l -> LeHd m l ->
+  sumA k (map (decr m) (renorm k l)) = sumA k (map (decr m) l).
+Proof.
+ unfold renorm. intros. now apply renorm_loop_mapdecr'.
 Qed.
 
 (** ** Decomposition of the next number *)

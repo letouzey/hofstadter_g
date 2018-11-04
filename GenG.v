@@ -555,18 +555,9 @@ Proof.
  now apply A_sum.
 Qed.
 
+(** More generally, [f] is shifting down Zeckendorf decompositions *)
 
 Definition h k n := sumA k (map pred (decomp k n)).
-
-Lemma decr_0 x : decr 0 x = x.
-Proof.
- apply Nat.sub_0_r.
-Qed.
-
-Lemma map_decr_1 l : map pred l = map (decr 1) l.
-Proof.
- apply map_ext. intros; unfold decr. omega.
-Qed.
 
 Lemma decomp_h k n :
   decomp k (h k n) = renorm k (map pred (decomp k n)).
@@ -590,14 +581,12 @@ Proof.
    rewrite IHp; auto with arith.
    rewrite decomp_h.
    rewrite renorm_mapdecr; auto. f_equal.
-   rewrite map_map.
-   apply map_ext. intros. unfold decr. omega.
+   symmetry. apply map_decr_S.
 Qed.
 
-(* TODO: quid de k = 0 ? *)
-Lemma f_is_h k n : k<>0 -> f k n = h k n.
+Lemma f_is_h k n : f k n = h k n.
 Proof.
- intros Hk. symmetry.
+ symmetry.
  apply f_unique.
  - reflexivity.
  - clear n. intros n.
@@ -609,7 +598,8 @@ Proof.
    + simpl in *. now subst.
    + unfold h. rewrite decomp_S, <- Hl. simpl.
      case Nat.leb_spec; intros.
-     * rewrite map_decr_1, renorm_mapdecr by omega. simpl.
+     * rewrite <- map_decr_1.
+       rewrite renorm_mapdecr'; simpl; auto with arith.
        rewrite Nat.add_shuffle1.
        assert (~In 0 l).
        { apply (@Delta_nz' (S k) a); auto with arith. }
@@ -618,12 +608,12 @@ Proof.
        unfold decr. replace (a-S k) with 0; simpl in *; omega.
      * rewrite map_cons, sumA_cons.
        rewrite <- Nat.add_assoc.
-       rewrite map_decr_1.
+       rewrite <- map_decr_1.
        rewrite <- sumA_eqn_pred; auto.
        eapply Delta_nz; eauto. omega.
 Qed.
 
-Lemma f_sumA k l : k<>0 -> Delta (S k) l ->
+Lemma f_sumA k l : Delta (S k) l ->
  f k (sumA k l) = sumA k (map pred l).
 Proof.
  intros.
@@ -633,7 +623,7 @@ Proof.
  now apply decomp_carac.
 Qed.
 
-Lemma fs_sumA k p l : k<>0 -> p <= S k -> Delta (S k) l ->
+Lemma fs_sumA k p l : p <= S k -> Delta (S k) l ->
  (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros.
