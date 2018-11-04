@@ -556,35 +556,44 @@ Proof.
 Qed.
 
 
-Definition h k n := sumA k (map Nat.pred (decomp k n)).
+Definition h k n := sumA k (map pred (decomp k n)).
+
+Lemma decr_0 x : decr 0 x = x.
+Proof.
+ apply Nat.sub_0_r.
+Qed.
+
+Lemma map_decr_1 l : map pred l = map (decr 1) l.
+Proof.
+ apply map_ext. intros; unfold decr. omega.
+Qed.
+
+Lemma decomp_h k n :
+  decomp k (h k n) = renorm k (map pred (decomp k n)).
+Proof.
+ apply decomp_carac.
+ - apply renorm_delta.
+   apply Delta_map with (S k).
+   intros; omega. apply decomp_delta.
+ - now rewrite renorm_sum.
+Qed.
 
 Lemma hs k p n : p <= S k ->
- (h k^^p) n = sumA k (map (flipsub p) (decomp k n)).
+ (h k^^p) n = sumA k (map (decr p) (decomp k n)).
 Proof.
  intros Hp.
  revert n.
  induction p; intros.
- - simpl. rewrite map_ext with (g:=id).
-   rewrite map_id. symmetry. apply decomp_ok.
-   intros; unfold flipsub, id. omega.
+ - simpl. rewrite map_ext with (g:=id) by apply decr_0.
+   rewrite map_id. symmetry. apply decomp_sum.
  - rewrite iter_S.
-   unfold h at 2.
-   rewrite IHp; try omega.
-   assert (EQ : decomp k (sumA k (map Nat.pred (decomp k n))) =
-                renorm k (map Nat.pred (decomp k n))).
-   { apply (@decomp_unique k).
-     - apply decomp_ok.
-     - apply renorm_delta.
-       apply Delta_map with (S k).
-       intros; omega. apply decomp_ok.
-     - rewrite renorm_sum. apply decomp_ok. }
-   rewrite EQ.
-   rewrite renorm_mapsub; try omega. f_equal.
+   rewrite IHp; auto with arith.
+   rewrite decomp_h.
+   rewrite renorm_mapdecr; auto. f_equal.
    rewrite map_map.
-   apply map_ext. intros. unfold flipsub. omega.
+   apply map_ext. intros. unfold decr. omega.
 Qed.
 
-(* TODO: preuve a nettoyer *)
 (* TODO: quid de k = 0 ? *)
 Lemma f_is_h k n : k<>0 -> f k n = h k n.
 Proof.
@@ -593,83 +602,44 @@ Proof.
  - reflexivity.
  - clear n. intros n.
    rewrite hs; auto.
-   remember (decomp k n) as l.
-   unfold h.
+   assert (Hn := decomp_sum k n).
+   assert (D := decomp_delta k n).
+   remember (decomp k n) as l eqn:Hl.
    destruct l as [|a l].
-   + assert (n = 0).
-     { destruct (decomp_ok k n). now rewrite <- Heql in *. }
-     now subst n.
-   + destruct (le_lt_dec a k) as [LE|LT].
-     * assert (EQ : decomp k (S n) = renorm k (a+1 :: l)).
-       { apply (@decomp_unique k).
-         - apply decomp_ok.
-         - apply renorm_delta.
-           destruct (decomp_ok k n) as (H,H').
-           rewrite <- Heql in H'.
-           apply Delta_alt in H'. destruct H' as (H',IN).
-           apply Delta_alt; split.
-           + apply Delta_more with (S k); auto.
-           + intros y Hy. specialize (IN y Hy). omega.
-         - rewrite renorm_sum.
-           destruct (decomp_ok k (S n)) as (->,_).
-           simpl.
-           rewrite A_base by omega.
-           simpl. f_equal.
-           rewrite Nat.add_1_r.
-           rewrite <- (@A_base k a) by omega.
-           change (n = sumA k (a::l)).
-           rewrite Heql. symmetry. apply decomp_ok. }
-       rewrite EQ.
-       rewrite map_ext with (g:=flipsub 1)
-         by (intros; unfold flipsub; omega).
-       rewrite renorm_mapsub by omega.
-       simpl.
-       rewrite Nat.add_shuffle3.
+   + simpl in *. now subst.
+   + unfold h. rewrite decomp_S, <- Hl. simpl.
+     case Nat.leb_spec; intros.
+     * rewrite map_decr_1, renorm_mapdecr by omega. simpl.
+       rewrite Nat.add_shuffle1.
+       assert (~In 0 l).
+       { apply (@Delta_nz' (S k) a); auto with arith. }
+       rewrite <- sumA_eqn_pred; auto.
+       rewrite decr_0.
+       unfold decr. replace (a-S k) with 0; simpl in *; omega.
+     * rewrite map_cons, sumA_cons.
        rewrite <- Nat.add_assoc.
-       rewrite <- sumA_eqn_pred.
-       unfold flipsub.
-       rewrite Nat.add_assoc.
-       replace (a+1-1) with a by omega.
-       replace (a-S k) with 0 by omega.
-       simpl. f_equal.
-       change (n = sumA k (a::l)).
-       rewrite Heql. symmetry. apply decomp_ok.
-       assert (Delta (S k) (a::l)).
-       { rewrite Heql. apply decomp_ok. }
-       apply Delta_alt in H. destruct H as (H,H').
-       intros IN.
-       specialize (H' 0 IN). omega.
-     * assert (EQ : decomp k (S n) = 0 :: a :: l).
-       { apply (@decomp_unique k).
-         - apply decomp_ok.
-         - assert (Delta (S k) (a::l))
-            by (rewrite Heql; apply decomp_ok).
-           constructor; auto.
-         - rewrite sumA_cons, Heql.
-           destruct (decomp_ok k n) as (->,_).
-           apply decomp_ok. }
-       rewrite EQ.
-       rewrite map_cons, sumA_cons.
-       rewrite <- Nat.add_assoc.
-       rewrite map_ext with (g:=flipsub 1)
-         by (intros; unfold flipsub; omega).
-       rewrite <- sumA_eqn_pred.
-       simpl Nat.pred. rewrite A_k_0.
-       rewrite Heql. simpl. f_equal. symmetry. apply decomp_ok.
-       destruct (decomp_ok k n) as (H,H').
-       rewrite <- Heql in H'.
-       apply Delta_nz in H'; auto; omega.
+       rewrite map_decr_1.
+       rewrite <- sumA_eqn_pred; auto.
+       eapply Delta_nz; eauto. omega.
 Qed.
 
 Lemma f_sumA k l : k<>0 -> Delta (S k) l ->
- f k (sumA k l) = sumA k (map Nat.pred l).
+ f k (sumA k l) = sumA k (map pred l).
 Proof.
  intros.
  rewrite f_is_h; auto.
  unfold h.
  f_equal. f_equal.
- apply (@decomp_unique k).
- - apply decomp_ok.
- - auto.
- - apply decomp_ok.
+ now apply decomp_carac.
+Qed.
+
+Lemma fs_sumA k p l : k<>0 -> p <= S k -> Delta (S k) l ->
+ (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+Proof.
+ intros.
+ remember (sumA k l) as n eqn:Hn.
+ rewrite <- (@decomp_carac k n l); auto.
+ rewrite <- hs; auto.
+ induction p; simpl; auto.
+ rewrite IHp by omega. now apply f_is_h.
 Qed.

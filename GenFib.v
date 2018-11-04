@@ -154,38 +154,38 @@ Proof.
  reflexivity.
 Qed.
 
-Definition flipsub x y := Nat.sub y x.
+Definition decr x y := Nat.sub y x.
 
 Lemma sumA_eqn k l :
- sumA k l + sumA k (map (flipsub k) l) = sumA k (map S l).
+ sumA k l + sumA k (map (decr k) l) = sumA k (map S l).
 Proof.
  induction l; trivial.
  simpl map. rewrite !sumA_cons, <- IHl, A_S.
- unfold flipsub at 1. omega.
+ unfold decr at 1. omega.
 Qed.
 
 Lemma sumA_eqn' k l :
- sumA k (map S l) - sumA k (map (flipsub k) l) = sumA k l.
+ sumA k (map S l) - sumA k (map (decr k) l) = sumA k l.
 Proof.
  rewrite <- sumA_eqn. apply Nat.add_sub.
 Qed.
 
 Lemma sumA_eqn_pred k l :
  ~In 0 l ->
- sumA k l = sumA k (map (flipsub 1) l) + sumA k (map (flipsub (S k)) l).
+ sumA k l = sumA k (map (decr 1) l) + sumA k (map (decr (S k)) l).
 Proof.
  induction l; trivial.
  simpl map. simpl. intros. rewrite IHl by intuition.
- unfold flipsub at 3 5.
+ unfold decr at 3 5.
  rewrite (@A_sum k a); omega.
 Qed.
 
-Lemma map_flipsub k l :
- map (flipsub (S k)) l = map (flipsub k) (map (flipsub 1) l).
+Lemma map_decr k l :
+ map (decr (S k)) l = map (decr k) (map (decr 1) l).
 Proof.
  rewrite map_map.
  apply map_ext.
- intros. unfold flipsub. omega.
+ intros. unfold decr. omega.
 Qed.
 
 Lemma sumA_app k l l' : sumA k (l++l') = sumA k l + sumA k l'.
@@ -253,11 +253,16 @@ Proof.
    simpl in EQ. rewrite A_S in Hp. omega.
 Defined.
 
-Definition decomp_rev k n :=
-  let (l,_) := decomp_exists_rev k n in l.
+Definition decomp_rev k n := proj1_sig (decomp_exists_rev k n).
 
-Lemma decomp_rev_ok k n :
-  sumA k (decomp_rev k n) = n /\ DeltaRev (S k) (decomp_rev k n).
+Lemma decomp_rev_sum k n :
+  sumA k (decomp_rev k n) = n.
+Proof.
+ unfold decomp_rev. now destruct decomp_exists_rev.
+Qed.
+
+Lemma decomp_rev_delta k n :
+  DeltaRev (S k) (decomp_rev k n).
 Proof.
  unfold decomp_rev. now destruct decomp_exists_rev.
 Qed.
@@ -289,7 +294,15 @@ Proof.
    + apply DeltaRev_alt in DR'. intuition.
 Qed.
 
-(** Same theorem, in the other order (smallest term first). *)
+Lemma decomp_rev_carac k n l :
+ DeltaRev (S k) l -> sumA k l = n -> decomp_rev k n = l.
+Proof.
+ intros D Eq. apply (@decomp_unique_rev k); auto.
+ apply decomp_rev_delta.
+ rewrite <- Eq. apply decomp_rev_sum.
+Qed.
+
+(** Same theorems, in the other order (smallest term first). *)
 
 Lemma decomp_exists k n :
   { l | sumA k l = n /\ Delta (S k) l }.
@@ -300,11 +313,14 @@ Proof.
  - now apply Delta_rev.
 Defined.
 
-Definition decomp k n :=
-  let (l,_) := decomp_exists k n in l.
+Definition decomp k n := proj1_sig (decomp_exists k n).
 
-Lemma decomp_ok k n :
-  sumA k (decomp k n) = n /\ Delta (S k) (decomp k n).
+Lemma decomp_sum k n : sumA k (decomp k n) = n.
+Proof.
+ unfold decomp. now destruct decomp_exists.
+Qed.
+
+Lemma decomp_delta k n : Delta (S k) (decomp k n).
 Proof.
  unfold decomp. now destruct decomp_exists.
 Qed.
@@ -320,6 +336,15 @@ Proof.
  - now apply DeltaRev_rev.
  - now rewrite !sumA_rev.
 Qed.
+
+Lemma decomp_carac k n l :
+ Delta (S k) l -> sumA k l = n -> decomp k n = l.
+Proof.
+ intros D Eq. apply (@decomp_unique k); auto.
+ apply decomp_delta.
+ rewrite <- Eq. apply decomp_sum.
+Qed.
+
 
 (** ** Normalisation of a Fibonacci decomposition.
 
@@ -367,18 +392,13 @@ Lemma renorm_loop_length k l n :
   length l <= n -> length (renorm_loop k l n) <= length l.
 Proof.
  revert l.
- induction n.
- - inversion 1. rewrite H1. simpl; auto.
- - intros. simpl.
-   destruct l as [|p l]; simpl in *; auto.
-   assert (LE : length l <= n) by omega.
-   assert (Hl := IHn l LE).
-   destruct (renorm_loop k l n) as [|p' l']; simpl in *.
-   + omega.
-   + case Nat.eqb_spec; simpl in *; intros; try omega.
-     assert (LE' : length (S p' :: l') <= n).
-     { simpl. omega. }
-     specialize (IHn _ LE'). simpl in *. omega.
+ induction n; simpl; auto with arith.
+ intros [|p l] LE; simpl in *; auto.
+ apply Nat.succ_le_mono in LE.
+ assert (Hl := IHn l LE).
+ destruct renorm_loop as [|p' l']. simpl in *; try omega.
+ case Nat.eqb_spec; intros; simpl in *; try omega.
+ etransitivity; try eapply IHn; simpl; omega.
 Qed.
 
 Lemma renorm_length k l : length (renorm k l) <= length l.
@@ -390,22 +410,15 @@ Lemma renorm_loop_sum k l n :
   length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
 Proof.
  revert l.
- induction n.
- - inversion 1. rewrite H1. simpl.
-   rewrite length_zero_iff_nil in *. now subst.
- - intros. simpl.
-   destruct l as [|p l]; simpl in *; auto.
-   assert (LE : length l <= n) by omega.
+ induction n; intros [|p l]; simpl; auto.
+ - inversion 1.
+ - intros LE. apply Nat.succ_le_mono in LE.
    assert (Hl := IHn l LE).
-   generalize (renorm_loop_length k l LE).
-   destruct (renorm_loop k l n) as [|p' l']; simpl in *.
-   + omega.
-   + case Nat.eqb_spec; simpl in *; intros; try omega.
-     assert (LE' : length (S p' :: l') <= n).
-     { simpl. omega. }
-     rewrite (IHn _ LE'). simpl in *.
-     rewrite <- Hl.
-     replace (p'-k) with p; omega.
+   assert (L := renorm_loop_length k l LE).
+   destruct renorm_loop as [|p' l']; simpl in *; try omega.
+   case Nat.eqb_spec; simpl in *; intros; try omega.
+   rewrite IHn by (simpl;omega). simpl.
+   replace (p'-k) with p; omega.
 Qed.
 
 Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
@@ -423,22 +436,17 @@ Lemma renorm_loop_head k l n :
   length l <= n -> HeadStep k l (renorm_loop k l n).
 Proof.
  revert l.
- induction n.
- - inversion 1. rewrite H1. simpl.
-   rewrite length_zero_iff_nil in *. now subst.
- - intros l Hl. simpl.
-   destruct l as [|p l]; simpl in *; auto.
-   assert (LE : length l <= n) by omega.
+ induction n; intros [|p l]; simpl; auto.
+ - inversion 1.
+ - intros LE. apply Nat.succ_le_mono in LE.
    assert (Hd := IHn l LE).
-   generalize (renorm_loop_length k l LE).
-   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
-   + intros. now exists 0.
+   assert (L := renorm_loop_length k l LE).
+   destruct renorm_loop as [|p' l']; simpl in *.
+   + now exists 0.
    + case Nat.eqb_spec; simpl in *; intros.
-     * assert (LE' : length (S p' :: l') <= n) by (simpl; omega).
-       generalize (IHn _ LE').
-       destruct (renorm_loop k (S p' :: l') n); simpl; auto.
-       intros (m,E).
-       subst p'.
+     * specialize (IHn (S p'::l')).
+       destruct renorm_loop; simpl in *; try omega.
+       destruct IHn as (m,E); try omega.
        exists (S m). simpl. omega.
      * exists 0; omega.
 Qed.
@@ -452,30 +460,20 @@ Lemma renorm_loop_delta k l n :
   length l <= n -> Delta k l -> Delta (S k) (renorm_loop k l n).
 Proof.
  revert l.
- induction n.
- - inversion 1. rewrite H1. simpl.
-   rewrite length_zero_iff_nil in *. now subst.
- - intros l Hl D. simpl.
-   destruct l as [|p l]; simpl in *; auto.
-   assert (LE : length l <= n) by omega.
-   apply Delta_alt in D. destruct D as (D,IN).
-   assert (D' := IHn l LE D).
-   assert (LE' := renorm_loop_length k l LE).
-   assert (Hd := renorm_loop_head k l LE).
-   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
-   case Nat.eqb_spec; simpl in *; intros.
-   + assert (LE'' : length (S p' :: l') <= n) by (simpl; omega).
-     apply Delta_alt in D'. destruct D' as (D',IN').
-     assert (D'' : Delta k (S p' :: l')).
-     { apply Delta_alt. split.
-       - apply Delta_more with (S k); auto.
-       - intros y Hy. simpl. rewrite <- Nat.add_succ_r; auto. }
-     apply IHn; auto.
-   + destruct l as [|x l]; simpl in *; [intuition|].
-     constructor; auto.
-     assert (p+k <= x). { apply IN; auto. }
-     destruct Hd as (m,Hd).
-     zify; omega.
+ induction n; intros [|p l] LE D; simpl in *; auto.
+ apply Nat.succ_le_mono in LE.
+ apply Delta_alt in D. destruct D as (D,IN).
+ assert (D' := IHn l LE D).
+ assert (LE' := renorm_loop_length k l LE).
+ assert (Hd := renorm_loop_head k l LE).
+ destruct renorm_loop as [|p' l']; simpl in *; auto.
+ case Nat.eqb_spec; simpl in *; intros.
+ - apply IHn; simpl; auto; omega.
+ - destruct l as [|x l]; simpl in *; [intuition|].
+   destruct Hd as (m,Hd).
+   constructor; auto.
+   assert (p+k <= x). { apply IN; auto. }
+   zify; omega.
 Qed.
 
 Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
@@ -486,58 +484,84 @@ Qed.
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.
 Proof.
- intros H y Hy.
- apply renorm_delta in H.
+ intros D y Hy.
+ apply renorm_delta in D.
  assert (Hd := renorm_head k (x::l)).
- destruct (renorm k (x::l)) as [|p l'].
+ destruct renorm as [|p l'].
  - elim Hy.
- - simpl in Hd. destruct Hd as (m,Hd).
+ - destruct Hd as (m,Hd).
    transitivity p.
    + subst; auto with arith.
-   + apply Delta_alt in H.
+   + apply Delta_alt in D.
      simpl in Hy. destruct Hy as [->|Hy]; auto.
-     destruct H as (_,H). specialize (H y Hy). omega.
+     destruct D as (_,IN'). specialize (IN' y Hy). omega.
 Qed.
 
-Lemma renorm_loop_mapsub k m l n : m < S k -> length l <= n ->
-  sumA k (map (flipsub m) (renorm_loop k l n)) =
-  sumA k (map (flipsub m) l).
+Lemma renorm_loop_mapdecr k m l n : m < S k -> length l <= n ->
+  sumA k (map (decr m) (renorm_loop k l n)) =
+  sumA k (map (decr m) l).
 Proof.
  intros Hm.
  revert l.
- induction n.
- - inversion 1. rewrite H1. simpl.
-   rewrite length_zero_iff_nil in *. now subst.
- - intros l H. simpl.
-   destruct l as [|p l]; simpl in *; auto.
-   assert (LE : length l <= n) by omega. clear H.
-   assert (H' := IHn l LE).
+ induction n; intros [|p l] LE; simpl in *; auto.
+ - inversion LE.
+ - apply Nat.succ_le_mono in LE.
+   assert (H := IHn l LE).
    assert (LE' := renorm_loop_length k l LE).
    assert (Hd := renorm_loop_head k l LE).
-   destruct (renorm_loop k l n) as [|p' l']; simpl in *; auto.
+   destruct renorm_loop as [|p' l']; simpl in *; auto.
    case Nat.eqb_spec; simpl in *; intros.
-   + rewrite IHn.
-     subst p'. rewrite <- H'.
+   + rewrite IHn by (simpl; omega).
+     subst p'. rewrite <- H.
      rewrite <- Nat.add_succ_r. simpl.
      rewrite Nat.add_assoc. f_equal.
-     unfold flipsub.
-     rewrite (@A_sum k (p+S k -m)).
+     unfold decr.
+     rewrite A_sum by omega.
      rewrite Nat.add_comm. f_equal; f_equal; omega.
-     omega.
-     simpl; try omega.
-   + now rewrite <- H'.
+   + now rewrite <- H.
 Qed.
 
-Lemma renorm_mapsub k m l : m < S k ->
-  sumA k (map (flipsub m) (renorm k l)) = sumA k (map (flipsub m) l).
+Lemma renorm_mapdecr k m l : m < S k ->
+  sumA k (map (decr m) (renorm k l)) = sumA k (map (decr m) l).
 Proof.
- unfold renorm. intros. now apply renorm_loop_mapsub.
+ unfold renorm. intros. now apply renorm_loop_mapdecr.
+Qed.
+
+(** ** Decomposition of the next number *)
+
+Definition next_decomp k l :=
+  match l with
+  | [] => [0]
+  | a :: l =>
+    if a <=? k then
+      renorm k (S a :: l)
+    else
+      0::a::l
+  end.
+
+Lemma decomp_S k n : decomp k (S n) = next_decomp k (decomp k n).
+Proof.
+ apply decomp_carac.
+ - assert (D:=decomp_delta k n).
+   destruct decomp as [|a l]; simpl; auto.
+   case Nat.leb_spec; intros; auto using renorm_delta.
+ - rewrite <- (decomp_sum k n) at 2.
+   destruct decomp as [|a l]; simpl; auto.
+   case Nat.leb_spec; intros; auto.
+   rewrite renorm_sum. simpl.
+   replace (a-k) with 0; simpl; omega.
 Qed.
 
 (** ** Classification of decompositions *)
 
-Definition Low k d n p :=
- exists l, n = sumA k (p::l) /\ Delta d (p::l).
+Definition low k n :=
+  match decomp k n with
+  | [] => None
+  | p :: _ => Some p
+  end.
+
+Definition Low k n p :=
+ exists l, n = sumA k (p::l) /\ Delta (S k) (p::l).
 
 (** ** Decomposition of the predecessor of a Ak number
 
@@ -579,8 +603,7 @@ Proof.
  - intros p. rewrite <- in_rev; now apply IN.
 Defined.
 
-Definition decompred k n :=
-  let (l,_) := decompred_spec k n in l.
+Definition decompred k n := proj1_sig (decompred_spec k n).
 
 Compute decompred 0 10.
 Compute decompred 1 10.
@@ -590,15 +613,15 @@ Compute decompred 2 10.
 Lemma decompred_sum k n :
   sumA k (decompred k n) = A k n - 1.
 Proof.
- unfold decompred; destruct (decompred_spec k n); intuition.
+ unfold decompred; destruct decompred_spec; simpl; intuition.
 Qed.
 
-Lemma decompred_ok k n : Delta (S k) (decompred k n).
+Lemma decompred_delta k n : Delta (S k) (decompred k n).
 Proof.
- unfold decompred; destruct (decompred_spec k n); intuition.
+ unfold decompred; destruct decompred_spec; simpl; intuition.
 Qed.
 
 Lemma decompred_in k n p : In p (decompred k n) -> p < n.
 Proof.
- unfold decompred; destruct (decompred_spec k n). intuition.
+ unfold decompred; destruct decompred_spec; simpl; intuition.
 Qed.

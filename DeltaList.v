@@ -57,12 +57,28 @@ Proof.
 Qed.
 Hint Resolve Delta_21 Delta_inv Delta_nz.
 
+Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
+Proof.
+ intros H H' X.
+ apply Delta_alt in H'. apply H' in X. omega.
+Qed.
+
 Lemma Delta_low_hd p k k' l :
  k'<=k -> Delta p (k::l) -> Delta p (k'::l).
 Proof.
  intros Hk. rewrite !Delta_alt. intros (H,H').
  split; trivial. intros y Hy. apply H' in Hy. omega.
 Qed.
+
+Lemma Delta_S_cons k x l :
+  Delta (S k) (x::l) -> Delta k (S x :: l).
+Proof.
+  intros D. apply Delta_alt in D. destruct D as (D,D').
+  apply Delta_alt; split.
+  apply Delta_more with (S k); auto.
+  intros y Hy. apply D' in Hy. omega.
+Qed.
+Hint Resolve Delta_S_cons.
 
 Lemma Delta_21_S x l : Delta 2 (x::l) -> Delta 1 (S x::l).
 Proof.
