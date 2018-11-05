@@ -121,7 +121,7 @@ induction n as [[|n] IH ] using lt_wf_rec.
   apply Fs_le in Ha. omega.
 Defined.
 
-Definition f k n := let (a,_) := f_spec k n in a.
+Definition f k n := proj1_sig (f_spec k n).
 
 Lemma f_sound k n : F k n (f k n).
 Proof.
@@ -136,7 +136,7 @@ split; intros H.
 - subst; auto.
 Qed.
 
-(** A few tests *)
+(** A few examples *)
 
 Definition nums := List.seq 0 15.
 
@@ -581,10 +581,10 @@ Qed.
 
 (** More generally, [f] is shifting down Zeckendorf decompositions *)
 
-Definition h k n := sumA k (map pred (decomp k n)).
+Definition fbis k n := sumA k (map pred (decomp k n)).
 
-Lemma decomp_h k n :
-  decomp k (h k n) = renorm k (map pred (decomp k n)).
+Lemma fbis_decomp k n :
+  decomp k (fbis k n) = renorm k (map pred (decomp k n)).
 Proof.
  apply decomp_carac.
  - apply renorm_delta.
@@ -593,8 +593,8 @@ Proof.
  - now rewrite renorm_sum.
 Qed.
 
-Lemma hs k p n : p <= S k ->
- (h k^^p) n = sumA k (map (decr p) (decomp k n)).
+Lemma fsbis k p n : p <= S k ->
+ (fbis k^^p) n = sumA k (map (decr p) (decomp k n)).
 Proof.
  intros Hp.
  revert n.
@@ -603,24 +603,23 @@ Proof.
    rewrite map_id. symmetry. apply decomp_sum.
  - rewrite iter_S.
    rewrite IHp; auto with arith.
-   rewrite decomp_h.
+   rewrite fbis_decomp.
    rewrite renorm_mapdecr; auto. f_equal.
    symmetry. apply map_decr_S.
 Qed.
 
-Lemma f_is_h k n : f k n = h k n.
+Lemma fbis_is_f k n : fbis k n = f k n.
 Proof.
- symmetry.
  apply f_unique.
  - reflexivity.
  - clear n. intros n.
-   rewrite hs; auto.
+   rewrite fsbis; auto.
    assert (Hn := decomp_sum k n).
    assert (D := decomp_delta k n).
    remember (decomp k n) as l eqn:Hl.
    destruct l as [|a l].
    + simpl in *. now subst.
-   + unfold h. rewrite decomp_S, <- Hl. simpl.
+   + unfold fbis. rewrite decomp_S, <- Hl. simpl.
      case Nat.leb_spec; intros.
      * rewrite <- map_decr_1.
        rewrite renorm_mapdecr'; simpl; auto with arith.
@@ -639,16 +638,16 @@ Qed.
 
 Lemma f_decomp k n : f k n = sumA k (map pred (decomp k n)).
 Proof.
- apply f_is_h.
+ symmetry. apply fbis_is_f.
 Qed.
 
 Lemma fs_decomp k p n :
   p <= S k -> (f k^^p) n = sumA k (map (decr p) (decomp k n)).
 Proof.
  intros.
- rewrite <- hs; auto.
- clear.
- induction p; auto. simpl. rewrite IHp. apply f_is_h.
+ rewrite <- fsbis; auto.
+ symmetry. clear.
+ induction p; auto. simpl. rewrite IHp. apply fbis_is_f.
 Qed.
 
 Lemma f_sumA k l : Delta (S k) l ->
