@@ -1,4 +1,6 @@
 COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
+-I .
+-R . Top
 FlipG.v
 Phi.v
 FunG_prog.v

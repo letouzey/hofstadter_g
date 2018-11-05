@@ -138,19 +138,25 @@ Qed.
 
 (** A few tests *)
 
-Definition test := List.seq 0 15.
+Definition nums := List.seq 0 15.
 
-Compute map (f 0) test. (* [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7] *)
-Compute map (f 1) test. (* [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9] *)
-Compute map (f 2) test. (* [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10] *)
-Compute map (f 3) test. (* [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10] *)
+(*
+Compute map (f 0) nums.
+Compute map (f 1) nums.
+Compute map (f 2) nums.
+Compute map (f 3) nums.
+*)
+(*
+f 0 = [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
+f 1 = [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
+f 2 = [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
+f 3 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
+*)
 
-Compute map (fun x => (x,(f 2^^3) x)) test.
-Compute proj1_sig (decomp_exists 2 27).
-
-
+(*
 Extraction Inline lt_wf_rec induction_ltof2.
 Recursive Extraction f.
+*)
 
 (** Basic equations over [f] : the same as [F] *)
 
@@ -296,6 +302,13 @@ induction 1.
 - transitivity (f k m); auto using f_mono_S.
 Qed.
 
+Lemma fs_mono k p n m : n <= m -> (f k^^p) n <= (f k^^p) m.
+Proof.
+revert n m. induction p; auto.
+intros. simpl. etransitivity. eapply f_mono. eapply IHp; eauto.
+apply f_mono; auto.
+Qed.
+
 (** NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
 
 Lemma f_lipschitz k n m : f k m - f k n <= m - n.
@@ -303,6 +316,12 @@ Proof.
 destruct (le_ge_dec n m) as [H|H].
 - induction H; try generalize (f_step k m); omega.
 - generalize (f_mono k H). omega.
+Qed.
+
+Lemma fs_lipschitz k p n m : (f k^^p) m - (f k^^p) n <= m - n.
+Proof.
+ revert n m. induction p; auto.
+ intros. simpl. etransitivity. eapply f_lipschitz. eapply IHp.
 Qed.
 
 Lemma f_nonzero k n : 0 < n -> 0 < f k n.
@@ -346,6 +365,11 @@ Qed.
 Lemma f_le k n : f k n <= n.
 Proof.
  eapply F_le; eauto.
+Qed.
+
+Lemma fs_le k p n : (f k^^p) n <= n.
+Proof.
+ eapply Fs_le, Fs_iter_f.
 Qed.
 
 Lemma f_lt k n : 1<n -> f k n < n.
@@ -613,23 +637,146 @@ Proof.
        eapply Delta_nz; eauto. omega.
 Qed.
 
+Lemma f_decomp k n : f k n = sumA k (map pred (decomp k n)).
+Proof.
+ apply f_is_h.
+Qed.
+
+Lemma fs_decomp k p n :
+  p <= S k -> (f k^^p) n = sumA k (map (decr p) (decomp k n)).
+Proof.
+ intros.
+ rewrite <- hs; auto.
+ clear.
+ induction p; auto. simpl. rewrite IHp. apply f_is_h.
+Qed.
+
 Lemma f_sumA k l : Delta (S k) l ->
  f k (sumA k l) = sumA k (map pred l).
 Proof.
- intros.
- rewrite f_is_h; auto.
- unfold h.
- f_equal. f_equal.
- now apply decomp_carac.
+ intros. rewrite f_decomp. f_equal. f_equal. auto.
 Qed.
 
 Lemma fs_sumA k p l : p <= S k -> Delta (S k) l ->
  (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
+ intros. rewrite fs_decomp; auto. f_equal. f_equal. auto.
+Qed.
+
+(** Decomposition and positions in the F tree *)
+
+Lemma rchild_decomp k n :
+ rchild k n = sumA k (map S (decomp k n)).
+Proof.
+ unfold rchild.
+ rewrite fs_decomp; auto.
+ rewrite <- (@decomp_sum k n) at 1.
+ remember (decomp k n) as l.
+ apply sumA_eqn.
+Qed.
+
+Lemma flat_rank_0 k n :
+ f k (S n) = f k n <-> rank k n = Some 0.
+Proof.
+ rewrite !f_decomp.
+ unfold rank.
+ rewrite decomp_S.
+ destruct (decomp k n) as [|a l] eqn:E.
+ - simpl; now split.
+ - simpl.
+   case Nat.leb_spec; intros.
+   + rewrite <- !map_decr_1.
+     rewrite renorm_mapdecr'.
+     * simpl.
+       rewrite decr_0.
+       rewrite !A_base by (auto; omega).
+       split. intuition. injection 1 as ->. omega.
+     * apply Delta_S_cons. rewrite <- E; auto.
+     * simpl. auto with arith.
+   + simpl. split. intuition. injection 1 as ->. omega.
+Qed.
+
+Lemma nonflat_rank_nz k n :
+ f k (S n) = S (f k n) <-> rank k n <> Some 0.
+Proof.
+ rewrite <- flat_rank_0.
+ generalize (f_step k n). omega.
+Qed.
+
+(** Beware, when comparing an [option nat] and a [nat],
+    [None] serves as a bottom element, not comparable with any [nat]. *)
+
+Definition olt (o : option nat) n :=
+ match o with
+ | None => False
+ | Some a => a < n
+ end.
+
+Delimit Scope option_nat_scope with onat.
+
+Infix "<" := olt : option_nat_scope.
+
+Lemma rank_S_nz_iff k n :
+  rank k (S n) <> Some 0 <-> (rank k n < S k)%onat.
+Proof.
+ unfold rank.
+ rewrite decomp_S.
+ destruct (decomp k n) as [|a l] eqn:E.
+ - simpl. intuition.
+ - simpl.
+   case Nat.leb_spec; intros.
+   + assert (Hd := renorm_head k (S a ::l)).
+     destruct renorm. intuition.
+     destruct Hd as (m,Hd); simpl in Hd.
+     split; auto with arith.
+     intros _. injection 1 as ->. discriminate.
+   + intuition.
+Qed.
+
+Lemma fs_flat_low_rank k p n : p <= S k ->
+ (f k ^^p) (S n) = (f k ^^p) n <-> (rank k n < p)%onat.
+Proof.
+ intros Hp.
+ apply Nat.lt_eq_cases in Hp.
+ destruct Hp as [Hp| ->].
+ - rewrite !fs_decomp by auto with arith.
+   unfold rank.
+   rewrite decomp_S.
+   destruct (decomp k n) as [|a l] eqn:E.
+   + simpl. intuition.
+   + simpl.
+     case Nat.leb_spec; intros.
+     * rewrite renorm_mapdecr by omega.
+       rewrite map_cons, sumA_cons.
+       unfold decr at 1 3.
+       rewrite !A_base by (auto; omega).
+       omega.
+     * simpl. intuition.
+ - rewrite <- rank_S_nz_iff.
+   rewrite <- nonflat_rank_nz.
+   rewrite 2 f_S.
+   generalize (fs_le k (S k) n).
+   omega.
+Qed.
+
+Lemma fs_nonflat_high_rank k p n : p <= S k ->
+  (f k ^^p) (S n) = S ((f k ^^p) n) <-> ~(rank k n < p)%onat.
+Proof.
+ intros Hp.
+ rewrite <- fs_flat_low_rank by trivial.
+ assert (LE := fs_lipschitz k p n (S n)).
+ replace (S n - n) with 1 in LE by omega.
+ generalize (@fs_mono k p n (S n)). omega.
+Qed.
+
+Lemma fs_nonflat_high_rank' k p n : p <= S k ->
+  (f k ^^p) (S n) = S ((f k ^^p) n) <->
+  match rank k n with
+  | None => True
+  | Some a => p <= a
+  end.
+Proof.
  intros.
- remember (sumA k l) as n eqn:Hn.
- rewrite <- (@decomp_carac k n l); auto.
- rewrite <- hs; auto.
- induction p; simpl; auto.
- rewrite IHp by omega. now apply f_is_h.
+ rewrite fs_nonflat_high_rank by trivial.
+ destruct rank; simpl; intuition.
 Qed.

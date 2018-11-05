@@ -15,10 +15,18 @@ Fixpoint A (k n : nat) :=
 
 Definition test := List.seq 0 10.
 
-Compute map (A 0) test. (* [1; 2; 4; 8; 16; 32; 64; 128; 256; 512] *)
-Compute map (A 1) test. (* [1; 2; 3; 5; 8; 13; 21; 34; 55; 89] *)
-Compute map (A 2) test. (* [1; 2; 3; 4; 6; 9; 13; 19; 28; 41] *)
-Compute map (A 3) test. (* [1; 2; 3; 4; 5; 7; 10; 14; 19; 26] *)
+(*
+Compute map (A 0) test.
+Compute map (A 1) test.
+Compute map (A 2) test.
+Compute map (A 3) test.
+*)
+(*
+A 0 : [1; 2; 4; 8; 16; 32; 64; 128; 256; 512]
+A 1 : [1; 2; 3; 5; 8; 13; 21; 34; 55; 89]
+A 2 : [1; 2; 3; 4; 6; 9; 13; 19; 28; 41]
+A 3 : [1; 2; 3; 4; 5; 7; 10; 14; 19; 26]
+*)
 
 Lemma A_k_0 k : A k 0 = 1.
 Proof.
@@ -124,9 +132,7 @@ Proof.
  - intros _. apply A_inv.
 Defined.
 
-Compute proj1_sig (A_inv 2 10).
-Compute A 2 5.
-Compute A 2 6.
+(* Compute proj1_sig (A_inv 2 10).   (* = 5 *) *)
 
 (** * Decomposition via sums of Ak numbers.
 
@@ -332,6 +338,7 @@ Lemma decomp_delta k n : Delta (S k) (decomp k n).
 Proof.
  unfold decomp. now destruct decomp_exists.
 Qed.
+Hint Resolve decomp_sum decomp_delta.
 
 Lemma decomp_unique k l l' :
  Delta (S k) l -> Delta (S k) l' ->
@@ -349,10 +356,9 @@ Lemma decomp_carac k n l :
  Delta (S k) l -> sumA k l = n -> decomp k n = l.
 Proof.
  intros D Eq. apply (@decomp_unique k); auto.
- apply decomp_delta.
- rewrite <- Eq. apply decomp_sum.
+ rewrite <- Eq; auto.
 Qed.
-
+Hint Resolve decomp_carac.
 
 (** ** Normalisation of a Fibonacci decomposition.
 
@@ -393,8 +399,10 @@ Fixpoint renorm_loop k l n :=
 
 Definition renorm k l := renorm_loop k l (length l).
 
-Compute renorm 1 [0;1;3;4;5;7].
-Compute renorm 2 [1;3;5;8].
+(*
+Compute renorm 1 [0;1;3;4;5;7]. (* [4; 8] *)
+Compute renorm 2 [1;3;5;8]. (* [1; 9] *)
+*)
 
 Lemma renorm_loop_length k l n :
   length l <= n -> length (renorm_loop k l n) <= length l.
@@ -413,6 +421,7 @@ Lemma renorm_length k l : length (renorm k l) <= length l.
 Proof.
  unfold renorm. now apply renorm_loop_length.
 Qed.
+Hint Resolve renorm_length.
 
 Lemma renorm_loop_sum k l n :
   length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
@@ -433,6 +442,7 @@ Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
 Proof.
  unfold renorm. now apply renorm_loop_sum.
 Qed.
+Hint Resolve renorm_sum.
 
 Definition HeadStep k l l' := match l, l' with
 | [], [] => True
@@ -488,6 +498,7 @@ Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
 Proof.
  unfold renorm. now apply renorm_loop_delta.
 Qed.
+Hint Resolve renorm_delta.
 
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.
@@ -603,14 +614,28 @@ Qed.
 
 (** ** Classification of decompositions *)
 
-Definition low k n :=
+Definition rank k n :=
   match decomp k n with
   | [] => None
   | p :: _ => Some p
   end.
 
-Definition Low k n p :=
- exists l, n = sumA k (p::l) /\ Delta (S k) (p::l).
+Definition Rank k n r :=
+ exists l, n = sumA k (r::l) /\ Delta (S k) (r::l).
+
+Lemma rank_Rank k n r :
+ rank k n = Some r <-> Rank k n r.
+Proof.
+ split.
+ - unfold rank.
+   destruct (decomp k n) eqn:E.
+   + discriminate.
+   + injection 1 as ->.
+     exists l. rewrite <- E; auto.
+ - intros (l & E & D).
+   unfold rank.
+   rewrite decomp_carac with (l:=r::l); auto.
+Qed.
 
 (** ** Decomposition of the predecessor of a Ak number
 
@@ -619,6 +644,8 @@ Definition Low k n p :=
    with [p] such that [n-1-p*(S k)] is in [0..k].
    i.e. [p = (n-1)/(S k)]
 *)
+
+(* TODO: finally not used yet *)
 
 Lemma decompred_spec_rev k n :
   { l | sumA k l = A k n - 1 /\
@@ -653,11 +680,6 @@ Proof.
 Defined.
 
 Definition decompred k n := proj1_sig (decompred_spec k n).
-
-Compute decompred 0 10.
-Compute decompred 1 10.
-Compute decompred 1 9.
-Compute decompred 2 10.
 
 Lemma decompred_sum k n :
   sumA k (decompred k n) = A k n - 1.
