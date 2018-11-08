@@ -14,7 +14,11 @@ Set Implicit Arguments.
      the case of [0] iterations, where Fk^0 is identity, and hence
      Fk (S n) = 1 always.
 
-    With this setting, [F1] is Hofstadter's [G], and [F2] is [H].
+    With this setting:
+    - [F 0] is [fun x => floor((x+1)/2)] (see below).
+    - [F 1] is Hofstadter's [G] i.e. [fun x => floor((x+1)/phi]
+      See OEIS A5206
+    - [F 2] is Hofstadter's [H], see OEIS A5374
 *)
 
 (** Coq representation of [F] as an inductive relation. This way,
@@ -138,7 +142,7 @@ Qed.
 
 (** A few examples *)
 
-Definition nums := List.seq 0 15.
+Definition nums := List.seq 0 26.
 
 (*
 Compute map (f 0) nums.
@@ -379,6 +383,23 @@ destruct (le_lt_or_eq _ _ (f_le k n)); trivial.
 rewrite f_fix in *. omega.
 Qed.
 Hint Resolve f_lt.
+
+(** Two special formulations for [f_step] *)
+
+Lemma f_next k n a : f k n = a -> (f k (S n) <> a <-> f k (S n) = S a).
+Proof.
+ generalize (f_step k n). omega.
+Qed.
+
+Lemma f_prev k n a : n <> 0 -> f k n = a ->
+ (f k (n-1) <> a <-> f k (n-1) = a - 1).
+Proof.
+ intros H Ha.
+ assert (Ha' := f_nz k H).
+ generalize (f_step k (n-1)). replace (S (n-1)) with n; omega.
+Qed.
+
+(** [f] cannot stay flat very long *)
 
 Lemma f_nonflat k n : f k (1+n) = f k n -> f k (2+n) = S (f k n).
 Proof.
@@ -778,4 +799,207 @@ Proof.
  intros.
  rewrite fs_nonflat_high_rank by trivial.
  destruct rank; simpl; intuition.
+Qed.
+
+(** * Another equation about [f]
+
+    This one will be used later when flipping [F] left/right. *)
+
+Lemma f_alt_eqn k n : f k n + (f k^^k) (f k (S n) - 1) = n.
+Proof.
+ destruct (Nat.eq_dec n 0) as [-> |Hn].
+ - simpl. rewrite f_k_1. simpl. now rewrite fs_k_0.
+ - assert (Hn' := f_nz k Hn).
+   case (f_step k n) as [H|H].
+   + (* n left child of a binary node *)
+     rewrite H.
+     generalize (f_eqn k (n-1)).
+     case (f_step k (n - 1));
+     replace (S (n - 1)) with n by omega.
+     * generalize (@f_max_two_antecedents k (n-1) (S n)). omega.
+     * intros. replace (f k n - 1) with (f k (n-1)) by omega.
+       rewrite iter_S in *. omega.
+   + (* n is rightmost child *)
+     generalize (f_eqn k n).
+     rewrite H, S_sub_1, <- iter_S.
+     now injection 1.
+Qed.
+
+
+(** * Depth in the [f] tree *)
+
+(** The depth of a node in the [f] tree is the number of
+    iteration of [g] needed before reaching node 1 *)
+
+Fixpoint depth_loop k n cpt :=
+ match cpt with
+ | 0 => 0
+ | S cpt' =>
+   match n with
+   | 0 => 0
+   | 1 => 0
+   | _ => S (depth_loop k (f k n) cpt')
+   end
+ end.
+
+Definition depth k n := depth_loop k n n.
+
+Lemma depth_loop_ok k n c c' :
+  n <= c -> n <= c' -> depth_loop k n c = depth_loop k n c'.
+Proof.
+ revert n c'.
+ induction c as [|c IH]; destruct c' as [|c']; simpl; auto.
+ - now inversion 1.
+ - now inversion 2.
+ - intros. destruct n as [|[|n]]; auto.
+   f_equal. apply IH.
+   + generalize (@f_lt k (S (S n))). omega.
+   + generalize (@f_lt k (S (S n))). omega.
+Qed.
+
+Lemma depth_0 k : depth k 0 = 0.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma depth_1 k : depth k 1 = 0.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma depth_SS k n : depth k (S (S n)) = S (depth k (f k (S (S n)))).
+Proof.
+ unfold depth.
+ remember (S n) as m.
+ simpl depth_loop at 1. rewrite Heqm at 1.
+ f_equal. apply depth_loop_ok; auto.
+ generalize (@f_lt k (S m)). omega.
+Qed.
+
+Lemma depth_eqn k n : 1<n -> depth k n = S (depth k (f k n)).
+Proof.
+ destruct n as [|[|n]].
+ - omega.
+ - omega.
+ - intros _. apply depth_SS.
+Qed.
+
+Lemma f_depth k n : depth k (f k n) = depth k n - 1.
+Proof.
+ destruct (le_lt_dec n 1) as [LE|LT].
+ - assert (H : n=0 \/ n=1) by omega.
+   destruct H as [-> | ->]; simpl; now rewrite ?f_k_0, ?f_k_1.
+ - rewrite (depth_eqn k LT). omega.
+Qed.
+
+Lemma fs_depth k p n : depth k ((f k ^^ p) n) = depth k n - p.
+Proof.
+ induction p; simpl.
+ - omega.
+ - rewrite f_depth, IHp. omega.
+Qed.
+
+Lemma depth_correct k n : n <> 0 -> (f k^^(depth k n)) n = 1.
+Proof.
+ induction n as [[|[|n]] IH] using lt_wf_rec.
+ - omega.
+ - reflexivity.
+ - intros _. rewrite depth_SS.
+   set (n' := S (S n)) in *. rewrite iter_S. apply IH.
+   + apply f_lt. unfold n'; omega.
+   + apply f_nz. unfold n'; omega.
+Qed.
+
+Lemma depth_minimal k n : 1<n -> 1 < ((f k^^(depth k n - 1)) n).
+Proof.
+ induction n as [[|[|n]] IH] using lt_wf_rec.
+ - omega.
+ - omega.
+ - intros _. rewrite depth_SS.
+   simpl. rewrite <- minus_n_O.
+   set (n' := S (S n)) in *.
+   destruct (Nat.eq_dec (f k n') 1) as [->|NE].
+   + simpl. unfold n'; omega.
+   + assert (H : f k n' <> 0) by (apply f_nz; unfold n'; omega).
+     assert (depth k (f k n') <> 0).
+     { intro EQ. generalize (depth_correct k H). now rewrite EQ. }
+     replace (depth k (f k n')) with (S (depth k (f k n') - 1)) by omega.
+     rewrite iter_S.
+     apply IH.
+     * apply f_lt. unfold n'; omega.
+     * omega.
+Qed.
+
+Lemma depth_mono k n m : n <= m -> depth k n <= depth k m.
+Proof.
+ revert m.
+ induction n as [[|[|n]] IH] using lt_wf_rec; intros m H.
+ - change (depth k 0) with 0. auto with arith.
+ - change (depth k 1) with 0. auto with arith.
+ - destruct m as [|[|m]]; try omega.
+   rewrite 2 depth_SS.
+   apply le_n_S.
+   apply IH.
+   + apply f_lt. omega.
+   + now apply f_mono.
+Qed.
+
+Lemma depth_A k p : depth k (A k p) = p.
+Proof.
+ induction p as [|p IH].
+ - reflexivity.
+ - rewrite depth_eqn.
+   + now rewrite f_A, S_sub_1, IH.
+   + change 1 with (A k 0). apply A_lt. auto with arith.
+Qed.
+
+Lemma depth_SA k p : depth k (S (A k p)) = S p.
+Proof.
+ induction p as [|p IH].
+ - simpl. unfold depth. simpl. rewrite f_init; auto with arith.
+ - rewrite depth_eqn.
+   + rewrite f_SA, S_sub_1. f_equal. apply IH.
+     auto with arith.
+   + generalize (@A_nz k (S p)). omega.
+Qed.
+
+Lemma depth_is_0 k n : depth k n = 0 <-> n <= 1.
+Proof.
+ destruct n as [|[|n]].
+ - rewrite depth_0; intuition.
+ - rewrite depth_1; intuition.
+ - rewrite depth_SS. omega.
+Qed.
+
+Lemma depth_carac k p n : p <> 0 ->
+  (depth k n = p <-> S (A k (p-1)) <= n <= A k p).
+Proof.
+ intros Hp.
+ split; intros H.
+ - split.
+   + destruct (le_lt_dec n (A k (p-1))) as [LE|LT]; trivial.
+     apply (depth_mono k) in LE. rewrite depth_A in LE. omega.
+   + destruct (le_lt_dec n (A k p)) as [LE|LT]; trivial.
+     unfold lt in LT. apply (depth_mono k) in LT.
+     rewrite depth_SA in LT; omega.
+ - destruct H as (H1,H2).
+   apply (depth_mono k) in H1. apply (depth_mono k) in H2.
+   rewrite depth_A in H2. rewrite depth_SA in H1. omega.
+Qed.
+
+Lemma depth_init k n : depth k n = n-1 <-> n <= k+3.
+Proof.
+ destruct n as [|[|n]].
+ - rewrite ?depth_0. omega.
+ - rewrite ?depth_1. omega.
+ - simpl.
+   rewrite depth_carac by omega.
+   rewrite S_sub_1.
+   split; intros.
+   + assert (A k n = S n) by (generalize (A_lt_id k n); omega).
+     rewrite <- A_base_iff in *.
+     omega.
+   + simpl.
+     rewrite A_base by omega.
+     generalize (@A_nz k (n-k)). omega.
 Qed.

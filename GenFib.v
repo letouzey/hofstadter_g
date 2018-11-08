@@ -13,6 +13,14 @@ Fixpoint A (k n : nat) :=
   | S n => A k n + A k (n-k)
   end.
 
+(**
+ - k=0 : binary numbers
+ - k=1 : Fibonacci numbers (non-standard indexes)
+         1 2 3 5 8 ...
+ - k=2 : Narayana’s Cows, see OEIS A930 (shifted)
+ - k=3 : See OEIS A003269 (shifted)
+*)
+
 Definition test := List.seq 0 10.
 
 (*
@@ -46,11 +54,16 @@ Proof.
  rewrite IHn; omega.
 Qed.
 
+Lemma S_sub_1 p : S p - 1 = p.
+Proof.
+ omega.
+Qed.
+
 Lemma A_sum k n : n<>0 -> A k n = A k (n-1) + A k (n-S k).
 Proof.
  destruct n.
  - now destruct 1.
- - intros _. simpl; rewrite Nat.sub_0_r; auto.
+ - intros _. now rewrite S_sub_1.
 Qed.
 
 Lemma A_sum' k n : A k (n+S k) = A k n + A k (n+k).
@@ -113,6 +126,22 @@ Lemma A_lt_id k n : n < A k n.
 Proof.
  induction n; simpl; auto.
  generalize (A_nz k (n-k)). omega.
+Qed.
+
+Lemma A_base_iff k n : n <= S k <-> A k n = S n.
+Proof.
+ split. apply A_base.
+ intros.
+ destruct n; auto with arith.
+ rewrite A_S in H.
+ generalize (A_lt_id k n).
+ generalize (A_lt_id k (n-k)).
+ omega.
+Qed.
+
+Lemma A_high k n : S k < n <-> S n < A k n.
+Proof.
+ generalize (A_base_iff k n) (A_lt_id k n). omega.
 Qed.
 
 Lemma A_inv k n : { p | A k p <= S n < A k (S p) }.
