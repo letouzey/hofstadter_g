@@ -340,11 +340,11 @@ f_k (0) &= 0
 On allonge la branche de droite ($k+1$ segments)
 \bigskip
 \begin{tabular}{lclclcl}
-$F_k$ & = & 
+$f_k$ & = &
 \begin{tikzpicture}[grow'=up]
 \Tree
      [.$\circ$ $f_k$
-        [.$\circ$ [. {\ldots} [.$F_k$ ]]]]
+        [.$\circ$ [. {\ldots} [.$f_k$ ]]]]
 \end{tikzpicture}
 \end{tabular}
 
