@@ -418,11 +418,11 @@ Proof.
    + omega.
 Qed.
 
-Lemma f_SS k n : S (f k n) <= f k (S (S n)).
+Lemma f_SS k n : f k n < f k (S (S n)).
 Proof.
  destruct (f_step k n) as [E|E].
  - generalize (f_nonflat _ _ E). simpl in *. omega.
- - transitivity (f k (S n)). omega. auto using f_mono_S.
+ - apply Nat.lt_le_trans with (f k (S n)). omega. auto using f_mono_S.
 Qed.
 
 Lemma f_double_le k n : n <= f k (2*n).
@@ -683,6 +683,23 @@ Proof.
  intros. rewrite fs_decomp; auto. f_equal. f_equal. auto.
 Qed.
 
+Lemma f_sumA_lax k l : k<>0 -> Delta k l ->
+ f k (sumA k l) = sumA k (map pred l).
+Proof.
+ intros. rewrite <- renorm_sum.
+ rewrite f_sumA; auto.
+ rewrite <- !map_decr_1, renorm_mapdecr; auto. omega.
+Qed.
+
+Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
+ (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+Proof.
+ intros. rewrite <- renorm_sum.
+ rewrite fs_sumA; auto with arith.
+ now apply renorm_mapdecr.
+Qed.
+
+
 (** Decomposition and positions in the F tree *)
 
 Lemma rchild_decomp k n :
@@ -722,6 +739,20 @@ Proof.
  rewrite <- flat_rank_0.
  generalize (f_step k n). omega.
 Qed.
+
+(** At most [k+1] consecutive [+1] steps *)
+
+Lemma f_maxsteps k n :
+ f k (n+k+2) <= f k n + k+1.
+Proof.
+ destruct (rank_later_is_zero k n) as (p & LE & H).
+ apply flat_rank_0 in H.
+ transitivity (f k (S (p + n)) + (k+2-S p)).
+ - generalize (f_lipschitz k (S (p+n)) (n+k+2)). omega.
+ - rewrite H.
+   generalize (f_lipschitz k n (p+n)). omega.
+Qed.
+
 
 (** Beware, when comparing an [option nat] and a [nat],
     [None] serves as a bottom element, not comparable with any [nat]. *)
@@ -799,6 +830,24 @@ Proof.
  intros.
  rewrite fs_nonflat_high_rank by trivial.
  destruct rank; simpl; intuition.
+Qed.
+
+(** [(f k)^^p] cannot have more than [p+1] consecutive flats *)
+
+Lemma fs_maxflat k n p : p <= S k ->
+ (f k^^p) n < (f k^^p) (n+p+1).
+Proof.
+ intros Hp.
+ destruct (rank k n) as [r|] eqn:Hr.
+ - destruct (@rank_later_is_high k n r p Hp Hr) as (r' & q & H1 & H2 & H3).
+   assert (E : (f k ^^p) (S (q+n)) = S ((f k^^p) (q+n))).
+   { apply fs_nonflat_high_rank; auto. rewrite H2. simpl. omega. }
+   unfold lt.
+   transitivity (S ((f k ^^p) (q+n))).
+   + apply -> Nat.succ_le_mono. apply fs_mono. omega.
+   + rewrite <- E. apply fs_mono. omega.
+ - rewrite rank_none in *. subst.
+   rewrite fs_k_0. apply fs_nonzero. omega.
 Qed.
 
 (** * Another equation about [f]

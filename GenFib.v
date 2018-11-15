@@ -666,6 +666,125 @@ Proof.
    rewrite decomp_carac with (l:=r::l); auto.
 Qed.
 
+Lemma rank_none k n : rank k n = None <-> n = 0.
+Proof.
+ split.
+ - unfold rank. destruct decomp eqn:H.
+   + now rewrite <- (decomp_sum k n), H.
+   + discriminate.
+ - now intros ->.
+Qed.
+
+Lemma rank_next_0 k n r : rank k n = Some r -> k < r ->
+ rank k (S n) = Some 0.
+Proof.
+ unfold rank.
+ intros Hr.
+ rewrite decomp_S.
+ destruct decomp as [|r' l]; try discriminate.
+ injection Hr as ->. simpl.
+ case Nat.leb_spec; auto. omega.
+Qed.
+
+Lemma rank_next_high k n r : rank k n = Some r -> r <= k ->
+ exists m, rank k (S n) = Some (S r + m*(S k)).
+Proof.
+ unfold rank.
+ intros Hr.
+ rewrite decomp_S.
+ destruct decomp as [|r' l]; try discriminate.
+ injection Hr as ->. simpl.
+ rewrite <- Nat.leb_le. intros ->.
+ assert (R := renorm_head k (S r::l)).
+ destruct renorm as [|r' l']; simpl in *; intuition.
+ destruct R as (m, Hm).
+ exists m. now f_equal.
+Qed.
+
+Lemma rank_next_high' k n r : rank k n = Some r -> r <= k ->
+ exists r', rank k (S n) = Some r' /\ r < r'.
+Proof.
+ intros H H'.
+ destruct (rank_next_high _ H H') as (m & Hm).
+ exists (S r + m * S k); auto with arith.
+Qed.
+
+Lemma rank_next k n r : rank k n = Some r ->
+ rank k (S n) = Some 0 \/
+ exists m, rank k (S n) = Some (S r + m*(S k)).
+Proof.
+ unfold rank.
+ intros Hr.
+ rewrite decomp_S.
+ destruct decomp as [|r' l]; try discriminate.
+ injection Hr as ->. simpl.
+ case Nat.leb_spec; auto. intros LE.
+ assert (R := renorm_head k (S r::l)).
+ destruct renorm as [|r' l']; simpl in *; intuition.
+ destruct R as (m, Hm).
+ right. exists m. now f_equal.
+Qed.
+
+Lemma rank_next' k n r : rank k n = Some r ->
+ exists r', rank k (S n) = Some r' /\ (r' = 0 \/ r < r').
+Proof.
+ intros Hr. apply rank_next in Hr.
+ destruct Hr as [Hr|(m,Hr)].
+ - exists 0; intuition.
+ - exists (S r + m * S k); split; auto. right. auto with arith.
+Qed.
+
+Lemma ranks_next k n r p : rank k n = Some r ->
+ (exists q, q<=p /\ rank k (q+n) = Some 0) \/
+ (exists r', rank k (p+n) = Some r' /\ p+r <= r').
+Proof.
+ revert n r.
+ induction p as [|p IH].
+ - right. exists r; auto.
+ - intros n r Hn.
+   destruct (rank_next' k n Hn) as (r' & Hr & [->|LT]).
+   + left. exists 1; auto with arith.
+   + destruct (IH (S n) r' Hr) as [(q & Hq & H)|(r'' & H & Hr'')];
+     rewrite Nat.add_succ_r in H.
+     * left. exists (S q); auto with arith.
+     * right. exists r''. split; auto; omega.
+Qed.
+
+Lemma rank_later_is_high k n r p : p <= S k ->
+ rank k n = Some r ->
+ exists r', exists q, q <= p /\ rank k (q+n) = Some r' /\ p <= r'.
+Proof.
+ revert n r.
+ induction p as [|p IH]; intros n r Hp Hr.
+ - exists r. exists 0. auto with arith.
+ - destruct (IH n r) as (r' & q & H1 & H2 & H3); auto; try omega.
+   destruct (Nat.leb_spec r' k) as [LE|LT].
+   destruct (rank_next_high' _ H2 LE) as (r'' & Hr'' & LT').
+   + exists r''. exists (S q). repeat split; auto with arith.
+     omega.
+   + exists r'. exists q. repeat split; auto with arith. omega.
+Qed.
+
+Lemma rank_later_is_zero k n :
+ exists p, p <= S k /\ rank k (p+n) = Some 0.
+Proof.
+ destruct (rank k n) as [r|] eqn:Hr.
+ - destruct r as [|r].
+   + exists 0; auto with arith.
+   + destruct (ranks_next k n k Hr) as [(q & Hq & H)|(r' & H & LT)].
+     * exists q; auto.
+     * clear Hr.
+       exists (S k). split; auto.
+       simpl.
+       unfold rank in *.
+       rewrite decomp_S.
+       destruct (decomp k (k+n)) as [|r'' l]; auto.
+       injection H as ->; simpl.
+       case Nat.leb_spec; auto; omega.
+ - rewrite rank_none in *. subst. exists 1; auto with arith.
+Qed.
+
+
 (** ** Decomposition of the predecessor of a Ak number
 
    [(A k n) - 1 = A k (n-1) + A k (n-1-S k) + ... + A k (n-1-p*(S k))]
