@@ -753,6 +753,8 @@ Proof.
    generalize (f_lipschitz k n (p+n)). omega.
 Qed.
 
+(** TODO: exactly [k+1] consecutive [+1] steps when [n = 1 + A k p]
+    with [p>2k]. *)
 
 (** Beware, when comparing an [option nat] and a [nat],
     [None] serves as a bottom element, not comparable with any [nat]. *)
