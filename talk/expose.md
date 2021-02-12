@@ -195,9 +195,9 @@ Def: le *rang* d'une décomposition est l'indice du plus petit terme.
 
 \bigskip
 
-Algo: canonisation d'une décomposition faible de n
+Algo: canonisation d'une décomposition relachée de n
 
- - le nombre de termes croît ou stagne
+ - le nombre de termes décroît ou stagne
  - le rang augmente (par pas de 2) ou stagne
 
 ## G et Fibonacci
