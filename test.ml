@@ -94,6 +94,12 @@ let _ = lims.(3)-.limh;;
 let _ = lims.(4)-.1./.expo4;;
 
 
+(* Array of [f k n] (generalized Hofstadter function)
+    - First line (k=0) is identify (arbitrary)
+    - Second line (k=1) is function d (division by two)
+    - Third line (k=2) is function g
+    - Fourth line (k=3) is function h
+*)
 
 let tabulate k n =
   let a = Array.make_matrix k n 0 in
@@ -110,6 +116,10 @@ let tabulate k n =
   a
 
 let a = tabulate 1000 1000
+
+(* Check that all columns are increasing : f k n <= f (k+1) n
+   (except between the arbitrary first line and the second)
+*)
 
 let check k n a =
   for i = 1 to k-2 do
@@ -163,7 +173,7 @@ let delta'' = Array.init 1000 @@ fun i ->
 
 let _ = output_gnuplot_file "/tmp/out" delta''
 
-let delta3 = Array.init 1000000 @@ fun i -> float i *. lims.(3) -. float a.(3).(i)
+let delta3 = Array.init 100000 @@ fun i -> float a.(3).(i) -. float i *. lims.(3)
 
 let _ = extrems delta3
 
