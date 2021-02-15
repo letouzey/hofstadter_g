@@ -51,10 +51,13 @@ let _ = Array.init 20 @@ f 4
 
 let _ = Array.init 100 @@ fun n -> g n - d n
 
+let _ = Array.init 35 @@ fun n -> (n+1)-h (n+1)
+
 
 (** LIMITS *)
 
 (* k = 2 *)
+
 let phi = (1.+.sqrt(5.))/.2. (* root of X^2-X-1 *)
 let tau = phi-.1.  (* also 1/phi, root of X^2+X-1 *)
 
@@ -131,6 +134,26 @@ let check k n a =
 let _ = check 1000 1000 a
 
 let a = tabulate 10 1000000
+
+(* Potentially interesting upper-bound of g :
+   - starts as g for the 8 first values, then shifts by +5 every 8 steps
+   - this amonts to putting a unary node more frequently than g
+     (or for gg, a double value every 3 instead of every 2 ou 3:
+      111 22 333 444 55 666 777 88 999)
+*)
+
+(* let rec mino_gg n = if n <= 8 then g(g(n)) else 3+mino_gg (n-8) *)
+let rec majo_g n = if n <= 8 then g n else 5+majo_g(n-8)
+let rec majo_g_bis n = g (n mod 8) + 5*(n/8)
+
+(* This is indeed an upper bound for g *)
+let diff2 = Array.init 100000 @@ fun n -> (majo_g_bis n - a.(2).(n))
+let _ = extrems diff2
+
+(* And also a lower bound for h :-) *)
+let diff3 = Array.init 100000 @@ fun n -> (majo_g_bis n - a.(3).(n))
+let _ = extrems diff3
+
 
 (** FLOAT EXPRESSIONS OR APPROXIMATIONS *)
 
