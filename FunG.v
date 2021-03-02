@@ -176,6 +176,11 @@ induction 1.
 - transitivity (g m); auto using g_mono_S.
 Qed.
 
+Lemma g_le_S n : g (S n) <= S (g n).
+Proof.
+ generalize (g_step n). omega.
+Qed.
+
 (** NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
 
 Lemma g_lipschitz n m : g m - g n <= m - n.
@@ -284,6 +289,44 @@ Proof.
  apply g_double_le.
  apply g_mono. omega.
 Qed.
+
+(* Two consecutive steps are possible, but not three *)
+
+Lemma g_maxsteps n : g (2+n) = 2 + g n -> g (3+n) = 2 + g n.
+Proof.
+ intros H.
+ simpl in *.
+ destruct (g_step n) as [H0|H0], (g_step (S n)) as [H1|H1]; try omega.
+ assert (H2 := g_eqn n).
+ assert (H3 := g_eqn (S n)).
+ assert (H4 := g_eqn (S (S n))).
+ assert (H5 : g(g(S n)) = g(g n)) by omega.
+ rewrite H0 in H5.
+ assert (H6 := g_nonflat _ H5).
+ rewrite H1 in H4.
+ rewrite <- H0 in H6. omega.
+Qed.
+
+(** Said otherwise, g(3+n) cannot be 3+g(n) *)
+
+Lemma g_3_2 n : g (3+n) <= 2 + g n.
+Proof.
+ destruct (g_step n) as [H|H].
+ - rewrite <- H. generalize (g_lipschitz (S n) (3+n)). omega.
+ - destruct (g_step (S n)) as [H'|H'].
+   + generalize (g_le_S (2+n)). simpl in *. omega.
+   + rewrite H in H'. apply g_maxsteps in H'. omega.
+Qed.
+
+Lemma g_maxsteps_below n : g (2+n) = 2 + g n -> g (n-1) = g n.
+Proof.
+ intros H.
+ assert (Nz : n<>0). { now intros ->. }
+ assert (H' := g_3_2 (n-1)).
+ replace (3+(n-1)) with (2+n) in * by omega.
+ generalize (@g_mono (n-1) n). omega.
+Qed.
+
 
 (*==============================================================*)
 
