@@ -232,7 +232,7 @@ Proof.
        { apply Nat.lt_nge. intro LE. apply fib_mono in LE. omega. }
      * intuition.
      * intuition.
-Qed.
+Defined.
 
 Lemma decomp_unique_rev l l' :
  ~In 0 l -> ~In 1 l -> DeltaRev 2 l ->
@@ -272,7 +272,7 @@ Proof.
  - apply Delta_alt; split.
    + now apply Delta_rev.
    + intros y. rewrite <- in_rev. do 2 (destruct y; intuition).
-Qed.
+Defined.
 
 Lemma decomp_unique l l' :
  Delta 2 (0::l) -> Delta 2 (0::l') ->

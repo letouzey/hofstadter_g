@@ -150,6 +150,17 @@ Proof.
    subst. apply H1. rewrite in_app_iff. now right.
 Qed.
 
+Lemma Delta2_apart l x :
+ Delta 2 l -> In x l -> In (S x) l -> False.
+Proof.
+ induction l as [|a l IH].
+ - inversion 2.
+ - rewrite Delta_alt. intros (D,D').
+   simpl. intros [E|H] [E'|H']; auto; try omega.
+   + apply D' in H'. omega.
+   + apply D' in H. omega.
+Qed.
+
 (** * Decreasing lists *)
 
 (** [DeltaRev p l] is [Delta p (rev l)] :

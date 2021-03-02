@@ -294,9 +294,22 @@ Proof.
    specialize (H (S k) n). omega.
 Qed.
 
+Lemma fs_step k p n : (f k ^^p) (S n) = (f k ^^p) n \/
+                      (f k ^^p) (S n) = S ((f k ^^p) n).
+Proof.
+ induction p; simpl.
+ - now right.
+ - destruct IHp as [-> | ->]. now left. apply f_step.
+Qed.
+
 Lemma f_mono_S k n : f k n <= f k (S n).
 Proof.
  generalize (f_step k n). omega.
+Qed.
+
+Lemma fs_mono_S k p n : (f k ^^p) n <= (f k ^^p) (S n).
+Proof.
+ generalize (fs_step k p n). omega.
 Qed.
 
 Lemma f_mono k n m : n <= m -> f k n <= f k m.
@@ -308,9 +321,9 @@ Qed.
 
 Lemma fs_mono k p n m : n <= m -> (f k^^p) n <= (f k^^p) m.
 Proof.
-revert n m. induction p; auto.
-intros. simpl. etransitivity. eapply f_mono. eapply IHp; eauto.
-apply f_mono; auto.
+induction 1.
+- trivial.
+- transitivity ((f k ^^p) m); auto using fs_mono_S.
 Qed.
 
 (** NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
@@ -753,7 +766,7 @@ Proof.
    generalize (f_lipschitz k n (p+n)). omega.
 Qed.
 
-(** TODO: exactly [k+1] consecutive [+1] steps when [n = 1 + A k p]
+(** TODO: exactly [k+1] consecutive [+1] steps when [n = 2 + A k p]
     with [p>2k]. *)
 
 (** Beware, when comparing an [option nat] and a [nat],
