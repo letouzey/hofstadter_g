@@ -312,6 +312,12 @@ Proof.
  generalize (fs_step k p n). omega.
 Qed.
 
+Lemma f_le_add k n m : f k (n+m) <= n + f k m.
+Proof.
+induction n; trivial.
+simpl. destruct (f_step k (n+m)); omega.
+Qed.
+
 Lemma f_mono k n m : n <= m -> f k n <= f k m.
 Proof.
 induction 1.
@@ -1067,3 +1073,167 @@ Proof.
      rewrite A_base by omega.
      generalize (@A_nz k (n-k)). omega.
 Qed.
+
+(*========================================================*)
+
+(** Particular case of function H, i.e. k=2 *)
+
+Definition h := f 2.
+
+Lemma h_add_1 n : h n <= h (1+n) <= 1 + h n.
+Proof.
+ unfold h. destruct (f_step 2 n); simpl; omega.
+Qed.
+
+Lemma h_add_2 n : 1 + h n <= h (2+n) <= 2 + h n.
+Proof.
+ unfold h. split.
+ - generalize (f_SS 2 n). simpl. omega.
+ - apply f_le_add.
+Qed.
+
+Lemma h_add_3 n : 1 + h n <= h (3+n) <= 3 + h n.
+Proof.
+ split.
+ - transitivity (h (2+n)). apply h_add_2. apply f_mono. omega.
+ - apply f_le_add.
+Qed.
+
+Lemma h_add_4 n : 2 + h n <= h (4+n) <= 3 + h n.
+Proof.
+ split.
+ - transitivity (1 + h (2 + n)).
+   + generalize (h_add_2 n). omega.
+   + apply (h_add_2 (2+n)).
+ - generalize (f_maxsteps 2 n). unfold h.
+   replace (n+2+2) with (4+n); omega.
+Qed.
+
+Lemma h_add_5 n : 3 + h n <= h (5+n) <= 4 + h n.
+Proof.
+ assert (H : h (5+n) <= 4 + h n).
+ { transitivity (3 + h (1+n)). apply h_add_4.
+   generalize (f_le_add 2 1 n). unfold h. simpl. omega. }
+ split; auto. clear H.
+ destruct (GenFib.decomp_exists 2 n) as (l,(Hl,Hl')).
+ destruct l as [|[|a] l].
+ - subst. compute. auto.
+ - (* a = 0 *)
+   simpl in Hl.
+   destruct l as [|b l].
+   + subst. compute. auto.
+   + inversion Hl'; subst.
+     simpl in H1. inversion H1; subst.
+     * change (5 + _) with (sumA 2 (0::2::4::l)).
+       unfold h. rewrite f_sumA_lax; auto. simpl map.
+       change (sumA 2 (0::_)) with (3+sumA 2 (map pred (0::3::l))).
+       rewrite <- f_sumA; auto.
+     * change (5 + _) with (2 + sumA 2 (0::2::S m::l)).
+       change (h (S _)) with (h (sumA 2 (0::S m::l))).
+       unfold h. rewrite f_sumA; auto. simpl map.
+       transitivity (1 + h (sumA 2 (0::2::S m::l))).
+       2: apply h_add_2.
+       unfold h. rewrite f_sumA_lax; auto.
+       do 2 (constructor; try omega). eapply Delta_more; eauto.
+ - (* a >= 1 *)
+   change (5+n) with (4+(1+n)).
+   transitivity (2 + h (1+n)). 2:apply h_add_4.
+   rewrite <- Hl.
+   destruct a as [|a].
+   + (* a = 1 *)
+     change (1+ sumA _ _) with (sumA 2 (2::l)).
+     unfold h. rewrite f_sumA; auto. rewrite f_sumA_lax; auto.
+   + (* a >= 2 *)
+     set (a' := S (S a)) in *.
+     change (1+ sumA _ _) with (sumA 2 (0::a'::l)).
+     unfold h. rewrite f_sumA; auto. rewrite f_sumA_lax; auto.
+     constructor. omega. apply Delta_more with 3; auto.
+Qed.
+
+Lemma h_add_6 n : 3 + h n <= h (6+n) <= 5 + h n.
+Proof.
+ generalize (h_add_2 n) (h_add_4 (2+n)). simpl. omega.
+Qed.
+
+Lemma h_add_7 n : 4 + h n <= h (7+n) <= 6 + h n.
+Proof.
+ generalize (h_add_2 n) (h_add_5 (2+n)). simpl. omega.
+Qed.
+
+Lemma h_add_8 n : 5 + h n <= h (8+n) <= 6 + h n.
+Proof.
+ assert (H : h (8+n) <= 6 + h n).
+ { transitivity (3 + h (4+n)). apply h_add_4.
+   generalize (h_add_4 n). omega. }
+ split; auto. clear H.
+ destruct (GenFib.decomp_exists 2 n) as (l,(Hl,Hl')).
+ destruct l as [|[|a] l].
+ - subst. compute. auto.
+ - (* a = 0 *)
+   destruct l as [|b l].
+   + subst. compute. auto.
+   + inversion_clear Hl'. simpl in H.
+     inversion H; subst b.
+     * { subst n. unfold h. rewrite f_sumA; auto. simpl map.
+         destruct l as [|c l].
+         - compute. auto.
+         - inversion_clear H0. simpl in H1.
+           inversion H1; subst c.
+           + change (8 + sumA _ _) with (sumA 2 (0::4::7::l)).
+             rewrite f_sumA_lax; auto.
+           + change (8 + sumA _ _) with (sumA 2 (3::5::S m::l)).
+             rewrite f_sumA_lax; auto.
+             constructor; auto. constructor. omega.
+             apply Delta_more with 3; auto. }
+     * transitivity (3 + h (3+n)). 2: apply h_add_5.
+       subst n.
+       unfold h. rewrite f_sumA; auto.
+       change (3 + sumA _ _) with (sumA 2 (0::2::S m::l)).
+       unfold h. rewrite f_sumA_lax; auto.
+       constructor. auto. constructor. omega.
+       apply Delta_more with 3; eauto.
+ - (* a >= 1 *)
+   transitivity (3 + h (3+n)). 2: apply h_add_5.
+   subst n.
+   unfold h. rewrite f_sumA; auto. simpl map.
+   destruct a as [|[|[|a]]].
+   + (* a = 1 *)
+     destruct l as [|b l].
+     * subst. compute. auto.
+     * inversion_clear Hl'. simpl in H.
+       inversion H; subst b.
+       ** change (3 + sumA _ _) with (sumA 2 (1::5::l)).
+          rewrite f_sumA_lax; auto.
+       ** change (3 + sumA _ _) with (sumA 2 (0::3::S m::l)).
+          rewrite f_sumA_lax; auto. simpl. omega.
+          constructor. auto. constructor. omega.
+          apply Delta_more with 3; auto.
+   + (* a = 2 *)
+     change (3 + sumA _ _) with (sumA 2 (1::3::l)).
+     rewrite f_sumA_lax; auto.
+   + (* a = 3 *)
+     change (3 + sumA _ _) with (sumA 2 (0::4::l)).
+     rewrite f_sumA_lax; auto.
+   + (* a >= 3 *)
+     set (a' := S (S (S (S a)))) in *.
+     change (3 + sumA _ _) with (sumA 2 (2::a'::l)).
+     rewrite f_sumA_lax; auto.
+     constructor. omega.
+     apply Delta_more with 3; auto.
+Qed.
+
+Lemma g_below_h n : g n <= h n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 8).
+- do 8 (destruct n; [compute; auto|]). omega.
+- replace n with (8+(n-8)) by omega.
+  transitivity (5 + g (n - 8)). apply g_add_8.
+  transitivity (5 + h (n - 8)). 2:apply h_add_8.
+  specialize (IH (n-8)). omega.
+Qed.
+
+(* TODO: g_below_h can be generalized into :
+   Conjecture : forall k n, f k n <= f (S k) n
+   Proof : ??
+*)
