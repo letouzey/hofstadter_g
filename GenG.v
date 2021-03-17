@@ -492,6 +492,114 @@ Proof.
  intros. rewrite f_pred. rewrite fs_init; omega.
 Qed.
 
+(*==============================================================*)
+
+(** * Faster computation of f *)
+
+(** Auxiliary function : [countdown n = [n;n-1;...0]] *)
+
+Fixpoint countdown n :=
+ match n with
+ | 0 => [0]
+ | S n' => n :: countdown n'
+ end.
+
+Lemma countdown_in n x : In x (countdown n) <-> x <= n.
+Proof.
+ induction n; simpl; rewrite ?IHn; omega.
+Qed.
+
+(** Auxiliary function : dropping [n] leftmost elements in a list *)
+
+Fixpoint npop {A} n (l:list A) :=
+ match n with
+ | 0 => l
+ | S n' =>
+   match l with
+   | [] => []
+   | _::l' => npop  n' l'
+   end
+ end.
+
+Lemma npop_map {A B} (f:A->B) l p :
+ npop p (map f l) = map f (npop p l).
+Proof.
+ revert l. induction p; destruct l; simpl in *; auto.
+Qed.
+
+Lemma npop_countdown x y : x <= y ->
+  npop (y - x) (countdown y) = countdown x.
+Proof.
+ induction 1.
+ - now rewrite Nat.sub_diag.
+ - replace (S m - x) with (S (m-x)) by omega. simpl; auto.
+Qed.
+
+(** With [ftabulate],  we will build at once the list
+    [[f k n; f k (n-1); ... ; f k 0]].
+    And [fdescend] visits this list to compute [((f k)^^p) n].
+    Even with nat values, doing this way is way faster than the current [f].
+*)
+
+Fixpoint fdescend stk p n :=
+  match p with
+  | 0 => n
+  | S p =>
+    match stk with
+    | [] => 0 (* normally won't occur *)
+    | a::_ => fdescend (npop (n-a) stk) p a
+    end
+  end.
+
+Fixpoint ftabulate k n :=
+ match n with
+ | 0 => [0]
+ | S n =>
+   let stk := ftabulate k n in
+   (S n - fdescend stk (S k) n)::stk
+ end.
+
+Lemma fdescend_spec k stk p n :
+ stk = map (f k) (countdown n) -> fdescend stk p n = ((f k)^^p) n.
+Proof.
+ revert stk n.
+ induction p; intros stk n E.
+ - simpl; auto.
+ - rewrite iter_S. simpl.
+   destruct stk as [|a stk'] eqn:Stk.
+   + now destruct n.
+   + assert (a = f k n).
+     { destruct n; simpl in E; inversion E; auto. }
+     rewrite <- H.
+     apply IHp.
+     rewrite E. rewrite npop_map. f_equal.
+     apply npop_countdown. subst a. apply f_le.
+Qed.
+
+Lemma ftabulate_spec k n : ftabulate k n = map (f k) (countdown n).
+Proof.
+ induction n.
+ - reflexivity.
+ - cbn -[minus fdescend].
+   rewrite (fdescend_spec k); auto.
+   rewrite <- f_S. f_equal; auto.
+Qed.
+
+(** Now comes a reasonably efficient [f] function
+    (moreover, [ftabulate] can always be used when multiples
+    images of [f] are needed at the same time). *)
+
+Definition fopt k n :=
+  match ftabulate k n with
+  | a::_ => a
+  | [] => 0
+  end.
+
+Lemma fopt_spec k n : fopt k n = f k n.
+Proof.
+ unfold fopt. rewrite ftabulate_spec. destruct n; simpl; auto.
+Qed.
+
 
 (*==============================================================*)
 
@@ -1076,40 +1184,14 @@ Qed.
 
 (*========================================================*)
 
-(** Particular case of function H, i.e. k=2 *)
+(** Study of quasi-additivity : [f k (p+n)] is close to [f k p + f k n].
+    Said otherwise, for some fixed p, few values are reached by
+    [f k (p+n)-f k n] when n varies.
+    For this study, we'll turn a strict k-decomposition of n into
+    a lax decomp of (p+n).
+*)
 
-Definition h := f 2.
-
-Lemma h_add_1 n : h n <= h (1+n) <= 1 + h n.
-Proof.
- unfold h. destruct (f_step 2 n); simpl; omega.
-Qed.
-
-Lemma h_add_2 n : 1 + h n <= h (2+n) <= 2 + h n.
-Proof.
- unfold h. split.
- - generalize (f_SS 2 n). simpl. omega.
- - apply f_le_add.
-Qed.
-
-Lemma h_add_3 n : 1 + h n <= h (3+n) <= 3 + h n.
-Proof.
- split.
- - transitivity (h (2+n)). apply h_add_2. apply f_mono. omega.
- - apply f_le_add.
-Qed.
-
-Lemma h_add_4 n : 2 + h n <= h (4+n) <= 3 + h n.
-Proof.
- split.
- - transitivity (1 + h (2 + n)).
-   + generalize (h_add_2 n). omega.
-   + apply (h_add_2 (2+n)).
- - generalize (f_maxsteps 2 n). unfold h.
-   replace (n+2+2) with (4+n); omega.
-Qed.
-
-(* Split a decomposition in two, all the left being <= p *)
+(** Split a decomposition in two, all the left being <= p *)
 
 Fixpoint getprefix p l :=
  match l with
@@ -1153,6 +1235,8 @@ Proof.
  case Nat.ltb_spec; auto. omega.
 Qed.
 
+(** Any number has a [A] number above it. *)
+
 Definition invA_up k n := S (invA k (n-2)).
 
 Lemma invA_up_spec k n : n <= A k (invA_up k n).
@@ -1162,19 +1246,19 @@ Proof.
 Qed.
 
 (* To add p to a strict k-decomposition (while possibly relaxing it),
-   no need to dig deeper than value [3*k+invA_up k p].
+   no need to dig deeper than value [3*k+(invA_up k p)-1].
    Note : tighter upper bounds than that could probably be found,
    but seem harder to prove *)
 
-Lemma gen_add_decomp k p :
+Lemma increase_bottom_decomp k p : k<>0 ->
   forall l, Delta (S k) l ->
    exists l1 l1' l2,
      l = l1 ++ l2 /\
      sumA k l1' = p + sumA k l1 /\
-     Below l1 (3*k+invA_up k p) /\
+     Below l1 (3*k + invA_up k p - 1) /\
      Delta k (l1'++l2).
 Proof.
- intros l D.
+ intros Hk l D.
  set (u := k+invA_up k p).
  assert (Hu : 0 < u).
  { unfold u, invA_up. omega. }
@@ -1193,7 +1277,7 @@ Proof.
  - assert (Ha : u <= a).
    { assert (B1' := @getprefix_snd (u-1) l a l2). rewrite E in B1'.
      simpl in B1'. specialize (B1' eq_refl). omega. }
-   destruct (Nat.ltb_spec a (2*k+u)).
+   destruct (Nat.ltb_spec a (2*k+u-1)).
    + destruct (decompminus_spec k (l1++[S a]) (A k (S a)-A k a-p))
        as (l1' & E1' & D1' & B1').
      exists (l1++[a]), l1', l2.
@@ -1220,21 +1304,21 @@ Proof.
            intro z. rewrite in_app_iff. intros [Hz|[<-|[]]].
            + specialize (B1 z Hz). omega.
            + omega. }
-   + destruct (decompminus_spec k (l1++[k+u]) (A k (k+u)-p))
+   + destruct (decompminus_spec k (l1++[k+u-1]) (A k (k+u-1)-p))
        as (l1' & E1' & D1' & B1').
      exists l1,l1',(a::l2).
      repeat split.
      * symmetry. apply E'.
      * rewrite E1'. rewrite sumA_app.
        simpl.
-       assert (LE : p <= A k (k+u)).
+       assert (LE : p <= A k (k+u-1)).
        { transitivity (A k (u-k)); auto.
          apply A_mono. omega. }
        omega.
      * intros x Hx. specialize (B1 x Hx). omega.
      * { rewrite <- E', Delta_app_iff in D.
          destruct D as (D1 & D2 & D3).
-         apply Delta_app with (k+u).
+         apply Delta_app with (k+u-1).
          - apply D1'.
            apply Delta_app_iff; repeat split.
            + apply Delta_S, D1.
@@ -1247,29 +1331,24 @@ Proof.
            + omega. }
 Qed.
 
-Definition add_bound k p := A k (3*k+invA_up k p).
-
 (* So, all values taken by [f k (p+n)-f k n] when n varies in [nat] are
    values that are already encountered when n varies in just
    [0..add_bound k p[. *)
 
-Lemma gen_add_bounded k p :
- k<>0 ->
+Definition add_bound k p := A k (3*k + invA_up k p - 1).
+
+Lemma additivity_bounded k p : k<>0 ->
  forall n, exists m,
-   f k (p+n) - f k n = f k (p+m) - f k m /\ m < add_bound k p.
+   m < add_bound k p /\
+   f k (p+n) - f k n = f k (p+m) - f k m.
 Proof.
  intros Hk n.
  destruct (decomp_exists k n) as (l & E & D).
- destruct (@gen_add_decomp k p l D) as (l1 & l1' & l2 & El & E1 & B1 & D1).
+ destruct (@increase_bottom_decomp k p Hk l D)
+   as (l1 & l1' & l2 & El & E1 & B1 & D1).
  exists (sumA k l1).
  split.
- - rewrite <- E.
-   rewrite El at 1. rewrite sumA_app, Nat.add_assoc, <- E1, <- sumA_app.
-   rewrite !f_sumA_lax; auto using Delta_S.
-   + rewrite El, !map_app, !sumA_app. omega.
-   + rewrite El in D. apply Delta_app_inv in D. apply Delta_S, D.
-   + apply Delta_app_inv in D1. apply D1.
- - unfold add_bound. set (q := 3*k+invA_up k p) in *. clearbody q.
+ - unfold add_bound. set (q := 3*k+invA_up k p-1) in *. clearbody q.
    rewrite El in D. apply Delta_app_inv in D.
    rewrite <- DeltaRev_rev in D.
    rewrite <- sumA_rev.
@@ -1280,299 +1359,147 @@ Proof.
    + apply Nat.lt_le_trans with (A k (S a)).
      * apply decomp_max; auto. apply D.
      * apply A_mono. apply B1r. now left.
+ - rewrite <- E.
+   rewrite El at 1. rewrite sumA_app, Nat.add_assoc, <- E1, <- sumA_app.
+   rewrite !f_sumA_lax; auto using Delta_S.
+   + rewrite El, !map_app, !sumA_app. omega.
+   + rewrite El in D. apply Delta_app_inv in D. apply Delta_S, D.
+   + apply Delta_app_inv in D1. apply D1.
 Qed.
 
-(** We could hence prove bounds for [f k (p+n)-f k p] by computation.
-    (Very slow for now). *)
+(** We could hence prove bounds for [f k (p+n)-f k p] by computation. *)
 
-Fixpoint forallb_below test m :=
- match m with
- | O => true
- | S m => andb (test m) (forallb_below test m)
- end.
+Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
+  match l1,l2 with
+  | x1::l1', x2::l2' => f x1 x2 :: map2 f l1' l2'
+  | _, _ => []
+  end.
 
-Lemma forallb_below_spec test m :
- forallb_below test m = true <-> (forall x, x<m -> test x = true).
+Definition all_diffs k p :=
+  let stk := ftabulate k (p + (add_bound k p - 1)) in
+  map2 Nat.sub stk (npop p stk).
+
+Lemma all_diffs_spec k p :
+  all_diffs k p =
+  map (fun x => f k (p+x)-f k x) (countdown (add_bound k p - 1)).
 Proof.
- induction m; simpl.
- - split; auto. inversion 2.
- - rewrite andb_true_iff, IHm. clear IHm.
-   split; auto.
-   intros (H,H'). inversion 1; subst; auto.
+ unfold all_diffs.
+ set (m := add_bound _ _ - 1). clearbody m.
+ rewrite ftabulate_spec.
+ rewrite npop_map.
+ replace p with ((p+m)-m) at 2 by omega.
+ rewrite npop_countdown by omega.
+ induction m.
+ - simpl. destruct p; simpl; auto. f_equal. now destruct countdown.
+ - rewrite Nat.add_succ_r. simpl. f_equal; auto.
 Qed.
 
 Definition check_additivity test k p :=
-  forallb_below (fun m => test (f k (p+m)-f k m)) (add_bound k p).
+  forallb test (all_diffs k p).
 
-Lemma gen_add_property test k p :
-  k<>0 ->
+Lemma check_additivity_spec test k p : k<>0 ->
   check_additivity test k p = true ->
   forall n, test (f k (p+n)-f k n) = true.
 Proof.
  intros Hk E. unfold check_additivity in E.
- rewrite forallb_below_spec in E.
- intros n. destruct (@gen_add_bounded k p Hk n) as (m & -> & Hm).
- now apply E.
+ rewrite forallb_forall in E.
+ intros n. destruct (@additivity_bounded k p Hk n) as (m & Hm & ->).
+ apply E. rewrite all_diffs_spec.
+ rewrite in_map_iff. exists m. split; auto.
+ rewrite countdown_in. omega.
 Qed.
 
-(* Very Slow...
-Lemma h_add_5 n : 3 + h n <= h (5+n) <= 4 + h n.
+Lemma decide_additivity k p a b : k<>0 ->
+ check_additivity (fun m => andb (a <=? m) (m <=? b)) k p = true ->
+ forall n, a + f k n <= f k (p+n) <= b + f k n.
 Proof.
- assert (h n <= h(5+n)) by (apply f_mono; omega).
- assert (3 <= h(5+n)-h n <= 4); try omega.
+ intros.
+ assert (f k n <= f k (p+n)) by (apply f_mono; omega).
+ assert (a <= f k (p+n) - f k n <= b); try omega.
  { rewrite <- !Nat.leb_le.
    rewrite <- andb_true_iff.
-   change ((fun m => andb (3 <=? m) (m <=? 4)) (h(5+n)-h(n)) = true).
-   clear H. revert n.
-   apply gen_add_property. auto.
-   now vm_compute. }
-Qed.
-*)
-
-(** Earlier approach : manually converting strict decompositions of n
-    into lax decomposiitions of (p+n). *)
-
-(* hadd5 takes a canonical decomposition l and
-   produces a lax decomposition of [5+sumA 2 l].
-   Each branch has the form [left++l => right++l]
-   where right is mostly [decomp 2 (5+sumA 2 left)]
-   except form some downsizing, e.g. 5 replaced by [2;4]
-   or 6 replaced by [3;5].
-
-   For instance:
-   [decomp 2 (5+sumA 2 [0;3]) = [0;5]] downsized into [[0;2;4]].
-
-   And we decompose far enough for each [right++l] to be a lax
-   decomposition (i.e. satisfies [Delta 2]).
-*)
-
-Definition hadd5 l :=
-  match l with
-  | 0::3::l => 0::2::4::l
-  | 0::4::l => 2::5::l
-  | 0::5::l => 1::3::5::l (* not mandatory *)
-  | 0::l => 1::3::l
-  | 1::4::l => 0::2::5::l
-  | 1::5::l => 2::6::l
-  | 1::l => 0::4::l
-  | 2::5::l => 0::2::6::l
-  | 2::l => 1::4::l
-  | 3::l => 2::4::l
-  | 4::l => 1::5::l
-  | 5::l => 0::3::5::l (* not mandatory *)
-  | _ => 0::3::l
-  end.
-
-Definition lefts := [[0;3];[0;4];[0];[1;4];[1;5];[1];[2;5];[2];[3];[4];[]].
-Compute map (sumA 2) lefts.
-
-(* Tous entre 0 et 12 sauf 9 et 10 mais qu'on peut rajouter sans souci *)
-
-Fixpoint expandlow k min a acc :=
-  match a with
-  | O => a::acc
-  | S a' => if min+k <=? a' then expandlow k min (a'-k) (a'::acc)
-            else a::acc
-  end.
-
-Fixpoint downsize k min l :=
-  match l with
-  | [] => []
-  | a::l =>
-    if min+k <? a then expandlow k min a (downsize k (a+k-1) l)
-    else a::downsize k (a+k) l
-  end.
-
-Lemma expand_sumA k min a acc :
- sumA k (expandlow k min a acc) = A k a + sumA k acc.
-Proof.
- revert acc.
- induction a as [[|a'] IH] using lt_wf_ind; simpl; auto.
- case Nat.leb_spec; simpl; auto. intros LE acc.
- rewrite IH by omega. simpl. omega.
+   change ((fun m => andb (a <=? m) (m <=? b)) (f k (p+n)-f k n) = true).
+   clear H1. revert n.
+   apply check_additivity_spec; auto. }
 Qed.
 
-Lemma downsize_sumA k min l : sumA k (downsize k min l) = sumA k l.
+
+(** Particular case of function H, i.e. k=2 *)
+
+Definition h := f 2.
+
+Lemma h_add_1 n : h n <= h (1+n) <= 1 + h n.
 Proof.
- revert min.
- induction l; simpl; auto.
- intros min.
- case Nat.ltb_spec; simpl; auto. intros LT.
- rewrite expand_sumA; auto.
+ unfold h. destruct (f_step 2 n); simpl; omega.
 Qed.
 
-(* Conjecture : a partir d'une decomp canonique, downsize
-   donne la plus petite decomp lax (comparé lexico par les grands indices) *)
-
-Compute (decomp 2 28).
-Compute downsize 2 0 (decomp 2 28).
-
-Compute map (fun l => decomp 2 (5+sumA 2 l)) lefts.
-Compute map (fun l => downsize 2 0 (decomp 2 (5+sumA 2 l))) lefts.
-
-(* Note pour [2;5], on peut avoir [0;2;6] au lieu de [3;6] *)
-(* et pour [1;4] :   [0;2;5] au lieu de [3;5] *)
-
-Compute decomp 2 9. (* [5] *)
-Compute downsize 2 0 (decomp 2 14). (* [0;3;5] *)
-
-Compute decomp 2 10. (* [0;5] *)
-Compute downsize 2 0 (decomp 2 15). (* [1;3;5] *)
-
-(*
-Rq : on a explicité l en a::l pour a<=5 et en a::b::l pour b<=5
-si nécessaire. Bref, le préfixe des nombres <= 5 dans l
-
-5 est là sans doute pour laisser la place dans le prefixe de l pour
-"tasser" l'ajout (ici 5) dans une décomp lax sans devoir taper dans
-le suffixe de l.
-NB: [6] donne 13, le premier nombre suivant
-
-n se decomp left++l pour left = decomp 2 m avec m \in [12..0]
-et alors 5+n se decomp-lax en (downsize 2 0 (decomp 2 (5+m)))++l
-donc h(5+n) se decomp-lax en
-            map pred (downsize 2 0 (decomp 2 (5+m))) ++ map pred l
-donc h(5+n)-h(n) =
-         sumA 2 (map pred (downsize 2 0 (decomp 2 (5+m))))
-       - sumA 2 (map pred left)
-    = h(5+m)-h(m)  pour m \in [12..0]
-*)
-
-Definition addlow k p m l :=
-  let '(l1,l2) := getprefix m l in
-  downsize k 0 (decomp k (p+sumA k l1)) ++ l2.
-
-Lemma addlow_sumA k p m l :
- sumA k (addlow k p m l) = p + sumA k l.
+Lemma h_add_2 n : 1 + h n <= h (2+n) <= 2 + h n.
 Proof.
- unfold addlow.
- generalize (getprefix_app m l). destruct getprefix as (l1,l2).
- intros <-. rewrite !sumA_app.
- rewrite downsize_sumA. rewrite decomp_sum. omega.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
-Lemma hadd5_equiv l : Delta 3 l -> hadd5 l = addlow 2 5 5 l.
+Lemma h_add_3 n : 1 + h n <= h (3+n) <= 3 + h n.
 Proof.
- intro D. unfold hadd5.
- repeat (match goal with
-  | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-  | |- context [match ?x with _ => _ end] => destruct x; auto
-  end; try omega);
- unfold addlow; simpl; erewrite Delta_getprefix; eauto with arith.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
-(* Conjecture :
-   forall k p, exists m,
-    forall l, Delta (S k) l -> Delta k (addlow k p m l)
-
-  p.ex, pour k=2 p=5 prendre m=5
-*)
-
-
-
-Lemma hadd5_sumA l : sumA 2 (hadd5 l) = 5 + sumA 2 l.
+Lemma h_add_4 n : 2 + h n <= h (4+n) <= 3 + h n.
 Proof.
- unfold hadd5.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; trivial
-   end.
-Qed.
-
-Lemma hadd5_Delta l : Delta 3 l -> Delta 2 (hadd5 l).
-Proof.
- unfold hadd5. intro.
- repeat
-   (match goal with
-    | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-    | |- context [match ?x with _ => _ end] => destruct x; auto
-    | |- Delta _ _ => constructor; auto using Delta_S
-    end; try omega).
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma h_add_5 n : 3 + h n <= h (5+n) <= 4 + h n.
 Proof.
- destruct (GenFib.decomp_exists 2 n) as (l,(<-,D)).
- rewrite <- hadd5_sumA.
- unfold h. rewrite !f_sumA_lax; auto using hadd5_Delta, Delta_S.
- unfold hadd5.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; simpl; try omega
-   end.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma h_add_6 n : 3 + h n <= h (6+n) <= 5 + h n.
 Proof.
- generalize (h_add_2 n) (h_add_4 (2+n)). simpl. omega.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma h_add_7 n : 4 + h n <= h (7+n) <= 6 + h n.
 Proof.
- generalize (h_add_2 n) (h_add_5 (2+n)). simpl. omega.
-Qed.
-
-Definition hadd8 l :=
-  match l with
-  | 0::3::6::l => 0::4::7::l
-  | 0::3::l => 3::5::l
-  | 0::4::l => 1::3::5::l
-  | 0::5::l => 0::3::6::l
-  | 0::l => 2::4::l
-  | 1::4::7::l => 0::4::8::l
-  | 1::4::l => 2::6::l
-  | 1::5::l => 4::6::l
-  | 1::l => 0::2::4::l
-  | 2::5::l => 0::4::6::l
-  | 2::6::l => 0::3::7::l
-  | 2::l => 1::5::l
-  | 3::6::l => 1::3::7::l
-  | 3::l => 2::5::l
-  | 4::l => 0::3::5::l
-  | 5::l => 0::2::6::l
-  | _ => 1::4::l
-  end.
-
-(* Note : [1;3;7] était avant [4;7], et [0;2;6] était [3;6].
-   Sans conséquences
-*)
-
-(* hadd8 a (en completant eventuellement) tous les prefixes
-   avec nombres <= 7. Le plus grand est [1;4;7] = 27
-   NB: [8] = 28 le premier nombre suivant.
-*)
-
-Lemma hadd8_sumA l : sumA 2 (hadd8 l) = 8 + sumA 2 l.
-Proof.
- unfold hadd8.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; trivial
-   end.
-Qed.
-
-Lemma hadd8_Delta l : Delta 3 l -> Delta 2 (hadd8 l).
-Proof.
- unfold hadd8. intro.
- repeat
-   (match goal with
-    | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-    | |- context [match ?x with _ => _ end] => destruct x; auto
-    | |- Delta _ _ => constructor; auto using Delta_S
-    end; try omega).
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma h_add_8 n : 5 + h n <= h (8+n) <= 6 + h n.
 Proof.
- destruct (GenFib.decomp_exists 2 n) as (l,(<-,D)).
- rewrite <- hadd8_sumA.
- unfold h. rewrite !f_sumA_lax; auto using hadd8_Delta, Delta_S.
- unfold hadd8.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; simpl; try omega
-   end.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
+
+Lemma h_add_9 n : 5 + h n <= h (9+n) <= 7 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma h_add_10 n : 6 + h n <= h (10+n) <= 8 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+(* h(18+n) = h n + h 18 + [-2..0] *)
+Lemma h_add_18 n : 11 + h n <= h (18+n) <= 13 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+(* For comparison with f 3 *)
+Lemma h_add_33 n : 22 + h n <= h (33+n) <= 23 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+(* h(39+n) = h n + h 39 + [0..2] *)
+Lemma h_add_39 n : 26 + h n <= h (39+n) <= 28 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+(* TODO: experimentally, h(n+m)-h(n)-h(m) is in [-2..2] in general
+         and in [-1..1] when m is a [A 3] number.
+   Proof: ??
+*)
 
 (* Combined with g_add_8, h_add_8 is enough to show that g <= h *)
 
@@ -1590,21 +1517,6 @@ Qed.
 (* TODO: g_below_h can be generalized into :
    Conjecture : forall k n, f k n <= f (S k) n
    Proof : ??
-*)
-
-Lemma h_add_9 n : 5 + h n <= h (9+n) <= 7 + h n.
-Proof.
- generalize (h_add_1 n) (h_add_8 (1+n)). simpl. omega.
-Qed.
-
-Lemma h_add_10 n : 6 + h n <= h (10+n) <= 8 + h n.
-Proof.
- generalize (h_add_2 n) (h_add_8 (2+n)). simpl. omega.
-Qed.
-
-(* TODO: experimentally, h(n+m)-h(n)-h(m) is in [-2..2] in general
-         and in [-1..1] when m is a [A 3] number.
-   Proof: ??
 *)
 
 (* f 3 *)
@@ -1637,226 +1549,53 @@ Proof.
  - apply f_le_add.
 Qed.
 
-Definition add5 l :=
-  match l with
-  | 0::4::8::l => 3::9::l
-  | 0::4::l => 0::6::l
-  | 0::5::l => 2::6::l
-  | 0::6::l => 1::7::l
-  | 0::l => 0::4::l
-  | 1::5::l => 3::6::l
-  | 1::6::l => 2::7::l
-  | 1::l => 1::4::l
-  | 2::6::l => 3::7::l
-  | 2::7::l => 2::8::l
-  | 2::l => 0::5::l
-  | 3::7::l => 3::8::l
-  | 3::l => 1::5::l
-  | 4::l => 2::5::l
-  | 5::l => 1::6::l
-  | _ => 0::3::l
-  end.
-
-(* Max dans les préfixes : 8. Nombre max vraiment utilisé : [0;4;8] = 25
-   NB: [9]=26
-*)
-
-Lemma add5_sumA l : sumA 3 (add5 l) = 5 + sumA 3 l.
-Proof.
- unfold add5.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; trivial
-   end.
-Qed.
-
-Lemma add5_Delta l : Delta 4 l -> Delta 3 (add5 l).
-Proof.
- unfold add5. intro.
- repeat
-   (match goal with
-    | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-    | |- context [match ?x with _ => _ end] => destruct x; auto
-    | |- Delta _ _ => constructor; auto using Delta_S
-    end; try omega).
-Qed.
-
 Lemma f3_add_5 n : 3 + f 3 n <= f 3 (5+n) <= 4 + f 3 n.
 Proof.
- destruct (GenFib.decomp_exists 3 n) as (l,(<-,D)).
- rewrite <- add5_sumA.
- rewrite !f_sumA_lax; auto using add5_Delta, Delta_S.
- unfold add5.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; simpl; try omega
-   end.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma f3_add_6 n : 3 + f 3 n <= f 3 (6+n) <= 5 + f 3 n.
 Proof.
- generalize (fk_add_1 3 n) (f3_add_5 (1+n)). simpl. omega.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma f3_add_7 n : 4 + f 3 n <= f 3 (7+n) <= 6 + f 3 n.
 Proof.
- generalize (fk_add_2 3 n) (f3_add_5 (2+n)). simpl. omega.
-Qed.
-
-Definition add8 l :=
-  match l with
-  | 0::4::8::l => 5::9::l
-  | 0::4::l => 3::6::l
-  | 0::5::9::l => 0::4::10::l
-  | 0::5::l => 1::7::l
-  | 0::6::l => 4::7::l
-  | 0::7::l => 3::8::l
-  | 0::l => 1::5::l
-  | 1::5::9::l => 5::10::l
-  | 1::5::l => 2::7::l
-  | 1::6::l => 0::4::7::l
-  | 1::7::l => 4::8::l
-  | 1::l => 2::5::l
-  | 2::6::l => 1::4::7::l
-  | 2::7::l => 0::4::8::l
-  | 2::8::l => 3::9::l
-  | 2::l => 0::6::l
-  | 3::7::l => 5::8::l
-  | 3::8::l => 4::9::l
-  | 3::l => 1::6::l
-  | 4::8::l => 0::4::9::l
-  | 4::l => 2::6::l
-  | 5::l => 0::3::6::l
-  | 6::l => 3::7::l
-  | 7::l => 2::8::l
-  | _ => 0::5::l
-  end.
-
-(* prefixes avec nombres <= 9. Max [1;5;9] = 35
-   NB: [10] = 36
-*)
-
-Lemma add8_sumA l : sumA 3 (add8 l) = 8 + sumA 3 l.
-Proof.
- unfold add8.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; trivial
-   end.
-Qed.
-
-Lemma add8_Delta l : Delta 4 l -> Delta 3 (add8 l).
-Proof.
- unfold add8. intro.
- repeat
-   (match goal with
-    | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-    | |- context [match ?x with _ => _ end] => destruct x; auto
-    | |- Delta _ _ => constructor; auto using Delta_S
-    end; try omega).
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma f3_add_8 n : 5 + f 3 n <= f 3 (8+n) <= 7 + f 3 n.
 Proof.
- destruct (GenFib.decomp_exists 3 n) as (l,(<-,D)).
- rewrite <- add8_sumA.
- rewrite !f_sumA_lax; auto using add8_Delta, Delta_S.
- unfold add8.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; simpl; try omega
-   end.
-Qed.
-
-Definition add9 l :=
-  match l with
-  | 0::4::8::l => 0::5::9::l
-  | 0::4::l => 0::3::6::l
-  | 0::5::9::l => 1::4::10::l
-  | 0::5::l => 2::7::l
-  | 0::6::l => 0::4::7::l
-  | 0::7::l => 0::3::8::l
-  | 0::l => 2::5::l
-  | 1::5::9::l => 0::5::10::l
-  | 1::5::l => 3::7::l
-  | 1::6::l => 1::4::7::l
-  | 1::7::l => 0::4::8::l
-  | 1::8::l => 3::9::l
-  | 1::l => 0::6::l
-  | 2::6::10::l => 0::5::11::l
-  | 2::6::l => 2::8::l
-  | 2::7::l => 1::4::8::l
-  | 2::8::l => 0::3::9::l
-  | 2::l => 1::6::l
-  | 3::7::l => 0::5::8::l
-  | 3::8::l => 0::4::9::l
-  | 3::l => 2::6::l
-  | 4::8::l => 1::4::9::l
-  | 4::l => 3::6::l
-  | 5::9::l => 0::4::10::l
-  | 5::l => 1::7::l
-  | 6::l => 0::3::7::l
-  | 7::l => 3::8::l
-  | _ => 1::5::l
-  end.
-
-(* prefixes avec nombres <= 10. Max [2;6;10] = 49
-   NB: [11] = 50
-*)
-
-Lemma add9_sumA l : sumA 3 (add9 l) = 9 + sumA 3 l.
-Proof.
- unfold add9.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; trivial
-   end.
-Qed.
-
-Lemma add9_Delta l : Delta 4 l -> Delta 3 (add9 l).
-Proof.
- unfold add9. intro.
- repeat
-   (match goal with
-    | H : Delta _ (_::_::_) |- _ => inversion H; clear H; subst
-    | |- context [match ?x with _ => _ end] => destruct x; auto
-    | |- Delta _ _ => constructor; auto using Delta_S
-    end; try omega).
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma f3_add_9 n : 6 + f 3 n <= f 3 (9+n) <= 8 + f 3 n.
 Proof.
- destruct (GenFib.decomp_exists 3 n) as (l,(<-,D)).
- rewrite <- add9_sumA.
- rewrite !f_sumA_lax; auto using add9_Delta, Delta_S.
- unfold add9.
- repeat
-   match goal with
-   | |- context [match ?x with _ => _ end] => destruct x; simpl; try omega
-   end.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
 Lemma f3_add_10 n : 6 + f 3 n <= f 3 (10+n) <= 8 + f 3 n.
 Proof.
- generalize (f3_add_5 n) (f3_add_5 (5+n)). simpl. omega.
+ apply decide_additivity. auto. now vm_compute.
 Qed.
 
-(*
-TODO: Pour h <= f 3, faudrait aller apparemment jusqu'à 33 :
-    h(33+n)-h(n) \in [22..23]   (avec h 33 = 23)
-    f3(33+n)-f3(n) \in [23..25] (avec f3 33 = 24)
+Lemma f3_add_33 n : 23 + f 3 n <= f 3 (33+n) <= 25 + f 3 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
 
 Lemma h_below_f3 n : h n <= f 3 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 9).
-- do 9 (destruct n; [compute; auto|]). omega.
-- replace n with (9+(n-9)) by omega.
-  transitivity (6 + h (n - 9)). apply h_add_9.
-  transitivity (5 + h (n - 9)). 2:apply h_add_8.
-  specialize (IH (n-8)). omega.
-Admitted.
-*)
+destruct (Nat.lt_ge_cases n 33).
+- unfold h. rewrite <- !fopt_spec.
+  do 33 (destruct n; [vm_compute; auto|]). omega.
+- replace n with (33+(n-33)) by omega.
+  transitivity (23 + h (n - 33)). apply h_add_33.
+  transitivity (23 + f 3 (n - 33)).
+  specialize (IH (n-33)). omega.
+  apply (f3_add_33 (n-33)).
+Qed.
 
 (* TODO general bounds for f3(n+m)-f3(n)-f3(m) ??
    Same for any fk ??
