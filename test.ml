@@ -154,6 +154,334 @@ let _ = extrems diff2
 let diff3 = Array.init 100000 @@ fun n -> (majo_g_bis n - a.(3).(n))
 let _ = extrems diff3
 
+(* More generally,
+   g(n+2)>=g(n)+1
+   g(n+3)<=g(n)+2
+   g(n+5)>=g(n)+3
+   g(n+8)<=g(n)+5
+   g(n+13)>=g(n)+8
+   g(n+21)<=g(n)+13
+   ...
+*)
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@ fun n -> a.(2).(n+i)-a.(2).(n)-a.(2).(i)))
+
+(* Proved : g(n+p)-g(n)-g(p) = {-1,0,1}    (proof via g(n) = floor(tau*(n+1)))
+   Conjecture: g(n+p)-g(n)-g(p) = 0 when parity(n)<>parity(p)
+                                = {-1,0} when parity(n)=parity(p)=even
+                                = {0,1} when parity(n)=parity(p)=odd
+    where parity(n) is the parity of lowest F_k in the Zeckendorf decomposition
+    of n (convention 1 = F_2, no use of F_1 here)
+*)
+
+let _ =
+  print_newline();
+  for i=0 to 20 do
+    for j=0 to 20 do
+      let d = a.(2).(i+j)-a.(2).(i)-a.(2).(j) in
+      print_string
+        (match d with
+         | 0 -> "= "
+         | 1 -> "+ "
+         | -1 -> "- "
+         | _ -> assert false)
+    done;
+    print_newline()
+  done
+
+let fib n =
+  let rec loop k a b =
+    if k = n then a
+    else loop (k+1) b (a+b)
+  in loop 0 0 1
+
+let _ = fib 16
+
+let rec fib_inv_loop n a b k =
+  if n < b then k
+  else fib_inv_loop n b (a+b) (k+1)
+
+let fib_inv n = if n = 0 then 0 else fib_inv_loop n 1 2 2
+
+let rec decomp n acc =
+ if n = 0 then acc
+ else
+   let k = fib_inv n in
+   decomp (n-fib k) (k::acc)
+
+let _ = decomp 1000 []
+
+let rank n =
+  if n = 0 then 0 else List.hd (decomp n [])
+
+let _ = rank 1000
+
+let _ =
+  print_newline();
+  print_string "  ";
+  for j=1 to 20 do
+    print_int ((rank j) mod 2); print_string " ";
+  done;
+  print_newline();
+  for i=1 to 20 do
+    print_int ((rank i) mod 2); print_string " ";
+    for j=1 to 20 do
+      let d = a.(2).(i+j)-a.(2).(i)-a.(2).(j) in
+      print_string
+        (match d with
+         | 0 -> "= "
+         | 1 -> "+ "
+         | -1 -> "- "
+         | _ -> assert false)
+    done;
+    print_newline()
+  done
+
+
+
+let _ = 123
+
+
+(*
+0, =
+1, -  F2 rg pair
+2, +  F3 rg impair
+3, -  F4 rg pair
+4, -  1+3 rg pair
+5, +  F5 rg impair
+6, -  1+5 rg pair
+7, +  2+5 rg impair
+8, -  F6  rg pair
+9, -  1+8 rg pair
+10, + 2+8 rg impair
+11, - 3+8 rg pair
+12, - 1+3+8 rg pair
+13, + F7 rg impair
+14, - 1+13 rg pair
+15, + 2+13
+16, - 3+13
+17, - 1+3+13
+18, + 5+13
+19, - 1+5+13
+20, + 2+5+13
+21, - F8
+22, - 1+21
+23, + 2+21
+24, - 3+21
+25, - 1+3+21
+26, + 5+21
+27, - 1+5+21
+28, + 2+5+21
+29, - 8+21
+
+*)
+
+(* ================== *)
+(* H *)
+
+(* Experimentally, H(n+p)-H(n)-H(p) \in [-2..2],
+   and -2 and 2 are rather rare
+
+   First h(i+j)-h(i)-h(j) = -2 : i=18 j=78
+   First h(i+j)-h(i)-h(j) = 2 : i=39 j=39
+*)
+
+let _ = extrems (Array.init 900000 @@ fun n -> a.(3).(n+21)-a.(3).(n)-a.(3).(21))
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@ fun n -> a.(3).(n+i)-a.(3).(n)-a.(3).(i)))
+
+
+(*
+For H:
+i, extrems
+0, (0, 0)
+1, (-1, 0)
+2, (0, 1)
+3, (-1, 1)
+4, (-1, 0)
+------------- levels in tree H
+5, (-1, 0)
+6, (-1, 1)
+-------------
+7, (-1, 1)
+8, (0, 1)
+9, (-1, 1)
+-------------
+10, (-1, 1)
+11, (0, 1)
+12, (-1, 1)
+13, (-1, 1)
+-------------
+14, (-1, 0)
+15, (-1, 1)
+16, (-1, 1)
+17, (-1, 0)
+18, (-2, 0) <---------------------- Arggggl
+19, (-1, 1)
+-------------
+20, (-1, 1)
+21, (-1, 1)
+22, (-1, 1)
+23, (-1, 1)
+24, (-1, 0)
+25, (-1, 1)
+26, (-1, 1)
+27, (0, 1)
+28, (-1, 1)
+-------------
+29, (-1, 1)
+
+*)
+
+let _ =
+ for i = 1 to 100 do
+   for j = 1 to 1000 do
+     let d = a.(3).(i+j)-a.(3).(i)-a.(3).(j) in
+     if abs d >= 2 then
+       Printf.printf "i=%d j=%d delta=%d\n" i j d
+   done
+ done
+
+(* Generalized Fibonacci. k is distance between terms to add
+   (k=1 is usual Fibonacci) *)
+
+let gfib k n =
+  let a = Array.make n 1 in
+  for i = 0 to n-2 do a.(i+1) <- a.(i) + a.(max 0 (i-k)) done;
+  a
+
+(* beware, overflow for gfib 1 (for G) around 90,
+                        gfib 2 (for H) around 113,
+                        ...
+*)
+
+let gfib2 = gfib 2 30
+
+(* conjecture :
+   when i is a gfib2 number, forall n, H(n+i)-H(n)-H(i) \in {-1,0,1} *)
+
+let _ = Array.init 30 @@
+        fun i ->
+        let j=gfib2.(i) in
+        (i,j,extrems (Array.init 900000 @@
+                        fun n -> a.(3).(n+j)-a.(3).(n)-a.(3).(j)))
+
+(* ================== *)
+(* f4 *)
+
+(* All numbers : f4(i+j)-f4(i)-f4(j) \in [-3..3] ?
+   i=12 -> itvl [0..2]
+   i=13 -> itvl [-1..2]
+   i=20 -> itvl [-2..1]
+   ...
+   i=120, j=127 --> -3
+   i=229, j=1150 --> +3
+*)
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@
+                      fun n -> a.(4).(n+i)-a.(4).(n)-a.(4).(i)))
+
+let _ =
+ for i = 1 to 1000 do
+   for j = 1 to 900000 do
+     let d = a.(4).(i+j)-a.(4).(i)-a.(4).(j) in
+     if abs d >= 4 then
+       Printf.printf "i=%d j=%d delta=%d\n" i j d
+   done
+ done
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@ fun n -> a.(4).(n+i)-a.(4).(n)-a.(4).(i)))
+
+
+(* If i is a gfib3 number : f4(n+i)-f4(n)-f4(i) \in {-1,0,1} ? *)
+
+let gfib3 = gfib 3 35
+
+let _ = Array.init 35 @@
+        fun i ->
+        let j=gfib3.(i) in
+        (i,j,extrems (Array.init 900000 @@
+                        fun n -> a.(4).(n+j)-a.(4).(n)-a.(4).(j)))
+
+(* ================== *)
+(* f5 *)
+
+(* All numbers : f5(n+i)-f5(n)-f5(i) \in [-5..5] ?
+   i=928 j=1227 delta=-5
+   i=12580 j=14755 delta=5
+*)
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@
+                      fun n -> a.(5).(n+i)-a.(5).(n)-a.(5).(i)))
+
+let _ =
+ for i = 12580 to 12580 (*1 to 1000*) do
+   for j = 1 to 900000 do
+     let d = a.(5).(i+j)-a.(5).(i)-a.(5).(j) in
+     if d=5 then begin
+       Printf.printf "i=%d j=%d delta=%d\n" i j d;
+       failwith "Stop"
+      end
+   done
+ done
+
+(* gfib4 numbers : f5(n+i)-f5(n)-f5(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
+
+let gfib4 = gfib 4 40
+
+let _ = Array.init 40 @@
+        fun i ->
+        let j=gfib4.(i) in
+        (i,j,extrems (Array.init 900000 @@
+                        fun n -> a.(5).(n+j)-a.(5).(n)-a.(5).(j)))
+(* Up to [-5..5] for gfib 4 39 = 90061 *)
+
+(* ================== *)
+(* f6 *)
+
+(* All numbers : f6(n+i)-f6(n)-f6(i) \in [-11..11] ?
+   i=9852 j=12648 delta=-11
+   i=18553 j=42773 delta=11
+*)
+
+let _ = Array.init 30 @@
+        fun i ->
+        (i,extrems (Array.init 900000 @@
+                      fun n -> a.(6).(n+i)-a.(6).(n)-a.(6).(i)))
+
+let _ =
+ for i = 1 to 20000 do
+   for j = 1 to 50000 do
+     let d = a.(6).(i+j)-a.(6).(i)-a.(6).(j) in
+     if d = 11 then begin
+       Printf.printf "i=%d j=%d delta=%d\n" i j d;
+       failwith "Stop"
+      end
+   done
+ done
+
+(* gfib5 numbers : f6(n+i)-f6(n)-f6(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
+
+let gfib5 = gfib 5 40
+
+let _ = Array.init 40 @@
+        fun i ->
+        let j=gfib5.(i) in
+        (i,j,extrems (Array.init 900000 @@
+                        fun n -> a.(6).(n+j)-a.(6).(n)-a.(6).(j)))
+(* Up to [-7..9] for gfib 5 39 = 29548 *)
+
+
 
 (** FLOAT EXPRESSIONS OR APPROXIMATIONS *)
 
