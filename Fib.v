@@ -351,7 +351,7 @@ Proof.
          apply St'.
          rewrite Delta_alt in St, Hl.
          apply Delta_alt. split.
-         - apply Delta_21, St, Hl.
+         - apply Delta_S, St, Hl.
          - intros y Hy. apply St in Hy; [|apply Hl]. omega. }
        { simpl in *; omega. }
        { subst k'.
@@ -1072,8 +1072,7 @@ Proof.
   - right. simpl in *.
     destruct l as [|k l].
     + simpl in *.
-      exists 3; exists []. subst. split; auto.
-      constructor. omega. constructor.
+      exists 3; exists []. subst. auto.
     + apply ThreeOdd_12.
       destruct (le_lt_dec k 7).
       * assert (k=7).

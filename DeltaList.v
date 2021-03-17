@@ -45,7 +45,7 @@ Proof.
  induction 2; constructor; auto; omega.
 Qed.
 
-Lemma Delta_21 l : Delta 2 l -> Delta 1 l.
+Lemma Delta_S n l : Delta (S n) l -> Delta n l.
 Proof.
  apply Delta_more; auto.
 Qed.
@@ -55,7 +55,7 @@ Proof.
  intros H H' [X|X]. omega.
  apply Delta_alt in H'. apply H' in X. omega.
 Qed.
-Hint Resolve Delta_21 Delta_inv Delta_nz.
+Hint Resolve Delta_S Delta_inv Delta_nz.
 
 Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
 Proof.
@@ -79,14 +79,6 @@ Proof.
   intros y Hy. apply D' in Hy. omega.
 Qed.
 Hint Resolve Delta_S_cons.
-
-Lemma Delta_21_S x l : Delta 2 (x::l) -> Delta 1 (S x::l).
-Proof.
-  intros D. apply Delta_alt in D. destruct D as (D,D').
-  apply Delta_alt; split; eauto.
-  intros y Hy. apply D' in Hy. omega.
-Qed.
-Hint Resolve Delta_21_S.
 
 Lemma Delta_map p p' f l :
   (forall x y, x+p <= y -> f x + p' <= f y) ->
@@ -139,15 +131,30 @@ Proof.
        apply Delta_alt in Hl'. apply Hl' in Hy. omega.
 Qed.
 
+(* Another approach, more suitable for inversion: *)
+
+Lemma Delta_app_iff p l l':
+  Delta p (l++l') <->
+  Delta p l /\ Delta p l' /\
+  (forall x x' : nat, In x l -> In x' l' -> x + p <= x').
+Proof.
+ induction l; simpl.
+ - intuition.
+ - rewrite !Delta_alt, IHl. split.
+   + intros ((D & D' & H) & H'). repeat split; auto.
+     * intuition.
+     * intros x x' [<-|IN] IN'; auto.
+       apply H'. rewrite in_app_iff; now right.
+   + intros ((D,H) & D' & H'). repeat split; auto.
+     intros y. rewrite in_app_iff. intros [IN|IN']; auto.
+Qed.
+
 Lemma Delta_app_inv p l l' :
  Delta p (l++l') ->
  Delta p l /\ Delta p l' /\
  forall x x', In x l -> In x' l' -> x+p <= x'.
 Proof.
- induction l; simpl.
- - split. constructor. intuition.
- - rewrite !Delta_alt. intuition.
-   subst. apply H1. rewrite in_app_iff. now right.
+ apply Delta_app_iff.
 Qed.
 
 Lemma Delta2_apart l x :

@@ -966,7 +966,7 @@ Proof.
          generalize (@fib_nz (S k)); omega. }
        assert (Delta 1 ((2::l0)++l)).
        { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_21_S, Delta_odds.
+         - apply Delta_S_cons, Delta_odds.
          - simpl. intros y [Hy|Hy]; try apply odds_in in Hy; omega. }
        simpl app in *.
        assert (IN : forall x, In x (l0++l) -> 2<x).
@@ -1001,7 +1001,7 @@ Proof.
          generalize (@fib_nz (S k)); omega. }
        assert (Delta 1 ((1::l0)++l)).
        { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_21_S, Delta_evens.
+         - apply Delta_S_cons, Delta_evens.
          - simpl. intros y [Hy|Hy]; try apply evens_in in Hy; omega. }
        simpl app in *.
        assert (~In 0 (l0++l)).
@@ -1050,7 +1050,7 @@ Proof.
  rewrite g_sumfib.
  - f_equal. rewrite map_map. simpl. symmetry. apply map_id.
  - apply Delta_alt; split.
-   + apply Delta_21. unfold l'. apply Delta_pred.
+   + apply Delta_S. unfold l'. apply Delta_pred.
      * now rewrite <- in_rev.
      * now apply Delta_rev.
    + intros y. unfold l'. rewrite in_map_iff.
@@ -1129,7 +1129,7 @@ Proof.
  apply Even_12. apply Two_Even.
  exists (map pred l); repeat split; auto.
  rewrite g_sumfib'; eauto.
- apply Delta_21_S, Delta_pred in D; eauto.
+ apply Delta_S_cons, Delta_pred in D; eauto.
 Qed.
 
 Lemma Three_g n : Fib.Three 2 n -> Fib.Two 2 (g n).
@@ -1558,7 +1558,7 @@ Proof.
      rewrite sumfib_insert.
      rewrite <- g_sumfib'.
      generalize (Nat.mod_upper_bound k 2). omega.
-     now apply Delta_21_S.
+     now apply Delta_S_cons.
 Qed.
 
 (* Some special cases of g_add_fib *)
