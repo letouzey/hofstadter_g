@@ -144,14 +144,26 @@ Proof.
  generalize (A_base_iff k n) (A_lt_id k n). omega.
 Qed.
 
-Lemma A_inv k n : { p | A k p <= S n < A k (S p) }.
+Fixpoint invA k n :=
+  match n with
+  | 0 => 0
+  | S n =>
+    let p := invA k n in
+    if S (S n) =? A k (S p) then S p else p
+  end.
+
+Lemma invA_spec k n : A k (invA k n) <= S n < A k (S (invA k n)).
 Proof.
  induction n as [|n IH].
- - exists 0. auto.
- - destruct IH as (p,Hp).
-   destruct (Nat.eq_dec (S (S n)) (A k (S p))) as [->|N].
-   + exists (S p). split; trivial. apply A_lt_S.
-   + exists p. omega.
+ - simpl. auto.
+ - cbn -[A Nat.eqb].
+   case Nat.eqb_spec; [intros E|intros; omega].
+   split. omega. rewrite E. apply A_lt_S.
+Qed.
+
+Lemma A_inv k n : { p | A k p <= S n < A k (S p) }.
+Proof.
+ exists (invA k n). apply invA_spec.
 Defined.
 
 Lemma A_inv' k n : n<>0 -> { p | A k p <= n < A k (S p) }.
@@ -793,18 +805,17 @@ Qed.
    i.e. [p = (n-1)/(S k)]
 *)
 
-(* TODO: finally not used yet *)
+Definition Below l x := forall y, In y l -> y < x.
 
 Lemma decompred_spec_rev k n :
   { l | sumA k l = A k n - 1 /\
-        DeltaRev (S k) l /\
-        forall p, In p l -> p < n }.
+        DeltaRev (S k) l /\ Below l n }.
 Proof.
  induction n as [n IH] using lt_wf_rec.
  destruct (Nat.eq_dec n 0) as [EQ|NE].
- - exists []; subst; simpl; repeat split; intuition.
+ - exists []; subst; unfold Below; simpl; repeat split; intuition.
  - destruct (le_lt_dec n (S k)) as [LE|LT].
-   + exists [n-1]; simpl; repeat split; intuition.
+   + exists [n-1]; unfold Below; simpl; repeat split; intuition.
      rewrite 2 A_base; omega.
    + destruct (IH (n-S k)) as (l & SUM & DR & IN) ; try omega.
      exists (n-1::l); simpl; repeat split; auto.
@@ -817,8 +828,7 @@ Defined.
 
 Lemma decompred_spec k n :
   { l | sumA k l = A k n - 1 /\
-        Delta (S k) l /\
-        forall p, In p l -> p < n }.
+        Delta (S k) l /\ Below l n }.
 Proof.
  destruct (decompred_spec_rev k n) as (l & SUM & DR & IN).
  exists (rev l); repeat split.
@@ -840,7 +850,36 @@ Proof.
  unfold decompred; destruct decompred_spec; simpl; intuition.
 Qed.
 
-Lemma decompred_in k n p : In p (decompred k n) -> p < n.
+Lemma decompred_in k n : Below (decompred k n) n.
 Proof.
  unfold decompred; destruct decompred_spec; simpl; intuition.
 Qed.
+
+(** We can decrease a decomposition (and the highest term will not grow).
+    This is the version with lax decomposition, but a strict version would
+    be possible too. *)
+
+Lemma decompminus_spec k l p :
+  { l' | sumA k l' = sumA k l - p /\
+        (Delta k l -> Delta k l') /\
+        (forall N, Below l N -> Below l' N) }.
+Proof.
+ revert l.
+ induction p as [|p IH]; intros l.
+ - exists l. split; auto. omega.
+ - destruct l.
+   + exists []. simpl; auto.
+   + destruct (decompred_spec k n) as (l1 & E1 & D1 & B1).
+     destruct (IH (l1++l)) as (l2 & E2 & D2 & B2).
+     exists l2; repeat split.
+     * rewrite E2. rewrite sumA_app. rewrite E1. simpl.
+       generalize (A_nz k n). omega.
+     * intros D. apply D2.
+       apply Delta_app with n; eauto using Delta_more.
+       intros x IN. apply B1 in IN. omega.
+     * intros N B.
+       assert (n < N) by (apply B; simpl; auto).
+       apply B2.
+       intros x. rewrite in_app_iff. specialize (B x). specialize (B1 x).
+       simpl in B. intuition.
+Defined.
