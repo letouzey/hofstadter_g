@@ -1497,7 +1497,7 @@ Proof.
 Qed.
 
 (* TODO: experimentally, h(n+m)-h(n)-h(m) is in [-2..2] in general
-         and in [-1..1] when m is a [A 3] number.
+         and in [-1..1] when m is a [A 2] number.
    Proof: ??
 *)
 
@@ -1584,6 +1584,10 @@ Proof.
  apply decide_additivity. auto. now vm_compute.
 Qed.
 
+(* TODO general bounds for f3(n+m)-f3(n)-f3(m) ??
+   Same for any fk ??
+*)
+
 Lemma h_below_f3 n : h n <= f 3 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
@@ -1597,6 +1601,48 @@ destruct (Nat.lt_ge_cases n 33).
   apply (f3_add_33 (n-33)).
 Qed.
 
-(* TODO general bounds for f3(n+m)-f3(n)-f3(m) ??
-   Same for any fk ??
-*)
+Lemma f3_add_73 n : 51 + f 3 n <= f 3 (73+n) <= 54 + f 3 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f4_add_73 n : 54 + f 4 n <= f 4 (73+n) <= 57 + f 4 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f3_below_f4 n : f 3 n <= f 4 n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 73).
+- rewrite <- !fopt_spec.
+  do 73 (destruct n; [vm_compute; auto|]). omega.
+- replace n with (73+(n-73)) by omega.
+  transitivity (54 + f 3 (n - 73)). apply (f3_add_73 (n-73)).
+  transitivity (54 + f 4 (n - 73)).
+  specialize (IH (n-73)). omega.
+  apply (f4_add_73 (n-73)).
+Qed.
+
+Lemma f4_add_169 n : 125 + f 4 n <= f 4 (169+n) <= 129 + f 4 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f5_add_169 n : 129 + f 5 n <= f 5 (169+n) <= 135 + f 5 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f4_below_f5 n : f 4 n <= f 5 n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 169).
+- rewrite <- !fopt_spec.
+  do 169 (destruct n; [vm_compute; auto|]). omega.
+- replace n with (169+(n-169)) by omega.
+  transitivity (129 + f 4 (n - 169)). apply (f4_add_169 (n-169)).
+  transitivity (129 + f 5 (n - 169)).
+  specialize (IH (n-169)). omega.
+  apply (f5_add_169 (n-169)).
+Qed.
