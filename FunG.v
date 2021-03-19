@@ -927,9 +927,7 @@ Proof.
  revert l E.
  induction n  as [[|n] IH] using lt_wf_rec; intros [|k l].
  - trivial.
- - intros E D. symmetry in E.
-   apply sumfib_0 in E; [discriminate|].
-   rewrite in_map_iff. now intros (x & Hx & IN).
+ - simpl map. rewrite sumfib_cons. generalize (fib_S_nz k). intros. omega.
  - discriminate.
  - simpl map. rewrite sumfib_cons.
    intros E Hl.
@@ -946,17 +944,15 @@ Proof.
      { apply IH; auto.
        - generalize (g_le n); omega.
        - now rewrite map_S_pred.
-       - change (Delta 1 (map pred (1::l))).
-         apply Delta_pred; eauto. }
-     rewrite E' at 1. rewrite <- sumfib_eqn; trivial.
-     rewrite <- E2, <- E1. omega.
+       - apply Delta_pred in H0; eauto. }
+     apply sumfib_eqn in Nz. omega.
    + (* 1 < k *)
      destruct (Nat.Even_or_Odd k) as [(k2,Hk2)|(k2,Hk2)].
      * (* k even *)
        set (l0 := odds (k2-1)).
        assert (Hl0 : sumfib l0 = pred (fib k)).
        { rewrite Hk2. unfold l0. rewrite sumfib_odds.
-         do 2 f_equal. omega. }
+         do 3 f_equal. omega. }
        assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
        { unfold l0.
          rewrite Nat.add_succ_r.
@@ -1508,7 +1504,7 @@ Lemma g_add_fib n k :
   fib k + g n - k mod 2 <= g (fib (S k) + n) <= fib k + g n + 1 - k mod 2.
 Proof.
  revert n.
- induction k using lt_wf_ind.
+ induction k as [k IH] using lt_wf_ind.
  intros n.
  destruct (Nat.lt_ge_cases k 3).
  - destruct k.
@@ -1526,7 +1522,7 @@ Proof.
      rewrite <- Nat.add_assoc.
      rewrite <- sumfib_insert. fold l'.
      assert (Hk : k-2 < k) by omega.
-     specialize (H (k-2) Hk (sumfib l')).
+     specialize (IH (k-2) Hk (sumfib l')).
      replace (S (k-2)) with (k-1) in * by omega.
      assert (E : g (sumfib l') = fib (k-1) + g (sumfib l)).
      { rewrite g_sumfib'.
@@ -1543,22 +1539,17 @@ Proof.
          replace (k-1) with (S (k-2)) by omega.
          rewrite <- fib_eqn. f_equal; omega. }
      rewrite <- Nat.add_assoc. rewrite <- E.
-     replace ((k-2) mod 2) with (k mod 2) in H; auto.
-     set (k' := k-2).
-     replace k with (k'+1*2) by omega. apply Nat.mod_add. auto.
-   + set (l' := insert (S k) l).
-     rewrite <- Hl, <- sumfib_insert. fold l'.
-     assert (D : Delta 1 (1::l')).
-     { apply insert_delta; auto. omega. }
-     rewrite (@g_sumfib' l'); auto.
-     unfold l'.
-     rewrite map_pred_insert.
-     2:{ eapply Delta_nz'; eauto. }
-     simpl pred.
-     rewrite sumfib_insert.
-     rewrite <- g_sumfib'.
+     replace (k mod 2) with ((k-2) mod 2); auto.
+     replace k with ((k-2)+1*2) at 2 by omega. rewrite Nat.mod_add; auto.
+   + clear IH.
+     assert (g (fib (S k) + n) = fib k + g n).
+     { set (l' := insert (S k) l).
+       rewrite <- Hl, <- sumfib_insert. fold l'.
+       rewrite !g_sumfib'; auto using Delta_S_cons.
+       - unfold l'. rewrite map_pred_insert, sumfib_insert; auto.
+         eapply Delta_nz'; eauto.
+       - apply insert_delta; auto with arith. }
      generalize (Nat.mod_upper_bound k 2). omega.
-     now apply Delta_S_cons.
 Qed.
 
 (* Some special cases of g_add_fib *)
