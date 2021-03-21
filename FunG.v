@@ -1021,7 +1021,7 @@ Proof.
 Qed.
 
 Lemma g_sumfib' l : Delta 1 (1::l) ->
- g (sumfib l) = sumfib (map pred l).
+ g (sumfib l) = sumfib (map Nat.pred l).
 Proof.
  intros.
  assert (~In 0 (1::l)) by eauto.
@@ -1035,7 +1035,7 @@ Qed.
 (** same result, for canonical decomposition expressed in rev order *)
 
 Lemma g_sumfib_rev l : ~In 0 l -> ~In 1 l -> DeltaRev 2 l ->
- g (sumfib l) = sumfib (map pred l).
+ g (sumfib l) = sumfib (map Nat.pred l).
 Proof.
  intros.
  set (l' := map pred (rev l)).
@@ -1072,7 +1072,7 @@ Proof.
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
  rewrite g_sumfib'; eauto.
  rewrite (Nat.sub_1_r).
- exists (map pred l). repeat split; auto; try omega.
+ exists (map Nat.pred l). repeat split; auto; try omega.
  apply Delta_pred in D; auto.
 Qed.
 
@@ -1082,7 +1082,7 @@ Proof.
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; omega).
  rewrite g_sumfib'; auto with arith.
  rewrite (Nat.sub_1_r).
- exists (map pred l). repeat split; auto; try omega.
+ exists (map Nat.pred l). repeat split; auto; try omega.
  apply Delta_pred in D; auto.
 Qed.
 
@@ -1448,6 +1448,8 @@ Qed.
 
 (** * Study of [g (n+m) - g n - g m] *)
 
+(** Base cases *)
+
 Lemma g_add_1 n :  g n <= g (1+n) <= 1 + g n.
 Proof.
  generalize (g_step n). simpl. omega.
@@ -1462,7 +1464,7 @@ Proof.
  - apply g_le_add.
 Qed.
 
-(** Auxiliary stuff for g_add_fib *)
+(** Auxiliary stuff for g_add_approx *)
 
 Fixpoint insert x l :=
  match l with
@@ -1479,15 +1481,22 @@ Qed.
 
 Lemma map_pred_insert x l :
   ~In 0 l ->
-  map pred (insert x l) = insert (pred x) (map pred l).
+  map Nat.pred (insert x l) = insert (Nat.pred x) (map Nat.pred l).
 Proof.
  induction l; simpl; auto.
  do 2 case Nat.leb_spec; intros; try omega; simpl; auto.
  f_equal. auto.
 Qed.
 
+Lemma map_pred_insert' x l :
+  Delta 1 (0::l) ->
+  map Nat.pred (insert x l) = insert (Nat.pred x) (map Nat.pred l).
+Proof.
+ intros D. apply map_pred_insert. eapply Delta_nz'; eauto.
+Qed.
+
 Lemma insert_delta x l a :
- Delta 2 (pred a::l) -> ~In x l -> a < x -> Delta 1 (a::insert x l).
+ Delta 2 (Nat.pred a::l) -> ~In x l -> a < x -> Delta 1 (a::insert x l).
 Proof.
  revert a.
  induction l as [|b l IH]; simpl.
@@ -1500,77 +1509,14 @@ Proof.
      apply Delta_low_hd with b. omega. auto.
 Qed.
 
-Lemma g_add_fib n k :
-  fib k + g n - k mod 2 <= g (fib (S k) + n) <= fib k + g n + 1 - k mod 2.
+Lemma sub_succ n m :
+ S m <= n -> S (n - S m) = n - m.
 Proof.
- revert n.
- induction k as [k IH] using lt_wf_ind.
- intros n.
- destruct (Nat.lt_ge_cases k 3).
- - destruct k.
-   + simpl. generalize (g_add_1 n). simpl in *. omega.
-   + destruct k.
-     * simpl. generalize (g_add_1 n). simpl in *. omega.
-     * replace k with 0 by omega.
-       generalize (g_add_2 n). simpl in *. omega.
- - destruct (decomp_exists n) as (l,(Hl,Hl')).
-   destruct (In_dec Nat.eq_dec (S k) l).
-   + set (l' := insert k l).
-     rewrite <- Hl.
-     rewrite fib_eqn' by omega.
-     rewrite (Nat.add_comm (fib k) (fib (k-1))).
-     rewrite <- Nat.add_assoc.
-     rewrite <- sumfib_insert. fold l'.
-     assert (Hk : k-2 < k) by omega.
-     specialize (IH (k-2) Hk (sumfib l')).
-     replace (S (k-2)) with (k-1) in * by omega.
-     assert (E : g (sumfib l') = fib (k-1) + g (sumfib l)).
-     { rewrite g_sumfib'.
-       - unfold l'.
-         rewrite map_pred_insert by (eapply Delta_nz'; eauto).
-         rewrite sumfib_insert.
-         rewrite g_sumfib'; auto.
-         replace (pred k) with (k-1); omega.
-       - apply insert_delta; auto; try omega.
-         intro IN. apply (@Delta2_apart l k); auto.
-         eapply Delta_inv; eauto. }
-     replace (fib k) with (fib (k-2) + fib (k-1)).
-     2:{ rewrite Nat.add_comm.
-         replace (k-1) with (S (k-2)) by omega.
-         rewrite <- fib_eqn. f_equal; omega. }
-     rewrite <- Nat.add_assoc. rewrite <- E.
-     replace (k mod 2) with ((k-2) mod 2); auto.
-     replace k with ((k-2)+1*2) at 2 by omega. rewrite Nat.mod_add; auto.
-   + clear IH.
-     assert (g (fib (S k) + n) = fib k + g n).
-     { set (l' := insert (S k) l).
-       rewrite <- Hl, <- sumfib_insert. fold l'.
-       rewrite !g_sumfib'; auto using Delta_S_cons.
-       - unfold l'. rewrite map_pred_insert, sumfib_insert; auto.
-         eapply Delta_nz'; eauto.
-       - apply insert_delta; auto with arith. }
-     generalize (Nat.mod_upper_bound k 2). omega.
+ intros. rewrite <- Nat.sub_succ_l; auto.
 Qed.
 
-(* Some special cases of g_add_fib *)
-
-Lemma g_add_3 n : 1 + g n <= g (3+n) <= 2 + g n.
-Proof.
- generalize (g_add_fib n 3). simpl. now rewrite Nat.add_1_r.
-Qed.
-
-Lemma g_add_5 n : 3 + g n <= g (5+n) <= 4 + g n.
-Proof.
- generalize (g_add_fib n 4). simpl. now rewrite Nat.add_1_r.
-Qed.
-
-Lemma g_add_8 n : 4 + g n <= g (8+n) <= 5 + g n.
-Proof.
- generalize (g_add_fib n 5). simpl. now rewrite Nat.add_1_r.
-Qed.
-
-(** Generalization of [g_add_fib] to any number [p], not just Fibonacci
-    numbers *)
+Ltac simpl_sub :=
+  rewrite ?sub_succ, ?Nat.sub_0_r in * by omega.
 
 Definition head_or_0 l := match l with x::_ => x | [] => 0 end.
 
@@ -1590,6 +1536,17 @@ Proof.
  rewrite Nat.mod_add; auto.
 Qed.
 
+Lemma rank_fib k : 1<k -> rank (fib k) mod 2 = k mod 2.
+Proof.
+ intros Hk.
+ replace (fib k) with (sumfib [k]) by (simpl; auto).
+ apply rank_sumfib; auto.
+Qed.
+
+(** General result about [g(n+)-g(n)-g(p)].
+    The current proof is rather convoluted.
+*)
+
 Lemma g_add_approx n p :
   g n + g p - 1 + (rank p) mod 2 <= g (n+p) <= g n + g p + (rank p) mod 2.
 Proof.
@@ -1601,228 +1558,265 @@ destruct (decomp_exists p) as (dp & E & D). simpl proj1_sig.
 destruct dp as [|a pl].
 - simpl in E. subst p. rewrite !Nat.add_0_r. omega.
 - simpl head_or_0.
-  inversion_clear D.
+  apply Delta_inv2 in D. destruct D as (Ha,D). simpl in Ha.
   destruct pl as [|b pl].
   + (* [a] *)
-    simpl in E. rewrite Nat.add_0_r in E. subst p.
-    destruct a. inversion H.
-    rewrite g_fib by omega.
-    rewrite (Nat.add_comm n). rewrite (Nat.add_comm (g n)).
-    generalize (g_add_fib n a).
-    set (U := fib a + g n).
-    assert (1 <= U).
-    { transitivity (fib a); try omega.
-      change 1 with (fib 1). apply fib_mono. omega. }
-    assert ((S a) mod 2 + a mod 2 = 1).
-    { rewrite <- !Nat.bit0_mod. simpl. rewrite Nat.odd_succ, <- Nat.negb_even.
-      now destruct (Nat.even a). }
-    omega.
+    clear D.
+    apply Nat.lt_eq_cases in Ha. apply or_comm in Ha. destruct Ha as [<-|Ha].
+    { (* a = 2 *)
+      clear IH. subst. simpl. rewrite (Nat.add_comm n).
+      generalize (g_add_1 n). change (g 1) with 1. omega. }
+    apply Nat.lt_eq_cases in Ha. apply or_comm in Ha. destruct Ha as [<-|Ha].
+    { (* a = 3 *)
+      clear IH. subst. simpl. rewrite (Nat.add_comm n).
+      generalize (g_add_2 n). change (g 2) with 1. omega. }
+    { (* 3 < a *)
+      destruct (decomp_exists n) as (nl & En & Dn).
+      destruct (In_dec Nat.eq_dec a nl) as [INa|NIa].
+      - assert (NIb' : ~In (a-1) nl).
+        { intro. apply (@Delta2_apart nl (a-1)); auto.
+          inversion_clear Dn; auto. simpl_sub; auto. }
+        set (nl' := insert (a-1) nl).
+        assert (LT : fib (a-2) < p).
+        { subst p. simpl. rewrite Nat.add_0_r. apply fib_lt; omega. }
+        specialize (IH _ LT (sumfib nl')).
+        replace (sumfib nl' + fib (a-2)) with (n + p) in IH.
+        2:{ unfold nl'. rewrite sumfib_insert.
+            subst n. subst p. simpl.
+            generalize (fib_eqn (a-2)). simpl_sub. omega. }
+        rewrite rank_fib in IH by omega.
+        replace a with (a-2+1*2) by omega. rewrite Nat.mod_add; auto.
+        assert (g (sumfib nl') + g(fib (a-2)) = g n + g p); [|omega].
+        { clear IH.
+          subst p. subst n. simpl. rewrite Nat.add_0_r.
+          rewrite !g_fib' by omega.
+          unfold nl'. rewrite !g_sumfib'; auto.
+          - rewrite map_pred_insert', sumfib_insert; auto.
+            rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
+            generalize (fib_eqn (a-3)). simpl_sub. omega.
+          - apply insert_delta; auto. omega. }
+      - (* NIa : ~In a nl *)
+        clear IH.
+        subst p. simpl sumfib. rewrite Nat.add_0_r.
+        rewrite g_fib' by omega.
+        assert (0 < fib (a-1)). { apply fib_nz. omega. }
+        assert (a mod 2 < 2). { now apply Nat.mod_upper_bound. }
+        assert (g (n + fib a) = g n + fib (a-1)); [|omega].
+        { rewrite <- En. rewrite Nat.add_comm. rewrite <- sumfib_insert.
+          rewrite !g_sumfib'; auto.
+          - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+            rewrite Nat.sub_1_r. omega.
+          - apply insert_delta; auto. omega. }
+    }
   + set (pl' := b::pl) in *.
-    assert (D : Delta 2 (a::pl')) by auto.
-    unfold pl' in D. inversion_clear D.
-    destruct (Nat.lt_ge_cases (a+2) b).
+    apply Delta_inv2 in D. destruct D as (Hb,D).
+    destruct (Nat.lt_ge_cases (a+2) b) as [Hb'|Hb'].
     * { (* a+2 < b *)
         destruct (decomp_exists n) as (nl & En & Dn).
         destruct (In_dec Nat.eq_dec b nl) as [INb|NIb].
         - assert (NIb' : ~In (b-1) nl).
           { intro. apply (@Delta2_apart nl (b-1)); auto.
-            inversion_clear Dn; auto.
-            replace (S (b-1)) with b by omega. auto. }
+            inversion_clear Dn; auto. simpl_sub; auto. }
           set (nl' := insert (b-1) nl).
           set (pl2 := a::b-2::pl).
           assert (LT : sumfib pl2 < p).
-          { subst p. unfold pl', pl2. simpl.
-            replace b with (S (S (b-2))) at 2 by omega.
-            rewrite (fib_eqn (b-2)).
-            generalize (@fib_nz (S (b-2))). omega. }
+          { subst p. simpl. generalize (@fib_lt (b-2) b). omega. }
           specialize (IH _ LT (sumfib nl')).
           replace (sumfib nl' + sumfib pl2) with (n + p) in IH.
           2:{ unfold pl2, nl'. rewrite sumfib_insert.
               subst n. subst p. unfold pl'. simpl.
-              generalize (fib_eqn (b-2)).
-              replace (S (S (b-2))) with b by omega.
-              replace (S (b-2)) with (b-1) by omega.
-              omega. }
+              generalize (fib_eqn (b-2)). simpl_sub. omega. }
           rewrite rank_sumfib in IH.
           2:{ unfold pl2. constructor. auto. constructor. omega.
               apply Delta_S. apply Delta_low_hd with b; auto. omega. }
           simpl head_or_0 in IH.
-          assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); try omega.
+          assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|omega].
           { clear IH.
             unfold pl2. subst p. subst n. unfold pl'.
-            unfold nl'. rewrite !g_sumfib'.
-            rewrite map_pred_insert, sumfib_insert.
-            simpl.
-            replace (pred (b-1)) with (b-2) by omega.
-            replace (pred (b-2)) with (b-3) by omega.
-            replace (pred b) with (b-1) by omega.
-            generalize (fib_eqn (b-3)).
-            replace (S (S (b-3))) with (b-1) by omega.
-            replace (S (b-3)) with (b-2) by omega.
-            omega.
-            eapply Delta_nz'; eauto.
-            constructor; auto.
-            eauto.
-            constructor; auto. constructor; auto. omega.
-            apply Delta_S. apply Delta_low_hd with b; auto. omega.
-            apply insert_delta; auto. omega. }
+            unfold nl'. rewrite !g_sumfib'; auto.
+            - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+              rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
+              generalize (fib_eqn (b-3)). simpl_sub. omega.
+            - constructor; auto. constructor. omega.
+              apply Delta_S. apply Delta_low_hd with b; auto. omega.
+            - apply insert_delta; auto. omega. }
         - (* NIb : ~In b dn *)
           set (nl' := insert b nl).
           set (pl2 := a::pl).
           assert (LT : sumfib pl2 < p).
-          { subst p. unfold pl', pl2. simpl.
-            generalize (@fib_nz b). omega. }
+          { subst p. simpl. generalize (@fib_nz b). omega. }
           specialize (IH _ LT (sumfib nl')).
           replace (sumfib nl' + sumfib pl2) with (n + p) in IH.
-          2:{ unfold pl2, nl'. rewrite sumfib_insert.
-              subst n. subst p. unfold pl'. simpl. omega. }
+          2:{ unfold nl'. rewrite sumfib_insert.
+              subst n. subst p. simpl. omega. }
           rewrite rank_sumfib in IH.
-          2:{ unfold pl2. constructor. omega.
+          2:{ constructor. omega.
               apply Delta_low_hd with b; auto. omega. }
           simpl head_or_0 in IH.
-          assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); try omega.
+          assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|omega].
           { clear IH.
-            unfold pl2. subst p. subst n. unfold pl'.
-            unfold nl'. rewrite !g_sumfib'.
-            rewrite map_pred_insert, sumfib_insert.
-            simpl. omega.
-            eapply Delta_nz'; eauto.
-            constructor; auto.
-            eauto.
-            constructor; auto.
-            apply Delta_low_hd with b; auto. omega.
-            apply insert_delta; auto. omega. }
+            unfold pl2. subst p. subst n. unfold pl', nl'.
+            rewrite !g_sumfib'; auto.
+            - rewrite map_pred_insert', sumfib_insert; auto. simpl. omega.
+            - constructor; auto. apply Delta_low_hd with b; auto. omega.
+            - apply insert_delta; auto. omega. }
       }
-    * assert (b = a + 2) by omega. clear H1 H3.
+    * assert (Hb2 : b = a + 2) by omega. clear Hb Hb'. rename Hb2 into Hb.
       destruct (decomp_exists n) as (nl & En & Dn).
       destruct (Sumbool.sumbool_not _ _ (In_dec Nat.eq_dec a nl)) as [NIa|INa].
       { (* ~In a nl *)
          set (nl' := insert a nl).
          assert (LT : sumfib pl' < p).
-         { subst p. simpl.
-           generalize (@fib_nz a). omega. }
+         { subst p. simpl. generalize (@fib_nz a). omega. }
          specialize (IH _ LT (sumfib nl')).
          replace (sumfib nl' + sumfib pl') with (n + p) in IH.
-         2:{ unfold pl', nl'. rewrite sumfib_insert.
-             subst n. subst p. unfold pl'. simpl. omega. }
+         2:{ unfold nl'. rewrite sumfib_insert.
+             subst n. subst p. simpl. omega. }
          rewrite rank_sumfib in IH.
-         2:{ apply Delta_S.  apply Delta_low_hd with a; auto. omega. }
+         2:{ unfold pl'. constructor; auto. omega. }
          simpl head_or_0 in IH.
          subst b. change (a+2) with (a+1*2) in IH.
          rewrite Nat.mod_add in IH; auto.
-         assert (g (sumfib nl') + g (sumfib pl') = g n + g p); try omega.
+         assert (g (sumfib nl') + g (sumfib pl') = g n + g p); [|omega].
          { clear IH.
-           subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'.
-           rewrite map_pred_insert, sumfib_insert.
-           simpl. omega.
-           eapply Delta_nz'; eauto.
-           constructor; auto. now apply Delta_S_cons.
-           constructor; auto. omega.
-           apply insert_delta; auto. }
+           subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'; auto.
+           - rewrite map_pred_insert', sumfib_insert; auto. simpl. omega.
+           - constructor; auto. omega.
+           - apply insert_delta; auto. }
       }
-     destruct (Nat.le_gt_cases 4 a) as [Ha|Ha].
-      { (* 4 <= a *)
-        set (nl' := insert (a-1) nl).
-        set (pl2 := a-2::pl').
-        assert (LT : sumfib pl2 < p).
-        { subst p. unfold pl2. simpl.
-          replace a with (S (S (a-2))) at 2 by omega.
-          rewrite (fib_eqn (a-2)).
-          generalize (@fib_nz (S (a-2))). omega. }
-        specialize (IH _ LT (sumfib nl')).
-        replace (sumfib nl' + sumfib pl2) with (n + p) in IH.
-        2:{ unfold pl2, nl'. rewrite sumfib_insert.
-            subst n. subst p. simpl.
-            generalize (fib_eqn (a-2)).
-            replace (S (S (a-2))) with a by omega.
-            replace (S (a-2)) with (a-1) by omega.
-            omega. }
-        rewrite rank_sumfib in IH.
-        2:{ unfold pl2. constructor. omega.
-            apply Delta_S. apply Delta_low_hd with a; auto. omega. }
-        simpl head_or_0 in IH.
-        replace a with (a-2+1*2) by omega. rewrite Nat.mod_add; auto.
-        assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); try omega.
-        { clear IH.
-          unfold pl2. subst p. subst n.
-          unfold nl'. rewrite !g_sumfib'.
-          rewrite map_pred_insert, sumfib_insert.
-          simpl.
-          replace (pred (a-1)) with (a-2) by omega.
-          replace (pred (a-2)) with (a-3) by omega.
-          replace (pred a) with (a-1) by omega.
-          generalize (fib_eqn (a-3)).
-          replace (S (S (a-3))) with (a-1) by omega.
-          replace (S (a-3)) with (a-2) by omega.
-          omega.
-          eapply Delta_nz'; eauto.
-          constructor; auto. now apply Delta_S_cons.
-          constructor; auto. omega.
-          apply Delta_S. apply Delta_low_hd with a; auto. omega.
-          apply insert_delta; auto; try omega.
-          intro. apply (@Delta2_apart nl (a-1)); auto.
-          inversion_clear Dn; auto.
-          replace (S (a-1)) with a by omega. auto. }
-      }
-     inversion Ha.
-      { (* a = 3 *)
-        assert (LT : sumfib (2::pl') < p).
-        { subst p. simpl.
-          subst a. simpl. omega. }
-        specialize (IH _ LT (1+n)).
-        replace (1+n + sumfib (2::pl')) with (n + p) in IH.
-        2:{ unfold pl'. subst p. unfold pl'. subst a. simpl. omega. }
-        rewrite rank_sumfib in IH.
-        2:{ constructor. omega.
-            apply Delta_S. apply Delta_low_hd with a; auto. }
-        subst a. simpl Nat.modulo in *.
-        assert (0 < g p).
-        { apply g_nonzero. subst p. simpl. omega. }
-        assert (g (1+n) + g (sumfib (2::pl')) = g n + g p + 1); try omega.
-        { clear IH.
-          subst p. subst n.
-          change (1+sumfib nl) with (sumfib (2::nl)).
-          rewrite !g_sumfib'; auto. simpl. omega.
-          constructor; auto. apply Delta_S. apply Delta_low_hd with 3; auto.
-          constructor; auto.
-          destruct nl as [|c nl].
-          - inversion INa.
-          - assert (c = 3).
-            { inversion_clear Dn.
-              simpl in INa. destruct INa; auto.
-              apply Delta_alt in H5. destruct H5 as (_,H5).
-              specialize (H5 _ H6). omega. }
-            subst c. constructor. omega. inversion_clear Dn; auto. }
-      }
-      { (* a = 2 *)
-        replace a with 2 in * by omega.
-        simpl in H4. subst b. clear H Ha m H3 H1.
-        assert (LT : sumfib (3::pl) < p).
-        { subst p. simpl. omega. }
-        specialize (IH _ LT (2+n)).
-        replace (2+n + sumfib (3::pl)) with (n + p) in IH.
-        2:{ subst p. simpl. omega. }
-        rewrite rank_sumfib in IH.
-        2:{ constructor. omega.
-            apply Delta_S. apply Delta_low_hd with 4; auto. }
-        simpl Nat.modulo in *.
-        assert (0 < g (2+n)).
-        { apply g_nonzero. omega. }
-        assert (g (2+n) + g (sumfib (3::pl)) + 1 = g n + g p); try omega.
-        { clear IH.
-          subst p. subst n.
-          destruct nl as [|c nl].
-          - inversion INa.
-          - assert (c = 2).
-            { inversion_clear Dn.
-              simpl in INa. destruct INa; auto.
-              apply Delta_alt in H3. destruct H3 as (_,H3).
-              specialize (H3 _ H4). omega. }
-            subst c.
-            change (2+sumfib (2::nl)) with (sumfib (2::3::nl)).
-            rewrite !g_sumfib'; auto. simpl. omega.
-            constructor; auto. apply Delta_S. apply Delta_low_hd with 4; auto.
-            constructor; auto. constructor; auto. apply Delta_S_cons.
-            inversion_clear Dn; auto. }
-      }
+     apply Nat.lt_eq_cases in Ha. destruct Ha as [Ha|<-].
+     apply Nat.lt_eq_cases in Ha. destruct Ha as [Ha|<-].
+     { (* 3 < a *)
+       set (nl' := insert (a-1) nl).
+       set (pl2 := a-2::pl').
+       assert (LT : sumfib pl2 < p).
+       { subst p. unfold pl2. simpl. generalize (@fib_lt (a-2) a). omega. }
+       specialize (IH _ LT (sumfib nl')).
+       replace (sumfib nl' + sumfib pl2) with (n + p) in IH.
+       2:{ unfold nl'. rewrite sumfib_insert.
+           subst n. subst p. simpl.
+           generalize (fib_eqn (a-2)). simpl_sub. omega. }
+       rewrite rank_sumfib in IH.
+       2:{ unfold pl2. constructor. omega.
+           unfold pl'. constructor; auto. omega. }
+       simpl head_or_0 in IH.
+       replace a with (a-2+1*2) by omega. rewrite Nat.mod_add; auto.
+       assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|omega].
+       { clear IH.
+         subst p. subst n. unfold nl'. rewrite !g_sumfib'; auto.
+         - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+           rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
+           generalize (fib_eqn (a-3)). simpl_sub. omega.
+         - constructor; auto. omega. constructor; auto. omega.
+         - constructor; auto. omega. constructor; auto. omega.
+         - apply insert_delta; auto. 2:omega.
+           intro. apply (@Delta2_apart nl (a-1)); auto.
+           inversion_clear Dn; auto. simpl_sub. auto. }
+     }
+     { (* a = 3 *)
+       assert (LT : sumfib (2::pl') < p).
+       { subst p. simpl. omega. }
+       specialize (IH _ LT (1+n)).
+       replace (1+n + sumfib (2::pl')) with (n + p) in IH.
+       2:{ subst p. simpl. omega. }
+       rewrite rank_sumfib in IH.
+       2:{ constructor. omega. constructor; auto. omega. }
+       simpl Nat.modulo in *.
+       assert (0 < g p).
+       { apply g_nonzero. subst p. simpl. omega. }
+       assert (g (1+n) + g (sumfib (2::pl')) = g n + g p + 1); try omega.
+       { clear IH.
+         subst p. subst n.
+         change (1+sumfib nl) with (sumfib (2::nl)).
+         rewrite !g_sumfib'; auto.
+         - simpl. omega.
+         - constructor; auto. constructor; auto. omega.
+         - constructor; auto. constructor; auto. omega.
+         - constructor; auto.
+           destruct nl as [|c nl].
+           + inversion INa.
+           + apply Delta_inv2 in Dn. destruct Dn as (Hc,Dn).
+             replace c with 3 in *; auto.
+             simpl in INa. destruct INa as [INa|INa]; auto.
+             apply Delta_alt in Dn. destruct Dn as (_,Dn).
+             specialize (Dn _ INa). omega. }
+     }
+     { (* a = 2 *)
+       simpl in Hb. subst b.
+       assert (LT : sumfib (3::pl) < p).
+       { subst p. simpl. omega. }
+       specialize (IH _ LT (2+n)).
+       replace (2+n + sumfib (3::pl)) with (n + p) in IH.
+       2:{ subst p. simpl. omega. }
+       rewrite rank_sumfib in IH.
+       2:{ constructor; auto.
+           apply Delta_S. apply Delta_low_hd with 4; auto. }
+       simpl Nat.modulo in *.
+       assert (0 < g (2+n)). { apply g_nonzero. omega. }
+       assert (g (2+n) + g (sumfib (3::pl)) + 1 = g n + g p); [|omega].
+       { clear IH.
+         subst p. subst n.
+         destruct nl as [|c nl].
+         - inversion INa.
+         - apply Delta_inv2 in Dn. destruct Dn as (Hc,Dn).
+           replace c with 2 in *.
+           2:{
+             simpl in INa. destruct INa as [INa|INa]; auto.
+             apply Delta_alt in Dn. destruct Dn as (_,Dn).
+             specialize (Dn _ INa). omega. }
+           change (2+sumfib (2::nl)) with (sumfib (2::3::nl)).
+           rewrite !g_sumfib'; auto.
+           + simpl. omega.
+           + constructor; auto. constructor; auto.
+           + constructor; auto. apply Delta_low_hd with 4; auto. }
+     }
+Qed.
+
+(* Some special cases of g_add_approx *)
+
+Lemma g_add_fib n k :
+  fib k + g n - k mod 2 <= g (fib (S k) + n) <= fib k + g n + 1 - k mod 2.
+Proof.
+ generalize (g_add_approx n (fib (S k))).
+ destruct (Nat.eq_dec k 0).
+ - subst k. simpl. change (g 1) with 1.
+   rewrite (Nat.add_1_r n). omega.
+ - rewrite g_fib; auto. rewrite rank_fib by omega.
+   assert (S k mod 2 + k mod 2 = 1).
+   { rewrite <- !Nat.bit0_mod. simpl.
+     rewrite Nat.odd_succ, <- Nat.negb_even. now destruct Nat.even. }
+   rewrite (Nat.add_comm n). omega.
+Qed.
+
+Lemma g_add_3 n : 1 + g n <= g (3+n) <= 2 + g n.
+Proof.
+ generalize (g_add_fib n 3). simpl. now rewrite Nat.add_1_r.
+Qed.
+
+Lemma g_add_4 n : 2 + g n <= g (4+n) <= 3 + g n.
+Proof.
+ generalize (g_add_approx n 4). simpl. change (g 4) with 3.
+ rewrite (Nat.add_comm n). simpl. omega.
+Qed.
+
+Lemma g_add_5 n : 3 + g n <= g (5+n) <= 4 + g n.
+Proof.
+ generalize (g_add_fib n 4). simpl. now rewrite Nat.add_1_r.
+Qed.
+
+Lemma g_add_6 n : 3 + g n <= g (6+n) <= 4 + g n.
+Proof.
+ generalize (g_add_approx n 6). simpl. change (g 6) with 4.
+ rewrite (Nat.add_comm n). simpl. omega.
+Qed.
+
+Lemma g_add_7 n : 4 + g n <= g (7+n) <= 5 + g n.
+Proof.
+ generalize (g_add_approx n 7). simpl. change (g 7) with 4.
+ rewrite (Nat.add_comm n). simpl. omega.
+Qed.
+
+Lemma g_add_8 n : 4 + g n <= g (8+n) <= 5 + g n.
+Proof.
+ generalize (g_add_fib n 5). simpl. now rewrite Nat.add_1_r.
 Qed.

@@ -40,6 +40,12 @@ Proof.
  rewrite Delta_alt. intuition.
 Qed.
 
+Lemma Delta_inv2 p x y l :
+ Delta p (x::y::l) -> x+p <= y /\ Delta p (y::l).
+Proof.
+ inversion 1; subst; auto.
+Qed.
+
 Lemma Delta_more l p p' : p <= p' -> Delta p' l -> Delta p l.
 Proof.
  induction 2; constructor; auto; omega.
