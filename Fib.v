@@ -290,6 +290,24 @@ Proof.
  now f_equal.
 Qed.
 
+Definition decomp n := proj1_sig (decomp_exists n).
+
+Lemma decomp_sumfib n : sumfib (decomp n) = n.
+Proof.
+ unfold decomp. now destruct decomp_exists as (l & E & D).
+Qed.
+
+Lemma decomp_ok n : Delta 2 (0::decomp n).
+Proof.
+ unfold decomp. now destruct decomp_exists as (l & E & D).
+Qed.
+
+Lemma decomp_spec n l : sumfib l = n -> Delta 2 (0::l) -> decomp n = l.
+Proof.
+ intros E D. apply decomp_unique; auto. apply decomp_ok.
+ rewrite E. apply decomp_sumfib.
+Qed.
+
 (** ** Normalisation of a Fibonacci decomposition.
 
     Starting from an increasing decomposition, we can

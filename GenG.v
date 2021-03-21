@@ -1,6 +1,6 @@
 
 Require Import Arith Omega Wf_nat List Bool.
-Require Import DeltaList Fib FunG GenFib.
+Require Import DeltaList FunG GenFib.
 Import ListNotations.
 Require Extraction.
 Set Implicit Arguments.
