@@ -1788,6 +1788,19 @@ Proof.
    rewrite (Nat.add_comm n). omega.
 Qed.
 
+Lemma g_add_neqparities n p :
+ rank n mod 2 <> rank p mod 2 -> g (n+p) = g n + g p.
+Proof.
+ intros NE.
+ assert (H := g_add_approx n p).
+ assert (H' := g_add_approx p n).
+ rewrite (Nat.add_comm p n) in H'.
+ generalize (Nat.mod_upper_bound (rank n) 2).
+ generalize (Nat.mod_upper_bound (rank p) 2).
+ omega.
+Qed.
+
+
 Lemma g_add_3 n : 1 + g n <= g (3+n) <= 2 + g n.
 Proof.
  generalize (g_add_fib n 3). simpl. now rewrite Nat.add_1_r.
