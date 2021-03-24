@@ -1133,6 +1133,24 @@ Proof.
 apply g_Low. auto.
 Qed.
 
+Lemma g_Three_iff n : Fib.Three 2 n <-> g(2 + n) = 2 + g n.
+Proof.
+ split.
+ - intros (l & -> & D & _).
+   simpl.
+   change (g (sumfib (2::4::l)) = 2 + g (sumfib (3::l))).
+   rewrite !g_sumfib'; auto.
+ - intros E.
+   destruct (Nat.eq_dec n 0) as [->|Hn].
+   + discriminate.
+   + destruct (decomp_complete Hn) as [H|[H|H]]; auto.
+     * rewrite g_Two_iff in H.
+       generalize (g_step (S n)). simpl in *. omega.
+     * apply High_succ_Two in H. destruct H as (H,_).
+       rewrite g_Two_iff in H.
+       generalize (g_step n). simpl in *. omega.
+Qed.
+
 Lemma ThreeOdd_Sg n : Fib.ThreeOdd 2 n -> Fib.ThreeEven 1 (S (g n)).
 Proof.
 intros (k & l & -> & D).
