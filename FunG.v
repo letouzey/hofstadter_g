@@ -1792,6 +1792,14 @@ Qed.
 
 (* Some special cases of g_add_approx *)
 
+Lemma g_add_bound n p :
+ g n + g p -1 <= g (n+p) <= g n + g p + 1.
+Proof.
+ assert (H := g_add_approx n p).
+ generalize (Nat.mod_upper_bound (rank p) 2).
+ omega.
+Qed.
+
 Lemma g_add_fib n k :
   fib k + g n - k mod 2 <= g (fib (S k) + n) <= fib k + g n + 1 - k mod 2.
 Proof.
