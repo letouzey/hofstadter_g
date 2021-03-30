@@ -815,7 +815,7 @@ Proof.
  destruct (Nat.eq_dec n 0) as [EQ|NE].
  - exists []; subst; unfold Below; simpl; repeat split; intuition.
  - destruct (le_lt_dec n (S k)) as [LE|LT].
-   + exists [n-1]; unfold Below; simpl; repeat split; intuition.
+   + exists [n-1]; unfold Below; simpl; repeat split; intuition; try lia.
      rewrite 2 A_base; lia.
    + destruct (IH (n-S k)) as (l & SUM & DR & IN) ; try lia.
      exists (n-1::l); simpl; repeat split; auto.
@@ -881,5 +881,5 @@ Proof.
        assert (n < N) by (apply B; simpl; auto).
        apply B2.
        intros x. rewrite in_app_iff. specialize (B x). specialize (B1 x).
-       simpl in B. intuition.
+       simpl in B. intuition; lia.
 Defined.

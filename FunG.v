@@ -2,6 +2,7 @@
 
 Require Import Arith Lia Wf_nat List.
 Require Import DeltaList Fib.
+Import ListNotations.
 Set Implicit Arguments.
 
 (** Study of the functional equation:
@@ -978,7 +979,7 @@ Proof.
          - generalize (g_le n); lia.
          - rewrite G. simpl. f_equal. now rewrite map_S_pred.
          - change (Delta 1 (map pred (1::2::l0++l))).
-           apply Delta_pred. simpl; intuition.
+           apply Delta_pred. simpl; intuition; lia.
            constructor; auto. }
        simpl sumfib.
        rewrite GG, E, <- Hl0'. simpl.
@@ -1051,7 +1052,7 @@ Proof.
      * now apply Delta_rev.
    + intros y. unfold l'. rewrite in_map_iff.
      intros (x & Hx & IN). rewrite <- in_rev in IN.
-     destruct x as [|[|x]]; simpl in *; intuition.
+     destruct x as [|[|x]]; simpl in *; intuition; lia.
 Qed.
 
 (** Beware! In the previous statements, [map pred l] might

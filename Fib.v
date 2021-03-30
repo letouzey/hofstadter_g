@@ -198,7 +198,7 @@ Proof.
  revert k.
  induction l.
  - intros k Hk _. simpl in Hk. simpl sumfib. rewrite Nat.add_0_r.
-   destruct k; auto. apply fib_lt_S. intuition.
+   destruct k; auto. apply fib_lt_S. intuition; lia.
  - intros k Hk.
    inversion 1; subst. simpl sumfib.
    rewrite fib_eqn' by lia. apply Nat.add_lt_mono_l.
@@ -271,7 +271,7 @@ Proof.
  - now rewrite sumfib_rev.
  - apply Delta_alt; split.
    + now apply Delta_rev.
-   + intros y. rewrite <- in_rev. do 2 (destruct y; intuition).
+   + intros y. rewrite <- in_rev. do 2 (destruct y; intuition); lia.
 Defined.
 
 Lemma decomp_unique l l' :
@@ -957,7 +957,7 @@ Qed.
 Lemma EvenHigh_pred_Odd n : Even 2 n -> High 2 n -> Odd 2 (n-1).
 Proof.
  intros (k,L) (k' & K' & L').
- assert (k<>0). { intros ->. destruct L. intuition. }
+ assert (k<>0). { intros ->. destruct L. intuition; lia. }
  assert (k<>1).
  { intros ->.
    replace k' with 2 in K' by (eapply Low_unique; eauto). lia. }
@@ -1001,7 +1001,7 @@ Lemma EvenHigh_pred_ThreeOdd n :
 Proof.
  intros (k,L) H H'.
  assert (2<k).
- { destruct k as [|[|[|k]]]; intuition; destruct L; intuition. }
+ { destruct k as [|[|[|k]]]; intuition; destruct L; intuition; lia. }
  clear H H'.
  destruct L as (l & E & D & _).
  exists 2. exists (map (fun n=>4+n) (odds (k-3)) ++ l).

@@ -96,7 +96,7 @@ Qed.
 Lemma Delta_pred p l :
  ~In 0 l -> Delta p l -> Delta p (map pred l).
 Proof.
- induction 2; simpl in *; constructor; intuition.
+ induction 2; simpl in *; constructor; intuition; lia.
 Qed.
 
 (* begin hide *)
@@ -240,7 +240,7 @@ Proof.
      intros y Hy. apply DeltaRev_app_inv in IHDelta.
      destruct IHDelta as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition.
+     rewrite in_app_iff in Hy. simpl in *. intuition; lia.
  - induction 1.
    + constructor.
    + constructor.
@@ -249,7 +249,7 @@ Proof.
      intros y Hy. apply Delta_app_inv in IHDeltaRev.
      destruct IHDeltaRev as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition.
+     rewrite in_app_iff in Hy. simpl in *. intuition; lia.
 Qed.
 
 Lemma DeltaRev_rev p l : DeltaRev p (rev l) <-> Delta p l.
