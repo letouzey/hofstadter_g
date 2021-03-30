@@ -1,6 +1,6 @@
 (** * Phi : Hofstadter G function and the golden ratio *)
 
-Require Import Arith Fourier R_Ifp R_sqrt Znumtheory Omega.
+Require Import Arith Reals Lra R_Ifp R_sqrt Znumtheory Omega.
 Require Import Fib FunG.
 
 Open Scope Z.
@@ -42,7 +42,7 @@ Proof.
 unfold tau, phi.
 replace ((sqrt 5 - 1)/2 * ((sqrt 5 + 1)/2))
 with ((sqrt 5 * sqrt 5 - 1)/4) by field.
-rewrite sqrt_def. field. fourier.
+rewrite sqrt_def. field. lra.
 Qed.
 
 Lemma tau_tau : tau * tau = 1 - tau.
@@ -52,12 +52,12 @@ Qed.
 
 Lemma tau_nz : tau <> 0.
 Proof.
- intro E. generalize tau_phi. rewrite E. intros. fourier.
+ intro E. generalize tau_phi. rewrite E. intros. lra.
 Qed.
 
 Lemma phi_nz : phi <> 0.
 Proof.
- intro E. generalize tau_phi. rewrite E. intros. fourier.
+ intro E. generalize tau_phi. rewrite E. intros. lra.
 Qed.
 
 Lemma tau_inv : tau = 1/phi.
@@ -70,19 +70,19 @@ Proof.
  unfold tau.
  assert (11/5 < sqrt 5).
  { replace (11/5) with (sqrt ((11/5)*(11/5))).
-   apply sqrt_lt_1; fourier.
-   apply sqrt_Rsqr. fourier. }
+   apply sqrt_lt_1; lra.
+   apply sqrt_Rsqr. lra. }
  assert (sqrt 5 < 12/5).
  { replace (12/5) with (sqrt ((12/5)*(12/5))).
-   apply sqrt_lt_1; fourier.
-   apply sqrt_Rsqr. fourier. }
+   apply sqrt_lt_1; lra.
+   apply sqrt_Rsqr. lra. }
  split.
- - apply Rmult_lt_reg_l with 2. fourier.
+ - apply Rmult_lt_reg_l with 2. lra.
    apply Rplus_lt_reg_r with 1.
-   field_simplify. fourier.
- - apply Rmult_lt_reg_l with 2. fourier.
+   field_simplify. lra.
+ - apply Rmult_lt_reg_l with 2. lra.
    apply Rplus_lt_reg_r with 1.
-   field_simplify. fourier.
+   field_simplify. lra.
 Qed.
 
 (** * A bit of irrationality theory *)
@@ -121,7 +121,7 @@ Proof.
  assert (Eq' : (p*p = 5 * q*q)%Z).
  { apply eq_IZR; rewrite !mult_IZR, <-!Eq.
    replace (IZR 5) with 5 by (simpl; Rcompute).
-   rewrite <- (sqrt_def 5) at 3. ring. fourier. }
+   rewrite <- (sqrt_def 5) at 3. ring. lra. }
  assert (Hpp : (5 | p*p)). { exists (q*q)%Z. rewrite Eq'. ring. }
  assert (Hp : (5 | p)).
  { apply prime_mult in Hpp; intuition. apply prime_5. }
@@ -154,8 +154,8 @@ Proof.
  - unfold Int_part.
    intros (H1,H2).
    assert (k+1 = up r)%Z; [|omega].
-   apply tech_up; rewrite plus_IZR; simpl; fourier.
- - intros <-. destruct (base_Int_part r). split; fourier.
+   apply tech_up; rewrite plus_IZR; simpl; lra.
+ - intros <-. destruct (base_Int_part r). split; lra.
 Qed.
 
 Lemma int_part_carac (r:R)(k:Z) :
@@ -174,12 +174,12 @@ Proof.
  split.
  - intros.
    destruct (base_Int_part r).
-   assert (E : IZR k - 1 < IZR (Int_part r)) by fourier.
+   assert (E : IZR k - 1 < IZR (Int_part r)) by lra.
    change 1 with (IZR 1) in E.
    rewrite <- minus_IZR in E.
    apply lt_IZR in E. omega.
  - destruct (base_Int_part r).
-   intros LE. apply IZR_le in LE. fourier.
+   intros LE. apply IZR_le in LE. lra.
 Qed.
 
 (** * The main theorem *)
@@ -191,11 +191,11 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
 - subst. change (g 0) with O. simpl.
   replace (tau*1) with tau by ring.
   rewrite (int_part_carac tau 0); simpl; trivial.
-  destruct tau_bound; split; fourier.
+  destruct tau_bound; split; lra.
 - assert (0 < INR n). { apply (lt_INR 0). omega. }
   assert (0 <= Int_part (tau * INR n))%Z.
   { apply int_part_le. simpl. destruct tau_bound.
-    apply Rmult_le_pos; fourier. }
+    apply Rmult_le_pos; lra. }
   set (k:=Z.to_nat (Int_part (tau*INR n))).
   set (d:=frac_part (tau*INR n)).
   replace n with (S (n-1)) at 1 by omega.
@@ -231,14 +231,14 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
     rewrite !Nat2Z.id. omega.
     * rewrite <- INR_IZR_INZ.
       rewrite S_INR. rewrite Rmult_plus_distr_l.
-      rewrite Eq. split; fourier.
+      rewrite Eq. split; lra.
     * rewrite <- INR_IZR_INZ, minus_INR, S_INR, Eq by omega.
       replace (_ - _) with (tau-(tau+1)*d) by (ring [tau_tau]).
       rewrite tau_1.
-      assert (0 <= phi*d <= tau); [split|intuition fourier].
-      { apply Rmult_le_pos; fourier. }
+      assert (0 <= phi*d <= tau); [split|intuition lra].
+      { apply Rmult_le_pos; lra. }
       { replace tau with (phi*(1-tau)).
-        apply Rmult_le_compat_l; fourier.
+        apply Rmult_le_compat_l; lra.
         rewrite <- tau_1. ring [tau_tau]. }
   + rewrite EQ in Eq.
     assert (Z.of_nat n + 1 = 0)%Z.
@@ -252,14 +252,14 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
     rewrite !Nat2Z.id. omega.
     * rewrite <- INR_IZR_INZ.
       rewrite !S_INR. rewrite Rmult_plus_distr_l.
-      rewrite Eq. split; fourier.
+      rewrite Eq. split; lra.
     * rewrite <- INR_IZR_INZ, !minus_INR, S_INR, Eq by omega.
       simpl INR.
       replace (_ - _) with ((tau+1)*(1-d)) by (ring [tau_tau]).
       split.
-      { apply Rmult_le_pos; fourier. }
+      { apply Rmult_le_pos; lra. }
       { rewrite <- tau_phi at 3. rewrite Rmult_comm, tau_1.
-        apply Rmult_lt_compat_r; fourier. }
+        apply Rmult_lt_compat_r; lra. }
 Qed.
 
 Lemma g_phi (n:nat) : g n = Z.to_nat (Int_part (INR (S n)/phi)).
