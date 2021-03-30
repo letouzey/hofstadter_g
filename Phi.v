@@ -1,6 +1,6 @@
 (** * Phi : Hofstadter G function and the golden ratio *)
 
-Require Import Arith Reals Lra R_Ifp R_sqrt Znumtheory Omega.
+Require Import Arith Reals Lra Lia R_Ifp R_sqrt Znumtheory.
 Require Import Fib FunG.
 
 Open Scope Z.
@@ -90,9 +90,9 @@ Qed.
 Lemma prime_5 : prime 5.
 Proof.
  constructor.
- - omega.
+ - lia.
  - intros n Hn. apply Zgcd_1_rel_prime.
-   assert (n=1 \/ n=2 \/ n=3 \/ n=4)%Z by omega.
+   assert (n=1 \/ n=2 \/ n=3 \/ n=4)%Z by lia.
    intuition; now subst.
 Qed.
 
@@ -109,7 +109,7 @@ Proof.
  destruct (Z.eq_dec g 0) as [E|N]; [subst; trivial|exfalso].
  apply (H p' q').
  - rewrite Z.gcd_mul_mono_l_nonneg in G by trivial.
-   apply Z.mul_reg_l with g; omega.
+   apply Z.mul_reg_l with g; lia.
  - rewrite !mult_IZR in Eq.
    apply Rmult_eq_reg_l with (IZR g). rewrite <- Eq. ring.
    now apply not_0_IZR.
@@ -127,13 +127,13 @@ Proof.
  { apply prime_mult in Hpp; intuition. apply prime_5. }
  case Hp. intros p' Hp'.
  assert (Hqq : (5 | q*q)).
- { exists (p'*p')%Z. apply Z.mul_reg_l with 5%Z. omega.
+ { exists (p'*p')%Z. apply Z.mul_reg_l with 5%Z. lia.
    rewrite Z.mul_assoc, <- Eq', !Hp'. ring. }
  assert (Hq : (5 | q)).
  { apply prime_mult in Hqq; intuition. apply prime_5. }
  assert (H : (5 | 1)).
  { rewrite <- Hpq. apply Z.gcd_greatest; auto. }
- destruct H as (x,Hx). omega.
+ destruct H as (x,Hx). lia.
 Qed.
 
 Lemma tau_irr (p q:Z) : tau * IZR q = IZR p -> q = 0%Z.
@@ -153,7 +153,7 @@ Proof.
  split.
  - unfold Int_part.
    intros (H1,H2).
-   assert (k+1 = up r)%Z; [|omega].
+   assert (k+1 = up r)%Z; [|lia].
    apply tech_up; rewrite plus_IZR; simpl; lra.
  - intros <-. destruct (base_Int_part r). split; lra.
 Qed.
@@ -177,7 +177,7 @@ Proof.
    assert (E : IZR k - 1 < IZR (Int_part r)) by lra.
    change 1 with (IZR 1) in E.
    rewrite <- minus_IZR in E.
-   apply lt_IZR in E. omega.
+   apply lt_IZR in E. lia.
  - destruct (base_Int_part r).
    intros LE. apply IZR_le in LE. lra.
 Qed.
@@ -192,22 +192,22 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
   replace (tau*1) with tau by ring.
   rewrite (int_part_carac tau 0); simpl; trivial.
   destruct tau_bound; split; lra.
-- assert (0 < INR n). { apply (lt_INR 0). omega. }
+- assert (0 < INR n). { apply (lt_INR 0). lia. }
   assert (0 <= Int_part (tau * INR n))%Z.
   { apply int_part_le. simpl. destruct tau_bound.
     apply Rmult_le_pos; lra. }
   set (k:=Z.to_nat (Int_part (tau*INR n))).
   set (d:=frac_part (tau*INR n)).
-  replace n with (S (n-1)) at 1 by omega.
+  replace n with (S (n-1)) at 1 by lia.
   rewrite g_S.
-  replace (S (n-1)) with n by omega.
+  replace (S (n-1)) with n by lia.
   assert (E : g (n-1) = k).
-  { rewrite IH by omega. now replace (S (n-1)) with n by omega. }
+  { rewrite IH by lia. now replace (S (n-1)) with n by lia. }
   rewrite E.
   assert (k <= n-1)%nat by (rewrite <-E; apply g_le).
-  assert (g k < n)%nat by (generalize (g_le k); omega).
+  assert (g k < n)%nat by (generalize (g_le k); lia).
   symmetry. apply plus_minus.
-  rewrite IH by omega.
+  rewrite IH by lia.
   assert (Hd : d <> 0).
   { unfold d. contradict Hn.
     generalize (int_frac (tau*INR n)). rewrite Hn.
@@ -228,11 +228,11 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
   destruct (Rle_or_lt d (1-tau)) as [[LT|EQ]|LT].
   + rewrite (int_part_carac (tau*INR(S k)) (Z.of_nat (n-k))).
     rewrite (int_part_carac (tau*INR(S n)) (Z.of_nat k)).
-    rewrite !Nat2Z.id. omega.
+    rewrite !Nat2Z.id. lia.
     * rewrite <- INR_IZR_INZ.
       rewrite S_INR. rewrite Rmult_plus_distr_l.
       rewrite Eq. split; lra.
-    * rewrite <- INR_IZR_INZ, minus_INR, S_INR, Eq by omega.
+    * rewrite <- INR_IZR_INZ, minus_INR, S_INR, Eq by lia.
       replace (_ - _) with (tau-(tau+1)*d) by (ring [tau_tau]).
       rewrite tau_1.
       assert (0 <= phi*d <= tau); [split|intuition lra].
@@ -246,14 +246,14 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
     rewrite !plus_IZR. simpl.
     rewrite <- !INR_IZR_INZ.
     rewrite Rmult_plus_distr_l. rewrite Eq. ring.
-    omega.
+    lia.
   + rewrite (int_part_carac (tau*INR(S k)) (Z.of_nat (n-k-1))).
     rewrite (int_part_carac (tau*INR(S n)) (Z.of_nat (S k))).
-    rewrite !Nat2Z.id. omega.
+    rewrite !Nat2Z.id. lia.
     * rewrite <- INR_IZR_INZ.
       rewrite !S_INR. rewrite Rmult_plus_distr_l.
       rewrite Eq. split; lra.
-    * rewrite <- INR_IZR_INZ, !minus_INR, S_INR, Eq by omega.
+    * rewrite <- INR_IZR_INZ, !minus_INR, S_INR, Eq by lia.
       simpl INR.
       replace (_ - _) with ((tau+1)*(1-d)) by (ring [tau_tau]).
       split.

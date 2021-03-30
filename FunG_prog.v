@@ -1,7 +1,7 @@
 (** * FunG_prog : Alternative definition of Hofstadter's G function *)
 
 Require Import FunG.
-Require Import Arith Omega Wf_nat List Program Program.Wf.
+Require Import Arith Lia Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 
 (** Same as [FunG.g_spec], but via the Program framework *)
@@ -21,7 +21,7 @@ Next Obligation.
  destruct (g_spec _) as (b,Hb).
  program_simpl.
  eapply GS; eauto. change (S n = S n - b + b).
- generalize (G_le Ha) (G_le Hb). omega.
+ generalize (G_le Ha) (G_le Hb). lia.
 Defined.
 
 Definition g n := let (a,_) := g_spec n in a.

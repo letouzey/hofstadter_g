@@ -1,6 +1,6 @@
 (** * DeltaList : lists of natural numbers with constrained differences *)
 
-Require Import Arith Omega Wf_nat List.
+Require Import Arith Lia Wf_nat List.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -30,7 +30,7 @@ Proof.
    + intros x _. split. constructor. inversion 1.
    + intros x. inversion 1; subst. split; trivial.
      intros y [Hy|Hy]. now subst.
-     apply (IH a) in Hy; auto. omega.
+     apply (IH a) in Hy; auto. lia.
  - intros (H,H').
    destruct l; constructor; trivial. apply H'. now left.
 Qed.
@@ -48,7 +48,7 @@ Qed.
 
 Lemma Delta_more l p p' : p <= p' -> Delta p' l -> Delta p l.
 Proof.
- induction 2; constructor; auto; omega.
+ induction 2; constructor; auto; lia.
 Qed.
 
 Lemma Delta_S n l : Delta (S n) l -> Delta n l.
@@ -58,22 +58,22 @@ Qed.
 
 Lemma Delta_nz p k l : 0<k -> Delta p (k::l) -> ~In 0 (k::l).
 Proof.
- intros H H' [X|X]. omega.
- apply Delta_alt in H'. apply H' in X. omega.
+ intros H H' [X|X]. lia.
+ apply Delta_alt in H'. apply H' in X. lia.
 Qed.
 Hint Resolve Delta_S Delta_inv Delta_nz.
 
 Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
 Proof.
  intros H H' X.
- apply Delta_alt in H'. apply H' in X. omega.
+ apply Delta_alt in H'. apply H' in X. lia.
 Qed.
 
 Lemma Delta_low_hd p k k' l :
  k'<=k -> Delta p (k::l) -> Delta p (k'::l).
 Proof.
  intros Hk. rewrite !Delta_alt. intros (H,H').
- split; trivial. intros y Hy. apply H' in Hy. omega.
+ split; trivial. intros y Hy. apply H' in Hy. lia.
 Qed.
 
 Lemma Delta_S_cons k x l :
@@ -82,7 +82,7 @@ Proof.
   intros D. apply Delta_alt in D. destruct D as (D,D').
   apply Delta_alt; split.
   apply Delta_more with (S k); auto.
-  intros y Hy. apply D' in Hy. omega.
+  intros y Hy. apply D' in Hy. lia.
 Qed.
 Hint Resolve Delta_S_cons.
 
@@ -118,7 +118,7 @@ Proof.
  revert n. induction k.
  - constructor.
  - intros. simpl. apply Delta_alt. split; auto.
-   intros y Hy. rewrite in_seq in Hy. omega.
+   intros y Hy. rewrite in_seq in Hy. lia.
 Qed.
 
 Lemma Delta_app p x l l' :
@@ -134,7 +134,7 @@ Proof.
      destruct Hy as [Hy|Hy].
      * rewrite Delta_alt in Hl. now apply Hl.
      * assert (a <= x) by (apply H; now left).
-       apply Delta_alt in Hl'. apply Hl' in Hy. omega.
+       apply Delta_alt in Hl'. apply Hl' in Hy. lia.
 Qed.
 
 (* Another approach, more suitable for inversion: *)
@@ -169,9 +169,9 @@ Proof.
  induction l as [|a l IH].
  - inversion 2.
  - rewrite Delta_alt. intros (D,D').
-   simpl. intros [E|H] [E'|H']; auto; try omega.
-   + apply D' in H'. omega.
-   + apply D' in H. omega.
+   simpl. intros [E|H] [E'|H']; auto; try lia.
+   + apply D' in H'. lia.
+   + apply D' in H. lia.
 Qed.
 
 (** * Decreasing lists *)
@@ -194,7 +194,7 @@ Proof.
    + intros x _. split. constructor. inversion 1.
    + intros x. inversion 1; subst. split; trivial.
      intros y [Hy|Hy]. now subst.
-     apply (IH a) in Hy; auto. omega.
+     apply (IH a) in Hy; auto. lia.
  - intros (H,H').
    destruct l; constructor; trivial. apply H'. now left.
 Qed.
@@ -213,7 +213,7 @@ Proof.
      destruct Hy as [Hy|Hy].
      * rewrite DeltaRev_alt in Hl. now apply Hl.
      * assert (x <= a) by (apply H; now left).
-       apply DeltaRev_alt in Hl'. apply Hl' in Hy. omega.
+       apply DeltaRev_alt in Hl'. apply Hl' in Hy. lia.
 Qed.
 
 Lemma DeltaRev_app_inv p l l' :

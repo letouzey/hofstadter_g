@@ -1,6 +1,6 @@
 (** * Fib : Fibonacci sequence and decomposition *)
 
-Require Import Arith Omega Wf_nat List NPeano.
+Require Import Arith Lia Wf_nat List NPeano.
 Require Import DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
@@ -38,14 +38,14 @@ Lemma fib_eqn' n : n<>0 -> fib (S n) = fib n + fib (n-1).
 Proof.
  destruct n.
  - now destruct 1.
- - intros _. replace (S n - 1) with n by omega.
+ - intros _. replace (S n - 1) with n by lia.
    apply fib_eqn.
 Qed.
 
 Lemma fib_S_nz k : 1 <= fib (S k).
 Proof.
  induction k as [|k IH]; trivial.
- rewrite fib_eqn. omega.
+ rewrite fib_eqn. lia.
 Qed.
 
 Lemma fib_nz k : k<>0 -> 1 <= fib k.
@@ -57,25 +57,25 @@ Qed.
 
 Lemma fib_0_inv k : fib k = 0 -> k = 0.
 Proof.
- generalize (@fib_nz k). omega.
+ generalize (@fib_nz k). lia.
 Qed.
 
 Lemma fib_lt_S k : 1 < k -> fib k < fib (S k).
 Proof.
- intro. rewrite fib_eqn' by omega.
- generalize (@fib_nz (k-1)). omega.
+ intro. rewrite fib_eqn' by lia.
+ generalize (@fib_nz (k-1)). lia.
 Qed.
 
 Lemma fib_lt k k' : 1 < k -> k < k' -> fib k < fib k'.
 Proof.
  induction 2.
- - apply fib_lt_S; omega.
- - transitivity (fib m); trivial. apply fib_lt_S; omega.
+ - apply fib_lt_S; lia.
+ - transitivity (fib m); trivial. apply fib_lt_S; lia.
 Qed.
 
 Lemma fib_mono_S k : fib k <= fib (S k).
 Proof.
- destruct k. simpl; auto. rewrite fib_eqn. omega.
+ destruct k. simpl; auto. rewrite fib_eqn. lia.
 Qed.
 
 Lemma fib_mono k k' : k <= k' -> fib k <= fib k'.
@@ -88,14 +88,14 @@ Lemma fib_inj k k' : 1<k -> 1<k' -> fib k = fib k' -> k = k'.
 Proof.
  intros.
  destruct (lt_eq_lt_dec k k') as [[LT|EQ]|LT]; trivial;
-  apply fib_lt in LT; omega.
+  apply fib_lt in LT; lia.
 Qed.
 
 Lemma fib_lt_inv k k' : fib k < fib k' -> k < k'.
 Proof.
  intros.
  destruct (le_lt_dec k' k) as [LE|LT]; trivial.
- apply fib_mono in LE. omega.
+ apply fib_mono in LE. lia.
 Qed.
 
 Lemma fib_le_id k : k <= S (fib k).
@@ -104,7 +104,7 @@ Proof.
  - simpl; auto.
  - simpl; auto.
  - simpl; auto.
- - rewrite fib_eqn. generalize (fib_S_nz k). omega.
+ - rewrite fib_eqn. generalize (fib_S_nz k). lia.
 Qed.
 
 Lemma fib_inv n : { k | fib k <= n < fib (S k) }.
@@ -116,9 +116,9 @@ Proof.
    destruct (eq_nat_dec (S (S n)) (fib (S k))) as [->|N].
    + exists (S k).
      rewrite fib_eqn. split; trivial.
-     assert (k<>0). { intros ->. simpl in *. omega. }
-     generalize (@fib_nz k); omega.
-   + exists k. omega.
+     assert (k<>0). { intros ->. simpl in *. lia. }
+     generalize (@fib_nz k); lia.
+   + exists k. lia.
 Defined.
 
 
@@ -155,7 +155,7 @@ Proof.
  intros N. simpl in N.
  simpl map. rewrite !sumfib_cons, <-IHl by intuition.
  rewrite fib_eqn' by intuition.
- rewrite Nat.sub_1_r. omega.
+ rewrite Nat.sub_1_r. lia.
 Qed.
 
 Lemma sumfib_eqn' l : ~In 0 l ->
@@ -169,21 +169,21 @@ Proof.
  revert l'.
  induction l; intros.
  - trivial.
- - simpl. rewrite IHl. omega.
+ - simpl. rewrite IHl. lia.
 Qed.
 
 Lemma sumfib_rev l : sumfib (rev l) = sumfib l.
 Proof.
  induction l.
  - trivial.
- - simpl. rewrite sumfib_app, IHl. simpl. omega.
+ - simpl. rewrite sumfib_app, IHl. simpl. lia.
 Qed.
 
 Lemma sumfib_0 l : ~In 0 l -> (sumfib l = 0 <-> l = []).
 Proof.
  intro N. split.
  - intros H. destruct l; [ now elim H |].
-   simpl in *. generalize (@fib_nz n). omega.
+   simpl in *. generalize (@fib_nz n). lia.
  - intros; now subst.
 Qed.
 
@@ -201,10 +201,10 @@ Proof.
    destruct k; auto. apply fib_lt_S. intuition.
  - intros k Hk.
    inversion 1; subst. simpl sumfib.
-   rewrite fib_eqn' by omega. apply Nat.add_lt_mono_l.
+   rewrite fib_eqn' by lia. apply Nat.add_lt_mono_l.
    apply lt_le_trans with (fib (S a)).
    + apply IHl; auto. simpl in Hk. simpl; intuition.
-   + apply fib_mono; omega.
+   + apply fib_mono; lia.
 Qed.
 
 (** Zeckendorf's Theorem, in a variant that consider
@@ -218,18 +218,18 @@ Proof.
  destruct (eq_nat_dec n 0) as [EQ|NE].
  - subst. exists (@nil nat). simpl; intuition.
  - destruct (fib_inv n) as (k,Hk).
-   assert (Hk' : k<>0). { intro; subst k; compute in Hk; omega. }
-   assert (Hk'' : k<>1). { intro; subst k; compute in Hk; omega. }
+   assert (Hk' : k<>0). { intro; subst k; compute in Hk; lia. }
+   assert (Hk'' : k<>1). { intro; subst k; compute in Hk; lia. }
    destruct (IH (n - fib k)) as (l & EQ & DR & NI).
-   { generalize (@fib_nz k); omega. }
+   { generalize (@fib_nz k); lia. }
    destruct l as [|k' l]; simpl in EQ.
-   + exists (k::nil); simpl; repeat split; try constructor; omega.
+   + exists (k::nil); simpl; repeat split; try constructor; lia.
    + exists (k::k'::l); simpl; simpl in NI; repeat split.
-     * omega.
+     * lia.
      * constructor; trivial.
        rewrite fib_eqn' in Hk by trivial.
-       assert (k' < k-1); try omega.
-       { apply Nat.lt_nge. intro LE. apply fib_mono in LE. omega. }
+       assert (k' < k-1); try lia.
+       { apply Nat.lt_nge. intro LE. apply fib_mono in LE. lia. }
      * intuition.
      * intuition.
 Defined.
@@ -242,21 +242,21 @@ Proof.
  revert l'.
  induction l as [|n l IH]; destruct l' as [|n' l'].
  - trivial.
- - intros _ _ _ Hn' _ _. simpl in *. generalize (@fib_nz n'); omega.
- - intros Hn _ _ _ _ _. simpl in *. generalize (@fib_nz n); omega.
+ - intros _ _ _ Hn' _ _. simpl in *. generalize (@fib_nz n'); lia.
+ - intros Hn _ _ _ _ _. simpl in *. generalize (@fib_nz n); lia.
  - intros N0 N1 DR N0' N1' DR' EQ.
    assert (n < S n').
    { apply fib_lt_inv. simpl in EQ.
-     apply le_lt_trans with (fib n' + sumfib l'); [omega|].
+     apply le_lt_trans with (fib n' + sumfib l'); [lia|].
      now apply decomp_max. }
    assert (n' < S n).
    { apply fib_lt_inv. simpl in EQ.
-     apply le_lt_trans with (fib n + sumfib l); [omega|].
+     apply le_lt_trans with (fib n + sumfib l); [lia|].
      now apply decomp_max. }
-   replace n' with n in * by omega. clear H H0.
+   replace n' with n in * by lia. clear H H0.
    simpl in EQ.
    f_equal.
-   apply IH; clear IH; simpl in *; try omega; intuition.
+   apply IH; clear IH; simpl in *; try lia; intuition.
    + apply DeltaRev_alt in DR. intuition.
    + apply DeltaRev_alt in DR'. intuition.
 Qed.
@@ -282,10 +282,10 @@ Proof.
  assert (rev l = rev l').
  { apply decomp_unique_rev;
    rewrite <- ?in_rev, ?DeltaRev_rev, ?sumfib_rev; trivial.
-   - intro H0. apply IN in H0. omega.
-   - intro H1. apply IN in H1. omega.
-   - intro H0. apply IN' in H0. omega.
-   - intro H1. apply IN' in H1. omega. }
+   - intro H0. apply IN in H0. lia.
+   - intro H1. apply IN in H1. lia.
+   - intro H0. apply IN' in H0. lia.
+   - intro H1. apply IN' in H1. lia. }
  rewrite <- (rev_involutive l), <- (rev_involutive l').
  now f_equal.
 Qed.
@@ -344,44 +344,44 @@ Proof.
  destruct l as [|k l].
  - exists (@nil nat); repeat split; subst; auto.
  - intros Hn. simpl in Hn.
-   assert (Hn' : length l < n) by omega.
+   assert (Hn' : length l < n) by lia.
    destruct (IH (length l) Hn' l) as (l' & Eq & St & Le & Hd);
     trivial.
    destruct l' as [|k' l'].
    + exists [k].
      simpl in *. repeat split; subst; auto with arith.
-     exists 0. omega.
+     exists 0. lia.
    + assert (Delta 1 (k::l) -> k < k').
      { intros Hl.
        destruct l as [|x l0]. elim Hd. simpl in Hd. destruct Hd as (p,Hd).
        apply Delta_alt in Hl.
        assert (k+1 <= x) by (apply Hl; now left).
-       omega. }
+       lia. }
      destruct (eq_nat_dec (S k) k') as [E|N].
      * assert (Lt : length (S k' :: l') < n).
-       { simpl in *; omega. }
+       { simpl in *; lia. }
        destruct (IH _ Lt (S k' :: l')) as (l'' & Eq' & St' & Le' & Hd');
          trivial; clear IH.
        exists l''; repeat split; auto.
        { rewrite Eq'. simpl. rewrite <- Eq. simpl.
-         rewrite <- E. omega. }
+         rewrite <- E. lia. }
        { intros Hl.
          apply St'.
          rewrite Delta_alt in St, Hl.
          apply Delta_alt. split.
          - apply Delta_S, St, Hl.
-         - intros y Hy. apply St in Hy; [|apply Hl]. omega. }
-       { simpl in *; omega. }
+         - intros y Hy. apply St in Hy; [|apply Hl]. lia. }
+       { simpl in *; lia. }
        { subst k'.
          destruct l''; simpl in Hd'. elim Hd'.
-         destruct Hd' as (p,Hd'). exists (S p). omega. }
+         destruct Hd' as (p,Hd'). exists (S p). lia. }
      * exists (k::k'::l'); repeat split; simpl in *; auto.
        { intros Hl.
          assert (k<k') by auto.
-         constructor; auto. omega.
+         constructor; auto. lia.
          eauto. }
-       { omega. }
-       { exists 0. omega. }
+       { lia. }
+       { exists 0. lia. }
 Defined.
 
 Definition norm l := let (l',_) := norm_spec l in l'.
@@ -407,7 +407,7 @@ Proof.
  - intros. constructor; eauto.
    destruct l; simpl in *; intuition.
    destruct Hd as (p,Hd).
-   inversion_clear D. omega.
+   inversion_clear D. lia.
 Qed.
 
 Lemma norm_hd l : HeadLeEven l (norm l).
@@ -425,10 +425,10 @@ Proof.
  - elim Hd.
  - simpl in Hd.
    destruct Hd as (p,Hd).
-   assert (x <= k') by omega.
-   simpl in Hy. destruct Hy as [Hy|Hy]; try omega.
+   assert (x <= k') by lia.
+   simpl in Hy. destruct Hy as [Hy|Hy]; try lia.
    transitivity k'; auto.
-   apply Delta_alt in H. apply H in Hy. omega.
+   apply Delta_alt in H. apply H in Hy. lia.
 Qed.
 
 (** ** Classification of Fibonacci decompositions
@@ -492,12 +492,12 @@ Proof.
  destruct l' as [|k' l'].
  + elim H.
  + simpl in H. destruct H as (p, H).
-   exists p. exists l'. subst; simpl; repeat split; auto. omega.
+   exists p. exists l'. subst; simpl; repeat split; auto. lia.
 Qed.
 
 Lemma Low_le p n k : Low p n k -> fib k <= n.
 Proof.
- intros (l & -> & _ & _). simpl. omega.
+ intros (l & -> & _ & _). simpl. lia.
 Qed.
 
 (** Properties specialized to [Two], [Three], etc *)
@@ -506,7 +506,7 @@ Lemma High_12 n : High 1 n <-> High 2 n.
 Proof.
  split; intros (k & K & L).
  - apply Low_12 in L. destruct L as (p,L).
-   exists (k+2*p). split; auto. omega.
+   exists (k+2*p). split; auto. lia.
  - apply Low_21 in L. exists k; auto.
 Qed.
 
@@ -520,7 +520,7 @@ Proof.
  intros L. apply Low_12 in L. destruct L as (p,L).
  destruct p.
  - now left.
- - right. exists (2+2*(S p)). split; auto. omega.
+ - right. exists (2+2*(S p)). split; auto. lia.
 Qed.
 
 Lemma Three_21 n : Three 2 n -> Three 1 n.
@@ -533,7 +533,7 @@ Proof.
  intros L. apply Low_12 in L. destruct L as (p,L).
  destruct p.
  - now left.
- - right. exists (3+2*(S p)). split; auto. omega.
+ - right. exists (3+2*(S p)). split; auto. lia.
 Qed.
 
 Lemma decomp_complete n : n<>0 -> Two 2 n \/ Three 2 n \/ High 2 n.
@@ -542,17 +542,17 @@ Proof.
  destruct (Low_exists Hn) as (k,L).
  destruct k as [|[|[|[|k]]]].
  - apply Low_nz in L. now elim L.
- - apply Low_nz in L. omega.
+ - apply Low_nz in L. lia.
  - now left.
  - now (right; left).
- - right; right. exists (4+k). split; auto. omega.
+ - right; right. exists (4+k). split; auto. lia.
 Qed.
 
 Lemma Two_not_High n : Two 2 n -> ~High 2 n.
 Proof.
  intros L (k & K & L').
  assert (k = 2) by (eapply Low_unique; eauto).
- omega.
+ lia.
 Qed.
 
 Lemma Two_not_Three n : Two 2 n -> ~Three 2 n.
@@ -565,7 +565,7 @@ Lemma High_not_Three n : High 2 n -> ~Three 2 n.
 Proof.
  intros (k & K & L) L'.
  assert (k = 3) by (eapply Low_unique; eauto).
- omega.
+ lia.
 Qed.
 
 Lemma Two_not_Three' n : Two 1 n -> ~Three 2 n.
@@ -580,7 +580,7 @@ Proof.
  destruct (Low_12 L) as (p,Lp).
  destruct (Low_12 L') as (p',Lp').
  assert (2+2*p = 3+2*p') by (eapply Low_unique; eauto).
- omega.
+ lia.
 Qed.
 
 Lemma High_not_Three' n : High 1 n -> ~Three 2 n.
@@ -599,14 +599,14 @@ Lemma ThreeOdd_le n : ThreeOdd 2 n -> 6 <= n.
 Proof.
  intros (k & l & E & D). subst n. rewrite !sumfib_cons.
  generalize (@fib_mono 5 (2*k+1)).
- inversion_clear D. simpl; omega.
+ inversion_clear D. simpl; lia.
 Qed.
 
 Lemma ThreeEven_le n : ThreeEven 2 n -> 7 <= n.
 Proof.
  intros (k & l & E & D). subst n. rewrite !sumfib_cons.
  generalize (@fib_mono 6 (2*k)).
- inversion_clear D. simpl; omega.
+ inversion_clear D. simpl; lia.
 Qed.
 
 Lemma ThreeEven_Three p n : ThreeEven p n -> Three p n.
@@ -624,7 +624,7 @@ Lemma Three_split p n : 2<n -> Three p n -> ThreeEven p n \/ ThreeOdd p n.
 Proof.
  intros N (l & E & D & _).
  destruct l as [|k l].
- - simpl in E. omega.
+ - simpl in E. lia.
  - destruct (Nat.Even_or_Odd k) as [(k',->)|(k',->)].
    + left. exists k'; exists l; auto.
    + right. exists k'; exists l; auto.
@@ -634,8 +634,8 @@ Lemma ThreeEven_not_ThreeOdd n : ThreeEven 2 n -> ~ThreeOdd 2 n.
 Proof.
  intros (p & l & Hn & Hl) (p' & l' & Hn' & Hl').
  assert (E : 3::2*p::l = 3::2*p'+1::l').
- { apply decomp_unique; try eapply Delta_nz; auto; omega. }
- injection E. omega.
+ { apply decomp_unique; try eapply Delta_nz; auto; lia. }
+ injection E. lia.
 Qed.
 
 Lemma decomp_complete' n : 2<n ->
@@ -643,7 +643,7 @@ Lemma decomp_complete' n : 2<n ->
 Proof.
  intros N.
  destruct (@decomp_complete n) as [H|[H|H]]; auto.
- - omega.
+ - lia.
  - destruct (Three_split N H); auto.
 Qed.
 
@@ -652,9 +652,9 @@ Proof.
  split; intros (p & l & Hn & Hl).
  - assert (2 <= p).
    { destruct p as [|[|p]].
-     - simpl in Hl. inversion Hl; omega.
-     - simpl in Hl. inversion Hl; omega.
-     - omega. }
+     - simpl in Hl. inversion Hl; lia.
+     - simpl in Hl. inversion Hl; lia.
+     - lia. }
    assert (Hla : Delta 1 (2*p+1::l)) by eauto.
    assert (Hlb := norm_ok Hla).
    assert (Hlc := norm_hd (2*p+1::l)).
@@ -664,10 +664,10 @@ Proof.
    destruct l0 as [|k0 l0].
    + elim Hlc.
    + simpl in Hlc. destruct Hlc as (p', Hlc).
-     replace k0 with (2*(p+p')+1) in * by omega.
+     replace k0 with (2*(p+p')+1) in * by lia.
      exists (p+p'); exists l0; split.
-     * simpl in *. omega.
-     * constructor; auto. omega.
+     * simpl in *. lia.
+     * constructor; auto. lia.
  - exists p; exists l; auto.
 Qed.
 
@@ -691,12 +691,12 @@ Proof.
    + right. apply High_12.
      subst k0.
      exists 5. split; auto. exists l0; repeat split; auto.
-     simpl in *. omega.
+     simpl in *. lia.
    + simpl in Hlc. destruct Hlc as (p', Hlc).
-     replace k0 with (2*(p+p')) in * by omega.
+     replace k0 with (2*(p+p')) in * by lia.
      left. exists (p+p'); exists l0; repeat split.
-     { simpl in *. omega. }
-     { constructor; auto. inversion Hl; subst. omega. }
+     { simpl in *. lia. }
+     { constructor; auto. inversion Hl; subst. lia. }
 Qed.
 
 Lemma Two_not_ThreeOdd n : Two 2 n -> ~ThreeOdd 2 n.
@@ -741,14 +741,14 @@ Qed.
 Lemma Even_xor_Odd n : Even 2 n -> Odd 2 n -> False.
 Proof.
  intros (k,K) (k',K').
- assert (2*k = 2*k'+1) by (eapply Low_unique; eauto). omega.
+ assert (2*k = 2*k'+1) by (eapply Low_unique; eauto). lia.
 Qed.
 
 Lemma Even_12 n : Even 1 n <-> Even 2 n.
 Proof.
  split; intros (k,K).
  - apply Low_12 in K. destruct K as (p,K).
-   replace (2*k+2*p) with (2*(k+p)) in K by omega.
+   replace (2*k+2*p) with (2*(k+p)) in K by lia.
    now exists (k+p).
  - exists k. now apply Low_21.
 Qed.
@@ -757,7 +757,7 @@ Lemma Odd_12 n : Odd 1 n <-> Odd 2 n.
 Proof.
  split; intros (k,K).
  - apply Low_12 in K. destruct K as (p,K).
-   replace (2*k+1+2*p) with (2*(k+p)+1) in K by omega.
+   replace (2*k+1+2*p) with (2*(k+p)+1) in K by lia.
    now exists (k+p).
  - exists k. now apply Low_21.
 Qed.
@@ -803,7 +803,7 @@ Qed.
 Lemma seq_end n k : seq n (S k) = seq n k ++ [n+k].
 Proof.
  revert n. induction k; intros.
- - simpl. f_equal. omega.
+ - simpl. f_equal. lia.
  - remember (S k) as k' eqn:Hk.
    simpl. rewrite IHk.
    rewrite Hk.
@@ -820,7 +820,7 @@ Proof.
  simpl map. rewrite sumfib_cons. simpl sumfib.
  simpl mult. rewrite !Nat.add_succ_r, !Nat.add_0_r.
  rewrite (fib_eqn (S (k+k))).
- generalize (@fib_nz (S (k+k))); omega.
+ generalize (@fib_nz (S (k+k))); lia.
 Qed.
 
 Lemma sumfib_odds k :
@@ -832,41 +832,41 @@ Proof.
  simpl map. rewrite sumfib_cons. simpl sumfib.
  simpl mult. rewrite !Nat.add_succ_r, !Nat.add_0_r.
  rewrite (fib_eqn (S (S (k + k)))).
- generalize (@fib_nz (S (S (k+k)))). omega.
+ generalize (@fib_nz (S (S (k+k)))). lia.
 Qed.
 
 Lemma S_evens k : map S (evens k) = odds k.
 Proof.
  unfold odds, evens. rewrite map_map.
- apply map_ext. intros; omega.
+ apply map_ext. intros; lia.
 Qed.
 
 Lemma evens_S k : evens (S k) = 2 :: map S (odds k).
 Proof.
   unfold odds, evens. simpl seq. rewrite seq_S.
   simpl. f_equal. rewrite !map_map.
-  apply map_ext. intros. omega.
+  apply map_ext. intros. lia.
 Qed.
 
 Lemma evens_in k y : In y (evens k) -> 2<=y<=2*k.
 Proof.
  unfold evens.
  rewrite in_map_iff. intros (x & Hx & IN).
- rewrite in_seq in IN. omega.
+ rewrite in_seq in IN. lia.
 Qed.
 
 Lemma odds_in k y : In y (odds k) -> 3<=y<=2*k+1.
 Proof.
  unfold odds.
  rewrite in_map_iff. intros (x & Hx & IN).
- rewrite in_seq in IN. omega.
+ rewrite in_seq in IN. lia.
 Qed.
 
 Lemma Delta_evens k : Delta 2 (0::evens k).
 Proof.
  change (Delta 2 (map (fun x => 2*x) (seq 0 (S k)))).
  apply Delta_map with 1.
- intros. omega.
+ intros. lia.
  apply Delta_seq.
 Qed.
 
@@ -874,7 +874,7 @@ Lemma Delta_odds k : Delta 2 (1::odds k).
 Proof.
  change (Delta 2 (map (fun x=>2*x+1) (seq 0 (S k)))).
  apply Delta_map with 1.
- intros. omega.
+ intros. lia.
  apply Delta_seq.
 Qed.
 
@@ -892,12 +892,12 @@ Proof.
  - intros (k & l & E & D & K).
    exists (map S (odds (k-1)) ++ l). repeat split; auto.
    + rewrite app_comm_cons, <- evens_S, sumfib_app, sumfib_evens.
-     replace (S (k-1)) with k by omega.
-     rewrite sumfib_cons in E. generalize (@fib_nz (2*k+1)). omega.
+     replace (S (k-1)) with k by lia.
+     rewrite sumfib_cons in E. generalize (@fib_nz (2*k+1)). lia.
    + rewrite app_comm_cons, <- evens_S.
-     replace (S (k-1)) with k by omega.
+     replace (S (k-1)) with k by lia.
      apply Delta_app with (2*k+1); eauto using Delta_evens.
-     intros y Hy. apply evens_in in Hy. omega.
+     intros y Hy. apply evens_in in Hy. lia.
 Qed.
 
 Lemma Three_succ_Four n : Three 2 n -> Four 1 (S n).
@@ -918,23 +918,23 @@ Proof.
  - intros (k & K & L); split.
    + destruct L as (l & E & D & _). exists (k::l); subst; auto.
    + apply Low_le in L.
-     generalize (@fib_mono 3 k). simpl fib. omega.
+     generalize (@fib_mono 3 k). simpl fib. lia.
  - intros ((l & E & D & _),N).
    simpl in E. injection E as E'.
-   destruct l as [|k l]; [simpl in *; omega|].
+   destruct l as [|k l]; [simpl in *; lia|].
    inversion_clear D.
    exists k. split; auto.
-   exists l; repeat split; simpl; eauto; omega.
+   exists l; repeat split; simpl; eauto; lia.
 Qed.
 
 Lemma Odd_succ_Even n : Odd 2 n -> Even 2 (S n).
 Proof.
  intros (k,K).
  destruct k as [|[|k]].
- - simpl in *. apply Low_nz in K. omega.
+ - simpl in *. apply Low_nz in K. lia.
  - now apply Three_succ_EvenHigh.
  - apply Two_Even, High_succ_Two. exists (2*(2+k)+1); split; eauto.
-   omega.
+   lia.
 Qed.
 
 (** No general result for successor and [Even n] :
@@ -949,8 +949,8 @@ Proof.
  rewrite Two_succ_Odd.
  destruct n; simpl; rewrite ?Nat.sub_0_r; try reflexivity.
  split; intros (k,K).
- - apply Low_le in K. generalize (@fib_nz (2*k+1)); omega.
- - assert (2*k+1 = 2); try omega.
+ - apply Low_le in K. generalize (@fib_nz (2*k+1)); lia.
+ - assert (2*k+1 = 2); try lia.
    { eapply Low_unique; eauto. exists (@nil nat). firstorder. }
 Qed.
 
@@ -960,28 +960,28 @@ Proof.
  assert (k<>0). { intros ->. destruct L. intuition. }
  assert (k<>1).
  { intros ->.
-   replace k' with 2 in K' by (eapply Low_unique; eauto). omega. }
+   replace k' with 2 in K' by (eapply Low_unique; eauto). lia. }
  clear k' K' L'.
  destruct L as (l & E & D & _).
  exists 1; exists (map S (map S (odds (k-2))) ++ l).
  change (2*1+1 :: map S (map S (odds (k-2))) ++ l) with
  (map S (2 :: map S (odds (k-2))) ++ l).
  rewrite <- evens_S, S_evens.
- replace (S (k-2)) with (k-1) by omega.
+ replace (S (k-2)) with (k-1) by lia.
  repeat split.
  + subst n. rewrite sumfib_app, sumfib_odds, sumfib_cons.
-   replace (S (k-1)) with k by omega.
-   generalize (@fib_nz (2*k)); omega.
+   replace (S (k-1)) with k by lia.
+   generalize (@fib_nz (2*k)); lia.
  + apply Delta_app with (2*k); eauto using Delta_odds.
-   intros y Hy; apply odds_in in Hy; omega.
- + omega.
+   intros y Hy; apply odds_in in Hy; lia.
+ + lia.
 Qed.
 
 Lemma Two_pred_High n : 1<n -> Two 2 n -> High 2 (n-1).
 Proof.
  intros N O.
- rewrite High_succ_Two. split; try omega.
- now replace (S (n-1)) with n by omega.
+ rewrite High_succ_Two. split; try lia.
+ now replace (S (n-1)) with n by lia.
 Qed.
 
 Lemma Three_pred_Two n : Three 2 n -> Two 2 (n-1).
@@ -1007,15 +1007,15 @@ Proof.
  exists 2. exists (map (fun n=>4+n) (odds (k-3)) ++ l).
  rewrite !app_comm_cons.
  assert (Eq : odds (k-1) = 3::2*2+1::map (fun n=>4+n) (odds (k-3))).
- { replace (k-1) with (S (S (k-3))) at 1 by omega.
+ { replace (k-1) with (S (S (k-3))) at 1 by lia.
    do 2 (rewrite <- S_evens, evens_S). simpl.
    now rewrite !map_map. }
  rewrite <- Eq. split.
  - rewrite E, sumfib_cons, sumfib_app, sumfib_odds.
-   replace (S (k-1)) with k by omega.
-   generalize (@fib_nz (2*k)); omega.
+   replace (S (k-1)) with k by lia.
+   generalize (@fib_nz (2*k)); lia.
  - apply Delta_app with (2*k); eauto using Delta_odds.
-   intros y Hy. apply odds_in in Hy. omega.
+   intros y Hy. apply odds_in in Hy. lia.
 Qed.
 
 (** We can now prove alternate formulations for [ThreeOdd]
@@ -1029,21 +1029,21 @@ Proof.
    + now apply ThreeOdd_Three.
    + destruct H as (k & l & E & D).
      exists k; exists l; repeat split; eauto.
-     * subst n. simpl. omega.
-     * inversion_clear D. omega.
+     * subst n. simpl. lia.
+     * inversion_clear D. lia.
  - intros ((l & E & D & _),(k & l' & E' & Hk & D')).
    assert (4 <= n).
    { rewrite sumfib_cons in E'.
-     generalize (@fib_mono 3 (2*k+1)). simpl (fib 3). omega. }
+     generalize (@fib_mono 3 (2*k+1)). simpl (fib 3). lia. }
    assert (k<>1).
    { intros ->. simpl mult in *.
      apply (@Two_not_High (n-1)).
      - apply Odd_pred_Two. exists 1; exists l; simpl; auto.
-     - replace (n-1) with (S (n-2)) by omega.
+     - replace (n-1) with (S (n-2)) by lia.
        apply Three_succ_EvenHigh. exists l'; eauto. }
    exists k; exists l'; split.
-   + subst n. simpl in *. omega.
-   + constructor; auto. omega.
+   + subst n. simpl in *. lia.
+   + constructor; auto. lia.
 Qed.
 
 Lemma ThreeEven_alt n :
@@ -1054,28 +1054,28 @@ Proof.
    + now apply ThreeEven_Three.
    + destruct H as (k & l & E & D).
      exists k; exists l; repeat split; eauto.
-     * subst n. simpl. omega.
-     * inversion_clear D. omega.
+     * subst n. simpl. lia.
+     * inversion_clear D. lia.
  - intros ((l & E & D & _),(k & l' & E' & D' & K')).
    assert (3<=n).
    { rewrite sumfib_cons in E'.
-     generalize (@fib_mono 2 (2*k)). simpl (fib 2). omega. }
+     generalize (@fib_mono 2 (2*k)). simpl (fib 2). lia. }
    assert (k<>1).
    { intros ->. simpl plus in *.
      apply (@Two_not_Three'' (n-1)).
      - apply Low_21, Odd_pred_Two.
        exists 1. simpl. exists l; auto.
-     - replace (n-1) with (S (n-2)) by omega.
+     - replace (n-1) with (S (n-2)) by lia.
        apply Two_succ_Three. exists l'; auto. }
    assert (k<>2).
    { intros ->. simpl plus in *.
      assert (Eq : 2::l = 2::4::l').
      { apply decomp_unique; eauto using Delta_nz, Delta_low_hd.
-       simpl in *; omega. }
-     injection Eq as ->. inversion D; omega. }
+       simpl in *; lia. }
+     injection Eq as ->. inversion D; lia. }
    exists k; exists l'; split.
-   + subst n. simpl in *. omega.
-   + constructor; auto. omega.
+   + subst n. simpl in *. lia.
+   + constructor; auto. lia.
 Qed.
 
 (** ** Two consecutive [ThreeOdd] numbers are separated by 5 or 8 *)
@@ -1085,8 +1085,8 @@ Lemma ThreeOdd_next n :
 Proof.
   intros (k & l & E & D).
   destruct k as [|[|[|k]]].
-  - simpl in D. inversion D. omega.
-  - simpl in D. inversion D. omega.
+  - simpl in D. inversion D. lia.
+  - simpl in D. inversion D. lia.
   - right. simpl in *.
     destruct l as [|k l].
     + simpl in *.
@@ -1094,18 +1094,18 @@ Proof.
     + apply ThreeOdd_12.
       destruct (le_lt_dec k 7).
       * assert (k=7).
-        { inversion D; subst. inversion H3; subst. omega. }
+        { inversion D; subst. inversion H3; subst. lia. }
         subst k.
         exists 2; exists (8::l); split.
-        { subst; simpl; omega. }
-        { constructor. omega. constructor. omega. eauto. }
+        { subst; simpl; lia. }
+        { constructor. lia. constructor. lia. eauto. }
       * exists 3; exists (k::l); split.
-        { subst; simpl; omega. }
-        { constructor. omega. constructor. omega. eauto. }
+        { subst; simpl; lia. }
+        { constructor. lia. constructor. lia. eauto. }
   - left. apply ThreeOdd_12.
     exists 2; exists (2*(3+k)+1::l); split.
-    { subst. simpl. omega. }
-    { constructor. omega. constructor. omega. eauto. }
+    { subst. simpl. lia. }
+    { constructor. lia. constructor. lia. eauto. }
 Qed.
 
 Lemma ThreeOdd_add_1 n : ThreeOdd 2 n -> High 2 (n+1).
@@ -1124,17 +1124,17 @@ Lemma ThreeOdd_add_3 n : ThreeOdd 2 n -> ThreeEven 2 (n+3) \/ High 2 (n+3).
 Proof.
   intros (k & l & E & D).
   destruct k as [|[|[|k]]].
-  - inversion D; omega.
-  - inversion D; omega.
+  - inversion D; lia.
+  - inversion D; lia.
   - apply ThreeEven_12.
     exists 3; exists l; split.
-    + subst; simpl; omega.
-    + constructor. omega. simpl. eauto.
+    + subst; simpl; lia.
+    + constructor. lia. simpl. eauto.
   - right.
     apply High_12.
     exists 5; split; auto. exists (2*(3+k)+1::l); repeat split; auto.
-    + subst; simpl; omega.
-    + apply Delta_inv in D. constructor. omega. eauto.
+    + subst; simpl; lia.
+    + apply Delta_inv in D. constructor. lia. eauto.
 Qed.
 
 Lemma ThreeOdd_add_4 n : ThreeOdd 2 n -> Two 2 (n+4) \/ High 2 (n+4).
@@ -1151,15 +1151,15 @@ Proof.
   intros (k & l & E & D).
   apply High_12.
   destruct k as [|[|[|k]]].
-  - inversion D; omega.
-  - inversion D; omega.
+  - inversion D; lia.
+  - inversion D; lia.
   - exists 5; split; auto. exists (6::l); repeat split; auto.
-    + subst; simpl; omega.
-    + constructor. omega. eauto.
+    + subst; simpl; lia.
+    + constructor. lia. eauto.
   - exists 6; split; auto. exists (2*(3+k)+1::l); repeat split; auto.
-    + subst; simpl; omega.
-    + constructor. omega. eauto.
-    + omega.
+    + subst; simpl; lia.
+    + constructor. lia. eauto.
+    + lia.
 Qed.
 
 Lemma ThreeOdd_add_7 n : ThreeOdd 2 n -> Two 2 (n+7).
@@ -1174,7 +1174,7 @@ Proof.
  intros Hn.
  change (~ThreeOdd 2 (n+8)).
  apply ThreeOdd_add_3 in Hn.
- replace (n+5+3) with (n+8) in Hn by omega.
+ replace (n+5+3) with (n+8) in Hn by lia.
  destruct Hn; auto.
 Qed.
 
@@ -1183,7 +1183,7 @@ Lemma ThreeOdd_next5 n :
  forall m, n<m<n+5 -> ~ThreeOdd 2 m.
 Proof.
  intros Hn Hn' m H.
- assert (Hm : m=n+1 \/ m=n+2 \/ m=n+3 \/ m=n+4) by omega.
+ assert (Hm : m=n+1 \/ m=n+2 \/ m=n+3 \/ m=n+4) by lia.
  destruct Hm as [Hm|[Hm|[Hm|Hm]]]; subst m.
  - apply ThreeOdd_add_1 in Hn. auto.
  - apply ThreeOdd_add_2 in Hn. auto.
@@ -1197,7 +1197,7 @@ Lemma ThreeOdd_next8 n :
 Proof.
  intros Hn Hn' m H.
  assert (Hm : m=n+1 \/ m=n+2 \/ m=n+3 \/ m=n+4 \/
-              m=n+5 \/ m=n+6 \/ m=n+7) by omega.
+              m=n+5 \/ m=n+6 \/ m=n+7) by lia.
  destruct Hm as [Hm|[Hm|[Hm|[Hm|[Hm|[Hm|Hm]]]]]]; subst m.
  - apply ThreeOdd_add_1 in Hn. auto.
  - apply ThreeOdd_add_2 in Hn. auto.
@@ -1216,9 +1216,9 @@ Proof.
   intros Hn Hm LT Hp.
   destruct (ThreeOdd_next Hn) as [Hn'|Hn'].
   - destruct (lt_eq_lt_dec m (n+5)) as [[LT'|EQ]|LT']; auto.
-    + elim (@ThreeOdd_next5 _ Hn Hn' m). omega. auto.
-    + elim (Hp (n+5)). omega. auto.
+    + elim (@ThreeOdd_next5 _ Hn Hn' m). lia. auto.
+    + elim (Hp (n+5)). lia. auto.
   - destruct (lt_eq_lt_dec m (n+8)) as [[LT'|EQ]|LT']; auto.
-    + elim (@ThreeOdd_next8 _ Hn Hn' m). omega. auto.
-    + elim (Hp (n+8)). omega. auto.
+    + elim (@ThreeOdd_next8 _ Hn Hn' m). lia. auto.
+    + elim (Hp (n+8)). lia. auto.
 Qed.
