@@ -1,6 +1,6 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import Arith Omega Wf_nat List Program Program.Wf NPeano.
+Require Import Arith Omega Wf_nat List Program Program.Wf.
 Require Import DeltaList Fib FunG.
 Set Implicit Arguments.
 
@@ -50,7 +50,7 @@ Set Implicit Arguments.
 Definition flip n :=
   if n <=? 1 then n else S (fib (S (S (S (depth n))))) - n.
 
-Ltac tac_leb := rewrite <- ?Bool.not_true_iff_false, leb_le.
+Ltac tac_leb := rewrite <- ?Bool.not_true_iff_false, Nat.leb_le.
 
 Lemma flip_depth n : depth (flip n) = depth n.
 Proof.
@@ -1313,10 +1313,10 @@ Definition oups n :=
  | 5 => 3
  | 6 => 5
  | 7 => 3
- | _ => if even n then n-2 else 4
+ | _ => if Nat.even n then n-2 else 4
  end.
 
-Lemma oups_def n : 7<n -> oups n = if even n then n-2 else 4.
+Lemma oups_def n : 7<n -> oups n = if Nat.even n then n-2 else 4.
 Proof.
  do 8 (destruct n; try omega). reflexivity.
 Qed.
@@ -1326,7 +1326,7 @@ Proof.
 intros.
 destruct (le_lt_dec n 9).
 - do 10 (destruct n; simpl; try omega).
-- case_eq (even n); intros E.
+- case_eq (Nat.even n); intros E.
   + rewrite (@oups_def n),E,!oups_def by omega.
     rewrite !Nat.even_sub,E by omega. simpl. omega.
   + rewrite (@oups_def n),E by omega. simpl.
