@@ -933,92 +933,63 @@ Proof.
  - simpl map. rewrite sumfib_cons.
    intros E Hl.
    rewrite g_S.
-   inversion_clear Hl.
-   case (eq_nat_dec k 1) as [Hk|Hk].
+   assert (Hk : k<>0) by (inversion Hl; lia).
+   assert (D : Delta 1 (k::l)) by now inversion Hl.
+   clear Hl.
+   assert (Hl : ~In 0 l) by (eapply Delta_nz'; eauto).
+   case (eq_nat_dec k 1) as [Hk'|Hk'].
    + (* k = 1 *)
      subst k. simpl sumfib. injection E as E'.
-     assert (Nz : ~In 0 l).
-     { intro IN. apply Delta_alt in H0. apply H0 in IN. lia. }
      assert (E1 : g n = sumfib l).
-     { apply IH; auto. eauto using Delta_low_hd. }
+     { apply IH; eauto using Delta_low_hd. }
      assert (E2 : g (g n) = sumfib (map pred l)).
      { apply IH; auto.
        - generalize (g_le n); lia.
        - now rewrite map_S_pred.
-       - apply Delta_pred in H0; eauto. }
-     apply sumfib_eqn in Nz. lia.
+       - apply Delta_pred in D; eauto. }
+     apply sumfib_eqn in Hl. lia.
    + (* 1 < k *)
-     destruct (Nat.Even_or_Odd k) as [(k2,Hk2)|(k2,Hk2)].
-     * (* k even *)
-       set (l0 := odds (k2-1)).
-       assert (Hl0 : sumfib l0 = pred (fib k)).
-       { rewrite Hk2. unfold l0. rewrite sumfib_odds.
-         do 3 f_equal. lia. }
-       assert (Hl0' : sumfib (map S l0) + 2 = fib (S k)).
-       { unfold l0.
-         rewrite Nat.add_succ_r.
-         change (sumfib (2 :: map S (odds (k2-1))) + 1 = fib (S k)).
-         rewrite <- evens_S, sumfib_evens.
-         replace (2 * S (k2-1)+1) with (S k) by lia.
-         generalize (@fib_nz (S k)); lia. }
-       assert (Delta 1 ((2::l0)++l)).
-       { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_S_cons, Delta_odds.
-         - simpl. intros y [Hy|Hy]; try apply odds_in in Hy; lia. }
-       simpl app in *.
-       assert (IN : forall x, In x (l0++l) -> 2<x).
-       { apply Delta_alt in H1. intuition. }
-       assert (~In 0 (l0++l)).
-       { intro I0. apply IN in I0. lia. }
-       assert (G : g n = sumfib (1 :: l0 ++ l)).
-       { apply IH; auto.
-         simpl. rewrite map_app, sumfib_app. lia.
-         constructor; eauto using Delta_low_hd. }
-       assert (GG : g (g n) = sumfib (map pred (2 :: l0++l))).
-       { apply IH.
-         - generalize (g_le n); lia.
-         - rewrite G. simpl. f_equal. now rewrite map_S_pred.
-         - change (Delta 1 (map pred (1::2::l0++l))).
-           apply Delta_pred. simpl; intuition; lia.
-           constructor; auto. }
-       simpl sumfib.
-       rewrite GG, E, <- Hl0'. simpl.
-       rewrite Nat.add_shuffle0, <- sumfib_app, <- map_app.
-       transitivity (S (sumfib (l0++l))).
-       rewrite <- sumfib_eqn; auto; lia.
-       rewrite sumfib_app. generalize (@fib_nz k); lia.
-     * (* k odd *)
-       set (l0 := evens k2).
-       assert (Hl0 : sumfib l0 = pred (fib k)).
-       { rewrite Hk2. unfold l0. apply sumfib_evens. }
-       assert (Hl0' : S (sumfib (map S l0)) = fib (S k)).
-       { unfold l0.
-         rewrite S_evens, sumfib_odds.
-         replace (2*(S k2)) with (S k) by lia.
-         generalize (@fib_nz (S k)); lia. }
-       assert (Delta 1 ((1::l0)++l)).
-       { apply Delta_app with k; auto; unfold l0.
-         - apply Delta_S_cons, Delta_evens.
-         - simpl. intros y [Hy|Hy]; try apply evens_in in Hy; lia. }
-       simpl app in *.
-       assert (~In 0 (l0++l)).
-       { apply Delta_alt in H1. intro I0. apply H1 in I0. lia. }
-       assert (G : g n = sumfib (l0 ++ l)).
-       { apply IH; eauto using Delta_low_hd.
-         rewrite map_app, sumfib_app. lia. }
-       assert (GG : g (g n) = sumfib (map pred (l0++l))).
-       { apply IH.
-         - generalize (g_le n); lia.
-         - now rewrite map_S_pred.
-         - change (Delta 1 (map pred (1::l0++l))).
-           apply Delta_pred; eauto using Delta_low_hd. }
-       simpl sumfib.
-       rewrite GG, E, <- Hl0'.
-       simpl plus.
-       rewrite <- sumfib_app, <- map_app.
-       transitivity (S (sumfib (l0++l))).
-       rewrite <- sumfib_eqn; auto; lia.
-       rewrite sumfib_app. generalize (@fib_nz k); lia.
+     assert (E' : n = pred (fib (S k)) + sumfib (map S l)).
+     { generalize (@fib_nz (S k)). lia. }
+     rewrite <- preds_ok, <- sumfib_app in E'.
+     assert (D2 := preds_delta (S k)).
+     assert (D1 : Delta 1 (1::preds (S k))) by eauto.
+     rewrite <- (map_S_pred (preds (S k))) in E' by (eauto using Delta_nz').
+     rewrite <- map_app in E'.
+     apply IH in E'; try lia.
+     2:{ change (Delta 1 (map pred (1::preds (S k))++l)).
+         eapply Delta_app; eauto using Delta_pred.
+         intros y [<-|IN]; simpl; auto with arith.
+         rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
+         apply preds_lt in IN. lia. }
+     destruct (preds (S k)) as [|p ps] eqn:Hp;
+      try (rewrite preds_nil in Hp; lia).
+     simpl in E'.
+     replace (fib (pred p)) with 1 in E'.
+     2:{ destruct (preds_low _ Hp); now subst. }
+     change (1+_) with (sumfib (map pred (3::ps)++l)) in E'.
+     assert (D3 : Delta 1 (map pred (3::ps) ++ l)).
+     { eapply Delta_app; eauto.
+       - apply Delta_pred; eauto.
+         + intros [[= ]|IN]. revert IN. apply Delta_nz' with 1 p; eauto.
+         + destruct (preds_low _ Hp); subst; eauto.
+       - intros y [<-|IN]; simpl; try lia.
+         rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
+         assert (z < S k) by (apply preds_lt; rewrite Hp; now right). lia. }
+     rewrite <- (map_S_pred (_ ++ _)) in E'.
+     2:{ eapply Delta_nz' with 1 1; simpl in *; auto. }
+     apply IH in E'.
+     2:{ generalize (g_le n); lia. }
+     2:{ change (Delta 1 (map pred (map pred (2::3::ps) ++ l))).
+         apply Delta_pred; [|simpl;auto].
+         apply Delta_nz' with 1 0; simpl in *; auto. }
+     clear D D1 D2 D3.
+     simpl sumfib.
+     rewrite map_app, sumfib_app in E'.
+     simpl in E'.
+     replace ps with (tl (preds (S k))) in E' by now rewrite Hp.
+     rewrite preds_shift, preds_ok in E'. simpl in E'.
+     generalize (@fib_eqn' k) (sumfib_eqn l Hl) (@fib_nz (k-1)). lia.
 Qed.
 
 Lemma g_sumfib' l : Delta 1 (1::l) ->

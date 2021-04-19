@@ -878,6 +878,84 @@ Proof.
  apply Delta_seq.
 Qed.
 
+(** A more direct approach : [preds] instead of [odds] and [even] *)
+
+Fixpoint preds n :=
+ match n with
+ | 0 | 1 | 2 => []
+ | S (S n) => (preds n)++[S n]
+ end.
+
+Lemma preds_ok n : sumfib (preds n) = pred (fib n).
+Proof.
+ induction n as [[|[|[|n]]] IH] using lt_wf_ind; trivial.
+ change (preds _) with (preds (S n) ++ [S (S n)]).
+ rewrite sumfib_app. rewrite IH by lia. clear IH.
+ cbn - [fib]. rewrite (fib_eqn (S n)). generalize (@fib_nz (S n)). lia.
+Qed.
+
+Lemma preds_lt n x : In x (preds n) -> x < n.
+Proof.
+ induction n as [[|[|[|n]]] IH] using lt_wf_ind; try easy.
+ change (preds _) with (preds (S n) ++ [S (S n)]).
+ rewrite in_app_iff. intros [H|[->|[ ]]]. apply IH in H; lia. lia.
+Qed.
+
+Lemma preds_nil n : preds n = [] <-> n <= 2.
+Proof.
+ destruct n as [|[|[|n]]].
+ - intuition.
+ - intuition.
+ - intuition.
+ - change (preds _) with (preds (S n) ++ [S (S n)]).
+   split; try lia.
+   intros. now destruct (app_cons_not_nil (preds (S n)) [] (S (S n))).
+Qed.
+
+Lemma preds_low n x l : preds n = x :: l -> x = 2 \/ x = 3.
+Proof.
+ revert l.
+ induction n as [[|[|[|n]]] IH] using lt_wf_ind; try easy.
+ intros l.
+ change (preds _) with (preds (S n) ++ [S (S n)]).
+ destruct (Nat.le_decidable (S n) 2) as [LE|NLE].
+ - pose proof LE as H. rewrite <- preds_nil in H. rewrite H.
+   simpl. intros [= <- _]. lia.
+ - rewrite <- preds_nil in NLE. specialize (IH (S n)).
+   destruct (preds (S n)) as [|x' l']; try easy.
+   simpl.
+   intros [= -> E].
+   assert (H : S n < S (S (S n))) by lia.
+   now apply (IH H l').
+Qed.
+
+Lemma preds_delta n : Delta 2 (0::preds n).
+Proof.
+ induction n as [[|[|[|n]]] IH] using lt_wf_ind; trivial.
+ change (preds _) with (preds (S n) ++ [S (S n)]).
+ change (Delta 2 ((0::preds (S n))++[S (S n)])).
+ apply Delta_app_iff; repeat split; auto.
+ intros x x' [<-|IN] [<-|[ ]]. lia. apply preds_lt in IN. lia.
+Qed.
+
+Lemma tl_app_nn {A} (l l':list A) : l<>[] -> tl (l++l') = tl l ++ l'.
+Proof.
+ now destruct l.
+Qed.
+
+Lemma preds_shift n:
+  map pred (map pred (tl (preds n))) = preds (n-2).
+Proof.
+ induction n as [[|[|[|n]]] IH] using lt_wf_ind; trivial.
+ change (preds (S (S (S n)))) with (preds (S n) ++ [S (S n)]).
+ simpl Nat.sub.
+ destruct (Nat.le_decidable (S n) 2).
+ - rewrite <- preds_nil in H. now rewrite H.
+ - pose proof H as H'. rewrite <- preds_nil in H. rewrite tl_app_nn; auto.
+   rewrite !map_app, IH; auto. simpl map.
+   now destruct n as [|[|n]].
+Qed.
+
 (** ** Classification of successor's decomposition *)
 
 Lemma Two_succ_Three n : Two 2 n -> Three 1 (S n).
