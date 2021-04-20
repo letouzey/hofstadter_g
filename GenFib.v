@@ -173,8 +173,6 @@ Proof.
  - intros _. apply A_inv.
 Defined.
 
-(* Compute proj1_sig (A_inv 2 10).   (* = 5 *) *)
-
 (** * Decomposition via sums of Ak numbers.
 
     Zeckendorf's theorem (actually discovered earlier by
@@ -268,7 +266,60 @@ Qed.
 
 (** ** Zeckendorf's Theorem *)
 
-(** Technical lemma:
+(** All numbers can be decomposed as a sum of A numbers.
+    Existence of the decomposition is given by the [decomp] function below
+    (small terms first). *)
+
+Fixpoint decomp k n :=
+ match n with
+ | 0 => []
+ | S n =>
+   let p := invA k n in
+   decomp k (n - (A k p - 1)) ++ [p]
+ end.
+
+Lemma decomp_sum k n :
+ sumA k (decomp k n) = n.
+Proof.
+ induction n as [[|n] IH] using lt_wf_rec; trivial.
+ cbn - [invA sumA].
+ destruct (invA_spec k n) as (H,_).
+ set (p := invA k n) in *.
+ rewrite sumA_app. rewrite IH by lia. simpl.
+ generalize (A_nz k p). lia.
+Qed.
+
+Lemma decomp_in k n x : In x (decomp k n) -> A k x <= n.
+Proof.
+ induction n as [[|n] IH] using lt_wf_rec; try easy.
+ cbn - [invA sumA]. rewrite in_app_iff. intros [IN|[<-|[ ]]].
+ apply IH in IN; lia.
+ apply invA_spec.
+Qed.
+
+Lemma decomp_delta k n : Delta (S k) (decomp k n).
+Proof.
+ induction n as [[|n] IH] using lt_wf_rec; trivial.
+ cbn - [invA sumA].
+ destruct (invA_spec k n) as (H,H').
+ set (p := invA k n) in *.
+ apply Delta_app_iff; repeat split; auto.
+ - apply IH. lia.
+ - intros x x' IN [<-|[ ]].
+   apply decomp_in in IN.
+   cut (x < p - k); [lia|].
+   apply (A_lt_inv k).
+   rewrite A_S in H'. lia.
+Qed.
+Hint Resolve decomp_sum decomp_delta.
+
+Lemma decomp_exists k n :
+  { l | sumA k l = n /\ Delta (S k) l }.
+Proof.
+ exists (decomp k n). split. apply decomp_sum. apply decomp_delta.
+Qed.
+
+(** Technical lemma for uniqueness of decomposition :
     A canonical decomposition cannot excess the next Ak. *)
 
 Lemma decomp_max k n l :
@@ -287,40 +338,7 @@ Proof.
    + apply A_mono; lia.
 Qed.
 
-(** Zeckendorf's Theorem, in a variant that consider
-    decompositions with largest terms first
-    (easiest for the proof). *)
-
-Lemma decomp_exists_rev k n :
-  { l | sumA k l = n /\ DeltaRev (S k) l }.
-Proof.
- induction n as [n IH] using lt_wf_rec.
- destruct (Nat.eq_dec n 0) as [EQ|NE].
- - exists []. subst; simpl; intuition.
- - destruct (A_inv' k NE) as (p,Hp).
-   destruct (IH (n - A k p)) as (l & EQ & DR).
-   { generalize (A_nz k p); lia. }
-   exists (p::l); simpl; split; try lia.
-   destruct l as [|p' l]; trivial.
-   constructor; trivial.
-   assert (p' < p - k); [|lia].
-   apply (A_lt_inv k).
-   simpl in EQ. rewrite A_S in Hp. lia.
-Defined.
-
-Definition decomp_rev k n := proj1_sig (decomp_exists_rev k n).
-
-Lemma decomp_rev_sum k n :
-  sumA k (decomp_rev k n) = n.
-Proof.
- unfold decomp_rev. now destruct decomp_exists_rev.
-Qed.
-
-Lemma decomp_rev_delta k n :
-  DeltaRev (S k) (decomp_rev k n).
-Proof.
- unfold decomp_rev. now destruct decomp_exists_rev.
-Qed.
+(** Uniqueness. Easier to prove on lists with large terms first. *)
 
 Lemma decomp_unique_rev k l l' :
  DeltaRev (S k) l ->
@@ -349,41 +367,8 @@ Proof.
    + apply DeltaRev_alt in DR'. intuition.
 Qed.
 
-Lemma decomp_rev_carac k n l :
- DeltaRev (S k) l -> sumA k l = n -> decomp_rev k n = l.
-Proof.
- intros D Eq. apply (@decomp_unique_rev k); auto.
- apply decomp_rev_delta.
- rewrite <- Eq. apply decomp_rev_sum.
-Qed.
-
-(** Same theorems, in the other order (smallest term first). *)
-
-Lemma decomp_exists k n :
-  { l | sumA k l = n /\ Delta (S k) l }.
-Proof.
- destruct (decomp_exists_rev k n) as (l & Hn & Hl).
- exists (rev l); repeat split.
- - now rewrite sumA_rev.
- - now apply Delta_rev.
-Defined.
-
-Definition decomp k n := proj1_sig (decomp_exists k n).
-
-Lemma decomp_sum k n : sumA k (decomp k n) = n.
-Proof.
- unfold decomp. now destruct decomp_exists.
-Qed.
-
-Lemma decomp_delta k n : Delta (S k) (decomp k n).
-Proof.
- unfold decomp. now destruct decomp_exists.
-Qed.
-Hint Resolve decomp_sum decomp_delta.
-
 Lemma decomp_unique k l l' :
- Delta (S k) l -> Delta (S k) l' ->
-  sumA k l = sumA k l' -> l = l'.
+ Delta (S k) l -> Delta (S k) l' -> sumA k l = sumA k l' -> l = l'.
 Proof.
  intros D D' EQ.
  rewrite <- (rev_involutive l), <- (rev_involutive l'). f_equal.
@@ -397,7 +382,7 @@ Lemma decomp_carac k n l :
  Delta (S k) l -> sumA k l = n -> decomp k n = l.
 Proof.
  intros D Eq. apply (@decomp_unique k); auto.
- rewrite <- Eq; auto.
+ now rewrite decomp_sum.
 Qed.
 Hint Resolve decomp_carac.
 
@@ -640,17 +625,24 @@ Definition next_decomp k l :=
       0::a::l
   end.
 
+Lemma next_decomp_sum k l : sumA k (next_decomp k l) = S (sumA k l).
+Proof.
+ destruct l; simpl; trivial.
+ case Nat.leb_spec; intros; rewrite ?renorm_sum; simpl; trivial.
+ replace (n-k) with 0; simpl; lia.
+Qed.
+
+Lemma next_decomp_delta k l : Delta (S k) l -> Delta (S k) (next_decomp k l).
+Proof.
+ destruct l; simpl; trivial.
+ case Nat.leb_spec; intros; auto using renorm_delta.
+Qed.
+
 Lemma decomp_S k n : decomp k (S n) = next_decomp k (decomp k n).
 Proof.
  apply decomp_carac.
- - assert (D:=decomp_delta k n).
-   destruct decomp as [|a l]; simpl; auto.
-   case Nat.leb_spec; intros; auto using renorm_delta.
- - rewrite <- (decomp_sum k n) at 2.
-   destruct decomp as [|a l]; simpl; auto.
-   case Nat.leb_spec; intros; auto.
-   rewrite renorm_sum. simpl.
-   replace (a-k) with 0; simpl; lia.
+ - apply next_decomp_delta, decomp_delta.
+ - now rewrite next_decomp_sum, decomp_sum.
 Qed.
 
 (** ** Classification of decompositions *)
@@ -805,81 +797,113 @@ Qed.
    i.e. [p = (n-1)/(S k)]
 *)
 
+Fixpoint decompred k n :=
+ match n with
+ | 0 => []
+ | S n => decompred k (n-k) ++ [n]
+ end.
+
+Lemma decompred_sum k n : sumA k (decompred k n) = A k n - 1.
+Proof.
+ induction n as [[|n] IH] using lt_wf_rec; trivial.
+ simpl. rewrite sumA_app. simpl. rewrite IH by lia.
+ generalize (A_nz k (n-k)); lia.
+Qed.
+
 Definition Below l x := forall y, In y l -> y < x.
 
-Lemma decompred_spec_rev k n :
-  { l | sumA k l = A k n - 1 /\
-        DeltaRev (S k) l /\ Below l n }.
+Lemma decompred_below k n : Below (decompred k n) n.
 Proof.
- induction n as [n IH] using lt_wf_rec.
- destruct (Nat.eq_dec n 0) as [EQ|NE].
- - exists []; subst; unfold Below; simpl; repeat split; intuition.
- - destruct (le_lt_dec n (S k)) as [LE|LT].
-   + exists [n-1]; unfold Below; simpl; repeat split; intuition; try lia.
-     rewrite 2 A_base; lia.
-   + destruct (IH (n-S k)) as (l & SUM & DR & IN) ; try lia.
-     exists (n-1::l); simpl; repeat split; auto.
-     * rewrite SUM. rewrite (@A_sum k n) by lia.
-       generalize (A_nz k (n - S k)). lia.
-     * apply DeltaRev_alt. split; auto.
-       intros y Hy. specialize (IN y Hy). lia.
-     * intros y [Hy|Hy]; try specialize (IN y Hy); lia.
-Defined.
-
-Lemma decompred_spec k n :
-  { l | sumA k l = A k n - 1 /\
-        Delta (S k) l /\ Below l n }.
-Proof.
- destruct (decompred_spec_rev k n) as (l & SUM & DR & IN).
- exists (rev l); repeat split.
- - now rewrite sumA_rev.
- - now apply Delta_rev.
- - intros p. rewrite <- in_rev; now apply IN.
-Defined.
-
-Definition decompred k n := proj1_sig (decompred_spec k n).
-
-Lemma decompred_sum k n :
-  sumA k (decompred k n) = A k n - 1.
-Proof.
- unfold decompred; destruct decompred_spec; simpl; intuition.
+ induction n as [[|n] IH] using lt_wf_rec; simpl; try easy.
+ intros y. rewrite in_app_iff. intros [IN|[<-|[ ]]]; try lia.
+ apply IH in IN; lia.
 Qed.
 
 Lemma decompred_delta k n : Delta (S k) (decompred k n).
 Proof.
- unfold decompred; destruct decompred_spec; simpl; intuition.
+ induction n as [[|n] IH] using lt_wf_rec; trivial.
+ simpl. destruct (Nat.le_gt_cases n k).
+ - replace (n-k) with 0 by lia. simpl. constructor.
+ - apply Delta_app with (n-S k).
+   + apply IH; lia.
+   + constructor. lia. auto.
+   + intros y IN. apply decompred_below in IN. lia.
 Qed.
 
-Lemma decompred_in k n : Below (decompred k n) n.
+(** Decomposition of the previous number *)
+
+Definition prev_decomp k l :=
+ match l with
+ | [] => []
+ | x::l => decompred k x ++ l
+ end.
+
+Lemma prev_decomp_sum k l : sumA k (prev_decomp k l) = sumA k l - 1.
 Proof.
- unfold decompred; destruct decompred_spec; simpl; intuition.
+ destruct l as [|x l]; simpl; trivial. rewrite sumA_app, decompred_sum.
+ generalize (A_nz k x). lia.
 Qed.
 
-(** We can decrease a decomposition (and the highest term will not grow).
-    This is the version with lax decomposition, but a strict version would
-    be possible too. *)
-
-Lemma decompminus_spec k l p :
-  { l' | sumA k l' = sumA k l - p /\
-        (Delta k l -> Delta k l') /\
-        (forall N, Below l N -> Below l' N) }.
+Lemma prev_decomp_below k l N : Below l N -> Below (prev_decomp k l) N.
 Proof.
- revert l.
- induction p as [|p IH]; intros l.
- - exists l. split; auto. lia.
- - destruct l.
-   + exists []. simpl; auto.
-   + destruct (decompred_spec k n) as (l1 & E1 & D1 & B1).
-     destruct (IH (l1++l)) as (l2 & E2 & D2 & B2).
-     exists l2; repeat split.
-     * rewrite E2. rewrite sumA_app. rewrite E1. simpl.
-       generalize (A_nz k n). lia.
-     * intros D. apply D2.
-       apply Delta_app with n; eauto using Delta_more.
-       intros x IN. apply B1 in IN. lia.
-     * intros N B.
-       assert (n < N) by (apply B; simpl; auto).
-       apply B2.
-       intros x. rewrite in_app_iff. specialize (B x). specialize (B1 x).
-       simpl in B. intuition; lia.
-Defined.
+ destruct l as [|x l]; simpl; trivial.
+ intros B y. rewrite in_app_iff. intros [IN|IN].
+ - apply decompred_below in IN. specialize (B x). simpl in B. lia.
+ - apply B. now right.
+Qed.
+
+Lemma prev_decomp_delta k l : Delta (S k) l -> Delta (S k) (prev_decomp k l).
+Proof.
+ destruct l as [|x l]; simpl; trivial. intros D.
+ apply Delta_app with x; eauto using Delta_more, decompred_delta.
+ intros y IN. apply decompred_below in IN. lia.
+Qed.
+
+Lemma prev_decomp_delta_lax k l : Delta k l -> Delta k (prev_decomp k l).
+Proof.
+ destruct l as [|x l]; simpl; trivial. intros D.
+ apply Delta_app with x; eauto using Delta_more, decompred_delta.
+ intros y IN. apply decompred_below in IN. lia.
+Qed.
+
+Lemma decomp_pred k n : decomp k (n-1) = prev_decomp k (decomp k n).
+Proof.
+ apply decomp_carac.
+ - apply prev_decomp_delta, decomp_delta.
+ - now rewrite prev_decomp_sum, decomp_sum.
+Qed.
+
+(** We can decrease a decomposition by iterating [prev_decomp].
+    Note: the highest term of the decomposition will not grow. *)
+
+Fixpoint decompminus k l p :=
+  match p with
+  | 0 => l
+  | S p => decompminus k (prev_decomp k l) p
+  end.
+
+Lemma decompminus_sum k l p : sumA k (decompminus k l p) = sumA k l - p.
+Proof.
+ revert l. induction p as [|p IH]; intros l; simpl; try lia.
+ rewrite IH, prev_decomp_sum. lia.
+Qed.
+
+Lemma decompminus_below k l p N : Below l N -> Below (decompminus k l p) N.
+Proof.
+ revert l. induction p as [|p IH]; intros l Hl; simpl; auto.
+ now apply IH, prev_decomp_below.
+Qed.
+
+Lemma decompminus_delta k l p :
+ Delta (S k) l -> Delta (S k) (decompminus k l p).
+Proof.
+ revert l. induction p as [|p IH]; intros l Hl; simpl; auto.
+ now apply IH, prev_decomp_delta.
+Qed.
+
+Lemma decompminus_delta_lax k l p :
+ Delta k l -> Delta k (decompminus k l p).
+Proof.
+ revert l. induction p as [|p IH]; intros l Hl; simpl; auto.
+ now apply IH, prev_decomp_delta_lax.
+Qed.

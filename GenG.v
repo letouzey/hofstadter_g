@@ -1278,12 +1278,11 @@ Proof.
    { assert (B1' := @getprefix_snd (u-1) l a l2). rewrite E in B1'.
      simpl in B1'. specialize (B1' eq_refl). omega. }
    destruct (Nat.ltb_spec a (2*k+u-1)).
-   + destruct (decompminus_spec k (l1++[S a]) (A k (S a)-A k a-p))
-       as (l1' & E1' & D1' & B1').
+   + set (l1' := decompminus k (l1++[S a]) (A k (S a)-A k a-p)).
      exists (l1++[a]), l1', l2.
      repeat split.
      * rewrite <- E'. now rewrite app_ass.
-     * rewrite E1'. rewrite !sumA_app.
+     * unfold l1'. rewrite decompminus_sum. rewrite !sumA_app.
        assert (LE : p <= A k (a-k)).
        { transitivity (A k (u-k)); auto. apply A_mono. clear - Hu Ha. omega. }
        clear -LE.
@@ -1293,23 +1292,22 @@ Proof.
      * { rewrite <- E', Delta_app_iff in D.
          destruct D as (D1 & D2 & D3).
          apply Delta_app with (S a).
-         - apply D1'.
+         - apply decompminus_delta_lax.
            apply Delta_app_iff; repeat split.
            + apply Delta_S, D1.
            + constructor.
            + intros x x' Hx [<-|[]]. specialize (D3 x a Hx).
              simpl in D3. intuition.
          - now apply Delta_S_cons.
-         - intro y. rewrite <- Nat.lt_succ_r. apply B1'.
+         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
            intro z. rewrite in_app_iff. intros [Hz|[<-|[]]].
            + specialize (B1 z Hz). omega.
            + omega. }
-   + destruct (decompminus_spec k (l1++[k+u-1]) (A k (k+u-1)-p))
-       as (l1' & E1' & D1' & B1').
+   + set (l1' := decompminus k (l1++[k+u-1]) (A k (k+u-1)-p)).
      exists l1,l1',(a::l2).
      repeat split.
      * symmetry. apply E'.
-     * rewrite E1'. rewrite sumA_app.
+     * unfold l1'. rewrite decompminus_sum. rewrite sumA_app.
        simpl.
        assert (LE : p <= A k (k+u-1)).
        { transitivity (A k (u-k)); auto.
@@ -1319,13 +1317,13 @@ Proof.
      * { rewrite <- E', Delta_app_iff in D.
          destruct D as (D1 & D2 & D3).
          apply Delta_app with (k+u-1).
-         - apply D1'.
+         - apply decompminus_delta_lax.
            apply Delta_app_iff; repeat split.
            + apply Delta_S, D1.
            + constructor.
            + intros x x' Hx [<-|[]]. specialize (B1 x Hx). omega.
          - constructor. omega. now apply Delta_S.
-         - intro y. rewrite <- Nat.lt_succ_r. apply B1'.
+         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
            intro z. rewrite in_app_iff. intros [Hz|[<-|[]]].
            + specialize (B1 z Hz). omega.
            + omega. }
