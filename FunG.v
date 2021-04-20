@@ -937,33 +937,35 @@ Proof.
    assert (D : Delta 1 (k::l)) by now inversion Hl.
    clear Hl.
    assert (Hl : ~In 0 l) by (eapply Delta_nz'; eauto).
-   case (eq_nat_dec k 1) as [Hk'|Hk'].
-   + (* k = 1 *)
-     subst k. simpl sumfib. injection E as E'.
-     assert (E1 : g n = sumfib l).
-     { apply IH; eauto using Delta_low_hd. }
-     assert (E2 : g (g n) = sumfib (map pred l)).
-     { apply IH; auto.
-       - generalize (g_le n); lia.
-       - now rewrite map_S_pred.
-       - apply Delta_pred in D; eauto. }
-     apply sumfib_eqn in Hl. lia.
-   + (* 1 < k *)
-     assert (E' : n = pred (fib (S k)) + sumfib (map S l)).
-     { generalize (@fib_nz (S k)). lia. }
-     rewrite <- preds_ok, <- sumfib_app in E'.
-     assert (D2 := preds_delta (S k)).
-     assert (D1 : Delta 1 (1::preds (S k))) by eauto.
-     rewrite <- (map_S_pred (preds (S k))) in E' by (eauto using Delta_nz').
-     rewrite <- map_app in E'.
-     apply IH in E'; try lia.
-     2:{ change (Delta 1 (map pred (1::preds (S k))++l)).
-         eapply Delta_app; eauto using Delta_pred.
-         intros y [<-|IN]; simpl; auto with arith.
-         rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
-         apply preds_lt in IN. lia. }
-     destruct (preds (S k)) as [|p ps] eqn:Hp;
-      try (rewrite preds_nil in Hp; lia).
+   assert (E' : n = pred (fib (S k)) + sumfib (map S l)).
+   { generalize (@fib_nz (S k)). lia. }
+   rewrite <- preds_ok, <- sumfib_app in E'.
+   assert (D2 := preds_delta (S k)).
+   assert (D1 : Delta 1 (1::preds (S k))) by eauto.
+   rewrite <- (map_S_pred (preds (S k))) in E' by (eauto using Delta_nz').
+   rewrite <- map_app in E'.
+   apply IH in E'; try lia.
+   2:{ change (Delta 1 (map pred (1::preds (S k))++l)).
+       eapply Delta_app; eauto using Delta_pred.
+       intros y [<-|IN]; simpl; auto with arith.
+       rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
+       apply preds_lt in IN. lia. }
+   destruct (preds (S k)) as [|p ps] eqn:Hp.
+   + (* preds (S k) = [], hence (k = 1) *)
+     simpl in E'.
+     replace k with 1 in * by (rewrite preds_nil in Hp; lia).
+     rewrite <- (map_S_pred l) in E'; auto.
+     apply IH in E'.
+     2:{ generalize (g_le n); lia. }
+     2:{ change (Delta 1 (map pred (1::l))).
+         apply Delta_pred; [|simpl;auto].
+         apply Delta_nz' with 1 0; simpl in *; auto. }
+     clear D D1 D2.
+     simpl sumfib. simpl in E.
+     generalize (@fib_eqn' k) (sumfib_eqn l Hl). lia.
+   + (* preds (S k) <> [], hence (1 < k) *)
+     assert (Hk' : 1 < k).
+     { assert (~(S k <= 2)); try lia. now rewrite <- preds_nil, Hp. }
      simpl in E'.
      replace (fib (pred p)) with 1 in E'.
      2:{ destruct (preds_low _ Hp); now subst. }
