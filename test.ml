@@ -27,90 +27,43 @@ let output_gnuplot_file file tab =
 
 (** the recursive functions *)
 
-let rec d n = if n = 0 then 0 else n - d(n-1);;
+let rec d n = if n = 0 then 0 else n - d(n-1)
 
 (* http://oeis.org/A005206 *)
-let rec g n = if n = 0 then 0 else n - g (g (n-1));;
+let rec g n = if n = 0 then 0 else n - g (g (n-1))
 
 (* http://oeis.org/A005374 *)
-let rec h n = if n = 0 then 0 else n - h (h (h (n-1)));;
+let rec h n = if n = 0 then 0 else n - h (h (h (n-1)))
 
-let rec iter f n = if n=1 then f else fun x -> iter f (n-1) (f x);;
 
-let rec f k n = if k=0 then n else if n = 0 then 0 else
-            n - iter (f k) k (n-1)
+(** Generalization : k+1 nested calls *)
+let rec iter f n = if n=0 then fun x -> x else fun x -> iter f (n-1) (f x)
+
+let rec f k n = if n = 0 then 0 else n - iter (f k) (k+1) (n-1)
+
+let f0 = f 0 (* d *)
+let f1 = f 1 (* g *)
+let f2 = f 2 (* h *)
+let f3 = f 3
+
+let _ = Array.init 20 @@ fun n -> n,f0 n,d n
+let _ = Array.init 20 @@ fun n -> n,f1 n,g n
+let _ = Array.init 20 @@ fun n -> n,f2 n,h n
 
 (* nb: f4 is http://oeis.org/A005375 *)
 
-let _ = Array.init 20 @@ fun n -> n, d n
-let _ = Array.init 20 @@ fun n -> n,f 6 n
-let _ = Array.init 20 @@ f 2
-let _ = Array.init 20 h
-let _ = Array.init 20 @@ f 3
-let _ = Array.init 20 @@ f 4
-
-let _ = Array.init 100 @@ fun n -> g n - d n
-
-let _ = Array.init 35 @@ fun n -> (n+1)-h (n+1)
-
-
-(** LIMITS *)
-
-(* k = 2 *)
-
-let phi = (1.+.sqrt(5.))/.2. (* root of X^2-X-1 *)
-let tau = phi-.1.  (* also 1/phi, root of X^2+X-1 *)
-
-let _ = g 22
-
-
-(* k = 3 *)
-let limh = 0.6823278038280194 (* root of X^3+X-1, cf maxima *)
-let expo = 1.465571231876768 (* 1/limh, also root of X^3-X^2-1 *)
-
-(* k = 4 *)
-let expo4 = 1.380277569097618
-
-
-(** Little equation solver (via Newton's method.
-   newton k find an approximation of the root of X^k+X-1
-   in [0;1]
-*)
-
-let newton k =
-  if k = 0 then 0. else
-  let fk = float k in
-  let rec loop n x =
-    let y = x -. (x** fk +. x -. 1.)/.(fk *.x ** (fk-.1.) +.1.) in
-    if x = y || n > 100 then x
-    else loop (n+1) y
-  in loop 0 1.
-
-(* Beware! for k=18 and 19, we get a two-cycle (issue with approx ?) *)
-
-(* Precision: around 10^-15 (note that epsilon_float = 2e-16 *)
-
-let lims = Array.init 20 newton
-
-let _ = lims.(2)-.tau;;
-let _ = lims.(3)-.limh;;
-let _ = lims.(4)-.1./.expo4;;
-
-
-(* Array of [f k n] (generalized Hofstadter function)
-    - First line (k=0) is identify (arbitrary)
-    - Second line (k=1) is function d (division by two)
-    - Third line (k=2) is function g
-    - Fourth line (k=3) is function h
+(** Tabulate : Faster computation of [f k n] via an array
+    - First line (k=0) is function d (division by two)
+    - Second line (k=1) is function g
+    - Third line (k=2) is function h
 *)
 
 let tabulate k n =
-  let a = Array.make_matrix k n 0 in
-  for j = 0 to n-1 do a.(0).(j) <- j done;
-  for i = 1 to k-1 do
-    for j = 1 to n-1 do
+  let a = Array.make_matrix (k+1) (n+1) 0 in
+  for i = 0 to k do
+    for j = 1 to n do
       let x = ref (j-1) in
-      for p = 1 to i do
+      for p = 0 to i do
         x := a.(i).(!x)
       done;
       a.(i).(j) <- j - !x
@@ -118,22 +71,25 @@ let tabulate k n =
   done;
   a
 
-let a = tabulate 1000 1000
+let a = tabulate 10 1000000
+let a0 = a.(0)
+let a1 = a.(1)
+let a2 = a.(2)
+let a3 = a.(3)
+let a4 = a.(4)
+let a5 = a.(5)
 
-(* Check that all columns are increasing : f k n <= f (k+1) n
-   (except between the arbitrary first line and the second)
-*)
+(* Check that all columns are increasing : f k n <= f (k+1) n *)
 
-let check k n a =
-  for i = 1 to k-2 do
-    for j = 0 to n-1 do
+let check k n =
+  let a = tabulate k n in
+  for i = 0 to k-1 do
+    for j = 0 to n do
       if a.(i).(j) > a.(i+1).(j) then Printf.printf "(%d,%d)\n" i j
     done
   done
 
-let _ = check 1000 1000 a
-
-let a = tabulate 10 1000000
+let _ = check 1000 1000
 
 (* Potentially interesting upper-bound of g :
    - starts as g for the 8 first values, then shifts by +5 every 8 steps
@@ -147,12 +103,12 @@ let rec majo_g n = if n <= 8 then g n else 5+majo_g(n-8)
 let rec majo_g_bis n = g (n mod 8) + 5*(n/8)
 
 (* This is indeed an upper bound for g *)
-let diff2 = Array.init 100000 @@ fun n -> (majo_g_bis n - a.(2).(n))
-let _ = extrems diff2
+let diff1 = Array.init 100000 @@ fun n -> (majo_g_bis n - a1.(n))
+let _ = extrems diff1
 
 (* And also a lower bound for h :-) *)
-let diff3 = Array.init 100000 @@ fun n -> (majo_g_bis n - a.(3).(n))
-let _ = extrems diff3
+let diff2 = Array.init 100000 @@ fun n -> (majo_g_bis n - a2.(n))
+let _ = extrems diff2
 
 (* More generally,
    g(n+2)>=g(n)+1
@@ -166,10 +122,10 @@ let _ = extrems diff3
 
 let _ = Array.init 30 @@
         fun i ->
-        (i,extrems (Array.init 900000 @@ fun n -> a.(2).(n+i)-a.(2).(n)-a.(2).(i)))
+        (i,extrems (Array.init 900000 @@ fun n -> a1.(n+i)-a1.(n)-a1.(i)))
 
 (* Proved : g(n+p)-g(n)-g(p) = {-1,0,1}    (proof via g(n) = floor(tau*(n+1)))
-   Conjecture: g(n+p)-g(n)-g(p) = 0 when parity(n)<>parity(p)
+   Proved : g(n+p)-g(n)-g(p) = 0 when parity(n)<>parity(p)
                                 = {-1,0} when parity(n)=parity(p)=even
                                 = {0,1} when parity(n)=parity(p)=odd
     where parity(n) is the parity of lowest F_k in the Zeckendorf decomposition
@@ -180,7 +136,7 @@ let _ =
   print_newline();
   for i=0 to 20 do
     for j=0 to 20 do
-      let d = a.(2).(i+j)-a.(2).(i)-a.(2).(j) in
+      let d = a1.(i+j)-a1.(i)-a1.(j) in
       print_string
         (match d with
          | 0 -> "= "
@@ -228,7 +184,7 @@ let _ =
   for i=1 to 20 do
     print_int ((rank i) mod 2); print_string " ";
     for j=1 to 20 do
-      let d = a.(2).(i+j)-a.(2).(i)-a.(2).(j) in
+      let d = a1.(i+j)-a1.(i)-a1.(j) in
       print_string
         (match d with
          | 0 -> "= "
@@ -239,9 +195,6 @@ let _ =
     print_newline()
   done
 
-
-
-let _ = 123
 
 
 (*
@@ -288,11 +241,11 @@ let _ = 123
    First h(i+j)-h(i)-h(j) = 2 : i=39 j=39
 *)
 
-let _ = extrems (Array.init 900000 @@ fun n -> a.(3).(n+21)-a.(3).(n)-a.(3).(21))
+let _ = extrems (Array.init 900000 @@ fun n -> a2.(n+21)-a2.(n)-a2.(21))
 
 let _ = Array.init 30 @@
         fun i ->
-        (i,extrems (Array.init 900000 @@ fun n -> a.(3).(n+i)-a.(3).(n)-a.(3).(i)))
+        (i,extrems (Array.init 900000 @@ fun n -> a2.(n+i)-a2.(n)-a2.(i)))
 
 
 (*
@@ -340,19 +293,25 @@ i, extrems
 let _ =
  for i = 1 to 100 do
    for j = 1 to 1000 do
-     let d = a.(3).(i+j)-a.(3).(i)-a.(3).(j) in
+     let d = a2.(i+j)-a2.(i)-a2.(j) in
      if abs d >= 2 then
        Printf.printf "i=%d j=%d delta=%d\n" i j d
    done
  done
 
-(* Generalized Fibonacci. k is distance between terms to add
-   (k=1 is usual Fibonacci) *)
+(* Generalized Fibonacci. k is distance between terms to add.
+   Starts at 1.
+   Hence k=1 is usual Fibonacci, shifted: *)
 
 let gfib k n =
   let a = Array.make n 1 in
   for i = 0 to n-2 do a.(i+1) <- a.(i) + a.(max 0 (i-k)) done;
   a
+
+let gfib1 = gfib 1 10
+(* [|1; 2; 3; 5; 8; 13; 21; 34; 55; 89|] *)
+
+let _ = (gfib1 = Array.init 10 (fun n -> fib (n+2)))
 
 (* beware, overflow for gfib 1 (for G) around 90,
                         gfib 2 (for H) around 113,
@@ -368,12 +327,12 @@ let _ = Array.init 30 @@
         fun i ->
         let j=gfib2.(i) in
         (i,j,extrems (Array.init 900000 @@
-                        fun n -> a.(3).(n+j)-a.(3).(n)-a.(3).(j)))
+                        fun n -> a2.(n+j)-a2.(n)-a2.(j)))
 
 (* ================== *)
-(* f4 *)
+(* f3 *)
 
-(* All numbers : f4(i+j)-f4(i)-f4(j) \in [-3..3] ?
+(* All numbers : f3(i+j)-f3(i)-f3(j) \in [-3..3] ?
    i=12 -> itvl [0..2]
    i=13 -> itvl [-1..2]
    i=20 -> itvl [-2..1]
@@ -385,12 +344,12 @@ let _ = Array.init 30 @@
 let _ = Array.init 30 @@
         fun i ->
         (i,extrems (Array.init 900000 @@
-                      fun n -> a.(4).(n+i)-a.(4).(n)-a.(4).(i)))
+                      fun n -> a3.(n+i)-a3.(n)-a3.(i)))
 
 let _ =
  for i = 1 to 1000 do
    for j = 1 to 900000 do
-     let d = a.(4).(i+j)-a.(4).(i)-a.(4).(j) in
+     let d = a3.(i+j)-a3.(i)-a3.(j) in
      if abs d >= 4 then
        Printf.printf "i=%d j=%d delta=%d\n" i j d
    done
@@ -398,10 +357,10 @@ let _ =
 
 let _ = Array.init 30 @@
         fun i ->
-        (i,extrems (Array.init 900000 @@ fun n -> a.(4).(n+i)-a.(4).(n)-a.(4).(i)))
+        (i,extrems (Array.init 900000 @@ fun n -> a3.(n+i)-a3.(n)-a3.(i)))
 
 
-(* If i is a gfib3 number : f4(n+i)-f4(n)-f4(i) \in {-1,0,1} ? *)
+(* If i is a gfib3 number : f3(n+i)-f3(n)-f3(i) \in {-1,0,1} ? *)
 
 let gfib3 = gfib 3 35
 
@@ -409,12 +368,12 @@ let _ = Array.init 35 @@
         fun i ->
         let j=gfib3.(i) in
         (i,j,extrems (Array.init 900000 @@
-                        fun n -> a.(4).(n+j)-a.(4).(n)-a.(4).(j)))
+                        fun n -> a3.(n+j)-a3.(n)-a3.(j)))
 
 (* ================== *)
-(* f5 *)
+(* f4 *)
 
-(* All numbers : f5(n+i)-f5(n)-f5(i) \in [-5..5] ?
+(* All numbers : f4(n+i)-f4(n)-f4(i) \in [-5..5] ?
    i=928 j=1227 delta=-5
    i=12580 j=14755 delta=5
 *)
@@ -422,12 +381,12 @@ let _ = Array.init 35 @@
 let _ = Array.init 30 @@
         fun i ->
         (i,extrems (Array.init 900000 @@
-                      fun n -> a.(5).(n+i)-a.(5).(n)-a.(5).(i)))
+                      fun n -> a4.(n+i)-a4.(n)-a4.(i)))
 
 let _ =
  for i = 12580 to 12580 (*1 to 1000*) do
    for j = 1 to 900000 do
-     let d = a.(5).(i+j)-a.(5).(i)-a.(5).(j) in
+     let d = a4.(i+j)-a4.(i)-a4.(j) in
      if d=5 then begin
        Printf.printf "i=%d j=%d delta=%d\n" i j d;
        failwith "Stop"
@@ -435,7 +394,7 @@ let _ =
    done
  done
 
-(* gfib4 numbers : f5(n+i)-f5(n)-f5(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
+(* gfib4 numbers : f4(n+i)-f4(n)-f4(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
 
 let gfib4 = gfib 4 40
 
@@ -443,13 +402,13 @@ let _ = Array.init 40 @@
         fun i ->
         let j=gfib4.(i) in
         (i,j,extrems (Array.init 900000 @@
-                        fun n -> a.(5).(n+j)-a.(5).(n)-a.(5).(j)))
+                        fun n -> a4.(n+j)-a4.(n)-a4.(j)))
 (* Up to [-5..5] for gfib 4 39 = 90061 *)
 
 (* ================== *)
-(* f6 *)
+(* f5 *)
 
-(* All numbers : f6(n+i)-f6(n)-f6(i) \in [-11..11] ?
+(* All numbers : f5(n+i)-f5(n)-f5(i) \in [-11..11] ?
    i=9852 j=12648 delta=-11
    i=18553 j=42773 delta=11
 *)
@@ -457,12 +416,12 @@ let _ = Array.init 40 @@
 let _ = Array.init 30 @@
         fun i ->
         (i,extrems (Array.init 900000 @@
-                      fun n -> a.(6).(n+i)-a.(6).(n)-a.(6).(i)))
+                      fun n -> a5.(n+i)-a5.(n)-a5.(i)))
 
 let _ =
  for i = 1 to 20000 do
    for j = 1 to 50000 do
-     let d = a.(6).(i+j)-a.(6).(i)-a.(6).(j) in
+     let d = a5.(i+j)-a5.(i)-a5.(j) in
      if d = 11 then begin
        Printf.printf "i=%d j=%d delta=%d\n" i j d;
        failwith "Stop"
@@ -470,7 +429,7 @@ let _ =
    done
  done
 
-(* gfib5 numbers : f6(n+i)-f6(n)-f6(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
+(* gfib5 numbers : f5(n+i)-f5(n)-f5(i) \in {-1,0,1} ? NOT AT ALL ?!? *)
 
 let gfib5 = gfib 5 40
 
@@ -478,24 +437,80 @@ let _ = Array.init 40 @@
         fun i ->
         let j=gfib5.(i) in
         (i,j,extrems (Array.init 900000 @@
-                        fun n -> a.(6).(n+j)-a.(6).(n)-a.(6).(j)))
+                        fun n -> a5.(n+j)-a5.(n)-a5.(j)))
 (* Up to [-7..9] for gfib 5 39 = 29548 *)
 
 
 
+(** LIMITS *)
+
+(* k = 1 (G) *)
+let phi = (1.+.sqrt(5.))/.2. (* root of X^2-X-1 *)
+let tau = phi-.1.  (* also 1/phi, root of X^2+X-1 *)
+
+(* k = 2 (H) *)
+let limh = 0.6823278038280194 (* root of X^3+X-1, cf maxima *)
+let expo = 1.465571231876768 (* 1/limh, also root of X^3-X^2-1 *)
+
+(* k = 3 *)
+let expo3 = 1.380277569097618
+
+
+(** Little equation solver (via Newton's method.
+   newton k find an approximation of the root of X^k+X-1
+   in [0;1]
+*)
+
+let newton k =
+  if k = 0 then 0. else
+  let fk = float k in
+  let rec loop n x =
+    let y = x -. (x** fk +. x -. 1.)/.(fk *.x ** (fk-.1.) +.1.) in
+    if x = y || n > 100 then x
+    else loop (n+1) y
+  in loop 0 1.
+
+(* Beware! for k=18 and 19, we get a two-cycle (issue with approx ?) *)
+
+(* Precision: around 10^-15 (note that epsilon_float = 2e-16 *)
+
+let lims = Array.init 20 (fun n -> newton (n+1))
+
+let _ = lims.(1)-.tau;;
+let _ = lims.(2)-.limh;;
+let _ = lims.(3)-.1./.expo3;;
+
+
 (** FLOAT EXPRESSIONS OR APPROXIMATIONS *)
 
-(* f1 is a division by 2, with two possible statements *)
+(**** k=0 ****)
 
-let t1 = Array.init 1000 @@ fun i -> int ( float (i+1) /. 2.)
+(* f0 is a division by 2, with two possible statements *)
 
-let t1' = Array.init 1000 @@ fun i -> int ( ceil (float i /. 2.))
+let t0 len = Array.init len @@ fun i -> int ( float (i+1) /. 2.)
 
-let _ = t1 = a.(1)
-let _ = t1' = a.(1)
+let t0' len = Array.init len @@ fun i -> int ( ceil (float i /. 2.))
 
-(* f2 (named g earlier) is fun n -> floor ((n+1) / phi).
-   This implies that for all n, f2(n) is either floor(n/phi)
+let _ = a.(0) = t0 1000001
+let _ = a.(0) = t0' 1000001
+
+(**** k=1 (G) ****)
+
+
+let t1 = Array.init 1000 @@ fun i -> int ( float (i+1) /. phi)
+
+let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a1.(i)
+
+(* Two increasing segments : *)
+let _ = output_gnuplot_file "/tmp/out1"
+      (Array.init 999 @@ fun i -> delta.(i),delta.(i+1))
+
+(* Two decreasing segments *)
+let _ = output_gnuplot_file "/tmp/out1bis"
+      (Array.init 1000 @@ fun i -> delta.(i),delta.(a1.(i)))
+
+(* f1 (also named g earlier) is fun n -> floor ((n+1) / phi).
+   This implies that for all n, f1(n) is either floor(n/phi)
    or ceil(n/phi), and hence is at most 1 away from the other.
 *)
 
@@ -505,141 +520,12 @@ hence floor ((n+1)/phi) is either floor(n/phi) or
  floor(n/phi)+1 = ceil(n/phi) (as soon as n<>0, phi being irrational)
  *)
 
-let t2 = Array.init 1000 @@ fun i -> int ( float (i+1) /. phi)
-
-let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a.(2).(i)
-
-let delta' = Array.init 1000 @@ fun i -> if i = 0 then 0. else
-            2.*.tau -. tau *. delta.(i-1) -. delta.(a.(2).(i-1))
-
-let _ = delta.(7)
-let _ = delta.(6)
-let _ = delta.(a.(2).(6))
-let _ = 2.*.tau-.tau*.0.18-.0.32
-
-let _ = 2.*.tau
-
-let delta'' = Array.init 1000 @@ fun i ->
-              (delta.(i),delta.(a.(2).(i)))
-
-let _ = output_gnuplot_file "/tmp/out" delta''
-
-let delta3 = Array.init 100000 @@ fun i -> float a.(3).(i) -. float i *. lims.(3)
-
-let _ = extrems delta3
-
-let delta3bis = Array.init 10000 @@ fun i ->
-              (delta3.(i),delta3.(a.(3).(i)))
-
-let _ = output_gnuplot_file "/tmp/out3" delta3bis
-(* donne une figure fractale proche du "dragon" (ou d'un julia ?) *)
-
-let delta3ter = Array.init 10000 @@ fun i ->
-              let k1 = a.(3).(i) in
-              let k2 = a.(3).(k1) in
-              (delta3.(i),lims.(3)*.delta3.(k1)+.delta3.(k2))
-
-(* ligne du haut (lorsque f3 grimpe) :
-((-0.535727138340007514, 0.785146282035457332),
- (0.707284644711762667, -1.03657602805559979))
-
-ligne du bas (lorsque f3 stagne):
-((-0.853399334533605725, 0.250717513904961442),
- (0.0249568408762570471, -1.03657602805559979))
-
-*)
-
-let _ = output_gnuplot_file "/tmp/out3ter" delta3ter
-(* donne deux lignes *)
-
-let delta3qu = Array.init 1000 @@ fun i ->
-              let k1 = a.(3).(i) in
-              let k2 = a.(3).(k1) in
-              round (delta3.(k2) +. lims.(3)*.delta3.(k1) +. delta3.(i)/.lims.(3))
-(* toujours egal à 0 ou -1 *)
-
-let _ = lims.(4)
-
-let delta4 =
-  Array.init 1000000 @@ fun i ->
-    float i *. lims.(4) -. float a.(4).(i)
-
-let _ = extrems delta4
-
-let delta4bis = Array.init 1000 @@ fun i ->
-              (delta4.(i),delta4.(a.(4).(i)))
-
-let _ = output_gnuplot_file "/tmp/out4" delta4bis
-(* pas de fractale clairement visible, plutot un oval de points *)
-
-let delta4ter = Array.init 999999 @@ fun i ->
-   if a.(4).(i) <> a.(4).(i+1) then 0.,0. else
-              let k1 = a.(4).(i) in
-              let k2 = a.(4).(k1) in
-              let k3 = a.(4).(k2) in
-              (delta4.(i),
-               lims.(4)**2.*.delta4.(k1)+.
-               lims.(4)*.delta4.(k2)+.
-               delta4.(k3))
-
-let _ = extrems delta4ter
-
-(* ligne du haut (lorsque f4 grimpe):
-((-1.18651591357775033, 1.63772130094070367),
- (1.40104105672799051, -1.93382554394093065))
-
-ligne du bas (lorsque f4 stagne)
-((-1.46202395457657985, 1.01799887003979084),
- (0.676549097755923867, -1.93382554394093065))
-*)
-
-let _ = output_gnuplot_file "/tmp/out4ter" delta4ter
-
-let delta4ter = Array.init 1000 @@ fun i ->
-              let k1 = a.(4).(i) in
-              let k2 = a.(4).(k1) in
-              let k3 = a.(4).(k2) in
-              round
-               (lims.(4)**2.*.delta4.(k1)+.
-                lims.(4)*.delta4.(k2)+.
-                delta4.(k3) +.
-                delta4.(i)/.lims.(4))
-(* que des 0 ou -1 *)
-
-
-
-let _ = extrems (Array.map snd delta3ter)
-
-let _ = 0.755 *. lims.(3)
-
-let _ = lims.(3)*.lims.(3)
-let _ = lims.(3)+.lims.(3)*.lims.(3)
-
-let _ = Array.init 999 @@ fun i ->
-        round (lims.(3)-.1.+.delta3.(i)-.delta3.(i+1))
-
-let _ = lims.(3)-.1.-.0.5
-
-let _ = -0.83-.0.83*.lims.(3)
-
-let _ = extrems delta''
-
-
-(* tau*n - g(n) in ]-tau;1-tau[ *)
-
-let _ = extrems delta'
-
-let _ = 1.-.tau
-
-let t2' = Array.init 1000 @@ fun i -> float i /. phi
-
-let _ = t2 = a.(2)
-
+let t1' = Array.init 1000 @@ fun i -> float i /. phi
 type fc = F | C
 let _ = Array.init 1000 @@
           fun i ->
-          if a.(2).(i) = int (t2'.(i)) then F
-          else if a.(2).(i) = int (ceil (t2'.(i))) then C
+          if a1.(i) = int (t1'.(i)) then F
+          else if a1.(i) = int (ceil (t1'.(i))) then C
           else failwith "BUG"
 
 (*
@@ -679,123 +565,216 @@ two cases:
    hence "floor" in (n+2)
 *)
 
-(* f3 and float computation *)
+(**** k=2 (H) ****)
 
+let delta2 = Array.init 100000 @@ fun i -> float a2.(i) -. float i *. lims.(2)
+
+let _ = extrems delta2 (* -0.7..0.85 hence more than 1 of wide *)
+
+(* two increasing lines, one partly below the other *)
+let _ = output_gnuplot_file "/tmp/out2"
+          (Array.init 1000 @@ fun i -> delta2.(i),delta2.(i+1))
+
+(* A Rauzy fractal ?!? *)
+let _ = output_gnuplot_file "/tmp/out2bis"
+          (Array.init 10000 @@ fun i -> delta2.(i),delta2.(a2.(i)))
+
+let delta2ter =
+  Array.init 10000 @@
+    fun i ->
+    let k1 = a2.(i) in
+    let k2 = a2.(k1) in
+    (delta2.(i),lims.(2)*.delta2.(k1)+.delta2.(k2))
+
+let _ = output_gnuplot_file "/tmp/out2ter" delta2ter
+(* Two decreasing segments : *)
+
+(* High segment (when f2 grows) :
+((-0.535727138340007514, 0.785146282035457332),
+ (0.707284644711762667, -1.03657602805559979))
+
+ Low segment (when f2 stagnate):
+((-0.853399334533605725, 0.250717513904961442),
+ (0.0249568408762570471, -1.03657602805559979))
+
+*)
+
+let delta2qu =
+  Array.init 1000 @@
+    fun i ->
+    let k1 = a2.(i) in
+    let k2 = a2.(k1) in
+    round (delta2.(k2) +. lims.(2)*.delta2.(k1) +. delta2.(i)/.lims.(2))
+(* Always equal to 0 ou -1 *)
+
+
+(* f2 (H) and float computation *)
 
 let hbis n = int (limh *. float n)
 let hter n = int (ceil (limh *. float n))
 
 let _ = Array.init 20 @@ fun n -> (hbis n, h n, hter n)
 
-let out = Array.init 1000 @@ fun n ->
-        if a.(3).(n) = hbis n then F
-        else if a.(3).(n) = hter n then C
+let _ = Array.init 1000 @@ fun n ->
+        if a2.(n) = hbis n then F
+        else if a2.(n) = hter n then C
         else failwith "AWAY"
 
-let out = Array.init 100000 @@ fun n ->
-                             float a.(3).(n) -. limh *. float n
-
-let _ = extrems out
-
 let _ = Array.init 1000 @@ fun n ->
-        int (limh *. (float (n+1))) - a.(3).(n)
+        int (limh *. (float (n+1))) - a2.(n)
  (* majoritairement des 0, mais aussi quelques 1 et -1 *)
 
 
-(* f4 and float computation *)
+(**** k=3 ****)
+
+let _ = lims.(3)
+
+let delta3 =
+  Array.init 1000000 @@ fun i -> float a3.(i) -. float i *. lims.(3)
+
+let _ = extrems delta3 (* -1.40..1.46 *)
+
+(* Two segments *)
+let _ = output_gnuplot_file "/tmp/out3"
+      (Array.init 1000 @@ fun i -> (delta3.(i),delta3.(i+1)))
+
+let delta3bis = Array.init 10000 @@ fun i -> (delta3.(i),delta3.(a3.(i)))
+
+(* No obvious fractal, rather a cloud of points : *)
+let _ = output_gnuplot_file "/tmp/out3bis" delta3bis
+
+(* Two segments *)
+let delta3ter =
+  Array.init 10000 @@
+    fun i ->
+    let k1 = a3.(i) in
+    let k2 = a3.(k1) in
+    let k3 = a3.(k2) in
+    (delta3.(i),
+     lims.(3)**2.*.delta3.(k1)+.
+     lims.(3)*.delta3.(k2)+.
+     delta3.(k3))
+
+let _ = extrems delta3ter
+
+let _ = output_gnuplot_file "/tmp/out3ter" delta3ter
+
+(* ligne du haut (lorsque f3 grimpe):
+((-1.18651591357775033, 1.63772130094070367),
+ (1.40104105672799051, -1.93382554394093065))
+
+ligne du bas (lorsque f3 stagne)
+((-1.46202395457657985, 1.01799887003979084),
+ (0.676549097755923867, -1.93382554394093065))
+*)
+
+let delta3qu =
+  Array.init 1000 @@
+    fun i ->
+    let k1 = a3.(i) in
+    let k2 = a3.(k1) in
+    let k3 = a3.(k2) in
+    round
+      (lims.(3)**2.*.delta3.(k1)+.
+       lims.(3)*.delta3.(k2)+.
+       delta3.(k3) +.
+       delta3.(i)/.lims.(3))
+(* que des 0 ou 1 *)
+
+(* f3 and float computation *)
 
 let out = Array.init 1000 @@ fun n ->
-        a.(4).(n) - int(float n /. expo4)
-  (* histo : (-1, 4); (0, 504); (1, 482); (2, 10) *)
+        a3.(n) - int(float n /. expo3)
+let _ = histo out
+(* histo : (-1, 4); (0, 504); (1, 482); (2, 10) *)
 
 let out = Array.init 100000 @@ fun n ->
-        a.(4).(n) - int(float n /. expo4)
-  (* histo : (-1, 746); (0, 49930); (1, 47971); (2, 1353) *)
-
+        a3.(n) - int(float n /. expo3)
 let _ = histo out
+(* histo : (-1, 746); (0, 49930); (1, 47971); (2, 1353) *)
+
+
+(**** k=4 ****)
+
+let _ = lims.(4)
 
 let out = Array.init 1000 @@ fun n ->
-        a.(5).(n) - int(float n *. lims.(5))
-  (* histo : (-1, 55); (0, 475); (1, 411); (2, 59) *)
+        a4.(n) - int(float n *. lims.(4))
+let _ = histo out
+(* histo : (-1, 55); (0, 475); (1, 411); (2, 59) *)
 
 let out = Array.init 100000 @@ fun n ->
-        a.(5).(n) - int(float n *. lims.(5))
-  (* histo : (-2, 712); (-1, 15182); (0, 42821); (1, 33705); (2, 7345); (3, 235) *)
-
+        a4.(n) - int(float n *. lims.(4))
 let _ = histo out
+(* histo : (-2, 712); (-1, 15182); (0, 42821); (1, 33705); (2, 7345); (3, 235) *)
+
+let delta4 =
+  Array.init 1000000 @@ fun i -> float a4.(i) -. float i *. lims.(4)
+
+let _ = extrems delta4 (* -3..3.2 *)
+
+(* Two segments *)
+let _ = output_gnuplot_file "/tmp/out4"
+      (Array.init 1000 @@ fun i -> (delta4.(i),delta4.(i+1)))
+
+let delta4bis = Array.init 10000 @@ fun i -> (delta4.(i),delta4.(a4.(i)))
+
+(* Strange figure, globally a cloud but with "detached" agglomeration points *)
+let _ = output_gnuplot_file "/tmp/out4bis" delta4bis
 
 
 
 (** DECOMPOSITION *)
 
-(** Zeckendorf decomposition of rank 3 *)
+(** Zeckendorf decomposition for k=2 *)
 
 (** The sequence.
     Similar to Fibonacci, but skipping a term in the addition
     See http://oeis.org/A000930 (Narayana)
-
- *)
-let rec s4 n = if n<4 then n else s4 (n-1) + s4 (n-3)
+    Here we start at the last 1 (no 0, no ambiguity over 1)
+*)
+let rec s2 n = if n<4 then n+1 else s3 (n-1) + s3 (n-3)
 
 (** Ratio converges to expo *)
-let _ = Array.init 20 (fun n -> float (s4 (n+2)) /. float (s4 (n+1)))
+let _ = Array.init 20 (fun n -> float (s2 (n+2)) /. float (s2 (n+1)))
+let _ = Array.init 20 (fun n -> float (s2 (n+2)) /. float (s2 (n+1)) -. expo)
 
-(** Memoized version of the sequence *)
-let s4tab = Array.make 100 0
+(** Memoized version of the sequence : cf earlier gfib *)
 
-let rec s4opt n =
-  if n >= 100 then s4 n
-  else
-    let x = s4tab.(n) in
-    if x<>0 then x
-    else
-      if n <4 then (s4tab.(n) <- n; n)
-      else
-        let x = s4opt (n-1) + s4opt (n-3) in
-        (s4tab.(n) <- x; x)
+let _ = gfib 2 10 = Array.init 10 s2
 
-let _ = s4opt 70
-let _ = s4tab
-let _ = s4opt 99
-let _ = s4tab
+let s2opt = gfib 2 101
 
-let _ = Array.init 100 @@ fun i -> float s4tab.(i) /.(expo ** float i)
+let _ =
+  Array.init 100 @@ fun i -> float s2opt.(i) /.(expo ** float i)
 
-(** s4(n) ~ 0.89618507192613 * expo^n *)
+(** s2(n) ~ 1.3134230598523 * expo^n *)
 
 (** The decomposition *)
 
 let rec decomp n =
   let rec loop k =
-    if s4opt k > n then k-1
+    if s2opt.(k) > n then k-1
     else loop (k+1)
   in
   if n = 0 then []
   else
     let x = loop 1 in
-    x::(decomp (n-s4opt x))
+    x::(decomp (n-s2opt.(x)))
 
 let _ = Array.init 100 @@ fun n -> n, decomp n
 
 let a20942 =
   let l = Array.to_list (Array.init 100 @@ fun n -> n, decomp n) in
-  List.filter (fun (x,l) -> List.mem 1 l) l
+  List.filter (fun (x,l) -> List.mem 0 l) l
 
 (* See http://oeis.org/A020942 : numbers containing 1 in
-   their rank-3 decomposition.
+   their 2-decomposition.
    = places where h will stagnate: h 1 = h 2, h 5 = h 6, h 7 = h 8, etc
 *)
 
-let _ = List.map (fun (n,_) -> a.(3).(n+1) - a.(3).(n)) a20942
+let _ = List.map (fun (n,_) -> a2.(n+1) - a2.(n)) a20942
 
-
-
-let _ = s4tab.(0) <- 0
-
-let prevdecomp l = List.map (function 1 -> 1 | n -> n-1) l
-let sumdecomp l = List.fold_left (fun acc n -> acc + s4opt n) 0 l
-
-let _ = Array.init 20 @@ fun n -> h n, sumdecomp (prevdecomp (decomp n))
 
 
 
@@ -807,6 +786,6 @@ let rec h' x = if x <= 5 then h x else x+1 - h' (h' (1 + h' (x-1)))
 
 let _ = Array.init 30 (fun i -> i,h' i)
 
-let rec f4' x = if x <= 6 then a.(4).(x) else x+1 - f4' (f4' (f4' (1 + f4' (x-1))))
+let rec f3' x = if x <= 6 then a3.(x) else x+1 - f3' (f3' (f3' (1 + f3' (x-1))))
 
-let _ = Array.init 30 (fun i -> i,f4' i)
+let _ = Array.init 30 (fun i -> i,f3' i)
