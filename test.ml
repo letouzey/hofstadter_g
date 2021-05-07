@@ -290,6 +290,8 @@ i, extrems
 
 *)
 
+(* Searching for 2 and -2 : *)
+
 let _ =
  for i = 1 to 100 do
    for j = 1 to 1000 do
@@ -298,6 +300,35 @@ let _ =
        Printf.printf "i=%d j=%d delta=%d\n" i j d
    done
  done
+
+(* Conjecture: forall m exists I={-2..0} ou {-1..1} ou {0..2} such that
+                 forall n, H(m+n)-H(m)-H(n) \in I
+   Experiment:
+ *)
+
+let width (a,b) = b-a
+
+let _ = extrems @@ Array.init 10000 @@
+        fun i ->
+        (width @@ extrems (Array.init 90000 @@ fun n -> a2.(n+i)-a2.(n)-a2.(i)))
+
+let itvls1 =
+  let a =
+    Array.init 1000 @@
+    fun i ->
+    (i, width @@ extrems (Array.init 90000 @@ fun n -> a2.(n+i)-a2.(n)-a2.(i)))
+  in
+  List.map fst (List.filter (fun (i,j) -> j<2) (Array.to_list a))
+
+let _ =
+  let rec diffs = function
+    | [] | [_] -> []
+    | a::b::l -> b-a :: diffs (b::l)
+  in diffs itvls1
+
+let _ = extrems @@ Array.init 10000 @@
+        fun i ->
+        (fst @@ extrems (Array.init 90000 @@ fun n -> a2.(n+i)-a2.(n)-a2.(i)))
 
 (* Generalized Fibonacci. k is distance between terms to add.
    Starts at 1.
