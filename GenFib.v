@@ -386,6 +386,12 @@ Proof.
 Qed.
 Hint Resolve decomp_carac.
 
+Lemma decomp_sum' k l :
+ Delta (S k) l -> decomp k (sumA k l) = l.
+Proof.
+ intros D. now apply decomp_carac.
+Qed.
+
 (** ** Normalisation of a Fibonacci decomposition.
 
     Starting from an relaxed decomposition (with gaps
@@ -540,6 +546,22 @@ Proof.
    + apply Delta_alt in D.
      simpl in Hy. destruct Hy as [->|Hy]; auto.
      destruct D as (_,IN'). specialize (IN' y Hy). lia.
+Qed.
+
+Lemma renorm_loop_mapS k l n :
+ map S (renorm_loop k l n) = renorm_loop k (map S l) n.
+Proof.
+ revert l.
+ induction n; trivial; intros [|p l]; trivial.
+ simpl in *.
+ rewrite <- IHn.
+ destruct (renorm_loop k l n) eqn:E; simpl; trivial.
+ case Nat.eqb_spec; intros; trivial. apply IHn.
+Qed.
+
+Lemma renorm_mapS k l : map S (renorm k l) = renorm k (map S l).
+Proof.
+ unfold renorm. rewrite map_length. apply renorm_loop_mapS.
 Qed.
 
 Lemma renorm_loop_mapdecr k m l n : m < S k -> length l <= n ->
