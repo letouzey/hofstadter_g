@@ -530,11 +530,13 @@ let _ = a.(0) = t0' 1000001
 
 let t1 = Array.init 1000 @@ fun i -> int ( float (i+1) /. phi)
 
-let delta = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a1.(i)
+let delta_old = Array.init 1000 @@ fun i -> float (i+1) /. phi -. float a1.(i)
+
+let delta = Array.init 10000 @@ fun i -> float a1.(i) -. float i /. phi
 
 (* Two increasing segments : *)
 let _ = output_gnuplot_file "/tmp/out1"
-      (Array.init 999 @@ fun i -> delta.(i),delta.(i+1))
+      (Array.init 9999 @@ fun i -> delta.(i),delta.(i+1))
 
 (* Two decreasing segments *)
 let _ = output_gnuplot_file "/tmp/out1bis"
@@ -609,6 +611,13 @@ let _ = output_gnuplot_file "/tmp/out2"
 (* A Rauzy fractal ?!? *)
 let _ = output_gnuplot_file "/tmp/out2bis"
           (Array.init 10000 @@ fun i -> delta2.(i),delta2.(a2.(i)))
+
+(* Or rather the fractal boundary of a Modified Jacobi-Perron substitution
+   \sigma_(1,0) : 1->12, 2->3, 3->1
+   See Pytheas Fogg, Substitutions in Dynamics Arithmetics and Combinatorics,
+    Fig 8.1 page 256 *)
+(* See also :
+   https://tilings.math.uni-bielefeld.de/substitution/a-ab--b-c--c-a/ *)
 
 let delta2ter =
   Array.init 10000 @@
