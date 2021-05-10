@@ -862,22 +862,16 @@ Proof.
      destruct Ha as [Ha|Ha].
      { (* a = q-1 *)
        subst q.
-       replace (A2 (S a) + _) with (A2 (a-3) + sumA 2 (l'++[a+2])) in *.
-       2:{ rewrite !sumA_app. simpl.
-           generalize (@seq_A2_eqn' a). unfold A2. lia. }
-       assert (Ha : a-3 < S a) by lia.
-       specialize (IH (a-3) Ha (sumA 2 (l'++[a+2]))). revert IH.
-       simpl. rewrite Nat.sub_0_r. replace (a-3-1) with (a-4) by lia.
+       replace (A2 (S a) + _) with (A2 a + sumA 2 (l'++[S a])) in *.
+       2:{ rewrite !sumA_app. unfold A2. simpl. lia. }
+       assert (Ha : a < S a) by lia.
+       specialize (IH a Ha (sumA 2 (l'++[S a]))). revert IH.
+       simpl. rewrite Nat.sub_0_r.
        set (u := h (_+_)) in *; clearbody u.
        unfold h, A2.
-       rewrite !f_sumA by (try apply Delta_up_last with a; auto with arith).
+       rewrite !f_sumA_lax by (try apply Delta_up_last with a; auto with arith).
        rewrite !map_app, !sumA_app. simpl.
-       replace (pred (a+2)) with (a+1) by lia.
-       replace (pred a) with (a-1) by lia.
-       generalize (@seq_A2_eqn' (a-1)). unfold A2.
-       replace (S (a-1)) with a by lia.
-       replace (a-1+2) with (a+1) by lia.
-       replace (a-1-3) with (a-4) by lia. lia. }
+       replace (pred a) with (a-1) by lia. lia. }
      { (* a <= q-2 *)
        clear IH.
        replace (A2 q + _) with (sumA 2 (l'++[a;q])).
@@ -890,6 +884,192 @@ Proof.
          + intros x x' IN [<-|[<-|[ ]]];
            specialize (D3 x a IN); simpl in *; lia. }
 Qed.
+
+(* Generalization à h(n+p), p quelconque au lieu de Aq.
+   Essayons la même idée.
+   on peut passer de n à m en coupant au dela de q+2 si
+   q est le terme dominant de p.
+
+#### Si m < p
+
+On inverse les roles de m et p, puis HR sur m
+
+#### Si m a q+2 comme grand terme #####
+
+m = xxxxxx..*
+p = xxxx..*
+
+HR sur
+
+m'= xxxxxx...*
+p'= xxxx
+
+OK
+
+#### Si m a q+1 comme grand terme ####
+
+m = xxxxxxx..*
+p = xxxxxx..*
+
+Aq+A(q+1) = A(q+2)+A(q-3)
+
+m'= xxxxxxx...*
+p'= xxxxxx
+  +      *
+
+??
+On décompose plus ?
+
+a)
+p = xxx*....* ou plus d'écart : OK, p-Aq+A(q-3) lax
+
+b)
+p = xx..*...* :
+p'= xx..**
+  = x*....*
+etc avec des doublons ou des consécutifs...
+
+c)
+p = xxx..*..*
+p'= xxx..2
+  = xxx....*
+   -*
+
+
+
+#### Si m a q comme grand terme ####
+
+Note: 2*Aq = A(q+2)-A(q-5)
+     *....2
+     *.*.**
+     ...***
+     ....*.*
+     .......*
+
+m = xxxxxxx..*
+p = xxxxxxx..*
+
+m'= xxxxxxx....*
+p'= xxxxxxx
+  -     *
+
+
+a)
+p'= xxxx*..
+  -     *
+p'= xxxx
+OK
+
+b)
+p'= xxx..*.
+  -     *
+p'= xxx
+  +   *
+et ensuite ??
+
+c)
+p'= xxxx..*
+  -     *
+p'= xxxx
+
+
+d) p' negatif ?
+
+p' = x..*...
+  -      *
+ou plus d'écart
+ici: x
+  -   *
+etc
+
+??
+
+HR avec negation :
+
+h (m-p) + h p -2 <= h (m) <= h (m-p) + h p + 2
+donc (pour m>=p)
+h(m)-h(p)-2 <= h(m-p) <= h(m)-h(p)+2
+
+
+
+
+autre piste :
+2 * A2 n = A2 (n-7) + A2(n-2) + A2(n+1).
+
+m = xxxxxxx..*
+p = xxxxxxx..*
+
+m'= xxxxxxx...*
+p'= xxxxxxx*
+  +   *
+
+
+
+??
+
+(Reste+Aq)+Aq = (Reste+A(q+2))-A(q-5)
+
+
+f((Reste+Aq)+Aq)
+= f((Reste+A(q+2))-A(q-5))
+= f(Reste+A(q+2))-f(A(q-5)) +{-1,0,1}   par HR renversé
+= f(Reste)+A(q+1)-A(q-6) +{-1,0,1}
+= f(Reste)+2*A(q-1) + {-1,0,1}
+= f(Reste+Aq) + f(Aq) + {-1,0,1}
+
+*)
+
+
+
+(*
+Lemma f2_add n m : h n + h m - 2 <= h (n + m) <= h n + h m + 2.
+Proof.
+ revert m.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n 1) as [LE|GT].
+ - clear IH.
+   destruct n as [|[|n]]; simpl; intros; try lia.
+   generalize (h_add_1 m). simpl. lia.
+ - intros m.
+*)
+
+
+(*
+Example de "combinaison" d'additivité:
+h(2+n)-h n = 1,2
+
+donc h(4+n)-h n = (h(2+(2+n))-h(2+n))-(h(2+n) -h n)
+                = {1,2}+{1,2}
+                = {2,4}   (en fait {2,3} est prouvable )
+
+Et pour l'additivité générale entre -2 et 2 :
+
+
+en décalant de 1:
+
+h (n+m) <= h (n+1+m) <= 1 + h(n+m)
+h n + h m -2 <= h (n+1+m) <= 1 + 2 + h n + h m  (par IH)
+
+donc:
+h (n+1)+h m -3 <= 1+h n + h m -3 <= h(n+1+m) <= 3+h n + h m <= 3+h(n+1)+h m
+
+
+en décalant de 2:
+
+1 + h (n+m) <= h (n+2+m) <= 2 + h(n+m)
+1 + h n + h m -2 <= h (n+2+m) <= 2 + 2 + h n + h m  (par IH)
+
+donc:
+h (n+2)+h m -3 <= 2+h n + h m -3 <= h(n+2+m) <= 3 + 1+h n + h m <= 3+h(n+2)+h m
+
+h(n+m)+h(Aq) - 1 <= h(n+Aq+m) <= h(n+m)+h(Aq) +1 (dernier thm)
+
+h(n)+h(m)+h(Aq) -2-1 <= h(n+Aq+m) <= h(n)+h(m)+h(Aq) +2+1 (IH)
+h(n+Aq)+h(m) -3 <= h(n+Aq+m) <= h(n+Aq)+h(m)+3 (en prenant Aq au dela de n p.ex)
+
+BOF
+*)
+
 
 
 (******* k=3 *******)
