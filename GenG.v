@@ -1,5 +1,5 @@
 
-Require Import Arith Omega Wf_nat List Bool.
+Require Import Arith Lia Wf_nat List Bool.
 Require Import DeltaList FunG GenFib.
 Import ListNotations.
 Require Extraction.
@@ -61,7 +61,7 @@ Hint Resolve Fs_1.
 
 Lemma F_le k n a : F k n a -> a <= n.
 Proof.
- induction 1; omega.
+ induction 1; lia.
 Qed.
 Hint Resolve F_le.
 
@@ -87,7 +87,7 @@ apply F_Fs_ind.
 - inversion_clear 1; auto.
 - intros k n a b HFs IH Hab a' HF.
   inversion_clear HF; auto.
-  apply IH in H; omega.
+  apply IH in H; lia.
 - inversion_clear 1; auto.
 - intros p k a b c HFs IH HF IH' a' HFs'.
   inversion_clear HFs'; auto.
@@ -117,12 +117,12 @@ induction n as [[|n] IH ] using lt_wf_rec.
     - intros.
       destruct (IHp m H) as (a,Ha).
       destruct (IH a) as (b,Hb).
-      apply Fs_le in Ha. omega.
+      apply Fs_le in Ha. lia.
       exists b; eauto. }
   destruct (Hs (S k) n) as (a,Ha); auto.
   exists (S n - a).
   eapply FS; eauto.
-  apply Fs_le in Ha. omega.
+  apply Fs_le in Ha. lia.
 Defined.
 
 Definition f k n := proj1_sig (f_spec k n).
@@ -200,7 +200,7 @@ Proof.
  inversion_clear H.
  assert ((f k ^^ S k) n = a).
  { revert H0. apply Fs_fun. apply Fs_iter_f. }
- omega.
+ lia.
 Qed.
 
 Lemma f_eqn_pred k n : f k n + (f k ^^ S k) (pred n) = n.
@@ -212,12 +212,12 @@ Qed.
 
 Lemma f_S k n : f k (S n) = S n - (f k ^^ S k) n.
 Proof.
- generalize (f_eqn k n). omega.
+ generalize (f_eqn k n). lia.
 Qed.
 
 Lemma f_pred k n : f k n = n - (f k ^^ S k) (pred n).
 Proof.
- generalize (f_eqn_pred k n). omega.
+ generalize (f_eqn_pred k n). lia.
 Qed.
 
 (** Particular case *)
@@ -237,11 +237,11 @@ induction n.
 - assert (f 0 (2*(S n)) = S n).
   { rewrite f_pred; auto.
     simpl Nat.iter.
-    replace (n + (S (n+0))) with (S (2*n)); omega. }
+    replace (n + (S (n+0))) with (S (2*n)); lia. }
   split; auto.
   rewrite f_pred; auto.
   simpl Nat.iter.
-  replace (S (n + (S (n+0)))) with (2*(S n)); omega.
+  replace (S (n + (S (n+0)))) with (2*(S n)); lia.
 Qed.
 
 Lemma f_0_div2 n : f 0 n = (S n) / 2.
@@ -271,7 +271,7 @@ induction n as [[|n] IH] using lt_wf_ind.
       rewrite IHp; auto. apply IH.
       rewrite Nat.lt_succ_r. apply le_trans with m; auto.
       eapply Fs_le. eapply Fs_iter_f. }
-  rewrite f_S, <- H; auto. specialize (h_S n). omega.
+  rewrite f_S, <- H; auto. specialize (h_S n). lia.
 Qed.
 
 Lemma f_step k n : f k (S n) = f k n \/ f k (S n) = S (f k n).
@@ -291,7 +291,7 @@ Proof.
        + apply IH.
          rewrite Nat.lt_succ_r. apply le_trans with m; auto.
          eapply Fs_le. eapply Fs_iter_f. }
-   specialize (H (S k) n). omega.
+   specialize (H (S k) n). lia.
 Qed.
 
 Lemma fs_step k p n : (f k ^^p) (S n) = (f k ^^p) n \/
@@ -304,18 +304,18 @@ Qed.
 
 Lemma f_mono_S k n : f k n <= f k (S n).
 Proof.
- generalize (f_step k n). omega.
+ generalize (f_step k n). lia.
 Qed.
 
 Lemma fs_mono_S k p n : (f k ^^p) n <= (f k ^^p) (S n).
 Proof.
- generalize (fs_step k p n). omega.
+ generalize (fs_step k p n). lia.
 Qed.
 
 Lemma f_le_add k n m : f k (n+m) <= n + f k m.
 Proof.
 induction n; trivial.
-simpl. destruct (f_step k (n+m)); omega.
+simpl. destruct (f_step k (n+m)); lia.
 Qed.
 
 Lemma f_mono k n m : n <= m -> f k n <= f k m.
@@ -337,8 +337,8 @@ Qed.
 Lemma f_lipschitz k n m : f k m - f k n <= m - n.
 Proof.
 destruct (le_ge_dec n m) as [H|H].
-- induction H; try generalize (f_step k m); omega.
-- generalize (f_mono k H). omega.
+- induction H; try generalize (f_step k m); lia.
+- generalize (f_mono k H). lia.
 Qed.
 
 Lemma fs_lipschitz k p n m : (f k^^p) m - (f k^^p) n <= m - n.
@@ -354,12 +354,12 @@ Qed.
 
 Lemma f_nz k n : n <> 0 -> f k n <> 0.
 Proof.
- generalize (@f_nonzero k n). omega.
+ generalize (@f_nonzero k n). lia.
 Qed.
 
 Lemma f_0_inv k n : f k n = 0 -> n = 0.
 Proof.
- generalize (@f_nz k n). omega.
+ generalize (@f_nz k n). lia.
 Qed.
 
 Lemma fs_nonzero k n p : 0 < n -> 0 < (f k ^^p) n.
@@ -369,7 +369,7 @@ Qed.
 
 Lemma fs_0_inv k n p : (f k ^^p) n = 0 -> n = 0.
 Proof.
- generalize (@fs_nonzero k n p). omega.
+ generalize (@fs_nonzero k n p). lia.
 Qed.
 
 Lemma f_fix k n : f k n = n <-> n <= 1.
@@ -378,7 +378,7 @@ split.
 - destruct n; auto.
   assert (H := f_eqn k n).
   intros.
-  assert (H' : (f k ^^S k) n = 0) by omega.
+  assert (H' : (f k ^^S k) n = 0) by lia.
   apply fs_0_inv in H'.
   now subst.
 - inversion_clear 1. apply f_k_1.
@@ -399,7 +399,7 @@ Lemma f_lt k n : 1<n -> f k n < n.
 Proof.
 intros H.
 destruct (le_lt_or_eq _ _ (f_le k n)); trivial.
-rewrite f_fix in *. omega.
+rewrite f_fix in *. lia.
 Qed.
 Hint Resolve f_lt.
 
@@ -407,7 +407,7 @@ Hint Resolve f_lt.
 
 Lemma f_next k n a : f k n = a -> (f k (S n) <> a <-> f k (S n) = S a).
 Proof.
- generalize (f_step k n). omega.
+ generalize (f_step k n). lia.
 Qed.
 
 Lemma f_prev k n a : n <> 0 -> f k n = a ->
@@ -415,7 +415,7 @@ Lemma f_prev k n a : n <> 0 -> f k n = a ->
 Proof.
  intros H Ha.
  assert (Ha' := f_nz k H).
- generalize (f_step k (n-1)). replace (S (n-1)) with n; omega.
+ generalize (f_step k (n-1)). replace (S (n-1)) with n; lia.
 Qed.
 
 (** [f] cannot stay flat very long *)
@@ -423,33 +423,33 @@ Qed.
 Lemma f_nonflat k n : f k (1+n) = f k n -> f k (2+n) = S (f k n).
 Proof.
  generalize (f_eqn k (1+n)) (f_eqn k n).
- rewrite !iter_S. intros. rewrite H1 in *. simpl in *. omega.
+ rewrite !iter_S. intros. rewrite H1 in *. simpl in *. lia.
 Qed.
 
 Lemma f_nonflat' k n : f k (S n) = f k n -> f k (n-1) = f k n - 1.
 Proof.
  destruct n.
  - now rewrite f_k_0, f_k_1.
- - replace (S n - 1) with n by omega.
+ - replace (S n - 1) with n by lia.
    intros H.
    destruct (f_step k n) as [H'|H'].
-   + apply f_nonflat in H'; auto. simpl in *. omega.
-   + omega.
+   + apply f_nonflat in H'; auto. simpl in *. lia.
+   + lia.
 Qed.
 
 Lemma f_SS k n : f k n < f k (S (S n)).
 Proof.
  destruct (f_step k n) as [E|E].
- - generalize (f_nonflat _ _ E). simpl in *. omega.
- - apply Nat.lt_le_trans with (f k (S n)). omega. auto using f_mono_S.
+ - generalize (f_nonflat _ _ E). simpl in *. lia.
+ - apply Nat.lt_le_trans with (f k (S n)). lia. auto using f_mono_S.
 Qed.
 
 Lemma f_double_le k n : n <= f k (2*n).
 Proof.
 induction n.
 - trivial.
-- replace (2* S n) with (S (S (2*n))) by omega.
-  transitivity (S (f k (2*n))). omega. now apply f_SS.
+- replace (2* S n) with (S (S (2*n))) by lia.
+  transitivity (S (f k (2*n))). lia. now apply f_SS.
 Qed.
 
 Lemma f_div2_le k n : n/2 <= f k n.
@@ -458,7 +458,7 @@ Proof.
  rewrite (Nat.div2_odd n) at 2.
  transitivity (f k (2*Nat.div2 n)).
  now apply f_double_le.
- apply f_mono. omega.
+ apply f_mono. lia.
 Qed.
 
 Lemma fs_bound k n p :
@@ -466,14 +466,14 @@ Lemma fs_bound k n p :
 Proof.
  revert n.
  induction p.
- - simpl. intros. omega.
+ - simpl. intros. lia.
  - intros. simpl in *.
    assert (LE : 1 <= (f k ^^p) n).
-   { generalize (@fs_nonzero k n p). omega. }
+   { generalize (@fs_nonzero k n p). lia. }
    assert (NE : (f k^^p) n <> 1).
-   { intros EQ; rewrite EQ, f_k_1 in *. omega. }
+   { intros EQ; rewrite EQ, f_k_1 in *. lia. }
    specialize (IHp n H).
-   generalize (@f_lt k ((f k^^p) n)). omega.
+   generalize (@f_lt k ((f k^^p) n)). lia.
 Qed.
 
 Lemma fs_init k n : 1 <= n <= k+2 -> (f k^^(S k)) n = 1.
@@ -482,14 +482,14 @@ Proof.
  destruct (Nat.eq_dec n 1) as [->|NE].
  - now rewrite fs_k_1.
  - destruct (le_lt_dec ((f k^^S k) n) 1) as [LE|LT].
-   + generalize (@fs_nonzero k n (S k)). omega.
-   + apply fs_bound in LT; try omega.
-     generalize (@fs_nonzero k n (S k)). omega.
+   + generalize (@fs_nonzero k n (S k)). lia.
+   + apply fs_bound in LT; try lia.
+     generalize (@fs_nonzero k n (S k)). lia.
 Qed.
 
 Lemma f_init k n : 2 <= n <= k+3 -> f k n = n-1.
 Proof.
- intros. rewrite f_pred. rewrite fs_init; omega.
+ intros. rewrite f_pred. rewrite fs_init; lia.
 Qed.
 
 (*==============================================================*)
@@ -506,7 +506,7 @@ Fixpoint countdown n :=
 
 Lemma countdown_in n x : In x (countdown n) <-> x <= n.
 Proof.
- induction n; simpl; rewrite ?IHn; omega.
+ induction n; simpl; rewrite ?IHn; lia.
 Qed.
 
 (** Auxiliary function : dropping [n] leftmost elements in a list *)
@@ -532,7 +532,7 @@ Lemma npop_countdown x y : x <= y ->
 Proof.
  induction 1.
  - now rewrite Nat.sub_diag.
- - replace (S m - x) with (S (m-x)) by omega. simpl; auto.
+ - replace (S m - x) with (S (m-x)) by lia. simpl; auto.
 Qed.
 
 (** With [ftabulate],  we will build at once the list
@@ -611,9 +611,9 @@ Lemma f_max_two_antecedents k n m :
   f k n = f k m -> n<m -> m = S n.
 Proof.
  intros H H'.
- destruct (le_lt_dec (2+n) m) as [LE|LT]; try omega.
+ destruct (le_lt_dec (2+n) m) as [LE|LT]; try lia.
  apply (f_mono k) in LE.
- rewrite (f_nonflat k n) in LE. omega.
+ rewrite (f_nonflat k n) in LE. lia.
  apply Nat.le_antisymm.
  - rewrite H. now apply f_mono.
  - apply f_mono_S.
@@ -637,10 +637,10 @@ Proof.
 induction a.
 - exists 0; trivial.
 - destruct IHa as (n,Ha).
-  destruct (f_step k n); [ | exists (S n); omega].
-  destruct (f_step k (S n)); [ | exists (S (S n)); omega].
+  destruct (f_step k n); [ | exists (S n); lia].
+  destruct (f_step k (S n)); [ | exists (S (S n)); lia].
   exfalso.
-  generalize (@f_max_two_antecedents k n (S (S n))). omega.
+  generalize (@f_max_two_antecedents k n (S (S n))). lia.
 Qed.
 
 (** We even have an explicit expression of one antecedent *)
@@ -655,7 +655,7 @@ Proof.
  assert (H' := f_eqn k n).
  rewrite iter_S in H'.
  rewrite Hn in H'.
- unfold rchild; omega.
+ unfold rchild; lia.
 Qed.
 
 Lemma f_onto_eqn k a : f k (rchild k a) = a.
@@ -677,24 +677,24 @@ destruct (f_step k n) as [H|H].
 - right.
   destruct (f_step k (S n)) as [H'|H'].
   + exfalso.
-    generalize (@f_max_two_antecedents k n (S (S n))). omega.
+    generalize (@f_max_two_antecedents k n (S (S n))). lia.
   + rewrite rightmost_child_carac in H'; trivial.
-    rewrite H, Hn in H'. unfold lchild, rchild in *; omega.
-- rewrite <- (@rightmost_child_carac k a n); omega.
+    rewrite H, Hn in H'. unfold lchild, rchild in *; lia.
+- rewrite <- (@rightmost_child_carac k a n); lia.
 Qed.
 
 Lemma f_lchild k a :
  f k (lchild k a) = a - 1 \/ f k (lchild k a) = a.
 Proof.
  destruct (le_gt_dec a 0).
-  + replace a with 0 by omega. unfold lchild.
+  + replace a with 0 by lia. unfold lchild.
     rewrite fs_k_0. simpl. rewrite f_k_0. now left.
   + assert (0 < rchild k a)
-     by (unfold rchild; generalize (@f_nonzero k a); omega).
+     by (unfold rchild; generalize (@f_nonzero k a); lia).
     destruct (f_step k (lchild k a)) as [H'|H'];
     replace (S (lchild k a)) with (rchild k a) in * by
-      (unfold lchild, rchild in *; omega);
-    rewrite f_onto_eqn in *; omega.
+      (unfold lchild, rchild in *; lia);
+    rewrite f_onto_eqn in *; lia.
 Qed.
 
 
@@ -723,7 +723,7 @@ Proof.
  apply rightmost_child_carac; trivial.
  unfold rchild.
  rewrite f_A, fs_A.
- replace (n-1-k) with (n-S k) by omega.
+ replace (n-1-k) with (n-S k) by lia.
  now apply A_sum.
 Qed.
 
@@ -737,7 +737,7 @@ Proof.
  apply decomp_carac.
  - apply renorm_delta.
    apply Delta_map with (S k).
-   intros; omega. apply decomp_delta.
+   intros; lia. apply decomp_delta.
  - now rewrite renorm_sum.
 Qed.
 
@@ -776,12 +776,12 @@ Proof.
        { apply (@Delta_nz' (S k) a); auto with arith. }
        rewrite <- sumA_eqn_pred; auto.
        rewrite decr_0.
-       unfold decr. replace (a-S k) with 0; simpl in *; omega.
+       unfold decr. replace (a-S k) with 0; simpl in *; lia.
      * rewrite map_cons, sumA_cons.
        rewrite <- Nat.add_assoc.
        rewrite <- map_decr_1.
        rewrite <- sumA_eqn_pred; auto.
-       eapply Delta_nz; eauto. omega.
+       eapply Delta_nz; eauto. lia.
 Qed.
 
 Lemma f_decomp k n : f k n = sumA k (map pred (decomp k n)).
@@ -815,7 +815,7 @@ Lemma f_sumA_lax k l : k<>0 -> Delta k l ->
 Proof.
  intros. rewrite <- renorm_sum.
  rewrite f_sumA; auto.
- rewrite <- !map_decr_1, renorm_mapdecr; auto. omega.
+ rewrite <- !map_decr_1, renorm_mapdecr; auto. lia.
 Qed.
 
 Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
@@ -853,18 +853,18 @@ Proof.
      rewrite renorm_mapdecr'.
      * simpl.
        rewrite decr_0.
-       rewrite !A_base by (auto; omega).
-       split. intuition. injection 1 as ->. omega.
+       rewrite !A_base by (auto; lia).
+       split. intuition. injection 1 as ->. lia.
      * apply Delta_S_cons. rewrite <- E; auto.
      * simpl. auto with arith.
-   + simpl. split. intuition. injection 1 as ->. omega.
+   + simpl. split. intuition. injection 1 as ->. lia.
 Qed.
 
 Lemma nonflat_rank_nz k n :
  f k (S n) = S (f k n) <-> rank k n <> Some 0.
 Proof.
  rewrite <- flat_rank_0.
- generalize (f_step k n). omega.
+ generalize (f_step k n). lia.
 Qed.
 
 (** At most [k+1] consecutive [+1] steps *)
@@ -875,9 +875,9 @@ Proof.
  destruct (rank_later_is_zero k n) as (p & LE & H).
  apply flat_rank_0 in H.
  transitivity (f k (S (p + n)) + (k+2-S p)).
- - generalize (f_lipschitz k (S (p+n)) (n+k+2)). omega.
+ - generalize (f_lipschitz k (S (p+n)) (n+k+2)). lia.
  - rewrite H.
-   generalize (f_lipschitz k n (p+n)). omega.
+   generalize (f_lipschitz k n (p+n)). lia.
 Qed.
 
 (** TODO: exactly [k+1] consecutive [+1] steps when [n = 2 + A k p]
@@ -926,17 +926,17 @@ Proof.
    + simpl. intuition.
    + simpl.
      case Nat.leb_spec; intros.
-     * rewrite renorm_mapdecr by omega.
+     * rewrite renorm_mapdecr by lia.
        rewrite map_cons, sumA_cons.
        unfold decr at 1 3.
-       rewrite !A_base by (auto; omega).
-       omega.
+       rewrite !A_base by (auto; lia).
+       lia.
      * simpl. intuition.
  - rewrite <- rank_S_nz_iff.
    rewrite <- nonflat_rank_nz.
    rewrite 2 f_S.
    generalize (fs_le k (S k) n).
-   omega.
+   lia.
 Qed.
 
 Lemma fs_nonflat_high_rank k p n : p <= S k ->
@@ -945,8 +945,8 @@ Proof.
  intros Hp.
  rewrite <- fs_flat_low_rank by trivial.
  assert (LE := fs_lipschitz k p n (S n)).
- replace (S n - n) with 1 in LE by omega.
- generalize (@fs_mono k p n (S n)). omega.
+ replace (S n - n) with 1 in LE by lia.
+ generalize (@fs_mono k p n (S n)). lia.
 Qed.
 
 Lemma fs_nonflat_high_rank' k p n : p <= S k ->
@@ -970,13 +970,13 @@ Proof.
  destruct (rank k n) as [r|] eqn:Hr.
  - destruct (@rank_later_is_high k n r p Hp Hr) as (r' & q & H1 & H2 & H3).
    assert (E : (f k ^^p) (S (q+n)) = S ((f k^^p) (q+n))).
-   { apply fs_nonflat_high_rank; auto. rewrite H2. simpl. omega. }
+   { apply fs_nonflat_high_rank; auto. rewrite H2. simpl. lia. }
    unfold lt.
    transitivity (S ((f k ^^p) (q+n))).
-   + apply -> Nat.succ_le_mono. apply fs_mono. omega.
-   + rewrite <- E. apply fs_mono. omega.
+   + apply -> Nat.succ_le_mono. apply fs_mono. lia.
+   + rewrite <- E. apply fs_mono. lia.
  - rewrite rank_none in *. subst.
-   rewrite fs_k_0. apply fs_nonzero. omega.
+   rewrite fs_k_0. apply fs_nonzero. lia.
 Qed.
 
 (** * Another equation about [f]
@@ -993,10 +993,10 @@ Proof.
      rewrite H.
      generalize (f_eqn k (n-1)).
      case (f_step k (n - 1));
-     replace (S (n - 1)) with n by omega.
-     * generalize (@f_max_two_antecedents k (n-1) (S n)). omega.
-     * intros. replace (f k n - 1) with (f k (n-1)) by omega.
-       rewrite iter_S in *. omega.
+     replace (S (n - 1)) with n by lia.
+     * generalize (@f_max_two_antecedents k (n-1) (S n)). lia.
+     * intros. replace (f k n - 1) with (f k (n-1)) by lia.
+       rewrite iter_S in *. lia.
    + (* n is rightmost child *)
      generalize (f_eqn k n).
      rewrite H, S_sub_1, <- iter_S.
@@ -1031,8 +1031,8 @@ Proof.
  - now inversion 2.
  - intros. destruct n as [|[|n]]; auto.
    f_equal. apply IH.
-   + generalize (@f_lt k (S (S n))). omega.
-   + generalize (@f_lt k (S (S n))). omega.
+   + generalize (@f_lt k (S (S n))). lia.
+   + generalize (@f_lt k (S (S n))). lia.
 Qed.
 
 Lemma depth_0 k : depth k 0 = 0.
@@ -1051,61 +1051,61 @@ Proof.
  remember (S n) as m.
  simpl depth_loop at 1. rewrite Heqm at 1.
  f_equal. apply depth_loop_ok; auto.
- generalize (@f_lt k (S m)). omega.
+ generalize (@f_lt k (S m)). lia.
 Qed.
 
 Lemma depth_eqn k n : 1<n -> depth k n = S (depth k (f k n)).
 Proof.
  destruct n as [|[|n]].
- - omega.
- - omega.
+ - lia.
+ - lia.
  - intros _. apply depth_SS.
 Qed.
 
 Lemma f_depth k n : depth k (f k n) = depth k n - 1.
 Proof.
  destruct (le_lt_dec n 1) as [LE|LT].
- - assert (H : n=0 \/ n=1) by omega.
+ - assert (H : n=0 \/ n=1) by lia.
    destruct H as [-> | ->]; simpl; now rewrite ?f_k_0, ?f_k_1.
- - rewrite (depth_eqn k LT). omega.
+ - rewrite (depth_eqn k LT). lia.
 Qed.
 
 Lemma fs_depth k p n : depth k ((f k ^^ p) n) = depth k n - p.
 Proof.
  induction p; simpl.
- - omega.
- - rewrite f_depth, IHp. omega.
+ - lia.
+ - rewrite f_depth, IHp. lia.
 Qed.
 
 Lemma depth_correct k n : n <> 0 -> (f k^^(depth k n)) n = 1.
 Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec.
- - omega.
+ - lia.
  - reflexivity.
  - intros _. rewrite depth_SS.
    set (n' := S (S n)) in *. rewrite iter_S. apply IH.
-   + apply f_lt. unfold n'; omega.
-   + apply f_nz. unfold n'; omega.
+   + apply f_lt. unfold n'; lia.
+   + apply f_nz. unfold n'; lia.
 Qed.
 
 Lemma depth_minimal k n : 1<n -> 1 < ((f k^^(depth k n - 1)) n).
 Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec.
- - omega.
- - omega.
+ - lia.
+ - lia.
  - intros _. rewrite depth_SS.
    simpl. rewrite <- minus_n_O.
    set (n' := S (S n)) in *.
    destruct (Nat.eq_dec (f k n') 1) as [->|NE].
-   + simpl. unfold n'; omega.
-   + assert (H : f k n' <> 0) by (apply f_nz; unfold n'; omega).
+   + simpl. unfold n'; lia.
+   + assert (H : f k n' <> 0) by (apply f_nz; unfold n'; lia).
      assert (depth k (f k n') <> 0).
      { intro EQ. generalize (depth_correct k H). now rewrite EQ. }
-     replace (depth k (f k n')) with (S (depth k (f k n') - 1)) by omega.
+     replace (depth k (f k n')) with (S (depth k (f k n') - 1)) by lia.
      rewrite iter_S.
      apply IH.
-     * apply f_lt. unfold n'; omega.
-     * omega.
+     * apply f_lt. unfold n'; lia.
+     * lia.
 Qed.
 
 Lemma depth_mono k n m : n <= m -> depth k n <= depth k m.
@@ -1114,11 +1114,11 @@ Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec; intros m H.
  - change (depth k 0) with 0. auto with arith.
  - change (depth k 1) with 0. auto with arith.
- - destruct m as [|[|m]]; try omega.
+ - destruct m as [|[|m]]; try lia.
    rewrite 2 depth_SS.
    apply le_n_S.
    apply IH.
-   + apply f_lt. omega.
+   + apply f_lt. lia.
    + now apply f_mono.
 Qed.
 
@@ -1138,7 +1138,7 @@ Proof.
  - rewrite depth_eqn.
    + rewrite f_SA, S_sub_1. f_equal. apply IH.
      auto with arith.
-   + generalize (@A_nz k (S p)). omega.
+   + generalize (@A_nz k (S p)). lia.
 Qed.
 
 Lemma depth_is_0 k n : depth k n = 0 <-> n <= 1.
@@ -1146,7 +1146,7 @@ Proof.
  destruct n as [|[|n]].
  - rewrite depth_0; intuition.
  - rewrite depth_1; intuition.
- - rewrite depth_SS. omega.
+ - rewrite depth_SS. lia.
 Qed.
 
 Lemma depth_carac k p n : p <> 0 ->
@@ -1156,29 +1156,28 @@ Proof.
  split; intros H.
  - split.
    + destruct (le_lt_dec n (A k (p-1))) as [LE|LT]; trivial.
-     apply (depth_mono k) in LE. rewrite depth_A in LE. omega.
+     apply (depth_mono k) in LE. rewrite depth_A in LE. lia.
    + destruct (le_lt_dec n (A k p)) as [LE|LT]; trivial.
      unfold lt in LT. apply (depth_mono k) in LT.
-     rewrite depth_SA in LT; omega.
+     rewrite depth_SA in LT; lia.
  - destruct H as (H1,H2).
    apply (depth_mono k) in H1. apply (depth_mono k) in H2.
-   rewrite depth_A in H2. rewrite depth_SA in H1. omega.
+   rewrite depth_A in H2. rewrite depth_SA in H1. lia.
 Qed.
 
 Lemma depth_init k n : depth k n = n-1 <-> n <= k+3.
 Proof.
  destruct n as [|[|n]].
- - rewrite ?depth_0. omega.
- - rewrite ?depth_1. omega.
+ - rewrite ?depth_0. lia.
+ - rewrite ?depth_1. lia.
  - simpl.
-   rewrite depth_carac by omega.
+   rewrite depth_carac by lia.
    rewrite S_sub_1.
    split; intros.
-   + assert (A k n = S n) by (generalize (A_lt_id k n); omega).
+   + assert (A k n = S n) by (generalize (A_lt_id k n); lia).
      rewrite <- A_base_iff in *.
-     omega.
+     lia.
    + simpl.
-     rewrite A_base by omega.
-     generalize (@A_nz k (n-k)). omega.
+     rewrite A_base by lia.
+     generalize (@A_nz k (n-k)). lia.
 Qed.
-
