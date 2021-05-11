@@ -1,6 +1,6 @@
 (** * FunG : Hofstadter's G function and tree *)
 
-Require Import Arith Lia Wf_nat List.
+Require Import Arith Lia List.
 Require Import DeltaList Fib.
 Import ListNotations.
 Set Implicit Arguments.
@@ -1535,7 +1535,7 @@ Proof.
  apply rank_sumfib; auto.
 Qed.
 
-(** General result about [g(n+)-g(n)-g(p)].
+(** General result about [g(n+p)-g(n)-g(p)].
     The current proof is rather convoluted.
 *)
 

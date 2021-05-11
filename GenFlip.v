@@ -1,6 +1,6 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import Arith Omega Wf_nat List Program Program.Wf.
+Require Import Arith Omega.
 Require Import DeltaList FunG GenFib GenG.
 Set Implicit Arguments.
 

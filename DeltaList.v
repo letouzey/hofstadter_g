@@ -1,6 +1,6 @@
 (** * DeltaList : lists of natural numbers with constrained differences *)
 
-Require Import Arith Lia Wf_nat List.
+Require Import Arith Lia List.
 Import ListNotations.
 Set Implicit Arguments.
 

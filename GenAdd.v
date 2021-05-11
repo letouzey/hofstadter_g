@@ -1,5 +1,5 @@
 
-Require Import Arith Lia Wf_nat List Bool.
+Require Import Arith Lia List Bool.
 Require Import DeltaList FunG GenFib GenG.
 Import ListNotations.
 Set Implicit Arguments.

@@ -1,7 +1,7 @@
 (** * FunG_prog : Alternative definition of Hofstadter's G function *)
 
+Require Import Arith Lia List Program Program.Wf.
 Require Import FunG.
-Require Import Arith Lia Wf_nat List Program Program.Wf.
 Set Implicit Arguments.
 
 (** Same as [FunG.g_spec], but via the Program framework *)

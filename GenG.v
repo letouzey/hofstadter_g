@@ -1,8 +1,7 @@
 
-Require Import Arith Lia Wf_nat List Bool.
+Require Import Arith Lia List Bool.
 Require Import DeltaList FunG GenFib.
 Import ListNotations.
-Require Extraction.
 Set Implicit Arguments.
 
 (** Study of the functional equation:
@@ -158,6 +157,7 @@ f 3 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
 *)
 
 (*
+Require Extraction.
 Extraction Inline lt_wf_rec induction_ltof2.
 Recursive Extraction f.
 *)

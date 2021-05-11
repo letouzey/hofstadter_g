@@ -1,6 +1,6 @@
 (** * Fib : Fibonacci sequence and decomposition *)
 
-Require Import Arith Lia Wf_nat List.
+Require Import Arith Lia List.
 Require Import DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
