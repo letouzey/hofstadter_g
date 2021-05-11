@@ -174,6 +174,30 @@ Proof.
    + apply D' in H. lia.
 Qed.
 
+Lemma Delta_le k l x y : Delta k (x::l) -> In y l -> x <= y.
+Proof.
+ revert x y.
+ induction l as [|a l].
+ - inversion 2.
+ - intros x y. inversion 1; subst.
+   intros [<-|IN].
+   + lia.
+   + transitivity a; auto. lia.
+Qed.
+
+Lemma Delta_last_le p l x y : Delta p (l++[x]) -> In y (l++[x]) -> y <= x.
+Proof.
+ rewrite Delta_app_iff. intros (_ & _ & D).
+ rewrite in_app_iff. intros [IN|[<-|[ ]]]; auto.
+ specialize (D y x IN (or_introl eq_refl)). lia.
+Qed.
+
+Lemma Delta_up_last p l a b : Delta p (l++[a]) -> a<=b -> Delta p (l++[b]).
+Proof.
+ rewrite !Delta_app_iff. intros (D1 & D2 & D3) LE. repeat split; auto.
+ intros x x' IN [<-|[ ]]. specialize (D3 x a IN). simpl in D3. lia.
+Qed.
+
 (** * Decreasing lists *)
 
 (** [DeltaRev p l] is [Delta p (rev l)] :

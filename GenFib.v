@@ -122,6 +122,13 @@ Proof.
  apply (A_mono k) in LE. lia.
 Qed.
 
+Lemma A_le_inv k x y : A k x <= A k y -> x <= y.
+Proof.
+ rewrite Nat.lt_eq_cases. intros [LT|EQ].
+ - apply A_lt_inv in LT. lia.
+ - apply A_inj in EQ. lia.
+Qed.
+
 Lemma A_lt_id k n : n < A k n.
 Proof.
  induction n; simpl; auto.
@@ -161,6 +168,15 @@ Proof.
    split. lia. rewrite E. apply A_lt_S.
 Qed.
 
+Lemma invA_spec' k n p : A k p <= S n < A k (S p) -> invA k n = p.
+Proof.
+ intros H.
+ assert (H' := invA_spec k n).
+ assert (p < S (invA k n)) by (apply (A_lt_inv k); lia).
+ assert (invA k n < S p) by (apply (A_lt_inv k); lia).
+ lia.
+Qed.
+
 Lemma A_inv k n : { p | A k p <= S n < A k (S p) }.
 Proof.
  exists (invA k n). apply invA_spec.
@@ -172,6 +188,38 @@ Proof.
  - now destruct 1.
  - intros _. apply A_inv.
 Defined.
+
+Lemma invA_A k q : invA k (A k q - 1) = q.
+Proof.
+ apply invA_spec'.
+ replace (S (A k q -1)) with (A k q) by (generalize (A_nz k q); lia).
+ split; auto. apply A_lt. lia.
+Qed.
+
+Lemma invA_A' k q : q<>0 -> invA k (A k q - 2) = q-1.
+Proof.
+ intros Hq.
+ apply invA_spec'.
+ assert (2 <= A k q) by (apply (@A_mono k 1 q); lia).
+ replace (S (A k q - 2)) with (A k q - 1) by lia.
+ replace (S (q-1)) with q by lia.
+ split; try lia.
+ generalize (@A_lt k (q-1) q). lia.
+Qed.
+
+(** Any number has a [A] number above it. *)
+
+Definition invA_up k n := S (invA k (n-2)).
+
+Lemma invA_up_spec k n : n <= A k (invA_up k n).
+Proof.
+ unfold invA_up. destruct (invA_spec k (n-2)) as (_,H). lia.
+Qed.
+
+Lemma invA_up_A k n : n<>0 -> invA_up k (A k n) = n.
+Proof.
+ intros Hn. unfold invA_up. rewrite invA_A'; lia.
+Qed.
 
 (** * Decomposition via sums of Ak numbers.
 
@@ -262,6 +310,14 @@ Proof.
  - intros H. destruct l; [ now elim H |].
    simpl in *. generalize (A_nz k n). lia.
  - intros; now subst.
+Qed.
+
+Lemma sumA_in_le k l x : In x l -> A k x <= sumA k l.
+Proof.
+ induction l; simpl.
+ - inversion 1.
+ - intros [<-|IN]; auto with arith.
+   transitivity (sumA k l); auto with arith.
 Qed.
 
 (** ** Zeckendorf's Theorem *)
@@ -928,4 +984,16 @@ Lemma decompminus_delta_lax k l p :
 Proof.
  revert l. induction p as [|p IH]; intros l Hl; simpl; auto.
  now apply IH, prev_decomp_delta_lax.
+Qed.
+
+Lemma decompminus_app_delta k l l' p :
+  Delta k (l++l') -> Delta k (decompminus k l p ++ l').
+Proof.
+ rewrite !Delta_app_iff. intros (D1 & D2 & D3).
+ repeat split; auto using decompminus_delta_lax.
+ intros x x' IN IN'.
+ assert (B : Below l (S x'-k)).
+ { intros y Hy. specialize (D3 y x' Hy IN'). lia. }
+ apply (@decompminus_below k l p) in B.
+ specialize (B _ IN). lia.
 Qed.

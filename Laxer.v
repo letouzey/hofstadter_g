@@ -1,5 +1,5 @@
 Require Import Arith Lia Wf_nat List Bool.
-Require Import DeltaList GenFib GenG.
+Require Import DeltaList GenFib GenG GenAdd.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -509,10 +509,9 @@ Proof.
  set (u := invA_up 2 p).
  assert (Hu : 0 < u).
  { unfold u, invA_up. lia. }
- destruct (getprefix (u-1) l) as (l1,l2) eqn:E.
- assert (E' := getprefix_app (u-1) l). rewrite E in E'.
- assert (B1 := getprefix_fst (u-1) l). rewrite E in B1.
- replace (S (u-1)) with u in B1 by lia. simpl in B1.
+ destruct (cut_lt_ge u l) as (l1,l2) eqn:E.
+ assert (E' := cut_app u l). rewrite E in E'.
+ assert (B1 := cut_fst u l). rewrite E in B1. simpl in B1.
  assert (U := invA_up_spec 2 p).
  fold u in U.
  destruct l2 as [|a l2].
@@ -522,7 +521,7 @@ Proof.
    + intros x Hx. specialize (B1 x Hx). lia.
    + rewrite app_nil_r. apply Delta_S, decomp_delta.
  - assert (Ha : u <= a).
-   { assert (B1' := @getprefix_snd (u-1) l a l2). rewrite E in B1'.
+   { assert (B1' := @cut_snd u l a l2). rewrite E in B1'.
      simpl snd in B1'. specialize (B1' eq_refl). lia. }
    destruct (Nat.eq_dec a (u+2)).
    { set (l1' := decompminus 2 (l1++[S a]) (A 2 (S a)-A 2 a-p)).
@@ -655,49 +654,6 @@ Proof.
    + apply Delta_app_inv in D1. apply D1.
 Qed.
 
-Lemma invA_spec' k n p : A k p <= S n < A k (S p) -> invA k n = p.
-Proof.
- intros H.
- assert (H' := invA_spec k n).
- assert (p < S (invA k n)) by (apply (A_lt_inv k); lia).
- assert (invA k n < S p) by (apply (A_lt_inv k); lia).
- lia.
-Qed.
-
-Lemma invA_A k q : invA k (A k q - 1) = q.
-Proof.
- apply invA_spec'.
- replace (S (A k q -1)) with (A k q) by (generalize (A_nz k q); lia).
- split; auto. apply A_lt. lia.
-Qed.
-
-Lemma invA_A' k q : q<>0 -> invA k (A k q - 2) = q-1.
-Proof.
- intros Hq.
- apply invA_spec'.
- assert (2 <= A k q) by (apply (@A_mono k 1 q); lia).
- replace (S (A k q - 2)) with (A k q - 1) by lia.
- replace (S (q-1)) with q by lia.
- split; try lia.
- generalize (@A_lt k (q-1) q). lia.
-Qed.
-
-Lemma invA_up_A q : q<>0 -> invA_up 2 (A2 q) = q.
-Proof.
- intros Hq.
- unfold invA_up. rewrite invA_A'; lia.
-Qed.
-
-Lemma rev_inj {A} (l l' : list A) : rev l = rev l' -> l = l'.
-Proof.
- intros. now rewrite <- (rev_involutive l), H, rev_involutive.
-Qed.
-
-Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
-Proof.
- intros. now rewrite <- (rev_involutive l), H.
-Qed.
-
 Lemma destruct_last {A} (l : list A) : l = [] \/ exists a l', l = l' ++ [a].
 Proof.
  destruct l as [|a l].
@@ -764,12 +720,6 @@ f((Reste+Aq)+Aq)
 OK!
 
 *)
-
-Lemma Delta_up_last p l a b : Delta p (l++[a]) -> a<=b -> Delta p (l++[b]).
-Proof.
- rewrite !Delta_app_iff. intros (D1 & D2 & D3) LE. repeat split; auto.
- intros x x' IN [<-|[ ]]. specialize (D3 x a IN). simpl in D3. lia.
-Qed.
 
 
 
