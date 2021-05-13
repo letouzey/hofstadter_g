@@ -290,33 +290,62 @@ Proof.
  - rewrite Nat.add_succ_r. simpl. f_equal; auto.
 Qed.
 
-Definition check_additivity test k p :=
-  forallb test (all_diffs k p).
+Fixpoint minlist a l :=
+ match l with
+ | [] => a
+ | b::l => Nat.min b (minlist a l)
+ end.
 
-Lemma check_additivity_spec test k p : k<>0 ->
-  check_additivity test k p = true ->
-  forall n, test (f k (p+n)-f k n) = true.
+Fixpoint maxlist a l :=
+ match l with
+ | [] => a
+ | b::l => Nat.max b (maxlist a l)
+ end.
+
+Definition extrems l :=
+  match l with
+  | [] => None
+  | a::l => Some (minlist a l, maxlist a l)
+  end.
+
+Lemma minlist_spec a l x : In x (a::l) -> minlist a l <= x.
 Proof.
- intros Hk E. unfold check_additivity in E.
- rewrite forallb_forall in E.
- intros n. destruct (@additivity_bounded k p Hk n) as (m & Hm & ->).
- apply E. rewrite all_diffs_spec.
- rewrite in_map_iff. exists m. split; auto.
- rewrite countdown_in. lia.
+ induction l as [|b l IH].
+ - intros [->|[ ]]. simpl. auto.
+ - simpl in *. intuition; lia.
 Qed.
 
+Lemma maxlist_spec a l x : In x (a::l) -> x <= maxlist a l.
+Proof.
+ induction l as [|b l IH].
+ - intros [->|[ ]]. simpl. auto.
+ - simpl in *. intuition; lia.
+Qed.
+
+Lemma extrems_spec l a b x : In x l -> extrems l = Some (a,b) -> a<=x<=b.
+Proof.
+ intros IN.
+ destruct l as [|n l]; try easy.
+ simpl. intros [= <- <-]. split.
+ now apply minlist_spec. now apply maxlist_spec.
+Qed.
+
+Definition calc_additivity k p := extrems (all_diffs k p).
+
 Lemma decide_additivity k p a b : k<>0 ->
- check_additivity (fun m => andb (a <=? m) (m <=? b)) k p = true ->
+ calc_additivity k p = Some (a,b) ->
  forall n, a + f k n <= f k (p+n) <= b + f k n.
 Proof.
- intros.
- assert (f k n <= f k (p+n)) by (apply f_mono; lia).
+ intros Hk E n.
+ assert (H : f k n <= f k (p+n)) by (apply f_mono; lia).
  assert (a <= f k (p+n) - f k n <= b); try lia.
- { rewrite <- !Nat.leb_le.
-   rewrite <- andb_true_iff.
-   change ((fun m => andb (a <=? m) (m <=? b)) (f k (p+n)-f k n) = true).
-   clear H1. revert n.
-   apply check_additivity_spec; auto. }
+ { destruct (@additivity_bounded k p Hk n) as (m & Hm & ->).
+   clear n H.
+   unfold calc_additivity in E.
+   revert E. apply extrems_spec.
+   rewrite all_diffs_spec.
+   set (delta := fun x => _). apply (in_map delta). clear delta.
+   apply countdown_in. lia. }
 Qed.
 
 (** For exemple, let's do some proofs by computations for f 3.
@@ -590,19 +619,30 @@ Proof.
  apply decide_additivity. auto. now vm_compute.
 Qed.
 
-(* h(18+n) = h n + h 18 + [-2..0] *)
+Lemma h_add_11 n : 7 + h n <= h (11+n) <= 8 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma h_add_12 n : 7 + h n <= h (12+n) <= 9 + h n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+(** All the earlier cases were satisfying h(p+n)-h(p)-h(n) = {-1,0,1}
+    But for p=18, h(18+n) = h n + h 18 + [-2..0] *)
 Lemma h_add_18 n : 11 + h n <= h (18+n) <= 13 + h n.
 Proof.
  apply decide_additivity. auto. now vm_compute.
 Qed.
 
-(* For comparison with f 3 *)
+(** For comparison with f 3 *)
 Lemma h_add_33 n : 22 + h n <= h (33+n) <= 23 + h n.
 Proof.
  apply decide_additivity. auto. now vm_compute.
 Qed.
 
-(* h(39+n) = h n + h 39 + [0..2] *)
+(** h(39+n) = h n + h 39 + [0..2] *)
 Lemma h_add_39 n : 26 + h n <= h (39+n) <= 28 + h n.
 Proof.
  apply decide_additivity. auto. now vm_compute.
