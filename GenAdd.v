@@ -801,8 +801,92 @@ Proof.
            specialize (D3 x a IN); simpl in *; lia. }
 Qed.
 
-(** TODO : easy consequence : quasi-additivity -2..2 when p
-    is the sum of two A2 numbers, or their difference. *)
+(** Easy consequence : quasi-additivity -2..2 when p
+    is the sum of two A2 numbers. *)
+
+Lemma A2_times2 n : 2 * A2 (7+n) = sumA 2 [n;5+n;8+n].
+Proof.
+ simpl. rewrite Nat.sub_0_r; lia.
+Qed.
+
+Lemma A2_times2' n : 5<=n -> 2 * A2 n = sumA 2 [n-7;n-2;n+1].
+Proof.
+ rewrite Nat.lt_eq_cases.
+ intros [H|<-]; trivial.
+ red in H. rewrite Nat.lt_eq_cases in H. destruct H as [H|<-]; trivial.
+ replace n with (7+(n-7)) at 1 by lia.
+ rewrite A2_times2. f_equal. repeat (f_equal; try lia).
+Qed.
+
+Lemma h_times2 n : 6<=n -> h (2 * A2 n) = 2 * A2 (n-1).
+Proof.
+ intros H. rewrite !A2_times2' by lia.
+ unfold h. rewrite f_sumA. f_equal; simpl. repeat (f_equal; try lia).
+ repeat (constructor; try lia).
+Qed.
+
+Lemma h_add_A_A p n u v : p = A2 u + A2 v ->
+ h p + h n -2 <= h(p+n) <= h p + h n + 2.
+Proof.
+ revert u v.
+ assert (H : forall u v, u+2<=v -> p = A2 u + A2 v ->
+         h p + h n -2 <= h(p+n) <= h p + h n + 2).
+ { intros u v LE ->.
+   assert (Hu := h_addA u (A2 v+n)).
+   rewrite Nat.add_assoc in Hu.
+   assert (Hv := h_addA v n).
+   replace (A2 u + A2 v) with (sumA 2 [u;v]) at 1 4 by (simpl; lia).
+   unfold h at 1 5. rewrite f_sumA_lax; auto. simpl.
+   replace (pred u) with (u-1) by lia.
+   replace (pred v) with (v-1) by lia. lia. }
+ assert (H' : forall u v, u < v -> p = A2 u + A2 v ->
+         h p + h n -2 <= h(p+n) <= h p + h n + 2).
+ { intros u v LT E.
+   destruct (Nat.leb_spec (u+2) v) as [LE|LT'].
+   - eapply H; eauto.
+   - replace v with (S u) in * by lia. clear LT LT'.
+     destruct (Nat.eq_dec u 0) as [->|NE].
+     + change (A2 0 + A2 1) with 3 in E. subst p.
+       change (h 3) with 2.
+       generalize (h_add_3 n). lia.
+     + rewrite seq_A2_eqn' in E by lia.
+       rewrite Nat.add_comm in E.
+       apply H with (u-3) (u+2); auto. lia. }
+ intros u v E.
+ destruct (Nat.lt_total u v) as [LT|EQ_LT].
+ - apply (H' u v); auto.
+ - rewrite or_comm in EQ_LT. destruct EQ_LT as [LT|EQ].
+   + rewrite Nat.add_comm in E. apply (H' v u); auto.
+   + clear H H'. subst v p.
+     destruct (Nat.leb_spec 6 u).
+     * assert (Hu := h_addA u (A2 u+n)).
+       rewrite Nat.add_assoc in Hu.
+       assert (Hv := h_addA u n).
+       replace (A2 u + A2 u) with (2 * A2 u) at 1 4 by lia.
+       rewrite h_times2 by lia.
+       lia.
+     * destruct (Nat.eq_dec u 0) as [->|H0].
+       { change (A2 0 + A2 0) with 2. change (h 2) with 1.
+         generalize (h_add_2 n). lia. }
+       destruct (Nat.eq_dec u 1) as [->|H1].
+       { change (A2 1 + A2 1) with 4. change (h 4) with 3.
+         generalize (h_add_4 n). lia. }
+       destruct (Nat.eq_dec u 2) as [->|H2].
+       { change (A2 2 + A2 2) with 6. change (h 6) with 4.
+         generalize (h_add_6 n). lia. }
+       destruct (Nat.eq_dec u 3) as [->|H3].
+       { change (A2 3 + A2 3) with 8. change (h 8) with 5.
+         generalize (h_add_8 n). lia. }
+       destruct (Nat.eq_dec u 4) as [->|H4].
+       { change (A2 4 + A2 4) with 12. change (h 12) with 8.
+         generalize (h_add_12 n). lia. }
+       destruct (Nat.eq_dec u 5) as [->|H5].
+       { change (A2 5 + A2 5) with 18. change (h 18) with 13.
+         generalize (h_add_18 n). lia. }
+       lia.
+Qed.
+
+(* TODO : is there a version for substraction : p = A2 u - A2 v ? *)
 
 
 (** * Comparing (f k) functions when k varies *)
