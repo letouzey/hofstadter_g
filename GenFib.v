@@ -394,6 +394,26 @@ Proof.
    + apply A_mono; lia.
 Qed.
 
+Definition Below l x := forall y, In y l -> y < x.
+
+Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
+Proof.
+ intros. now rewrite <- (rev_involutive l), H.
+Qed.
+
+Lemma sumA_below k l p : Delta (S k) l -> Below l p -> sumA k l < A k p.
+Proof.
+ intros D B.
+ destruct (rev l) as [|a rl'] eqn:E''.
+ - apply rev_switch in E''. subst l. simpl.
+   generalize (@A_nz k p). lia.
+ - rewrite <- sumA_rev, E''.
+   apply Nat.lt_le_trans with (A k (S a)).
+   + apply decomp_max. rewrite <- E''. now apply DeltaRev_rev.
+   + apply A_mono. specialize (B a).
+     rewrite in_rev, E'' in B. simpl in B. intuition.
+Qed.
+
 (** Uniqueness. Easier to prove on lists with large terms first. *)
 
 Lemma decomp_unique_rev k l l' :
@@ -887,8 +907,6 @@ Proof.
  simpl. rewrite sumA_app. simpl. rewrite IH by lia.
  generalize (A_nz k (n-k)); lia.
 Qed.
-
-Definition Below l x := forall y, In y l -> y < x.
 
 Lemma decompred_below k n : Below (decompred k n) n.
 Proof.

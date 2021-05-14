@@ -42,18 +42,6 @@ Proof.
  - apply f_le_add.
 Qed.
 
-(** Some auxiliary lemmas *)
-
-Lemma rev_inj {A} (l l' : list A) : rev l = rev l' -> l = l'.
-Proof.
- intros. now rewrite <- (rev_involutive l), H, rev_involutive.
-Qed.
-
-Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
-Proof.
- intros. now rewrite <- (rev_involutive l), H.
-Qed.
-
 (** Cut a decomposition in two, all the left being < p *)
 
 Fixpoint cut_lt_ge p l :=
@@ -219,14 +207,7 @@ Proof.
  destruct (low_high k p l) as (low,high) eqn:E'. simpl in *.
  rewrite <-E in D.
  rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
- destruct (rev low) as [|a rlow'] eqn:E''.
- - apply rev_switch in E''. subst low. simpl.
-   generalize (@A_nz k (bound_idx k p)). lia.
- - rewrite <- sumA_rev, E''.
-   apply Nat.lt_le_trans with (A k (S a)).
-   + apply decomp_max. rewrite <- E''. now apply DeltaRev_rev.
-   + apply A_mono. specialize (B a).
-     rewrite in_rev, E'' in B. simpl in B. intuition.
+ apply sumA_below; auto.
 Qed.
 
 Lemma additivity_reduced k p : k<>0 ->
@@ -271,21 +252,20 @@ Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
   | _, _ => []
   end.
 
-Definition all_diffs k p :=
-  let stk := ftabulate k (p + (add_bound k p - 1)) in
+Definition all_diffs k p bound :=
+  let stk := ftabulate k (p + (bound-1)) in
   map2 Nat.sub stk (npop p stk).
 
-Lemma all_diffs_spec k p :
-  all_diffs k p =
-  map (fun x => f k (p+x)-f k x) (countdown (add_bound k p - 1)).
+Lemma all_diffs_spec k p bound :
+  all_diffs k p bound =
+  map (fun x => f k (p+x)-f k x) (countdown (bound - 1)).
 Proof.
  unfold all_diffs.
- set (m := add_bound _ _ - 1). clearbody m.
  rewrite ftabulate_spec.
  rewrite npop_map.
- replace p with ((p+m)-m) at 2 by lia.
+ replace p with (p+(bound-1)-(bound-1)) at 2 by lia.
  rewrite npop_countdown by lia.
- induction m.
+ induction (bound-1).
  - simpl. destruct p; simpl; auto. f_equal. now destruct countdown.
  - rewrite Nat.add_succ_r. simpl. f_equal; auto.
 Qed.
@@ -330,10 +310,10 @@ Proof.
  now apply minlist_spec. now apply maxlist_spec.
 Qed.
 
-Definition calc_additivity k p := extrems (all_diffs k p).
+Definition calc_additivity k p bound := extrems (all_diffs k p bound).
 
 Lemma decide_additivity k p a b : k<>0 ->
- calc_additivity k p = Some (a,b) ->
+ calc_additivity k p (add_bound k p) = Some (a,b) ->
  forall n, a + f k n <= f k (p+n) <= b + f k n.
 Proof.
  intros Hk E n.
@@ -409,161 +389,166 @@ Proof.
  generalize (@A_mono 2 (n-2) (n-1)). lia.
 Qed.
 
-Lemma increase_bottom_decomp_k2 p :
-  forall l, Delta 3 l ->
-   exists l1 l1' l2,
-     l = l1 ++ l2 /\
-     sumA 2 l1' = p + sumA 2 l1 /\
-     Below l1 (3 + invA_up 2 p) /\
-     Delta 2 (l1'++l2).
+Definition bound_idx_k2 p := invA_up 2 p + 3.
+
+Definition low_high_k2 p l := cut_lt_ge (bound_idx_k2 p) l.
+
+Definition addlow_k2 p low :=
+ match rev low with
+ | [] => decomp 2 p
+ | a::rlow' =>
+   let u:=invA_up 2 p in
+   if a <? u then
+     decompminus 2 (low ++[u+1]) (A2 (u+1) - p)
+   else
+     decompminus 2 (rev rlow'++[a-1;1+a]) (A2 (a+2) - A2 a - p)
+ end.
+
+Lemma addlow_sum_k2 p l :
+  let low := fst (low_high_k2 p l) in
+  sumA 2 (addlow_k2 p low) = p + sumA 2 low.
 Proof.
- intros l D.
- set (u := invA_up 2 p).
- assert (Hu : 0 < u).
- { unfold u, invA_up. lia. }
- destruct (cut_lt_ge u l) as (l1,l2) eqn:E.
- assert (E' := cut_app u l). rewrite E in E'.
- assert (B1 := cut_fst u l). rewrite E in B1. simpl in B1.
- assert (U := invA_up_spec 2 p).
- fold u in U.
- destruct l2 as [|a l2].
- - exists l1, (decomp 2 (p+sumA 2 l)), [].
-   repeat split; auto.
-   + rewrite decomp_sum. rewrite <- E', app_nil_r. auto.
-   + intros x Hx. specialize (B1 x Hx). lia.
-   + rewrite app_nil_r. apply Delta_S, decomp_delta.
- - assert (Ha : u <= a).
-   { assert (B1' := @cut_snd u l a l2). rewrite E in B1'.
-     simpl snd in B1'. specialize (B1' eq_refl). lia. }
-   destruct (Nat.eq_dec a (u+2)).
-   { set (l1' := decompminus 2 (l1++[S a]) (A2 (S a)-A2 a-p)).
-     exists (l1++[a]), l1', l2.
-     repeat split.
-     * rewrite <- E'. now rewrite app_ass.
-     * unfold l1'. rewrite decompminus_sum. rewrite !sumA_app.
-       assert (LE : p <= A 2 (a-2)).
-       { transitivity (A 2 u); auto. apply A_mono. lia. }
-       clear -LE. simpl sumA. rewrite A_S. lia.
-     * intro x. rewrite in_app_iff. intros [IN|[<-|[]]]; try lia.
-       specialize (B1 x IN). lia.
-     * { rewrite <- E', Delta_app_iff in D.
-         destruct D as (D1 & D2 & D3).
-         apply Delta_app with (S a).
-         - apply decompminus_delta_lax.
-           apply Delta_app_iff; repeat split.
-           + apply Delta_S, D1.
-           + constructor.
-           + intros x x' Hx [<-|[]]. specialize (D3 x a Hx).
-             simpl in D3. intuition.
-         - now apply Delta_S_cons.
-         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
-           intro z. rewrite in_app_iff. intros [Hz|[<-|[]]].
-           + specialize (B1 z Hz). lia.
-           + lia. }}
-   destruct (Nat.eq_dec a (1+u)).
-   { set (l1' := decompminus 2 (l1++[u;S a]) (A2 u + A2 (S a)-A2 a-p)).
-     exists (l1++[a]), l1', l2.
-     repeat split.
-     * rewrite <- E'. now rewrite app_ass.
-     * unfold l1'. rewrite decompminus_sum. rewrite !sumA_app. clear l1'.
-       subst a. clearbody u. simpl. lia.
-     * intro x. rewrite in_app_iff. intros [IN|[<-|[]]]; try lia.
-       specialize (B1 x IN). lia.
-     * { rewrite <- E', Delta_app_iff in D.
-         destruct D as (D1 & D2 & D3).
-         apply Delta_app with (S a).
-         - apply decompminus_delta_lax.
-           apply Delta_app_iff; repeat split.
-           + apply Delta_S, D1.
-           + constructor. lia. auto.
-           + intros x x' Hx [<-|[<-|[]]].
-             * specialize (D3 x a Hx). simpl in D3. intuition.
-             * specialize (B1 _ Hx). lia.
-         - now apply Delta_S_cons.
-         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
-           intro z. rewrite in_app_iff. intros [Hz|[<-|[<-|[]]]].
-           + specialize (B1 z Hz). lia.
-           + lia.
-           + lia. }}
-   destruct (Nat.eq_dec a u).
-   { subst a.
-     set (l1' := decompminus 2 (l1++[u-1;1+u]) (A2 (2+u)-A2 u-p)).
-     exists (l1++[u]), l1', l2.
-     repeat split.
-     * rewrite <- E'. now rewrite app_ass.
-     * unfold l1'. rewrite decompminus_sum. rewrite !sumA_app. clear l1'.
-       clearbody u. generalize (twice_A2_le u). simpl. lia.
-     * intro x. rewrite in_app_iff. intros [IN|[<-|[]]]; try lia.
-       specialize (B1 x IN). lia.
-     * { rewrite <- E', Delta_app_iff in D.
-         destruct D as (D1 & D2 & D3).
-         apply Delta_app with (1+u).
-         - apply decompminus_delta_lax.
-           apply Delta_app_iff; repeat split.
-           + apply Delta_S, D1.
-           + constructor. lia. auto.
-           + intros x x' Hx [<-|[<-|[]]].
-             * specialize (D3 x u Hx). simpl in D3. intuition.
-             * specialize (B1 _ Hx). lia.
-         - now apply Delta_S_cons.
-         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
-           intro z. rewrite in_app_iff. intros [Hz|[<-|[<-|[]]]].
-           + specialize (B1 z Hz). lia.
-           + lia.
-           + lia. }}
-   { set (l1' := decompminus 2 (l1++[1+u]) (A2 (1+u)-p)).
-     exists l1, l1', (a::l2).
-     repeat split.
-     * auto.
-     * unfold l1'. rewrite decompminus_sum. rewrite !sumA_app. clear l1'.
-       clearbody u. simpl. lia.
-     * intros x IN. specialize (B1 x IN). lia.
-     * { rewrite <- E', Delta_app_iff in D.
-         destruct D as (D1 & D2 & D3).
-         apply Delta_app with (1+u).
-         - apply decompminus_delta_lax.
-           apply Delta_app_iff; repeat split.
-           + apply Delta_S, D1.
-           + constructor.
-           + intros x x' Hx [<-|[]]. specialize (B1 _ Hx). lia.
-         - constructor. lia. now apply Delta_S.
-         - intro y. rewrite <- Nat.lt_succ_r. apply decompminus_below.
-           intro z. rewrite in_app_iff. intros [Hz|[<-|[]]].
-           + specialize (B1 z Hz). lia.
-           + lia. }}
+ destruct (low_high_k2 p l) as (low,high) eqn:E. simpl.
+ unfold addlow_k2.
+ destruct (rev low) as [|a rlow'] eqn:E'.
+ - apply rev_switch in E'. rewrite decomp_sum, E'. simpl; auto.
+ - apply rev_switch in E'. simpl in E'.
+   remember (invA_up 2 p) as u.
+   case Nat.ltb_spec; intros.
+   + rewrite decompminus_sum. rewrite sumA_app. simpl.
+     assert (p <= A2 (u+1)); try lia.
+     { etransitivity. apply (invA_up_spec 2). apply A_mono. lia. }
+   + rewrite decompminus_sum, E'. rewrite !sumA_app.
+     cbn - [A]. rewrite Nat.add_0_r.
+     replace (A2 _ + A2 _) with (A2 (a+2)).
+     2:{ rewrite (@A_sum 2 (a+2)), Nat.add_comm by lia.
+         f_equal; f_equal; lia. }
+     assert (p + A2 a <= A2 (a+2)); try lia.
+     { generalize (invA_up_spec 2 p). rewrite <- Hequ.
+       generalize (@A_mono 2 u a) (twice_A2_le a).
+       rewrite Nat.add_comm. lia. }
 Qed.
 
-Definition add_bound_k2 p := A2 (3 + invA_up 2 p).
+Definition addlow_delta_k2 p l : Delta 3 l ->
+  let (low,high) := low_high_k2 p l in
+  Delta 2 (addlow_k2 p low ++ high).
+Proof.
+ intros D.
+ set (u := bound_idx_k2 p).
+ generalize (cut_app u l) (cut_fst u l) (cut_snd' u D).
+ change (cut_lt_ge _ _) with (low_high_k2 p l).
+ destruct (low_high_k2 p l) as (low,high). simpl.
+ intros E Hlow Hhigh.
+ unfold addlow_k2.
+ destruct (rev low) as [|a rlow'] eqn:E'.
+ - apply rev_switch in E'. subst low. simpl in E. subst high.
+   apply Delta_app_iff. repeat split; auto using decomp_delta.
+   intros x x' IN IN'. apply Hhigh in IN'.
+   transitivity u; auto with arith.
+   assert (A 2 x <= p).
+   { rewrite <- (decomp_sum 2 p). apply sumA_in_le; auto. }
+   assert (x <= invA_up 2 p).
+   { apply (@A_le_inv 2).
+     transitivity p; auto. apply invA_up_spec. }
+   unfold bound_idx_k2 in u. lia.
+ - apply rev_switch in E'. simpl in E'.
+   set (v := invA_up 2 p).
+   subst l.
+   rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
+   case Nat.ltb_spec; intros.
+   + apply decompminus_app_delta.
+     rewrite Delta_app_iff. repeat split; auto.
+     * rewrite Delta_app_iff; repeat split; auto.
+       intros x x' IN [<-|[ ]].
+       rewrite E' in *. eapply Delta_last_le in IN; eauto. lia.
+     * intros x x'. rewrite in_app_iff. intros [IN|[<-|[ ]]] IN'.
+       { specialize (D3 x x' IN IN'). lia. }
+       { specialize (Hhigh x' IN'). unfold bound_idx_k2 in u. lia. }
+   + apply decompminus_app_delta.
+     rewrite Delta_app_iff. repeat split; auto.
+     * rewrite E' in D1. rewrite Delta_app_iff in D1.
+       destruct D1 as (D11 & D12 & D13).
+       rewrite Delta_app_iff. repeat split; auto.
+       { constructor; auto. unfold invA_up in v. lia. }
+       { intros x x' IN [<-|[<-|[ ]]].
+         - specialize (D13 x a IN (or_introl eq_refl)). lia.
+         - specialize (D13 x a IN (or_introl eq_refl)). lia. }
+     * intros x x'. rewrite in_app_iff.
+       intros [IN|[<-|[<-|[ ]]]] IN'.
+       { rewrite E' in D3. specialize (D3 x x').
+         rewrite in_app_iff in D3. specialize (D3 (or_introl IN) IN'). lia. }
+       { rewrite E' in D3. specialize (D3 a x').
+         rewrite in_app_iff in D3.
+         specialize (D3 (or_intror (or_introl eq_refl)) IN'). lia. }
+       { rewrite E' in D3. specialize (D3 a x').
+         rewrite in_app_iff in D3.
+         specialize (D3 (or_intror (or_introl eq_refl)) IN'). lia. }
+Qed.
+
+Definition add_bound_k2 p := A2 (invA_up 2 p + 3).
+
+Definition reduced_k2 p n := sumA 2 (fst (low_high_k2 p (decomp 2 n))).
+
+Lemma reduced_lt_k2 p n :
+  reduced_k2 p n < add_bound_k2 p.
+Proof.
+ unfold reduced_k2, add_bound_k2. fold (bound_idx_k2 p).
+ assert (D := decomp_delta 2 n).
+ set (l := decomp 2 n) in *. clearbody l.
+ assert (E := cut_app (bound_idx_k2 p) l).
+ assert (B := cut_fst (bound_idx_k2 p) l).
+ change (cut_lt_ge _ _) with (low_high_k2 p l) in E,B.
+ destruct (low_high_k2 p l) as (low,high) eqn:E'. simpl fst in *.
+ apply sumA_below; auto.
+ rewrite <-E, Delta_app_iff in D. intuition.
+Qed.
+
+Lemma additivity_reduced_k2 p n :
+  let m := reduced_k2 p n in
+  h (p+n) - h n = h (p+m) - h m.
+Proof.
+ assert (D := decomp_delta 2 n).
+ unfold reduced_k2; simpl.
+ rewrite <- (decomp_sum 2 n) at 1 2.
+ set (l := decomp 2 n) in *. clearbody l.
+ assert (E := cut_app (bound_idx_k2 p) l).
+ change (cut_lt_ge _ _) with (low_high_k2 p l) in E.
+ assert (E' := @addlow_sum_k2 p l).
+ assert (D' := @addlow_delta_k2 p l D).
+ destruct (low_high_k2 p l) as (low,high). simpl in *.
+ subst l.
+ rewrite sumA_app at 1.
+ rewrite Nat.add_assoc, <- E', <- !sumA_app.
+ unfold h. rewrite !f_sumA_lax; auto.
+ - rewrite !map_app, !sumA_app. lia.
+ - rewrite Delta_app_iff in D. intuition.
+ - rewrite Delta_app_iff in D'. intuition.
+Qed.
 
 Lemma additivity_bounded_k2 p :
  forall n, exists m,
    m < add_bound_k2 p /\
    h (p+n) - h n = h (p+m) - h m.
 Proof.
- intros n.
- destruct (decomp_exists 2 n) as (l & E & D).
- destruct (@increase_bottom_decomp_k2 p l D)
-   as (l1 & l1' & l2 & El & E1 & B1 & D1).
- exists (sumA 2 l1).
- split.
- - unfold add_bound_k2. set (q := 3+invA_up 2 p) in *. clearbody q.
-   rewrite El in D. apply Delta_app_inv in D.
-   rewrite <- DeltaRev_rev in D.
-   rewrite <- sumA_rev.
-   assert (B1r : Below (rev l1) q).
-   { intro y. rewrite <- in_rev. apply B1. }
-   destruct (rev l1) as [|a l1r].
-   + simpl. apply A_nz.
-   + apply Nat.lt_le_trans with (A2 (S a)).
-     * apply decomp_max; auto. apply D.
-     * apply A_mono. apply B1r. now left.
- - rewrite <- E.
-   rewrite El at 1. rewrite sumA_app, Nat.add_assoc, <- E1, <- sumA_app.
-   unfold h.
-   rewrite !f_sumA_lax; auto using Delta_S.
-   + rewrite El, !map_app, !sumA_app. lia.
-   + rewrite El in D. apply Delta_app_inv in D. apply Delta_S, D.
-   + apply Delta_app_inv in D1. apply D1.
+ intros n. exists (reduced_k2 p n). split.
+ - apply reduced_lt_k2.
+ - now apply additivity_reduced_k2.
+Qed.
+
+Lemma decide_additivity_k2 p a b :
+ calc_additivity 2 p (add_bound_k2 p) = Some (a,b) ->
+ forall n, a + h n <= h (p+n) <= b + h n.
+Proof.
+ intros E n.
+ assert (H : h n <= h (p+n)) by (apply f_mono; lia).
+ assert (a <= h (p+n) - h n <= b); try lia.
+ { destruct (@additivity_bounded_k2 p n) as (m & Hm & ->).
+   clear n H.
+   unfold calc_additivity in E.
+   revert E. apply extrems_spec.
+   rewrite all_diffs_spec.
+   set (delta := fun x => _). apply (in_map delta). clear delta.
+   apply countdown_in. lia. }
 Qed.
 
 (** Some initial results about quasi-additivity of H
@@ -586,66 +571,66 @@ Qed.
 
 Lemma h_add_4 n : 2 + h n <= h (4+n) <= 3 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_5 n : 3 + h n <= h (5+n) <= 4 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_6 n : 3 + h n <= h (6+n) <= 5 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_7 n : 4 + h n <= h (7+n) <= 6 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_8 n : 5 + h n <= h (8+n) <= 6 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_9 n : 5 + h n <= h (9+n) <= 7 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_10 n : 6 + h n <= h (10+n) <= 8 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_11 n : 7 + h n <= h (11+n) <= 8 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 Lemma h_add_12 n : 7 + h n <= h (12+n) <= 9 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 (** All the earlier cases were satisfying h(p+n)-h(p)-h(n) = {-1,0,1}
     But for p=18, h(18+n) = h n + h 18 + [-2..0] *)
 Lemma h_add_18 n : 11 + h n <= h (18+n) <= 13 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 (** For comparison with f 3 *)
 Lemma h_add_33 n : 22 + h n <= h (33+n) <= 23 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 (** h(39+n) = h n + h 39 + [0..2] *)
 Lemma h_add_39 n : 26 + h n <= h (39+n) <= 28 + h n.
 Proof.
- apply decide_additivity. auto. now vm_compute.
+ apply decide_additivity_k2. now vm_compute.
 Qed.
 
 (* TODO: experimentally, h(p+n)-h(p)-h(n) is in [-2..2] in general.
@@ -708,7 +693,7 @@ Proof.
    { generalize (@f_mono 2 n (A2 q + n)) (@f_mono 2 m (A2 q + m)).
      generalize (@A_nz 2 (q-1)). unfold A2, h in *. lia. }
    clear E n.
-   replace (add_bound_k2 (A2 q)) with (A2 (3+q)) in Hm.
+   replace (add_bound_k2 (A2 q)) with (A2 (q+3)) in Hm.
    2:{ unfold add_bound_k2. f_equal. f_equal. rewrite invA_up_A; lia. }
    assert (D := decomp_delta 2 m).
    rewrite <- (decomp_sum 2 m). set (l := decomp 2 m) in *.
@@ -718,17 +703,19 @@ Proof.
    + assert (Ha : a < 3+q).
      { apply (@A_lt_inv 2).
        rewrite <- (decomp_sum 2 m) in Hm. fold l in Hm.
-       rewrite E in Hm. rewrite sumA_app in Hm. simpl sumA in Hm. lia. }
+       rewrite E in Hm. rewrite sumA_app in Hm. simpl sumA in Hm.
+       rewrite Nat.add_comm. lia. }
      clearbody l. subst l. clear m Hm.
-     simpl in Ha. rewrite Nat.lt_succ_r, Nat.lt_eq_cases, or_comm in Ha.
+     rewrite Nat.add_succ_l, Nat.lt_succ_r, Nat.lt_eq_cases, or_comm in Ha.
      destruct Ha as [Ha|Ha].
      { (* a = q+2 *)
        clear IH.
        replace (A2 q + _) with (sumA 2 (l'++[S a])).
        2:{ rewrite !sumA_app. simpl. replace (a-2) with q; lia. }
        unfold h. rewrite !f_sumA; eauto using Delta_up_last.
-       rewrite !map_app, !sumA_app. subst a; simpl. lia. }
-     rewrite Nat.lt_succ_r, Nat.lt_eq_cases, or_comm in Ha.
+       rewrite !map_app, !sumA_app. subst a; simpl.
+       replace (pred (q+2)) with (q+1) by lia. lia. }
+     rewrite Nat.add_succ_l, Nat.lt_succ_r, Nat.lt_eq_cases, or_comm in Ha.
      destruct Ha as [Ha|Ha].
      { (* a = q+1 *)
        subst a.
