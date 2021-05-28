@@ -969,6 +969,29 @@ Proof.
  - now rewrite prev_decomp_sum, decomp_sum.
 Qed.
 
+Lemma rank_pred k n r :
+  rank k n = Some r -> r <> 0 ->
+  rank k (n-1) = Some ((r-1) mod (S k)).
+Proof.
+ unfold rank.
+ set (l := decomp k n).
+ rewrite <- (decomp_sum k n). fold l.
+ rewrite <- prev_decomp_sum, decomp_sum'.
+ 2:apply prev_decomp_delta, decomp_delta.
+ destruct l as [|a l]; try easy.
+ intros [= <-] Ha. clear n. cbn -[Nat.modulo].
+ revert Ha l.
+ induction a as [[|a] IH] using lt_wf_ind.
+ - now destruct 1.
+ - intros _ l. cbn -[Nat.modulo].
+   destruct (Nat.eq_dec (a-k) 0) as [E|NE].
+   + rewrite E. cbn -[Nat.modulo]. f_equal. rewrite Nat.sub_0_r.
+     rewrite Nat.mod_small; auto. lia.
+   + rewrite <- app_assoc, IH; try lia.
+     f_equal. rewrite Nat.sub_0_r.
+     rewrite <- (@Nat.mod_add (a-k-1) 1 (S k)); auto. f_equal. lia.
+Qed.
+
 (** We can decrease a decomposition by iterating [prev_decomp].
     Note: the highest term of the decomposition will not grow. *)
 

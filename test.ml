@@ -44,13 +44,11 @@ let rec f k n = if n = 0 then 0 else n - iter (f k) (k+1) (n-1)
 let f0 = f 0 (* d *)
 let f1 = f 1 (* g *)
 let f2 = f 2 (* h *)
-let f3 = f 3
+let f3 = f 3 (* http://oeis.org/A005375 *)
 
 let _ = Array.init 20 @@ fun n -> n,f0 n,d n
 let _ = Array.init 20 @@ fun n -> n,f1 n,g n
 let _ = Array.init 20 @@ fun n -> n,f2 n,h n
-
-(* nb: f4 is http://oeis.org/A005375 *)
 
 (** Tabulate : Faster computation of [f k n] via an array
     - First line (k=0) is function d (division by two)

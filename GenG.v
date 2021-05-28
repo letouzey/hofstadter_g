@@ -36,7 +36,7 @@ with Fs : nat -> nat -> nat -> nat -> Prop :=
 
 Hint Constructors F Fs.
 
-(** Behavior of [F] and [Fs] when [n=0] and [1] *)
+(** The early behavior of [F] and [Fs] when [n<=3] doesn't depend on k *)
 
 Lemma Fs_0 p k : Fs p k 0 0.
 Proof.
@@ -55,6 +55,33 @@ Proof.
  induction p; eauto.
 Qed.
 Hint Resolve Fs_1.
+
+Lemma F_2 k : F k 2 1.
+Proof.
+ induction k; eauto.
+Qed.
+Hint Resolve F_2.
+
+Lemma Fs_2 p k : Fs p k 2 (1+(1-p)).
+Proof.
+ induction p; eauto.
+ simpl.
+ eapply FsS. apply IHp. destruct p; simpl; auto.
+Qed.
+Hint Resolve Fs_2.
+
+Lemma F_3 k : F k 3 2.
+Proof.
+ induction k; eauto.
+Qed.
+Hint Resolve F_3.
+
+Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
+Proof.
+ induction p; eauto.
+ eapply FsS; eauto. destruct p as [|[|p]]; simpl; auto.
+Qed.
+Hint Resolve Fs_3.
 
 (** [F] and [Fs] aren't above the identity line *)
 
@@ -162,7 +189,7 @@ Extraction Inline lt_wf_rec induction_ltof2.
 Recursive Extraction f.
 *)
 
-(** Basic equations over [f] : the same as [F] *)
+(* The first values of [f] when [n<=3] do not depend on [k] *)
 
 Lemma f_k_0 k : f k 0 = 0.
 Proof.
@@ -173,6 +200,18 @@ Lemma f_k_1 k : f k 1 = 1.
 Proof.
  now apply f_complete.
 Qed.
+
+Lemma f_k_2 k : f k 2 = 1.
+Proof.
+ now apply f_complete.
+Qed.
+
+Lemma f_k_3 k : f k 3 = 2.
+Proof.
+ now apply f_complete.
+Qed.
+
+(** Basic equations over [f] : the same as [F] *)
 
 Lemma Fs_iter_f p k n : Fs p k n ((f k ^^p) n).
 Proof.
@@ -826,6 +865,89 @@ Proof.
  now apply renorm_mapdecr.
 Qed.
 
+(** Some particular cases : early diagonals *)
+
+Lemma f_k_k k : 2<=k -> f k k = k-1.
+Proof.
+ intros Hk.
+ replace k with (sumA k [k-1]) at 2.
+ 2:{ cbn -[A]. rewrite !A_base; lia. }
+ rewrite f_sumA; auto. simpl. destruct k as [|[|k]]; simpl; try lia.
+ rewrite A_base; lia.
+Qed.
+
+Lemma f_k_Sk k : k<>0 -> f k (S k) = k.
+Proof.
+ replace (S k) with (sumA k [k]).
+ 2:{ cbn -[A]. rewrite !A_base; lia. }
+ rewrite f_sumA; auto. simpl. destruct k; simpl. easy.
+ rewrite A_base; lia.
+Qed.
+
+Lemma f_k_plus_2 k : f k (2+k) = S k.
+Proof.
+ replace (2+k) with (sumA k [S k]).
+ 2:{ cbn -[A]. rewrite !A_base; lia. }
+ rewrite f_sumA; simpl. rewrite A_base; lia. constructor; auto.
+Qed.
+
+Lemma f_k_plus_3 k : f k (3+k) = 2+k.
+Proof.
+ replace (3+k) with (sumA k [0;S k]).
+ 2:{ cbn -[A]. rewrite !A_base; lia. }
+ rewrite f_sumA; auto. simpl. rewrite A_base; lia.
+Qed.
+
+Lemma f_k_plus_4 k : f k (4+k) = 2+k.
+Proof.
+ replace (4+k) with (sumA k [S (S k)]).
+ 2:{ cbn -[A]. rewrite A_S.
+     replace (S k - k) with 1 by lia.
+     rewrite !A_base; lia. }
+ rewrite f_sumA; auto. cbn -[A]. rewrite A_base; lia.
+Qed.
+
+Lemma f_k_plus_5 k : f k (5+k) = 3+k.
+Proof.
+ replace (5+k) with (sumA k [0;S (S k)]).
+ 2:{ cbn -[A]. rewrite A_S.
+     replace (S k - k) with 1 by lia.
+     rewrite !A_base; lia. }
+ rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
+Qed.
+
+Lemma f_k_plus_6 k : f k (6+k) = 3+k.
+Proof.
+ replace (6+k) with (sumA k [1;S (S k)]).
+ 2:{ cbn -[A]. rewrite (A_S k (S k)).
+     replace (S k - k) with 1 by lia.
+     rewrite !A_base; lia. }
+ rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
+Qed.
+
+Lemma f_k_plus_7 k : f k (7+k) = 4+k.
+Proof.
+ destruct (Nat.eq_dec k 0) as [->|Hk]. now compute.
+ replace (7+k) with (sumA k [2;S (S k)]).
+ 2:{ cbn -[A]. rewrite (A_S k (S k)).
+     replace (S k - k) with 1 by lia.
+     rewrite !A_base; lia. }
+ rewrite f_sumA_lax; auto. cbn -[A]. rewrite !A_base; lia.
+Qed.
+
+(** Summarize the last results (note that [f 0 p = (p+1)/2]). *)
+
+Lemma f_k_plus_some k p : 2 <= p <= 7 -> f k (k+p) = k + f 0 p.
+Proof.
+ intros Hp. rewrite !(Nat.add_comm k).
+ destruct (Nat.eq_dec p 2) as [->|N2]. apply f_k_plus_2.
+ destruct (Nat.eq_dec p 3) as [->|N3]. apply f_k_plus_3.
+ destruct (Nat.eq_dec p 4) as [->|N4]. apply f_k_plus_4.
+ destruct (Nat.eq_dec p 5) as [->|N5]. apply f_k_plus_5.
+ destruct (Nat.eq_dec p 6) as [->|N6]. apply f_k_plus_6.
+ destruct (Nat.eq_dec p 7) as [->|N7]. apply f_k_plus_7.
+ lia.
+Qed.
 
 (** Decomposition and positions in the F tree *)
 
@@ -860,11 +982,30 @@ Proof.
    + simpl. split. intuition. injection 1 as ->. lia.
 Qed.
 
-Lemma nonflat_rank_nz k n :
+Lemma step_rank_nz k n :
  f k (S n) = S (f k n) <-> rank k n <> Some 0.
 Proof.
  rewrite <- flat_rank_0.
  generalize (f_step k n). lia.
+Qed.
+
+Lemma steps_ranks_nz k n p :
+ f k (n+p) = f k n + p <-> (forall q, q<p -> rank k (n+q) <> Some 0).
+Proof.
+ induction p.
+ - rewrite !Nat.add_0_r. intuition.
+ - rewrite !Nat.add_succ_r.
+   split.
+   + intros E q Hq.
+     assert (LE := f_le_add k p n). rewrite (Nat.add_comm p n) in LE.
+     assert (LE' := f_le_add k 1 (n+p)). simpl in LE'.
+     inversion Hq.
+     * subst q. apply step_rank_nz. lia.
+     * apply IHp; try lia.
+   + intro H.
+     assert (R : rank k (n+p) <> Some 0) by (apply H; lia).
+     apply step_rank_nz in R. rewrite R. f_equal.
+     apply IHp. intros q Hq. apply H. lia.
 Qed.
 
 (** At most [k+1] consecutive [+1] steps *)
@@ -880,8 +1021,163 @@ Proof.
    generalize (f_lipschitz k n (p+n)). lia.
 Qed.
 
-(** TODO: exactly [k+1] consecutive [+1] steps when [n = 2 + A k p]
-    with [p>2k]. *)
+(** A first example of such [k+1] consecutive [+1] steps : [n=2] *)
+
+Lemma f_maxsteps_example2 k : f k (2+S k) = f k 2 + S k.
+Proof.
+ rewrite f_k_2. simpl. apply f_k_plus_3.
+Qed.
+
+(** More generally, [k+1] consecutive [+1] steps for numbers [2+n]
+    when [n=0] or [rank k n > 2k]. *)
+
+Lemma f_maxsteps_examples k n :
+  (forall r, rank k n = Some r -> 2*k < r) ->
+  f k ((2+n) + S k) = f k (2+n) + S k.
+Proof.
+ intros Hr.
+ destruct (rank k n) as [r|] eqn:Hn.
+ 2:{ rewrite rank_none in Hn; subst n. apply f_maxsteps_example2. }
+ specialize (Hr r eq_refl).
+ apply steps_ranks_nz.
+ intros q Hq. replace (2+n+q) with (S (S q) + n) by lia.
+ rewrite <- (@A_base k (S q)) by lia.
+ rewrite <- (decomp_sum k n).
+ change (_+_) with (sumA k (S q::decomp k n)).
+ unfold rank in *. rewrite <- renorm_sum, decomp_sum'.
+ - generalize (renorm_head k (S q::decomp k n)). unfold HeadStep.
+   destruct renorm as [|a l]; try easy. intros (b & ->) [= E].
+ - apply renorm_delta. assert (D := decomp_delta k n).
+   destruct decomp as [|u l]; try easy.
+   injection Hn as ->. constructor; auto. lia.
+Qed.
+
+(* No other situations with [k+1] consecutive [+1] steps,
+   except [f 0 1 = 1 + f 0 0]. *)
+
+Lemma f_maxsteps_carac_aux k n r :
+  rank k n = Some r -> S k <= r <= 2*k ->
+  exists q, rank k (n+2+(r-S k)) = Some q /\ r < q.
+Proof.
+ intros Hn Hr.
+ assert (E : forall q, q <= r-S k -> decomp k (n + S q) = q :: decomp k n).
+ { intros q Hq. rewrite <- (@A_base k q) by lia.
+   unfold rank in *. rewrite <- (decomp_sum k n) at 1.
+   rewrite Nat.add_comm.
+   change (_+_) with (sumA k (q::decomp k n)).
+   apply decomp_sum'.
+   assert (D := decomp_delta k n).
+   destruct decomp as [|u l]; try easy.
+   injection Hn as ->. constructor; auto. lia. }
+ assert (LE : r-S k <= r-S k) by lia.
+ specialize (E (r-S k) LE). clear LE.
+ rewrite Nat.add_succ_r, <- Nat.add_succ_l in E.
+ unfold rank in *.
+ destruct (decomp k n) as [|r' l] eqn:E'; try easy. injection Hn as ->.
+ assert (E2 : decomp k (n+2 + (r-S k)) = renorm k (S r :: l)).
+ { rewrite !Nat.add_succ_r, Nat.add_0_r, Nat.add_succ_l.
+   rewrite decomp_S, E. simpl.
+   case Nat.leb_spec; try lia. intros _.
+   apply (@decomp_unique k).
+   - apply renorm_delta. constructor. lia. rewrite <- E'; auto.
+   - apply renorm_delta, Delta_S_cons. rewrite <- E'; auto.
+   - rewrite !renorm_sum. simpl.
+     replace (r -S k -k) with 0 by lia.
+     rewrite (@A_base k (r-S k)) by lia.
+     rewrite (@A_base k (r-k)) by lia. simpl. lia. }
+ rewrite E2.
+ assert (H := renorm_head k (S r::l)).
+ red in H. destruct renorm; try easy.
+ destruct H as (q & ->). exists (S r + q*S k). split; auto. lia.
+Qed.
+
+Lemma f_maxsteps_carac k n :
+  f k (n + S k) = f k n + S k <->
+  (k=0 /\ n=0) \/ (2<=n /\ forall r, rank k (n-2) = Some r -> 2*k < r).
+Proof.
+ split.
+ - intros E.
+   destruct (Nat.le_gt_cases n 1) as [LE|LT].
+   + left.
+     destruct (Nat.eq_dec n 0) as [->|N].
+     * rewrite f_k_0 in E. apply f_fix in E. lia.
+     * replace n with 1 in * by lia. rewrite f_k_1 in *.
+       apply f_fix in E. lia.
+   + right.
+     split; [lia| ].
+     intros r Hr.
+     rewrite steps_ranks_nz in E.
+     apply Nat.lt_nge. intros LE.
+     destruct (Nat.le_gt_cases r k) as [LE'|GT].
+     * destruct (rank_later_is_zero k (n-1)) as (q & Hq & R).
+       destruct (Nat.eq_dec q 0).
+       { subst q. simpl in *.
+         apply rank_next_high in Hr; auto. destruct Hr as (m & Hr).
+         replace (S (n-2)) with (n-1) in Hr by lia.
+         rewrite Hr in R. now injection R. }
+       { apply (E (q-1)). lia.
+         rewrite <- R. f_equal. lia. }
+     * destruct (@f_maxsteps_carac_aux k (n-2) r Hr) as (q & Hq & Hq'); try lia.
+       replace (n-2+2) with n in Hq by lia.
+       apply (E (r-k)). lia.
+       replace (n+(r-k)) with (S (n+(r-S k))) by lia.
+       eapply rank_next_0; eauto. lia.
+ - intros [(->,->) | (LE & H)].
+   + reflexivity.
+   + replace n with (2+(n-2)) by lia. apply f_maxsteps_examples; auto.
+Qed.
+
+(** Other characterization of max [+1] steps :
+    the last term in the [+1] sequence is decomposed as [0;q*(S k);...]
+    where [q<>0]. *)
+
+Lemma f_steps_sub k n p :
+ rank k n = Some (S p) -> p <= k -> f k (n - p) = f k n - p.
+Proof.
+ revert n.
+ induction p.
+ - intros n R. rewrite Nat.sub_0_r. lia.
+ - intros n R Hp.
+   assert (R' : rank k (n-1) = Some (S p)).
+   { apply rank_pred in R; auto. simpl "-" in R.
+     rewrite Nat.mod_small in R; auto; lia. }
+   replace (n-S p) with (n-1-p) by lia.
+   rewrite IHp; auto; try lia.
+   assert (R0 : rank k (n-1) <> Some 0) by now rewrite R'.
+   rewrite <- step_rank_nz in R0.
+   destruct n as [|n].
+   + reflexivity.
+   + simpl in *. rewrite Nat.sub_0_r in *. lia.
+Qed.
+
+Lemma f_maxsteps_examples_alt k n q :
+ rank k n = Some ((S q)*(S k)) ->
+ f k ((n+1) - S k) = f k (n+1) - S k.
+Proof.
+ destruct (Nat.eq_dec k 0) as [->|Hk].
+ - intros R. rewrite Nat.mul_1_r in R.
+   replace (n+1-1) with n by lia.
+   rewrite Nat.add_1_r.
+   assert (R' : rank 0 n <> Some 0) by now rewrite R.
+   rewrite <- step_rank_nz in R'. lia.
+ - intros R.
+   assert (R' : rank k n <> Some 0) by now rewrite R.
+   rewrite <- step_rank_nz in R'.
+   destruct (Nat.eq_dec n 0) as [->|Hn].
+   + simpl. now rewrite f_k_0, f_k_1.
+   + assert (Rm : rank k (n-1) = Some k).
+     { apply rank_pred in R. 2:(simpl; lia).
+       replace (S q * S k - 1) with (k + q * (S k)) in R by lia.
+       rewrite Nat.mod_add in R; auto.
+       rewrite Nat.mod_small in R; auto; lia. }
+     replace (n+1 - S k) with (n-1-(k-1)) by lia.
+     rewrite f_steps_sub; try lia.
+     2:rewrite Rm; f_equal; lia.
+     assert (Rm' : rank k (n-1) <> Some 0) by (rewrite Rm; congruence).
+     rewrite <- step_rank_nz in Rm'.
+     rewrite Nat.add_1_r.
+     replace (S (n-1)) with n in Rm'; lia.
+Qed.
 
 (** Beware, when comparing an [option nat] and a [nat],
     [None] serves as a bottom element, not comparable with any [nat]. *)
@@ -933,7 +1229,7 @@ Proof.
        lia.
      * simpl. intuition.
  - rewrite <- rank_S_nz_iff.
-   rewrite <- nonflat_rank_nz.
+   rewrite <- step_rank_nz.
    rewrite 2 f_S.
    generalize (fs_le k (S k) n).
    lia.
