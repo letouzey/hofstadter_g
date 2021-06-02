@@ -1,5 +1,5 @@
 Require Import Arith Lia List Bool.
-Require Import DeltaList GenFib GenG GenAdd.
+Require Import DeltaList FunG GenFib GenG GenAdd.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -31,6 +31,12 @@ Proof.
  apply Delta_map with (S k).
  - intros. lia.
  - apply decomp_delta.
+Qed.
+
+Lemma fs_shifts k p n : ((f k)^^p) (((shift k)^^p) n) = n.
+Proof.
+ revert n. induction p; intros n; auto.
+ rewrite (iter_S (shift k)). simpl. now rewrite IHp, f_shift.
 Qed.
 
 Lemma shift_f_rankpos k n :
@@ -68,6 +74,14 @@ Proof.
  rewrite map_map.
  rewrite <- (map_id l) at 2.
  apply map_ext_in. intros [|a] Ha; intuition.
+Qed.
+
+(* Equation about shift iterations *)
+
+Lemma shift_iter k n :
+  ((shift k)^^(S k)) n = ((shift k)^^k) n + n.
+Proof.
+ simpl. rewrite shift_rchild at 1. unfold rchild. f_equal. apply fs_shifts.
 Qed.
 
 (* shift is injective *)
