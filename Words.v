@@ -265,7 +265,7 @@ Proof.
  unfold ksubst. case Nat.eqb_spec. lia. intros _. apply app_nil_r.
 Qed.
 
-Lemma kword_low k n : n <= k -> kword k n = k :: List.seq 0 n.
+Lemma kword_low k n : n <= S k -> kword k n = k :: List.seq 0 n.
 Proof.
  induction n.
  - now rewrite kword_0.
@@ -273,7 +273,7 @@ Proof.
    rewrite seq_S.
    cbn. unfold ksubst at 2. rewrite Nat.eqb_refl. simpl.
    rewrite napply_cons.
-   rewrite ksubst_low0; auto; try lia. simpl.
+   rewrite ksubst_low0; auto; try lia.
    change (kword k n ++ [n] = k  :: List.seq 0 n ++ [n]).
    rewrite IHn; try lia. auto.
 Qed.
@@ -385,4 +385,182 @@ Proof.
      rewrite decomp_sum'.
      2:{ rewrite E' in D. simpl in D. apply Delta_app_iff in D. intuition. }
      destruct (rev rl) eqn:E''; simpl; auto. rewrite Nat.min_r; auto.
+Qed.
+
+(** Another possible susbstitution for Hofstadter functions,
+    giving [min (rank n) (S k)] instead of [min (rank n) k].
+    Hence it works on 0..(S k) instead of 0..k *)
+
+Definition ksubstbis k n := if n <? k then [S n] else [S k; 0].
+
+Definition kwordbis k n := napply (ksubstbis k) n [S k].
+
+Definition kseqbis k := subst2seq (ksubstbis k) (S k).
+
+(* Compute map (kseqbis 2) (List.seq 0 20). *)
+(* [3; 0; 1; 2; 3; 0; 3; 0; 1; 3; 0; 1; 2; 3; 0; 1; 2; 3; 0; 3] *)
+
+(** Initial values *)
+
+Lemma kwordbis_0 k : kwordbis k 0 = [S k].
+Proof.
+ reflexivity.
+Qed.
+
+Lemma kwordbis_1 k : kwordbis k 1 = [S k; 0].
+Proof.
+ cbn. unfold ksubstbis.
+ case Nat.ltb_spec; auto. lia.
+Qed.
+
+Lemma ksubstbis_low0 k n : n <= k -> napply (ksubstbis k) n [0] = [n].
+Proof.
+ induction n. auto.
+ intros LE.
+ rewrite napply_alt. rewrite IHn; try lia. simpl.
+ unfold ksubstbis. case Nat.ltb_spec; auto. lia.
+Qed.
+
+Lemma ksubstbis_low0' k : napply (ksubstbis k) (S k) [0] = [S k; 0].
+Proof.
+ change (S k) with (1+k) at 1. rewrite napply_add.
+ rewrite ksubstbis_low0 by lia. simpl.
+ unfold ksubstbis. case Nat.ltb_spec; auto. lia.
+Qed.
+
+Lemma kwordbis_low k n : n <= S k -> kwordbis k n = S k :: List.seq 0 n.
+Proof.
+ induction n.
+ - now rewrite kwordbis_0.
+ - intros LE.
+   rewrite seq_S.
+   cbn. unfold ksubstbis at 2. case Nat.ltb_spec; try lia. intros _.
+   simpl. rewrite napply_cons.
+   rewrite ksubstbis_low0; auto; try lia.
+   change (kwordbis k n ++ [n] = S k :: List.seq 0 n ++ [n]).
+   rewrite IHn; try lia. auto.
+Qed.
+
+(** Alt equation : *)
+
+Lemma kwordbis_alt k n :
+  k<n -> kwordbis k (S n) = kwordbis k n ++ kwordbis k (n-k).
+Proof.
+ induction n.
+ - inversion 1.
+ - rewrite Nat.lt_succ_r, Nat.lt_eq_cases.
+   intros [LT| <-].
+   + replace (S n -k) with (S (n-k)) by lia.
+     remember (S n) as m eqn:E.
+     cbn.
+     rewrite app_nil_r.
+     unfold ksubstbis at 2. case Nat.ltb_spec; try lia. intros _.
+     rewrite napply_cons. f_equal.
+     replace m with (m-k+k) by lia.
+     rewrite napply_add. rewrite ksubstbis_low0 by lia.
+     replace (m-k) with (S (n-k)) by lia.
+     simpl. f_equal. unfold ksubstbis.
+     do 2 (case Nat.ltb_spec; try lia). auto.
+   + clear IHn.
+     replace (S k-k) with 1 by lia. rewrite kwordbis_1.
+     remember (S k) as m eqn:E.
+     unfold kwordbis at 1. simpl. unfold ksubstbis at 2.
+     case Nat.ltb_spec; try lia. intros _. simpl.
+     rewrite napply_cons. f_equal. subst m. apply ksubstbis_low0'.
+Qed.
+
+Lemma kwordbis_len k n : length (kwordbis k n) = A k n.
+Proof.
+ induction n as [[|n] IH] using lt_wf_ind.
+ - now rewrite kwordbis_0.
+ - case (Nat.lt_ge_cases k n) as [LT|GE].
+   + rewrite kwordbis_alt; auto. rewrite app_length, !IH; try lia.
+     simpl; auto.
+   + rewrite kwordbis_low by lia. simpl.
+     rewrite seq_length. rewrite !A_base; lia.
+Qed.
+
+(** Link between [kseqbis] and Zeckendorf decomposition :
+    0 iff rank 0,
+    1 iff rank 1,
+    ...
+    (S k) iff rank > k (or no rank, ie n=0)
+
+    Hence 0 in [kseqbis] whenever the [f k] function is flat.
+*)
+
+Definition bounded_rankbis k n :=
+ match rank k n with
+ | None => S k
+ | Some p => Nat.min p (S k)
+ end.
+
+Lemma kseqbis_bounded_rank k n : kseqbis k n = bounded_rankbis k n.
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ assert (E := decomp_sum k n).
+ assert (D := decomp_delta k n).
+ set (l := decomp k n) in *.
+ destruct (rev l) as [|a rl] eqn:E'; apply rev_switch in E'.
+ - rewrite E' in *. simpl in E. rewrite <- E. easy.
+ - assert (A k a <= n < A k (S a)).
+   { rewrite <- E, E', sumA_rev.
+     split.
+     + simpl; lia.
+     + apply decomp_max. apply Delta_rev. now rewrite <- E'. }
+   assert (NE : NoErase (ksubstbis k)).
+   { red. intros c. unfold ksubstbis. now case Nat.ltb_spec. }
+   assert (PR : Prolong (ksubstbis k) (S k)).
+   { red. exists [0]. split. easy.
+     unfold ksubstbis. case Nat.ltb_spec; auto; try lia. }
+   assert (SU := substseq_exists _ _ NE PR (S a)).
+   unfold PrefixSeq in SU.
+   change (napply _ _ _) with (kwordbis k (S a)) in SU.
+   change (subst2seq _ _) with (kseqbis k) in SU.
+   rewrite kwordbis_len in SU.
+   replace (kseqbis k n) with (nth n (kwordbis k (S a)) 0).
+   2:{ rewrite SU. rewrite take_nth; auto. lia. }
+   clear SU.
+   destruct (Nat.le_gt_cases a k) as [LE|LT].
+   + rewrite kwordbis_low by lia.
+     destruct n as [|n]; try easy.
+     change (nth _ _ _) with (nth n (List.seq 0 (S a)) 0).
+     rewrite !A_base in H; try lia.
+     replace n with a by lia.
+     rewrite seq_nth by lia. simpl.
+     unfold bounded_rankbis, rank.
+     replace (S a) with (sumA k [a]).
+     2:{ rewrite <- (@A_base k a); simpl; lia. }
+     rewrite decomp_sum'; try constructor. rewrite Nat.min_l; auto; try lia.
+   + rewrite kwordbis_alt by auto.
+     rewrite app_nth2; rewrite kwordbis_len; try lia.
+     set (m := n - A k a) in *.
+     assert (Hm : m < n) by (generalize (@A_nz k a); lia).
+     specialize (IH m Hm).
+     assert (SU' := substseq_exists _ _ NE PR (a-k)).
+     unfold PrefixSeq in SU'.
+     change (napply _ _ _) with (kwordbis k (a-k)) in SU'.
+     change (subst2seq _ _) with (kseqbis k) in SU'.
+     rewrite kwordbis_len in SU'.
+     rewrite SU', take_nth.
+     2:{ unfold m. simpl in H. lia. }
+     rewrite IH. clear SU' NE PR.
+     unfold m.
+     unfold bounded_rankbis, rank. fold l. rewrite E'.
+     simpl rev.
+     replace (n-A k a) with (sumA k (rev rl)).
+     2:{ rewrite <-E, E'. simpl. rewrite sumA_app. simpl. lia. }
+     rewrite decomp_sum'.
+     2:{ rewrite E' in D. simpl in D. apply Delta_app_iff in D. intuition. }
+     destruct (rev rl) eqn:E''; simpl; auto. rewrite Nat.min_r; auto.
+Qed.
+
+Lemma kseqbis_kseq k n : kseq k n = Nat.min k (kseqbis k n).
+Proof.
+ rewrite kseq_bounded_rank, kseqbis_bounded_rank.
+ unfold bounded_rank, bounded_rankbis.
+ destruct rank.
+ - rewrite (Nat.min_comm _ (S k)), Nat.min_assoc.
+   rewrite (Nat.min_l k) by auto. apply Nat.min_comm.
+ - rewrite Nat.min_l; auto.
 Qed.
