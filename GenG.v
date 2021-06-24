@@ -131,31 +131,47 @@ Proof.
 Qed.
 
 (** [F] does have an implementation : there exists a function [f]
-    satisfying these equations. *)
+    satisfying these equations. One possible trick to define [f]
+    via Coq structural recursion is to add an extra parameter [p]:
+    [recf k p] is [f k] below [p] and arbitrary above.
+*)
 
-Definition f_spec k n : { a : nat | F k n a }.
+Fixpoint recf k p n :=
+ match p, n with
+ | S p, S n => S n - ((recf k p)^^(S k)) n
+ | _, _ => 0
+ end.
+
+Definition f k n := recf k n n.
+
+Lemma recf_le k p n : recf k p n <= n.
 Proof.
-induction n as [[|n] IH ] using lt_wf_rec.
-- now exists 0.
-- assert (Hs : forall p m, m <= n -> { a : nat | Fs p k m a }).
-  { induction p.
-    - intros. now exists m.
-    - intros.
-      destruct (IHp m H) as (a,Ha).
-      destruct (IH a) as (b,Hb).
-      apply Fs_le in Ha. lia.
-      exists b; eauto. }
-  destruct (Hs (S k) n) as (a,Ha); auto.
-  exists (S n - a).
-  eapply FS; eauto.
-  apply Fs_le in Ha. lia.
-Defined.
+ induction p; cbn - ["-" "^^"]. lia. destruct n; lia.
+Qed.
 
-Definition f k n := proj1_sig (f_spec k n).
+Lemma recfs_le q k p n : ((recf k p)^^q) n <= n.
+Proof.
+ induction q; simpl; auto. etransitivity. apply recf_le. apply IHq.
+Qed.
+
+Lemma recf_sound k p n : n <= p -> F k n (recf k p n).
+Proof.
+revert n.
+induction p.
+- inversion 1. simpl. constructor.
+- destruct n.
+  + simpl. constructor.
+  + cbn - ["-" "^^"].
+    assert (IHq : forall q m, m <= p -> Fs q k m ((recf k p ^^ q) m)).
+    { induction q; intros; simpl; econstructor; eauto.
+      apply IHp. transitivity m; auto using recfs_le. }
+    econstructor. apply IHq. lia.
+    generalize (recfs_le (S k) k p n). lia.
+Qed.
 
 Lemma f_sound k n : F k n (f k n).
 Proof.
-unfold f; now destruct (f_spec k n).
+ now apply recf_sound.
 Qed.
 Hint Resolve f_sound.
 
@@ -181,12 +197,6 @@ f 0 = [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
 f 1 = [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
 f 2 = [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
 f 3 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
-*)
-
-(*
-Require Extraction.
-Extraction Inline lt_wf_rec induction_ltof2.
-Recursive Extraction f.
 *)
 
 (* The first values of [f] when [n<=3] do not depend on [k] *)
@@ -1164,7 +1174,7 @@ Proof.
    assert (R' : rank k n <> Some 0) by now rewrite R.
    rewrite <- step_rank_nz in R'.
    destruct (Nat.eq_dec n 0) as [->|Hn].
-   + simpl. now rewrite f_k_0, f_k_1.
+   + simpl. apply f_k_0.
    + assert (Rm : rank k (n-1) = Some k).
      { apply rank_pred in R. 2:(simpl; lia).
        replace (S q * S k - 1) with (k + q * (S k)) in R by lia.
@@ -1282,7 +1292,7 @@ Qed.
 Lemma f_alt_eqn k n : f k n + (f k^^k) (f k (S n) - 1) = n.
 Proof.
  destruct (Nat.eq_dec n 0) as [-> |Hn].
- - simpl. rewrite f_k_1. simpl. now rewrite fs_k_0.
+ - simpl. now rewrite fs_k_0.
  - assert (Hn' := f_nz k Hn).
    case (f_step k n) as [H|H].
    + (* n left child of a binary node *)

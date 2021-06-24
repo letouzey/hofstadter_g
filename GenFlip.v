@@ -214,7 +214,7 @@ Qed.
 
 Lemma ff_k_1 k : ff k 1 = 1.
 Proof.
- unfold ff. now rewrite flip_1, f_k_1, flip_1.
+ reflexivity.
 Qed.
 
 Lemma ff_depth k n : depth k (ff k n) = depth k n - 1.
