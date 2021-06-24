@@ -1471,20 +1471,20 @@ Proof.
  destruct (x <=? a); simpl; rewrite ?IHl; lia.
 Qed.
 
-Lemma map_pred_insert x l :
-  ~In 0 l ->
+Lemma insert_0 l : insert 0 l = 0 :: l.
+Proof.
+ induction l; simpl; auto.
+Qed.
+
+Lemma map_pred_insert x l:
   map Nat.pred (insert x l) = insert (Nat.pred x) (map Nat.pred l).
 Proof.
  induction l; simpl; auto.
  do 2 case Nat.leb_spec; intros; try lia; simpl; auto.
- f_equal. auto.
-Qed.
-
-Lemma map_pred_insert' x l :
-  Delta 1 (0::l) ->
-  map Nat.pred (insert x l) = insert (Nat.pred x) (map Nat.pred l).
-Proof.
- intros D. apply map_pred_insert. eapply Delta_nz'; eauto.
+ - replace a with 0 in * by lia.
+   replace x with 1 in * by lia. simpl. f_equal.
+   rewrite IHl. simpl. apply insert_0.
+ - f_equal; auto.
 Qed.
 
 Lemma insert_delta x l a :
@@ -1583,7 +1583,7 @@ destruct dp as [|a pl].
           subst p. subst n. simpl. rewrite Nat.add_0_r.
           rewrite !g_fib' by lia.
           unfold nl'. rewrite !g_sumfib'; auto.
-          - rewrite map_pred_insert', sumfib_insert; auto.
+          - rewrite map_pred_insert, sumfib_insert.
             rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
             generalize (fib_eqn (a-3)). simpl_sub. lia.
           - apply insert_delta; auto. lia. }
@@ -1596,7 +1596,7 @@ destruct dp as [|a pl].
         assert (g (n + fib a) = g n + fib (a-1)); [|lia].
         { rewrite <- En. rewrite Nat.add_comm. rewrite <- sumfib_insert.
           rewrite !g_sumfib'; auto.
-          - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+          - rewrite map_pred_insert, sumfib_insert.
             rewrite Nat.sub_1_r. lia.
           - apply insert_delta; auto. lia. }
     }
@@ -1626,7 +1626,7 @@ destruct dp as [|a pl].
           { clear IH.
             unfold pl2. subst p. subst n. unfold pl'.
             unfold nl'. rewrite !g_sumfib'; auto.
-            - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+            - rewrite map_pred_insert, sumfib_insert. simpl.
               rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
               generalize (fib_eqn (b-3)). simpl_sub. lia.
             - constructor; auto. constructor. lia.
@@ -1649,7 +1649,7 @@ destruct dp as [|a pl].
           { clear IH.
             unfold pl2. subst p. subst n. unfold pl', nl'.
             rewrite !g_sumfib'; auto.
-            - rewrite map_pred_insert', sumfib_insert; auto. simpl. lia.
+            - rewrite map_pred_insert, sumfib_insert. simpl. lia.
             - constructor; auto. apply Delta_low_hd with b; auto. lia.
             - apply insert_delta; auto. lia. }
       }
@@ -1672,7 +1672,7 @@ destruct dp as [|a pl].
          assert (g (sumfib nl') + g (sumfib pl') = g n + g p); [|lia].
          { clear IH.
            subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'; auto.
-           - rewrite map_pred_insert', sumfib_insert; auto. simpl. lia.
+           - rewrite map_pred_insert, sumfib_insert. simpl. lia.
            - constructor; auto. lia.
            - apply insert_delta; auto. }
       }
@@ -1696,7 +1696,7 @@ destruct dp as [|a pl].
        assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|lia].
        { clear IH.
          subst p. subst n. unfold nl'. rewrite !g_sumfib'; auto.
-         - rewrite map_pred_insert', sumfib_insert; auto. simpl.
+         - rewrite map_pred_insert, sumfib_insert. simpl.
            rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
            generalize (fib_eqn (a-3)). simpl_sub. lia.
          - constructor; auto. lia. constructor; auto. lia.
