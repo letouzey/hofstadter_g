@@ -1,5 +1,5 @@
 Require Import Arith Lia List Bool.
-Require Import DeltaList GenFib.
+Require Import DeltaList GenFib GenG.
 Import ListNotations.
 
 (** * Morphic words
@@ -563,4 +563,68 @@ Proof.
  - rewrite (Nat.min_comm _ (S k)), Nat.min_assoc.
    rewrite (Nat.min_l k) by auto. apply Nat.min_comm.
  - rewrite Nat.min_l; auto.
+Qed.
+
+(** Counting letter 0 in [kseq k] leads back to the [f k] fonction.
+    [count f a n] is the number of letter [a] in [(f 0) .. (f (pred n))]. *)
+
+Fixpoint count f a n :=
+ match n with
+ | 0 => 0
+ | S n => count f a n + if f n =? a then 1 else 0
+ end.
+
+Lemma f_count_0 k n : k<>0 -> count (kseq k) 0 n + f k n = n.
+Proof.
+ induction n.
+ - easy.
+ - simpl. intros Hk.
+   rewrite kseq_bounded_rank.
+   unfold bounded_rank.
+   destruct (f_step k n) as [E|E].
+   + rewrite E. rewrite flat_rank_0 in E. rewrite E. simpl. lia.
+   + rewrite E. rewrite step_rank_nz in E.
+     destruct (rank k n) as [[|r]|]; simpl; try easy;
+       destruct k; simpl; auto; try lia.
+Qed.
+
+(** Similarly, counting all letters above [p] leads to [(f k)^^p],
+    the p-iterate of [f k]. *)
+
+Fixpoint count_above f a n :=
+ match n with
+ | 0 => 0
+ | S n => count_above f a n + if a <=? f n then 1 else 0
+ end.
+
+Lemma fs_count_above k p n :
+  p <= k -> Nat.iter p (f k) n = count_above (kseq k) p n.
+Proof.
+ intros Hp.
+ induction n.
+ - simpl. apply fs_k_0.
+ - simpl. rewrite kseq_bounded_rank.
+   unfold bounded_rank.
+   destruct (fs_step k p n) as [E|E].
+   + rewrite E. rewrite fs_flat_low_rank in E by lia.
+     destruct (rank k n); try easy.
+     red in E. case Nat.leb_spec; lia.
+   + rewrite E. rewrite fs_nonflat_high_rank in E by lia.
+     destruct (rank k n); unfold olt in E; case Nat.leb_spec; lia.
+Qed.
+
+(* Particular case : p=k *)
+
+Lemma count_above_kseq_k k n :
+  count_above (kseq k) k n = count (kseq k) k n.
+Proof.
+ induction n; simpl; auto.
+ rewrite kseq_bounded_rank. unfold bounded_rank.
+ destruct (rank k n); case Nat.leb_spec; case Nat.eqb_spec; lia.
+Qed.
+
+Lemma fs_count_k k n : Nat.iter k (f k) n = count (kseq k) k n.
+Proof.
+ rewrite fs_count_above by lia.
+ apply count_above_kseq_k.
 Qed.
