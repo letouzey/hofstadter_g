@@ -1004,6 +1004,34 @@ destruct (Nat.lt_ge_cases n 169).
   apply (f5_add_169 (n-169)).
 Qed.
 
+(* And f 5 <= f 6 *)
+
+(*
+Lemma f5_add_424 n : 326 + f 5 n <= f 5 (424+n) <= 333 + f 5 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f6_add_424 n : 333 + f 6 n <= f 6 (424+n) <= 342 + f 6 n.
+Proof.
+ apply decide_additivity. auto. now vm_compute.
+Qed.
+
+Lemma f5_below_f6 n : f 5 n <= f 6 n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 424).
+- clear IH.
+  rewrite <- !fopt_spec. rewrite <- Nat.leb_le.
+  do 424 (destruct n; [now vm_compute|]). exfalso. lia.
+- replace n with (424+(n-424)) by lia.
+  transitivity (333 + f 5 (n - 424)). apply (f5_add_424 (n-424)).
+  transitivity (333 + f 6 (n - 424)).
+  specialize (IH (n-424)). lia.
+  apply (f6_add_424 (n-424)).
+Qed.
+*)
+
 (* TODO: Conjecture : forall k n, f k n <= f (S k) n
    Proof : ??
 *)
