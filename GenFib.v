@@ -151,6 +151,142 @@ Proof.
  generalize (A_base_iff k n) (A_lt_id k n). lia.
 Qed.
 
+Lemma A_Sk_le k n : A (S k) n <= A k n.
+Proof.
+ induction n as [[|n] IH] using lt_wf_ind; auto.
+ rewrite !A_S.
+ transitivity (A k n + A k (n - S k)).
+ - apply Nat.add_le_mono; apply IH; lia.
+ - apply Nat.add_le_mono; auto. apply A_mono. lia.
+Qed.
+
+Lemma A_Sk_lt k n : S k < n -> A (S k) n < A k n.
+Proof.
+ intros LT.
+ replace n with (k + 2 + (n - k - 2)) by lia.
+ set (m := n - k - 2). clearbody m. clear LT n.
+ induction m.
+ - rewrite Nat.add_0_r.
+   rewrite A_base by lia.
+   rewrite Nat.add_succ_r.
+   rewrite A_S.
+   rewrite A_base by lia.
+   replace (k+1-k) with 1 by lia. rewrite A_k_1. lia.
+ - rewrite Nat.add_succ_r.
+   rewrite !A_S.
+   apply Nat.add_lt_le_mono; auto. clear IHm.
+   replace (k + 2 + m - S k) with (S m) by lia.
+   replace (k + 2 + m - k) with (S (S m)) by lia.
+   transitivity (A k (S m)). apply A_Sk_le. apply A_mono; lia.
+Qed.
+
+(* After the "base" zone, a "triangular" zone *)
+
+Definition triangle k := k*(k+1)/2.
+
+Lemma kSk_even k : k*(k+1) mod 2 = 0.
+Proof.
+ destruct (Nat.Even_or_Odd k) as [(l,->)|(l,->)].
+ - rewrite <- Nat.mul_assoc, Nat.mul_comm.
+   apply Nat.mod_mul; auto.
+ - replace (2*l+1+1) with (2*(l+1)) by lia.
+   rewrite (Nat.mul_comm 2 (l+1)), Nat.mul_assoc.
+   apply Nat.mod_mul; auto.
+Qed.
+
+Lemma double_triangle k : 2 * triangle k = k*(k+1).
+Proof.
+ rewrite (Nat.div_mod (k * (k+1)) 2); auto. now rewrite kSk_even.
+Qed.
+
+Lemma triangle_succ k : triangle (S k) = triangle k + S k.
+Proof.
+ apply Nat.mul_cancel_l with 2; auto.
+ rewrite Nat.mul_add_distr_l.
+ rewrite !double_triangle. lia.
+Qed.
+
+Lemma triangle_aboveid k : k <= triangle k.
+Proof.
+ induction k; auto. rewrite triangle_succ. lia.
+Qed.
+
+Lemma A_triangle k n : n <= k+2 -> A k (k + n) = S k + triangle n.
+Proof.
+ induction n.
+ - intros _. rewrite A_base by lia. reflexivity.
+ - intros LE.
+   rewrite Nat.add_succ_r, A_S.
+   replace (k + n - k) with n by lia.
+   rewrite (@A_base k n) by lia.
+   rewrite triangle_succ.
+   rewrite IHn; lia.
+Qed.
+
+(* Just after the triangular zone : *)
+
+Lemma A_2kp3_eqn k : A k (2*k+3) = A k (2*k+2) + A k (S k) + 2.
+Proof.
+ rewrite Nat.add_succ_r, A_S.
+ rewrite <- Nat.add_assoc. f_equal.
+ replace (2*k+2-k) with (S (S k)) by lia.
+ rewrite A_S. f_equal.
+ replace (S k - k) with 1 by lia.
+ apply A_k_1.
+Qed.
+
+Lemma A_2kp3_tri k : A k (2*k+3) = triangle (k+4) - 2.
+Proof.
+ rewrite A_2kp3_eqn.
+ replace (2*k+2) with (k+S (S k)) by lia.
+ rewrite A_triangle, A_base by lia.
+ replace (k+4) with (S (S (S (S k)))) by lia.
+ rewrite (triangle_succ (S (S (S k)))).
+ rewrite (triangle_succ (S (S k))). lia.
+Qed.
+
+(* Behavior of A diagonals :
+   decreasing then flat at [n=2*k+3] then [+1] steps. *)
+
+Lemma A_diag_eq k n : n = 2*k+3 -> A (S k) (S n) = A k n.
+Proof.
+ intros ->.
+ replace (S (2*k + 3)) with (S k + S (k+2)) by lia.
+ rewrite A_triangle by lia.
+ rewrite A_2kp3_tri.
+ replace (k+4) with (S (S (k+2))) by lia.
+ rewrite (triangle_succ (S (k+2))). lia.
+Qed.
+
+Lemma A_diag_step k n : n < 2*k+3 -> A (S k) (S n) = S (A k n).
+Proof.
+ induction n.
+ - intros _. now rewrite A_k_1, A_k_0.
+ - intros LT.
+   rewrite A_S. simpl Nat.sub.
+   rewrite IHn by lia. rewrite A_S. simpl. f_equal. f_equal.
+   rewrite !A_base; lia.
+Qed.
+
+Lemma A_diag_decr k n : 2*k+3 < n -> A (S k) (S n) < A k n.
+Proof.
+ intros LT.
+ replace n with (2*k+4+(n-2*k-4)) by lia.
+ set (m := n-2*k-4). clearbody m. clear n LT.
+ induction m.
+ - rewrite !Nat.add_0_r.
+   rewrite A_S. rewrite Nat.add_succ_r, A_diag_eq by lia.
+   replace (S(2*k+3)-S k) with (k+3) by lia.
+   rewrite A_S.
+   replace (2*k+3-k) with (k+3) by lia.
+   apply Nat.add_lt_mono_l.
+   apply A_Sk_lt. lia.
+ - rewrite Nat.add_succ_r, (A_S (S k)), (A_S k).
+   apply Nat.add_lt_le_mono; auto using A_Sk_le.
+Qed.
+
+(* Inverting A *)
+
 Fixpoint invA k n :=
   match n with
   | 0 => 0

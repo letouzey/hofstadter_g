@@ -875,37 +875,46 @@ Proof.
  now apply renorm_mapdecr.
 Qed.
 
+(** Zone where [f k n = n-1].
+    Note that [f k n] cannot be [n] or more except when [n<=1], see [f_lt].
+    The conditions below are optimal, see [f_subid_inv] later. *)
+
+Lemma f_subid k n : n<>1 -> n <= k+3 -> f k n = n-1.
+Proof.
+ intros Hn Hn'.
+ destruct (Nat.eq_dec n 0).
+ - subst. now rewrite f_k_0.
+ - destruct (Nat.eq_dec n (k+3)).
+   + subst. clear Hn.
+     replace (k+3-1) with (k+2) by lia.
+     replace (k+3) with (sumA k [0;S k]).
+     2:{ cbn -[A]. rewrite !A_base; lia. }
+     rewrite f_sumA; auto. simpl. rewrite A_base; lia.
+   + replace n with (A k (n-1)) at 1 by (rewrite A_base; lia).
+     rewrite f_A, A_base; lia.
+Qed.
+
+
 (** Some particular cases : early diagonals *)
 
-Lemma f_k_k k : 2<=k -> f k k = k-1.
+Lemma f_k_k k : k<>1 -> f k k = k-1.
 Proof.
- intros Hk.
- replace k with (sumA k [k-1]) at 2.
- 2:{ cbn -[A]. rewrite !A_base; lia. }
- rewrite f_sumA; auto. simpl. destruct k as [|[|k]]; simpl; try lia.
- rewrite A_base; lia.
+ intros. apply f_subid; lia.
 Qed.
 
 Lemma f_k_Sk k : k<>0 -> f k (S k) = k.
 Proof.
- replace (S k) with (sumA k [k]).
- 2:{ cbn -[A]. rewrite !A_base; lia. }
- rewrite f_sumA; auto. simpl. destruct k; simpl. easy.
- rewrite A_base; lia.
+ intros. rewrite f_subid; lia.
 Qed.
 
 Lemma f_k_plus_2 k : f k (2+k) = S k.
 Proof.
- replace (2+k) with (sumA k [S k]).
- 2:{ cbn -[A]. rewrite !A_base; lia. }
- rewrite f_sumA; simpl. rewrite A_base; lia. constructor; auto.
+ rewrite f_subid; lia.
 Qed.
 
 Lemma f_k_plus_3 k : f k (3+k) = 2+k.
 Proof.
- replace (3+k) with (sumA k [0;S k]).
- 2:{ cbn -[A]. rewrite !A_base; lia. }
- rewrite f_sumA; auto. simpl. rewrite A_base; lia.
+ rewrite f_subid; lia.
 Qed.
 
 Lemma f_k_plus_4 k : f k (4+k) = 2+k.
@@ -945,7 +954,16 @@ Proof.
  rewrite f_sumA_lax; auto. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
-(** Summarize the last results (note that [f 0 p = (p+1)/2]). *)
+Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+3.
+Proof.
+ intros E. split.
+ - intros ->. rewrite f_k_1 in E. discriminate.
+ - rewrite Nat.le_ngt. intros LT.
+   generalize (f_lipschitz k (4+k) n).
+   rewrite f_k_plus_4, E. lia.
+Qed.
+
+(** Summarize some of the last results (note that [f 0 p = (p+1)/2]). *)
 
 Lemma f_k_plus_some k p : 2 <= p <= 7 -> f k (k+p) = k + f 0 p.
 Proof.
@@ -1284,6 +1302,378 @@ Proof.
  - rewrite rank_none in *. subst.
    rewrite fs_k_0. apply fs_nonzero. lia.
 Qed.
+
+(** Study of the "triangular" zone of f, coming after the "n-1" zone
+    seen in [f_subid]. Here [n <= triangle(k+4)-3 = A k (2*k+3) - 1].
+
+    But first, we define [steps], an invert of the [triangle] function. *)
+
+Fixpoint steps n :=
+ match n with
+ | 0 => 0
+ | S n => S (steps (n - steps n))
+ end.
+
+Lemma steps_lt a b :
+ a < b -> a*(a+1) < b*(b+1).
+Proof.
+ intros. apply Nat.mul_lt_mono; lia.
+Qed.
+
+Lemma steps_inv_lt a b :
+ a*(a+1) < b*(b+1) -> a < b.
+Proof.
+ intros LT.
+ destruct (Nat.lt_ge_cases a b) as [H|H]; auto.
+ apply Nat.lt_eq_cases in H. destruct H.
+ - apply steps_lt in H. lia.
+ - subst. lia.
+Qed.
+
+Lemma steps_inv_le a b :
+ a*(a+1) <= b*(b+1) -> a <= b.
+Proof.
+ intros LE.
+ destruct (Nat.le_gt_cases a b) as [H|H]; auto.
+ apply steps_lt in H. lia.
+Qed.
+
+Lemma steps_uniqueness n a b :
+ a*(a+1) <= 2*n < (a+1)*(a+2) ->
+ b*(b+1) <= 2*n < (b+1)*(b+2) ->
+ a = b.
+Proof.
+ intros (Ha,Ha') (Hb,Hb').
+ assert (a <= b) by (apply Nat.lt_succ_r, steps_inv_lt; lia).
+ assert (b <= a) by (apply Nat.lt_succ_r, steps_inv_lt; lia).
+ lia.
+Qed.
+
+Lemma steps_spec n :
+ let k := steps n in
+ k*(k+1) <= 2*n < (k+1)*(k+2).
+Proof.
+ induction n as [[|n] IH] using lt_wf_ind.
+ - clear IH. simpl. lia.
+ - simpl steps.
+   intros k.
+   replace (2 * S n) with (2+2*n) by lia.
+   assert (LT : n < S n) by lia.
+   assert (IH1 := IH n LT).
+   assert (LT' : n - steps n < S n) by lia.
+   assert (IH2 := IH _ LT'). clear IH.
+   set (p := steps n) in *.
+   set (q := steps (n-p)) in *.
+   unfold k; clear k. cbv zeta in *.
+   replace (2*(n-p)) with (2*n-2*p) in IH2 by lia.
+   assert (q <= p).
+   { apply Nat.lt_succ_r. apply steps_inv_lt. lia. }
+   assert (p <= S q).
+   { destruct (Nat.eq_dec p 0).
+     - clearbody p. subst p. auto with arith.
+     - assert (p-1 < S q); try lia.
+       apply steps_inv_lt.
+       replace (p-1+1) with p by lia.
+       apply Nat.le_lt_trans with (2*n-2*p); try lia.
+       rewrite !Nat.mul_add_distr_l in IH1.
+       rewrite !Nat.mul_sub_distr_r. lia. }
+   replace (S q) with (q+1) by lia.
+   replace (q+1+1) with (q+2) by lia.
+   replace (q+1+2) with (q+3) by lia.
+   rewrite !Nat.mul_add_distr_l in *.
+   rewrite !Nat.mul_add_distr_r in *. lia.
+Qed.
+
+Lemma steps_spec' n :
+ triangle (steps n) <= n < triangle (S (steps n)).
+Proof.
+ destruct (steps_spec n) as (LE,LT).
+ set (k := steps n) in *. clearbody k.
+ split.
+ - unfold triangle. apply Nat.div_le_upper_bound; auto.
+ - clear LE.
+   replace ((k+1)*(k+2)) with (S k * (S k + 1)) in * by lia.
+   rewrite <- double_triangle in LT. lia.
+Qed.
+
+Lemma steps_altspec k p :
+ p <= k -> steps (triangle k + p) = k.
+Proof.
+ intros LE.
+ apply steps_uniqueness with (triangle k + p).
+ apply steps_spec.
+ replace ((k+1)*(k+2)) with (S k * (S k + 1)) by lia.
+ rewrite <- !double_triangle, triangle_succ. lia.
+Qed.
+
+Lemma steps_triangle k : steps (triangle k) = k.
+Proof.
+ rewrite <- (Nat.add_0_r (triangle k)). apply steps_altspec. lia.
+Qed.
+
+Lemma steps_triangle_minus k p : 1 <= p <= k ->
+ steps (triangle k - p) = k - 1.
+Proof.
+ destruct k.
+ - reflexivity.
+ - intros LE.
+   rewrite triangle_succ.
+   replace (triangle k + S k - p) with (triangle k + (S k - p)) by lia.
+   rewrite steps_altspec; lia.
+Qed.
+
+Lemma steps_incr n m :
+  n <= m -> steps n <= steps m.
+Proof.
+ intros LE. apply Nat.lt_succ_r.
+ apply steps_inv_lt.
+ apply Nat.le_lt_trans with (2*n). apply steps_spec.
+ apply Nat.le_lt_trans with (2*m). lia.
+ generalize (steps_spec m). simpl. lia.
+Qed.
+
+Lemma steps_step n : steps (S n) <= S (steps n).
+Proof.
+ assert (H := steps_spec' n).
+ set (k := steps n) in *.
+ destruct (Nat.leb_spec (S n - triangle k) k).
+ - replace (S n) with (triangle k + (S n - triangle k)) by lia.
+   rewrite steps_altspec; auto.
+ - rewrite triangle_succ in H.
+   replace (S n) with (triangle k + S k) by lia.
+   rewrite <- triangle_succ, steps_triangle; auto.
+Qed.
+
+Lemma steps_le_id n : steps n <= n.
+Proof.
+ induction n; auto.
+ transitivity (S (steps n)). apply steps_step. lia.
+Qed.
+
+Lemma steps_after n : steps (n + S (steps n)) = S (steps n).
+Proof.
+ assert (H := steps_spec' n).
+ set (k := steps n) in *.
+ rewrite triangle_succ in H.
+ replace (n + S k) with (triangle k + S k + (n - triangle k)) by lia.
+ rewrite <- triangle_succ.
+ apply steps_altspec; auto. lia.
+Qed.
+
+(** Unused finally : an alternative tail-recursive definition. *)
+
+Fixpoint steploop n p :=
+ match n with
+ | 0 => p
+ | S n => if n <? p then p else steploop (n-p) (S p)
+ end.
+
+Lemma steploop_spec n p : steploop n p = steps (n + triangle p).
+Proof.
+ revert p.
+ induction n as [[|n] IH] using lt_wf_ind; intros p; simpl steploop.
+ - symmetry. apply steps_triangle.
+ - case Nat.ltb_spec.
+   + symmetry. rewrite Nat.add_comm. apply steps_altspec. auto.
+   + intros. rewrite IH; try lia.
+     f_equal. rewrite triangle_succ. lia.
+Qed.
+
+Definition steps_opt n := steploop n 0.
+
+Lemma steps_equiv n : steps_opt n = steps n.
+Proof.
+ unfold steps_opt. rewrite steploop_spec. f_equal. now unfold triangle.
+Qed.
+
+(* The numbers below [A k (2*k+3) = triangle(k-4)-2] (cf A_2kp3_tri)
+   have a decomposition of size at most 2, and have rank 0 only when
+   they are 1 or a successor of a [A] number. That's the key for describing
+   the "triangular" zone of f. Graphical interpretation : the bottom
+   of the tree, where binary nodes are on the left edge. *)
+
+Lemma decomp_len_lt_3 k n :
+  n < A k (2*k+3) - 1 -> length (decomp k n) < 3.
+Proof.
+ intros LT.
+ assert (E := decomp_sum k n).
+ assert (D := decomp_delta k n).
+ destruct (decomp k n) as [|r [|p [|q l]]]; simpl; try lia.
+ exfalso.
+ rewrite 2 Delta_alt in D. destruct D as ((_,D1),D2).
+ specialize (D2 p (or_introl eq_refl)).
+ specialize (D1 q (or_introl eq_refl)).
+ assert (A k (S k) <= A k p) by (apply A_mono; lia).
+ assert (A k (2*k + 2) <= A k q) by (apply A_mono; lia).
+ simpl in E. rewrite A_2kp3_eqn in LT.
+ generalize (A_nz k r). lia.
+Qed.
+
+Lemma decomp_len_3 k :
+  decomp k (A k (2*k+3) - 1) = [0; S k; 2*S k].
+Proof.
+ apply decomp_carac.
+ - repeat (constructor; try lia).
+ - rewrite A_2kp3_eqn. replace (2*S k) with (2*k+2) by lia.
+   simpl. replace (k-k) with 0; lia.
+Qed.
+
+Lemma low_rank0 k n :
+  1 < n < A k (2*k+3) - 1 -> rank k n = Some 0 ->
+  exists p, p < 2*k+3 /\ n = S (A k p).
+Proof.
+ unfold rank.
+ intros (Hn,Hn') Hr.
+ assert (L := decomp_len_lt_3 k Hn').
+ assert (E := decomp_sum k n).
+ assert (D := decomp_delta k n).
+ destruct (decomp k n) as [|r [|p [|q l]]]; simpl in L;
+  try easy; injection Hr as ->; simpl in E; try lia.
+ exists p. split; try lia. apply A_lt_inv with k; lia.
+Qed.
+
+Lemma A_plus2 k n : n <= k+2 -> A k n <= n+2.
+Proof.
+ rewrite Nat.lt_eq_cases. intros [LT | ->].
+ - rewrite A_base; lia.
+ - rewrite Nat.add_succ_r, A_S, A_base; try lia.
+   replace (k+1-k) with 1 by lia. now rewrite A_k_1.
+Qed.
+
+Lemma f_triangle k n :
+  n<>1 -> n <= triangle(k+4)-3 ->
+  f k n = n-1 - steps (n-k-3).
+Proof.
+ replace (_-3) with (triangle(k+4)-2-1) by lia. rewrite <- A_2kp3_tri.
+ induction n.
+ - reflexivity.
+ - intros NE LE.
+   destruct (Nat.leb_spec (S n) (k+3)).
+   + rewrite f_subid; auto.
+     replace (S n - k - 3) with 0 by lia. simpl. lia.
+   + destruct (f_step k n) as [E|E].
+     * rewrite E.
+       rewrite flat_rank_0 in E.
+       destruct (@low_rank0 k n) as (p & Hp & Hp'); auto; try lia.
+       assert (k < p).
+       { apply A_lt_inv with k. rewrite A_base by lia. lia. }
+       rewrite IHn; try lia.
+       assert (steps (S n - k - 3) = S (steps (n - k - 3))); try lia.
+       { replace p with (k+(p-k)) in Hp' by lia.
+         rewrite A_triangle in Hp'; try lia.
+         rewrite Hp'.
+         replace (_ - k - 3) with (triangle (p-k)) by lia.
+         rewrite steps_triangle.
+         replace (_ - k - 3) with (triangle (p-k) - 1) by lia.
+         rewrite steps_triangle_minus; lia. }
+     * rewrite E.
+       rewrite step_rank_nz in E.
+       rewrite IHn; clear IHn; try lia.
+       assert (LE' := steps_le_id (n-k-3)).
+       assert (steps (S n - k - 3) = steps (n - k - 3)); try lia.
+       { clear LE'.
+         destruct (@A_inv' k n) as (p,Hp); try lia.
+         assert (k < p).
+         { rewrite Nat.succ_lt_mono.
+           apply A_lt_inv with k. rewrite A_base; lia. }
+         assert (p < 2*k+3).
+         { apply A_lt_inv with k. lia. }
+         assert (LE' : p - k <= k + 2) by lia.
+         assert (T := A_triangle k LE').
+         replace (k+(p-k)) with p in T by lia.
+         assert (n <> S (A k p)).
+         { intro E'. apply E.
+           unfold rank. replace (decomp k n) with [0;p]; auto.
+           symmetry. apply decomp_carac; simpl; try lia.
+           constructor. lia. auto. }
+         destruct (Nat.eq_dec (A k p) n) as [E'|NE'].
+         - clear Hp.
+           assert (S k < p).
+           { apply A_lt_inv with k. rewrite A_base; lia. }
+           rewrite E' in T. rewrite T.
+           replace (_ - k - 3) with (triangle (p-k) - 1) by lia.
+           replace (_ - k - 3) with (triangle (p-k) - 2) by lia.
+           rewrite !steps_triangle_minus; lia.
+         - rewrite A_S in Hp.
+           set (t := triangle (p-k)) in *. apply A_plus2 in LE'.
+           replace (n-k-3) with (t + (n-k-3-t)) by lia.
+           replace (S n-k-3) with (t + (S n-k-3-t)) by lia.
+           unfold t at 1 3. rewrite !steps_altspec; lia. }
+Qed.
+
+(* The conjecture [f k n <= f (S k) n] is hence true
+   when n is in this triangular zone. *)
+
+Lemma f_triangle_diag_incr k n :
+  n<>1 -> n <= triangle(k+4)-3 ->
+  f (S k) (S n) = S (f k n).
+Proof.
+ intros Hn LE.
+ destruct (Nat.eq_dec n 0).
+ - subst. now rewrite f_k_0, f_k_1.
+ - rewrite !f_triangle; try lia. simpl.
+   generalize (steps_le_id (n-k-3)). lia.
+   simpl. rewrite triangle_succ. lia.
+Qed.
+
+Lemma f_triangle_incrk k n :
+  n <= triangle(k+4)-3 -> f k n <= f (S k) n.
+Proof.
+ destruct (Nat.eq_dec n 1) as [->|NE].
+ - intros _. now rewrite !f_k_1.
+ - intros LE.
+   destruct (f_step (S k) n) as [E|E].
+   + rewrite <- E. rewrite f_triangle_diag_incr; auto.
+   + rewrite f_triangle_diag_incr in E; lia.
+Qed.
+
+(* Some particular cases at the limit of the triangular zone *)
+
+Lemma f_after_triangle_1 k n :
+ n = triangle(k+4)-2 -> f k n = n - k - 4.
+Proof.
+ rewrite <- A_2kp3_tri. intros ->.
+ rewrite f_A. rewrite A_2kp3_eqn.
+ rewrite (@A_base k (S k)) by lia.
+ replace (2*k+3-1) with (2*k+2); lia.
+Qed.
+
+Lemma f_after_triangle_2 k n :
+ n = triangle(k+4)-2 -> f k (S n) = n - k - 3.
+Proof.
+ rewrite <- A_2kp3_tri. intros ->.
+ rewrite f_SA; try lia.
+ rewrite A_2kp3_eqn.
+ rewrite (@A_base k (S k)) by lia.
+ replace (2*k+3-1) with (2*k+2); lia.
+Qed.
+
+Lemma f_after_triangle_3 k n :
+ n = triangle(k+4)-2 -> f (S k) n = n - k - 3.
+Proof.
+ intros E.
+ rewrite f_triangle.
+ 2:{ rewrite E, Nat.add_succ_r, triangle_succ. lia. }
+ 2:{ simpl. rewrite triangle_succ. lia. }
+ rewrite E at 2.
+ rewrite Nat.add_succ_r, triangle_succ.
+ replace (_ + S (k+3) - 2 - S k - 3) with (triangle (k+3) -2) by lia.
+ rewrite steps_triangle_minus; lia.
+Qed.
+
+Lemma f_after_triangle_4 k n :
+ n = triangle(k+4)-2 -> f (S k) (S n) = n - k - 2.
+Proof.
+ intros E.
+ rewrite f_triangle.
+ 2:{ rewrite E, Nat.add_succ_r, triangle_succ. lia. }
+ 2:{ simpl. rewrite triangle_succ. lia. }
+ simpl. rewrite E at 2.
+ rewrite Nat.add_succ_r, triangle_succ.
+ replace (_ + S (k+3) - 2 - k - 3) with (triangle (k+3) -1) by lia.
+ rewrite steps_triangle_minus; lia.
+Qed.
+
 
 (** * Another equation about [f]
 
