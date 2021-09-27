@@ -25,6 +25,11 @@ let output_gnuplot_file file tab =
   Array.iter (fun (a,b) -> Printf.fprintf c "%f %f\n" a b) tab;
   close_out c
 
+let output_gnuplot_file3 file tab =
+  let c = open_out file in
+  Array.iter (fun (x,y,z) -> Printf.fprintf c "%f %f %f\n" x y z) tab;
+  close_out c
+
 (** the recursive functions *)
 
 let rec d n = if n = 0 then 0 else n - d(n-1)
@@ -617,6 +622,14 @@ let _ = output_gnuplot_file "/tmp/out2bis"
 (* See also :
    https://tilings.math.uni-bielefeld.de/substitution/a-ab--b-c--c-a/ *)
 
+(* A version which looks closer to this Jacobi-Perron fractal:
+   (h(n)-limh*n, h(h(n))-limh^2*n) is just a 90 degree rotation of it
+ *)
+let _ = output_gnuplot_file "/tmp/out2bisbis"
+          (Array.init 10000 @@ fun i ->
+                               float a2.(i) -. float i *. limh,
+                               float a2.(a2.(i)) -. float i *. limh ** 2.)
+
 let delta2ter =
   Array.init 10000 @@
     fun i ->
@@ -680,6 +693,20 @@ let delta3bis = Array.init 10000 @@ fun i -> (delta3.(i),delta3.(a3.(i)))
 
 (* No obvious fractal, rather a cloud of points : *)
 let _ = output_gnuplot_file "/tmp/out3bis" delta3bis
+
+let _ = output_gnuplot_file "/tmp/out3bisbis"
+      (Array.init 50000 @@ fun i ->
+                           float a3.(i) -. float i *. lims.(3),
+                           float a3.(a3.(i)) -. float i *. lims.(3) ** 2.)
+
+let _ = output_gnuplot_file3 "/tmp/out3bisbis3"
+      (Array.init 50000 @@ fun i ->
+                           float a3.(i) -. float i *. lims.(3),
+                           float a3.(a3.(i)) -. float i *. lims.(3) ** 2.,
+                           float a3.(a3.(a3.(i))) -. float i *. lims.(3) ** 3.)
+
+(* Displayed via splot, the 3D cloud of points seems to have at least one axis
+   revealing some fractal aspect. *)
 
 (* Two segments *)
 let delta3ter =
