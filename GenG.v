@@ -541,6 +541,13 @@ Proof.
  intros. rewrite f_pred. rewrite fs_init; lia.
 Qed.
 
+(* Said otherwise : for any n, [f k n] will eventually be stationary
+   when k grows. More precisely, for [n>=2], [f k n = n-1] as soon as
+   [k>=n-3]. And for [n<2], we always have [f k n = n].
+   Conjecture: at fixed n and growing k, [f k n] will be increasing.
+   TODO, no full proof yet, more on that in [GenAdd].
+*)
+
 (*==============================================================*)
 
 (** * Faster computation of f *)
@@ -884,14 +891,7 @@ Proof.
  intros Hn Hn'.
  destruct (Nat.eq_dec n 0).
  - subst. now rewrite f_k_0.
- - destruct (Nat.eq_dec n (k+3)).
-   + subst. clear Hn.
-     replace (k+3-1) with (k+2) by lia.
-     replace (k+3) with (sumA k [0;S k]).
-     2:{ cbn -[A]. rewrite !A_base; lia. }
-     rewrite f_sumA; auto. simpl. rewrite A_base; lia.
-   + replace n with (A k (n-1)) at 1 by (rewrite A_base; lia).
-     rewrite f_A, A_base; lia.
+ - apply f_init; lia.
 Qed.
 
 
