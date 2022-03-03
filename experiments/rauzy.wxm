@@ -1,0 +1,313 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 20.12.1 ] */
+/* [wxMaxima: input   start ] */
+A : matrix([1,0,1],[1,0,0],[0,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+P : expand(charpoly(A,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+roots : allroots(P);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau : 1/subst(roots[3],x);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+alpha : subst(roots[1],x);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+float(expand(alpha*conjugate(alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+B : matrix([-tau^2,-1],[tau,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(charpoly(B,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+(1/tau-1)^2-4*tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+alpha+conjugate(alpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+alpha+conjugate(alpha)+1/tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+M : matrix([alpha,-1],[-conjugate(alpha),1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+IM : matrix([1,1],[conjugate(alpha),alpha]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Diag : matrix([alpha,0],[0,conjugate(alpha)]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+determinant(IM);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Attention ! la multiplication de matrices c'est . pas * (et ^^ la puissance)
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+M.IM;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(M.B-Diag.M);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+load(implicit_plot);
+
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+implicit_plot ([tau*x^2+tau^2*x*y+y^2 = 1.067^2,y=x*(tau-1/sqrt(tau)),y=x*(tau+1/sqrt(tau))],
+ [x, -1.5, 1.5],[y,-1.5,1.5],same_xy);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+NB : pour k après, la présence d'une racine non dominante mais de norme>1 a l'air très fréquent...
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(allroots(x^8-x^7-1));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau*1.4^2-tau^4*1.4*0.7+tau^4*0.7^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+a1 : rectform((alpha*(tau^2-1)-tau^3)/(alpha-conjugate(alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+a2 : rectform(conjugate(alpha)*a1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+13-tau*19;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+2*cabs(a1)/(1-cabs(alpha)^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/(1-cabs(alpha)^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+2*cabs(a2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(1+alpha^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(alpha^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(alpha^2+alpha^5);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+2*cabs(a1)*cabs(1+alpha^3+alpha^7)/(1-cabs(alpha)^9);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(1+alpha^3+alpha^6);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(1+alpha^5);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+makelist(cabs(1+alpha^5+alpha^k),k,8,8);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(z) := cabs(alpha*z[1][1]-z[2][1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vect_z : transpose([tau^2-1,tau^3]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(vect_z);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^3
+;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vect_z+(B^^3).vect_z;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(vect_z+(B^^5).vect_z+(B^^8).vect_z);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+transpose(B.transpose(vect_z));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(vect_z+(B^^3).vect_z+(B^^7).vect_z)/(1-cabs(alpha)^9);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^3*0.5^2-tau^3*0.5+1;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+0.956^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+float(1.21*tau);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+B^^3;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+matrix([1-tau^2,tau^2],[-tau^3,tau^3]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau*1.21;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2*1.21+0.996;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+0.966*tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vect_z+(B^^3).transpose([-1.21,-0.996]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+xmax:1.21;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ymax:0.996;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+points:[[xmax,ymax],[xmax,-ymax],[-xmax,-ymax],[-xmax,ymax],[xmax,ymax]];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Bpoints:makelist(args(transpose(B.transpose(p)))[1],p,points);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+B3points:makelist(args(transpose(vect_z+(B^^3).transpose(p)))[1],p,points);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+wxplot2d([[discrete,points],[discrete,Bpoints],[discrete,B3points]]);
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Old versions of Maxima abort on loading files that end in a comment. */
+"Created with wxMaxima 20.12.1"$
