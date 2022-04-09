@@ -1,18 +1,44 @@
 
 Polynome : Pk(x) = x^k - x^(k-1) -1  pour k>1
+=============================================
 
-## Factorisation quand k = 5 mod 6
+## Allure générale
+
+Pk(0) = -1
+Pk(1) = -1
+Pk(2) = 2^k - 2^(k-1) -1 = 2^(k-1) -1 > 0
+Pk(-1) = 1 - (-1)-1 = 1 si k pair
+Pk(-1) = -1 -1 -1 = -3 si k impair
+
+Dérivée : k*x^(k-1)-(k-1)*x^(k-2) = x^(k-2)*(kx-(k-1)).
+S'annule en 0 (si k>2) et (k-1)/k = 1-1/k.
+Positif sur 1..oo en tout cas.
+Si k pair, Pk decroissant avant 1-1/k et croissant après,
+ deux racines réelles, une dans ]-1..0[ l'autre dans ]1..2[.
+Si k impair, Pk croissant avant 0 (atteint -1) puis décroit,
+puis croit de nouveau après 1-1/k. Une unique racine réelle,
+dans ]1..2[.
+
+Ces racines réelles positives sont décroissantes quand k augmente.
+
+k=2  P2(x)=x^2-x-1  racine=phi=1.618   (et -0.618)
+k=3  P3(x)=x^3-x^2-1 racine=1.4655
+k=4  P4(x)=x^4-x^3-1 racine=1.3802     (et -0.82)
+k=5  P5(x)=x^5-x^4-1 racine=1.3247 (nombre plastique, racine de x^3-x-1) 
+k=6  P6(x)=x^6-x^5-1 racine=1.28       (et -0.88)
+
+## Factorisable quand k = 5 mod 6
 
 Si on a une racine de norme 1 :
  comme |x^(k-1)|.|x-1| = 1 alors |x-1|=1
  donc cela ne peut être que j=e^(iπ/3) ou conj(j)
- Ce qui se produit uniquement pour:
- j^(k-1).(j-1) = 1  or j-1 = e^(2iπ/3)
- e^((k+1)iπ/3) = 1
+ Ce qui se produit uniquement pour: j^(k-1).(j-1) = 1
+ Sauf que j-1 = e^(2iπ/3)
+ Donc e^((k+1)iπ/3) = 1
  (k+1) = 0 mod 6
  k = 5 mod 6
- 
-Pour k=5 mod 6, x^k-x^(k-1)-1 divisible par (x-j)(x-conj(j)) = x^2-x+1
+
+Pour k=5 mod 6, Pk divisible par (x-j)(x-conj(j)) = x^2-x+1
 
 Restes : 
  k = 5    x^3-x-1
@@ -34,7 +60,7 @@ Ces restes sont-ils toujours irréductibles ??
 Donc a_0*b_0 = -1 donc les deux sont +/-1 (et opposés)
 et a_(p-1) = - b_(q-1)
 
-a_(p-2) + b_(q-2) 
+a_(p-2) + b_(q-2)
 
 
 
@@ -45,13 +71,13 @@ Notons k = 5+6p
  avec R0(x) = x^3-x-1
   et pour p<>0 :  Rp(x) = R_{p-1}(x) + x^(6p-2)*(x^5-x^3-x^2+1)
 
-En effet : ok pour (x^2-x+1)(x^3-x-1) = x^5-x^4-1
+Démonstration : ok pour (x^2-x+1)(x^3-x-1) = x^5-x^4-1
 et ensuite soit p<>0 tel que (x^2-x+1)*R_{p-1}(x) = P(6p-1)
 alors (x^2-x+1)(R_{p-1}(x)+x^(6p-2)*(x^5-x^3-x^2+1))
     = P(6p-1) + x^(6p-2)*[x^7 - x^6 -x + 1 ]
     = P(6p+5)
 
-Pour p<>0 : 
+Nb: Pour p<>0 : 
  Rp(x) = x^3-x-1 + x^4*(x^5-x^3-x^2+1)*Qp(x^6)
  où  Qp(x) = x^(p-1) + x^(p-2) + ... + 1 = (x^p-1)/(x-1)
  
@@ -61,6 +87,8 @@ Nb: x^5-x^3-x^2+1 = (x-1)^2*(x+1)*(x^2+x+1)
 
 ## Irreductibilité sur Q (ou Z) sinon ?
 
+Nb: factorisation dans Z <-> factorisation dans Q.
+
 Si on n'est pas dans le cas k=5 mod 6, alors toutes les racines ont
 normes != 1.
 
@@ -69,21 +97,25 @@ Le produit des racines vaut (-1)^(k-1) donc une racine au moins de
 norme < 1.
 
 Pour k>5, la racine réelle positive est inférieure au nombre plastique
-1.3247... qui est le plus petit nombre de Pisot. Conséquence :
-Pk a alors au moins une autre racine de norme > 1 (sinon on aurait
-trouvé un Pisot < nb plasique). En fait, on a même au final trois
+1.3247... qui est le plus petit nombre de Pisot (racine de x^3-x-1).
+Conséquence : Pk a alors au moins une autre racine de norme > 1 (sinon
+on aurait trouvé un Pisot < nb plasique). En fait, on a même au final trois
 racines de norme > 1 : la racine réelle positive, et deux complexes conjugées.
 
 
 #### Facteur de degré 1
 
-Théorème des racines rationnelles : ne peut être que +/-1 ce qui n'est pas
+Factorisation sur Q, donc on aurait alors une racine rationnelle. 
+
+Théorème des racines rationnelles : cette racine ne pourrait être
+que +/-1 ce qui n'est pas.
 
 #### Facteur de degré 2
 
-Si un facteur de degré 2
- P = Q.R avec Q degré 2
-     Q = x^2+ax+b
+Si un facteur de degré 2 : P = Q.R avec Q degré 2.
+Prenons Q et R polynomes à coefs entiers, et unitaires (sinon
+developpement ne pourrait donner x^k+...).
+Donc Q = x^2+ax+b
 
 P(0) = -1 = Q(0).R(0) donc Q(0) = b = +/- 1
 P(1) = -1 = Q(1).R(1) donc Q(1) = 1+a+b = +/- 1
@@ -98,7 +130,7 @@ P(1) = -1 = Q(1).R(1) donc Q(1) = 1+a+b = +/- 1
    
  Q = x^2+x-1 ==> racines (-1+/-sqrt(5))/2, racine positive 0< <1 : impossible
 
-Bref, pas de facteur strict de degré 2 hormi parfois (x^2-x+1).
+Bref, pas de facteur strict de degré 2 hormis parfois (x^2-x+1).
 
 
 ### Facteur de degré 3
@@ -140,12 +172,38 @@ Bref, facteur strict de degré 3 possible seulement pour k=5
 
 ### Et ensuite ??
 
-Pk irreductible k<8 (hormis k=5) car sinon il y aura au
+Pk irreductible pour k<8 (hormis k=5) car sinon il y aura au
 moins un facteur de degré 3. Ensuite ?
 
-### Vrac
+Pour P8 on peut vérifier qu'il n'y a pas deux facteurs
+de degré 4, à coefs entiers, unitaires tq. P8=Q*R.
+Méthode de Kronecker:
+P8(0) = -1 = Q(0)*R(0) donc l'un a coef constant 1, l'autre -1
+P8(1) = -1 = Q(1)*R(1) donc Q(1) = +/-1 et R(1)=-Q(1)
+P8(-1) = -1 = Q(-1)*R(-1) donc Q(-1) = +/-1 et R(-1)=-Q(-1)
+P8(2) = 127 = Q(2)*R(2) donc Q(2)\in{1,-1,127,-127} et R(2)=127/Q(2)
+On a donc 16 cas pour (Q(1),Q(-1),Q(2)), ensuite cela donne
+à chaque fois des systèmes linéaires donnant les coefs restants de Q,
+et de R (ou souvent pas de solutions entières, juste des fractions).
+Pour le seul cas où Q et R ont des solutions simultanément, le produit
+des polynômes trouvées ne donne pas P8.
+
+Pas de généralisation évidente.
+Si Pk = Q*R, on peut juste dire:
+ Q(0)*R(0) = -1 donc Q(0)=+/-1
+ Q(1)*R(1) = -1 donc Q(1)=+/-1 (i.e. la somme des coefs de Q)
+ Q(-1)*R(-1) = -1 ou -3 selon la parité de k.
+  donc la somme alternée des coefs de Q est dans 1,-1,3,-3.
+Ensuite ?
+ En 2 on obtient un 2^(k-1)-1 mais qui n'est que rarement premier.
+ 
+??
+
+
+### Dual
 
 Polynome dual (chgt par x->1/x) : x^k+x-1
+Ca n'a pas l'air gagnant comme changement.
 
 Refs:
 
@@ -157,7 +215,7 @@ https://en.wikipedia.org/wiki/Perron%27s_irreducibility_criterion
 https://en.wikipedia.org/wiki/Cohn%27s_irreducibility_criterion
 https://en.wikipedia.org/wiki/Eisenstein%27s_criterion
 
-### Nombre de racines de norme >1 
+### Nombre de racines de norme >1
 
 Apparemment ça a l'air d'être le nombre de racine k-ieme de l'unité
 entre e^-iπ/3 et e^iπ/3.
