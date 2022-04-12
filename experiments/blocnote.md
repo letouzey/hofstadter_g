@@ -31,19 +31,45 @@ Puis on diminue ε.
 
 For every subadditive sequence `(a_n)` the limit `lim_{n →_∞} (a_n/n)` exists and is equal to the infimum `inf(a_n/n)` (The limit may be `−∞`).
 
-Ici a priori on a (même si ça reste à prouver)
+Pour certains k, on a `∃C, ∀nm, fk(n+m) <= fk(n) + fk(m) + C`.
+Cf. `FunG.g_add_bound` (C=1), ou bien l'étude de H "à la Rauzy" (C=2).
+Attention, ça n'est sans doute pas général, mais sans doute spécifique
+à k <= 4.
 
-`fk(n+m) <= fk(n) + fk(m) + C`
+Pour ces k presque sous-additifs, on considère `f'(n) = fk(n)+C`
+Alors `f'(n+m) = fk(n+m)+C <= fk(n)+fk(m)+C+C = f'(n)+f'(m)`
 
-donc en considérant `f'(n) = fk(n)+C`
-
-`f'(n+m) = fk(n+m)+C <= fk(n)+fk(m)+C+C = f'(n)+f'(m)`
-
-donc `f'(n)/n` a une limite quand `n->\infty`
+Par le thm de Fekete, `f'(n)/n` a une limite quand `n->\infty`
 donc `fk(n)/n = f'(n)/n - C/n` aussi
-et ça ne peut être que la racine du polynôme etc etc
+et ça ne peut être que la racine du polynôme etc etc.
+De plus, `lim = inf (f'(n)/n)` donc `lim <= f'(n)/n = (fk(n)+C)/n`
+donc `fk(n) >= n*lim-C`.
 
-Si on a `fk(n)+fk(m)-C <= fk(n+m) <= fk(n)+fk(m)+C`, alors on peut même montrer `n*lim-C <= fk(n) <= n*lim+C`
+Si on a quasi-additivité `fk(n)+fk(m)-C <= fk(n+m) <= fk(n)+fk(m)+C`,
+alors on a les deux côtés : `n*lim-C <= fk(n) <= n*lim+C`
+
+Réciproquement, s'il existe C tq `∀n,|fk(n)-n*lim|<=C`
+alors fk quasi-additive (avec borne 3C).
+
+#### G <= H
+
+On peut profiter des encadrements ci-dessus (Fekete):
+`G(n) <= n*tau+1` et `n*tau2-2 <= H(n)`.
+Les courbes se croisent pour `n = 3/(tau2-tau) = 46.6`.
+Et on peut vérifier que `G(n) <= H(n)` pour `n=0..46`.
+
+Mieux: On a aussi `G(n)=floor((n+1)*tau)` et `H=floor(n*tau2)+{0,1}`.
+On a `(n+1)*tau <= n*tau2` dès que `n >= tau/(tau2-tau) = 9.6`.
+Là encore, vérifications par calculs pour `n=0..9`.
+
+Mieux:
+```
+Lemma g_add_8 n : 4 + g n <= g (8+n) <= 5 + g n.
+Lemma h_add_8 n : 5 + h n <= h (8+n) <= 6 + h n.
+```
+Puis vérification par calculs pour `n=0..8` et ensuite récurrence de 8 en 8.
+
+Comment généraliser tout ça à fk <= f(k+1) pour tout k ?
 
 #### Reference:
 
@@ -60,3 +86,21 @@ Rauzy fractals:
 https://im.icerm.brown.edu/portfolio/visualizing-rauzy-fractals-via-finite-directed-graphs/
 https://tilings.math.uni-bielefeld.de/substitution/a-ab--b-c--c-a/
 
+## Bilan
+
+k=1 : G(n) = floor((n+1)*tau) avec tau=0.618. Quasi-add avec C=1
+k=2 : H. Etude "à la Rauzy" donne Quasi-add avec C=2
+    et H(n)=floor(n*tau2)+{0,1}
+    avec tau2 = root(x^3+x-1) = 1/root(x^3-x^2-1) (inverse du Pisot P3 = 1.4655)
+k=3 : Etude à faire. Poly x^4-x^3-1 donne nombre de Pisot Q2 = 1.3802
+    donc a priori on a quasi-additivité et proximité de f3 avec floor(n*tau3)
+k=4 : Etude à faire. x^5-x^4-1 = (x^2-x+1)(x^3-x-1)
+     ou encore x^5+x-1 = (x^2-x+1)(x^3+x^2-1) sur le poly dual.
+     Nombre de Pisot minimal (plastic = 1.3247), mais aussi des racines j et conj(j)
+     en plus. Sans doute quasi-additivité et borne sur f4-floor(n*tau4) ?
+k>=5 : des racines secondaires de norme > 1, donc sans doute pas
+     de quasi-additivité ni de borne finie sur fk(n)-n*tauk.
+     Ces racines secondaires ont normes croissantes juqu'à k=12 (norme=1.0768)
+     puis décroissance tout en restant >1. P.ex k=200 norme=1.017.
+
+Conjecture: fk(n)-n*tauk ~ (racine suivante)^n
