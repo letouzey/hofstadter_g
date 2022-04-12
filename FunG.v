@@ -280,21 +280,33 @@ Proof.
  - transitivity (g (S n)). lia. auto using g_mono_S.
 Qed.
 
+Lemma g_double_pred_le n : n <= g (2*n-1).
+Proof.
+ induction n as [|[|n] IH]; trivial.
+ replace (_ - _) with (S (2*n)) in IH by lia.
+ replace (_ - _) with (S (S (S (2*n)))) by lia.
+ etransitivity; [|apply g_SS].
+ rewrite <- Nat.succ_le_mono. apply IH.
+Qed.
+
 Lemma g_double_le n : n <= g (2*n).
 Proof.
-induction n.
-- trivial.
-- replace (2* S n) with (S (S (2*n))) by lia.
-  transitivity (S (g (2*n))). lia. apply g_SS.
+ etransitivity; [apply g_double_pred_le|apply g_mono; lia].
+Qed.
+
+Lemma g_Sdiv2_le n : (S n)/2 <= g n.
+Proof.
+ etransitivity; [apply g_double_pred_le|].
+ apply g_mono.
+ apply Nat.le_sub_le_add_l. simpl "+".
+ rewrite (Nat.div2_odd (S n)) at 2.
+ rewrite Nat.div2_div. lia.
 Qed.
 
 Lemma g_div2_le n : n/2 <= g n.
 Proof.
- rewrite <- Nat.div2_div.
- rewrite (Nat.div2_odd n) at 2.
- transitivity (g (2*Nat.div2 n)).
- apply g_double_le.
- apply g_mono. lia.
+ etransitivity; [|apply g_Sdiv2_le].
+ apply Nat.div_le_mono; lia.
 Qed.
 
 (* Two consecutive steps are possible, but not three *)

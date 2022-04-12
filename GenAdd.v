@@ -923,6 +923,11 @@ Qed.
 
 (** * Comparing (f k) functions when k varies *)
 
+Lemma f0_below_g n : f 0 n <= g n.
+Proof.
+ rewrite f_0_div2. apply g_Sdiv2_le.
+Qed.
+
 (** g_add_8 and h_add_8 are enough to show that g <= h *)
 
 Lemma g_below_h n : g n <= h n.
