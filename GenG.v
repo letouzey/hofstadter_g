@@ -16,8 +16,10 @@ Set Implicit Arguments.
     With this setting:
     - [F 0] is [fun x => floor((x+1)/2)] (see below).
     - [F 1] is Hofstadter's [G] i.e. [fun x => floor((x+1)/phi]
-      See OEIS A5206
-    - [F 2] is Hofstadter's [H], see OEIS A5374
+      See http://oeis.org/A5206
+    - [F 2] is Hofstadter's [H], see http://oeis.org/A5374
+    - [F 3] is http://oeis.org/A5375
+    - [F 4] is http://oeis.org/A5376
 *)
 
 (** Coq representation of [F] as an inductive relation. This way,
