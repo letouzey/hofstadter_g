@@ -19,13 +19,18 @@ Open Scope R.
 
     In Coq, we'll use here by default operations on reals numbers,
     and also:
-     - [INR] : the injection from [nat] to [R]
-     - [IZR] : the injection from [Z] to [R]
+     - [INR] : the injection from [nat] to [R] (made implicit via Coercion)
+     - [IZR] : the injection from [Z] to [R] (made implicit via Coercion)
      - [Int_part] : the integer part of a real, used as a [floor]
-       function. It produces a [Z] integer, that we can convert
-       to [nat] via [Z.to_nat] when necessary.
+       function. It produces a [Z] integer. The local definition
+       [nat_part] chains this [Int_part] with [Z.to_nat] to obtain a [nat].
      - [frac_part] : the faction part of a real, producing a [R]
 *)
+
+Coercion IZR : Z >-> R.
+Coercion INR : nat >-> R.
+
+Definition nat_part r := Z.to_nat (Int_part r).
 
 (** * Phi and tau *)
 
@@ -68,21 +73,10 @@ Qed.
 Lemma tau_bound : 6/10 < tau < 7/10.
 Proof.
  unfold tau.
- assert (11/5 < sqrt 5).
- { replace (11/5) with (sqrt ((11/5)*(11/5))).
-   apply sqrt_lt_1; lra.
-   apply sqrt_Rsqr. lra. }
- assert (sqrt 5 < 12/5).
- { replace (12/5) with (sqrt ((12/5)*(12/5))).
-   apply sqrt_lt_1; lra.
-   apply sqrt_Rsqr. lra. }
- split.
- - apply Rmult_lt_reg_l with 2. lra.
-   apply Rplus_lt_reg_r with 1.
-   field_simplify. lra.
- - apply Rmult_lt_reg_l with 2. lra.
-   apply Rplus_lt_reg_r with 1.
-   field_simplify. lra.
+ cut (11/5 < sqrt 5 < 12/5). lra.
+ rewrite <- (sqrt_Rsqr (11/5)) by lra.
+ rewrite <- (sqrt_Rsqr (12/5)) by lra.
+ split; apply sqrt_lt_1; unfold Rsqr; lra.
 Qed.
 
 (** * A bit of irrationality theory *)
@@ -97,8 +91,8 @@ Proof.
 Qed.
 
 Lemma prime_irr (r:R) :
- (forall (p q:Z), Z.gcd p q = 1%Z -> r * IZR q <> IZR p) ->
- (forall (p q:Z), r * IZR q = IZR p -> q=0%Z).
+ (forall (p q:Z), Z.gcd p q = 1%Z -> r * q <> p) ->
+ (forall (p q:Z), r * q = p -> q=0%Z).
 Proof.
  intros H p q.
  generalize (Z.ggcd_gcd p q) (Z.ggcd_correct_divisors p q)
@@ -115,7 +109,7 @@ Proof.
    now apply not_0_IZR.
 Qed.
 
-Lemma sqrt5_irr (p q:Z) : sqrt 5 * IZR q = IZR p -> q = 0%Z.
+Lemma sqrt5_irr (p q:Z) : sqrt 5 * q = p -> q = 0%Z.
 Proof.
  apply prime_irr. clear p q. intros p q Hpq Eq.
  assert (Eq' : (p*p = 5 * q*q)%Z).
@@ -136,7 +130,7 @@ Proof.
  destruct H as (x,Hx). lia.
 Qed.
 
-Lemma tau_irr (p q:Z) : tau * IZR q = IZR p -> q = 0%Z.
+Lemma tau_irr (p q:Z) : tau * q = p -> q = 0%Z.
 Proof.
  unfold tau.
  intros Eq.
@@ -147,8 +141,21 @@ Qed.
 
 (** * Some complements about integer part and fractional part *)
 
+Lemma int_part_le (r:R)(k:Z) : k <= r <-> (k <= Int_part r)%Z.
+Proof.
+ split.
+ - intros LE.
+   destruct (base_Int_part r) as (U,V).
+   assert (E : k - 1 < Int_part r) by lra.
+   change 1 with (IZR 1) in E.
+   rewrite <- minus_IZR in E.
+   apply lt_IZR in E. lia.
+ - destruct (base_Int_part r).
+   intros LE. apply IZR_le in LE. lra.
+Qed.
+
 Lemma int_part_iff (r:R)(k:Z) :
- 0 <= r-IZR k < 1 <-> Int_part r = k.
+ 0 <= r-k < 1 <-> Int_part r = k.
 Proof.
  split.
  - unfold Int_part.
@@ -159,80 +166,77 @@ Proof.
 Qed.
 
 Lemma int_part_carac (r:R)(k:Z) :
- 0 <= r-IZR k < 1 -> Int_part r = k.
+ 0 <= r-k < 1 -> Int_part r = k.
 Proof.
  apply int_part_iff.
 Qed.
 
-Lemma int_frac r : r = IZR (Int_part r) + frac_part r.
+Lemma int_frac r : r = Int_part r + frac_part r.
 Proof.
  unfold frac_part. ring.
 Qed.
 
-Lemma int_part_le (r:R)(k:Z) : IZR k <= r <-> (k <= Int_part r)%Z.
+Lemma nat_part_carac (r:R)(k:nat) :
+ 0 <= r-k < 1 -> nat_part r = k.
 Proof.
- split.
- - intros.
-   destruct (base_Int_part r).
-   assert (E : IZR k - 1 < IZR (Int_part r)) by lra.
-   change 1 with (IZR 1) in E.
-   rewrite <- minus_IZR in E.
-   apply lt_IZR in E. lia.
- - destruct (base_Int_part r).
-   intros LE. apply IZR_le in LE. lra.
+ unfold nat_part. intros H.
+ rewrite <- (Nat2Z.id k). f_equal. apply int_part_iff.
+ now rewrite <- INR_IZR_INZ.
 Qed.
+
+Lemma nat_frac r : 0 <= r -> r = nat_part r + frac_part r.
+Proof.
+ unfold frac_part, nat_part. intros H.
+ rewrite INR_IZR_INZ. rewrite Z2Nat.id. ring.
+ rewrite <- int_part_le. auto.
+Qed.
+
 
 (** * The main theorem *)
 
-Lemma g_tau (n:nat) : g n = Z.to_nat (Int_part (tau * INR (S n))).
+Lemma g_tau (n:nat) : g n = nat_part (tau * S n).
 Proof.
 induction n as [n IH] using lt_wf_rec.
 destruct (eq_nat_dec n 0) as [Hn|Hn].
 - subst. change (g 0) with O. simpl.
   replace (tau*1) with tau by ring.
-  rewrite (int_part_carac tau 0); simpl; trivial.
-  destruct tau_bound; split; lra.
-- assert (0 < INR n). { apply (lt_INR 0). lia. }
-  assert (0 <= Int_part (tau * INR n))%Z.
-  { apply int_part_le. simpl. destruct tau_bound.
-    apply Rmult_le_pos; lra. }
-  set (k:=Z.to_nat (Int_part (tau*INR n))).
-  set (d:=frac_part (tau*INR n)).
+  rewrite (nat_part_carac tau 0); simpl; trivial.
+  destruct tau_bound; lra.
+- assert (Hn' : 0 < n). { apply (lt_INR 0). lia. }
+  set (k:=nat_part (tau*n)).
+  set (d:=frac_part (tau*n)).
   replace n with (S (n-1)) at 1 by lia.
   rewrite g_S.
   replace (S (n-1)) with n by lia.
   assert (E : g (n-1) = k).
   { rewrite IH by lia. now replace (S (n-1)) with n by lia. }
   rewrite E.
-  assert (k <= n-1)%nat by (rewrite <-E; apply g_le).
-  assert (g k < n)%nat by (generalize (g_le k); lia).
+  assert (LE : (k <= n-1)%nat) by (rewrite <-E; apply g_le).
+  clear E.
   symmetry. apply plus_minus.
   rewrite IH by lia.
   assert (Hd : d <> 0).
   { unfold d. contradict Hn.
-    generalize (int_frac (tau*INR n)). rewrite Hn.
+    generalize (int_frac (tau*n)). rewrite Hn.
     rewrite INR_IZR_INZ at 1. intros Eq.
     apply Nat2Z.inj. simpl.
-    apply tau_irr with (Int_part (tau * INR n)).
+    apply tau_irr with (Int_part (tau * n)).
     rewrite Eq. ring. }
   assert (Hd' : 0 < d < 1).
-  { unfold d. destruct (base_fp (tau*INR n)) as (Hd1,Hd2).
+  { unfold d. destruct (base_fp (tau*n)) as (Hd1,Hd2).
     unfold d in *. destruct Hd1; intuition. }
-  destruct Hd' as (Hd1,Hd2).
-  destruct tau_bound.
-  generalize tau_1; intro.
-  assert (Eq : INR k = tau*INR n - d).
-  { unfold d, k. revert H0. generalize (tau * INR n). clear.
-    intros r Hr. rewrite INR_IZR_INZ. rewrite Z2Nat.id; auto.
-    rewrite (int_frac r) at 2. ring. }
+  assert (taub := tau_bound).
+  assert (tau1 := tau_1).
+  assert (Eq : tau*n - d = k).
+  { rewrite (nat_frac (tau*n)). fold k d. ring.
+    apply Rmult_le_pos; lra. }
   destruct (Rle_or_lt d (1-tau)) as [[LT|EQ]|LT].
-  + rewrite (int_part_carac (tau*INR(S k)) (Z.of_nat (n-k))).
-    rewrite (int_part_carac (tau*INR(S n)) (Z.of_nat k)).
-    rewrite !Nat2Z.id. lia.
-    * rewrite <- INR_IZR_INZ.
-      rewrite S_INR. rewrite Rmult_plus_distr_l.
-      rewrite Eq. split; lra.
-    * rewrite <- INR_IZR_INZ, minus_INR, S_INR, Eq by lia.
+  + rewrite (nat_part_carac (tau*(S k)) (n-k)).
+    rewrite (nat_part_carac (tau*(S n)) k).
+    lia.
+    * rewrite S_INR. rewrite Rmult_plus_distr_l.
+      rewrite <- Eq. split; lra.
+    * rewrite minus_INR, S_INR, <- Eq by lia.
       replace (_ - _) with (tau-(tau+1)*d) by (ring [tau_tau]).
       rewrite tau_1.
       assert (0 <= phi*d <= tau); [split|intuition lra].
@@ -240,20 +244,19 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
       { replace tau with (phi*(1-tau)).
         apply Rmult_le_compat_l; lra.
         rewrite <- tau_1. ring [tau_tau]. }
-  + rewrite EQ in Eq.
+  + exfalso.
+    rewrite EQ in Eq.
     assert (Z.of_nat n + 1 = 0)%Z.
-    apply tau_irr with (Z.of_nat k + 1)%Z.
-    rewrite !plus_IZR. simpl.
-    rewrite <- !INR_IZR_INZ.
-    rewrite Rmult_plus_distr_l. rewrite Eq. ring.
+    { apply tau_irr with (Z.of_nat k + 1)%Z.
+      rewrite !plus_IZR, <- !INR_IZR_INZ.
+      rewrite Rmult_plus_distr_l. rewrite <- Eq. ring. }
     lia.
-  + rewrite (int_part_carac (tau*INR(S k)) (Z.of_nat (n-k-1))).
-    rewrite (int_part_carac (tau*INR(S n)) (Z.of_nat (S k))).
-    rewrite !Nat2Z.id. lia.
-    * rewrite <- INR_IZR_INZ.
-      rewrite !S_INR. rewrite Rmult_plus_distr_l.
-      rewrite Eq. split; lra.
-    * rewrite <- INR_IZR_INZ, !minus_INR, S_INR, Eq by lia.
+  + rewrite (nat_part_carac (tau*(S k)) (n-k-1)).
+    rewrite (nat_part_carac (tau*(S n)) (S k)).
+    lia.
+    * rewrite !S_INR. rewrite Rmult_plus_distr_l.
+      rewrite <- Eq. split; lra.
+    * rewrite !minus_INR, S_INR, <- Eq by lia.
       simpl INR.
       replace (_ - _) with ((tau+1)*(1-d)) by (ring [tau_tau]).
       split.
@@ -262,8 +265,8 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
         apply Rmult_lt_compat_r; lra. }
 Qed.
 
-Lemma g_phi (n:nat) : g n = Z.to_nat (Int_part (INR (S n)/phi)).
+Lemma g_phi (n:nat) : g n = nat_part ((S n)/phi).
 Proof.
- rewrite g_tau. do 2 f_equal. rewrite tau_inv. field.
+ rewrite g_tau. f_equal. rewrite tau_inv. field.
  apply phi_nz.
 Qed.
