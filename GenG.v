@@ -6,20 +6,16 @@ Set Implicit Arguments.
 
 (** Study of the functional equation:
      - [Fk 0 = 0]
-     - [Fk (S n) + Fk^(k+1) (n) = S n]
-    where [Fk^(k+1) (n)] is [k+1] repeated applications of [Fk] at [n].
-
-    Note: using [k+1] instead of [k] iterations allows to avoid
-     the case of [0] iterations, where Fk^0 is identity, and hence
-     Fk (S n) = 1 always.
+     - [Fk (S n) + Fk^k (n) = S n]
+    where [Fk^k (n)] is [k] repeated applications of [Fk] at [n].
 
     With this setting:
-    - [F 0] is [fun x => floor((x+1)/2)] (see below).
-    - [F 1] is Hofstadter's [G] i.e. [fun x => floor((x+1)/phi]
+    - [F 0] is [fun n => match n with 0 => 0 | _ => 1 end].
+    - [F 1] is [fun x => floor((x+1)/2)] (see below).
+    - [F 2] is Hofstadter's [G] i.e. [fun x => floor((x+1)/phi]
       See http://oeis.org/A5206
-    - [F 2] is Hofstadter's [H], see http://oeis.org/A5374
-    - [F 3] is http://oeis.org/A5375
-    - [F 4] is http://oeis.org/A5376
+    - [F 4] is http://oeis.org/A5375
+    - [F 5] is http://oeis.org/A5376
 *)
 
 (** Coq representation of [F] as an inductive relation. This way,
@@ -30,7 +26,7 @@ Set Implicit Arguments.
 
 Inductive F : nat -> nat -> nat -> Prop :=
 | F0 k : F k 0 0
-| FS k n a b : Fs (S k) k n a -> S n = a+b -> F k (S n) b
+| FS k n a b : Fs k k n a -> S n = a+b -> F k (S n) b
 
 with Fs : nat -> nat -> nat -> nat -> Prop :=
 | Fs0 k n : Fs 0 k n n
@@ -72,13 +68,13 @@ Proof.
 Qed.
 Hint Resolve Fs_2.
 
-Lemma F_3 k : F k 3 2.
+Lemma F_3 k : F (S k) 3 2.
 Proof.
  induction k; eauto.
 Qed.
 Hint Resolve F_3.
 
-Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
+Lemma Fs_3 p k : Fs p (S k) 3 (1+(2-p)).
 Proof.
  induction p; eauto.
  eapply FsS; eauto. destruct p as [|[|p]]; simpl; auto.
@@ -89,7 +85,7 @@ Hint Resolve Fs_3.
 
 Lemma F_le k n a : F k n a -> a <= n.
 Proof.
- induction 1; lia.
+ induction 1; trivial. lia.
 Qed.
 Hint Resolve F_le.
 
@@ -140,7 +136,7 @@ Qed.
 
 Fixpoint recf k p n :=
  match p, n with
- | S p, S n => S n - ((recf k p)^^(S k)) n
+ | S p, S n => S n - ((recf k p)^^k) n
  | _, _ => 0
  end.
 
@@ -168,7 +164,7 @@ induction p.
     { induction q; intros; simpl; econstructor; eauto.
       apply IHp. transitivity m; auto using recfs_le. }
     econstructor. apply IHq. lia.
-    generalize (recfs_le (S k) k p n). lia.
+    generalize (recfs_le k k p n). lia.
 Qed.
 
 Lemma f_sound k n : F k n (f k n).
@@ -193,12 +189,14 @@ Compute map (f 0) nums.
 Compute map (f 1) nums.
 Compute map (f 2) nums.
 Compute map (f 3) nums.
+Compute map (f 4) nums.
 *)
 (*
-f 0 = [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
-f 1 = [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
-f 2 = [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
-f 3 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
+f 0 = [0; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1]
+f 1 = [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
+f 2 = [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
+f 3 = [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
+f 4 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
 *)
 
 (* The first values of [f] when [n<=3] do not depend on [k] *)
@@ -218,7 +216,7 @@ Proof.
  now apply f_complete.
 Qed.
 
-Lemma f_k_3 k : f k 3 = 2.
+Lemma f_k_3 k : f (S k) 3 = 2.
 Proof.
  now apply f_complete.
 Qed.
@@ -245,35 +243,40 @@ Proof.
  rewrite IHp. apply f_k_1.
 Qed.
 
-Lemma f_eqn k n : f k (S n) + (f k ^^ S k) n = S n.
+Lemma f_eqn k n : f k (S n) + (f k ^^ k) n = S n.
 Proof.
  assert (H := f_sound k (S n)).
  inversion_clear H.
- assert ((f k ^^ S k) n = a).
+ assert ((f k ^^ k) n = a).
  { revert H0. apply Fs_fun. apply Fs_iter_f. }
  lia.
 Qed.
 
-Lemma f_eqn_pred k n : f k n + (f k ^^ S k) (pred n) = n.
+Lemma f_eqn_pred k n : f k n + (f k ^^ k) (pred n) = n.
 Proof.
 destruct n.
 - now rewrite fs_k_0.
 - apply f_eqn.
 Qed.
 
-Lemma f_S k n : f k (S n) = S n - (f k ^^ S k) n.
+Lemma f_S k n : f k (S n) = S n - (f k ^^ k) n.
 Proof.
  generalize (f_eqn k n). lia.
 Qed.
 
-Lemma f_pred k n : f k n = n - (f k ^^ S k) (pred n).
+Lemma f_pred k n : f k n = n - (f k ^^ k) (pred n).
 Proof.
  generalize (f_eqn_pred k n). lia.
 Qed.
 
 (** Particular case *)
 
-Lemma f_1_g n : f 1 n = g n.
+Lemma f_0_S n : f 0 (S n) = 1.
+Proof.
+ rewrite f_S. simpl. destruct n; auto. lia.
+Qed.
+
+Lemma f_2_g n : f 2 n = g n.
 Proof.
 revert n.
 apply g_unique.
@@ -281,11 +284,11 @@ apply g_unique.
 - intros n. symmetry. now apply f_eqn.
 Qed.
 
-Lemma f_0_half n : f 0 (2*n) = n /\ f 0 (S (2*n)) = S n.
+Lemma f_1_half n : f 1 (2*n) = n /\ f 1 (S (2*n)) = S n.
 Proof.
 induction n.
 - now compute.
-- assert (f 0 (2*(S n)) = S n).
+- assert (f 1 (2*(S n)) = S n).
   { rewrite f_pred; auto.
     simpl Nat.iter.
     replace (n + (S (n+0))) with (S (2*n)); lia. }
@@ -295,21 +298,21 @@ induction n.
   replace (S (n + (S (n+0)))) with (2*(S n)); lia.
 Qed.
 
-Lemma f_0_div2 n : f 0 n = (S n) / 2.
+Lemma f_1_div2 n : f 1 n = (S n) / 2.
 Proof.
 rewrite <- Nat.div2_div.
 destruct (Nat.Even_or_Odd n) as [(m,->)|(m,->)].
-- destruct (f_0_half m) as (->,_).
+- destruct (f_1_half m) as (->,_).
   symmetry. apply Nat.div2_succ_double.
-- rewrite Nat.add_comm, Nat.add_1_l.
-  destruct (f_0_half m) as (_,->).
+- rewrite Nat.add_1_r.
+  destruct (f_1_half m) as (_,->).
   simpl. f_equal.
   symmetry. apply (Nat.div2_double m).
 Qed.
 
 Lemma f_unique k h :
   h 0 = 0  ->
-  (forall n, S n = h (S n)+ (h^^S k) n) ->
+  (forall n, S n = h (S n)+ (h^^k) n) ->
   forall n, h n = f k n.
 Proof.
 intros h_0 h_S.
@@ -342,7 +345,7 @@ Proof.
        + apply IH.
          rewrite Nat.lt_succ_r. apply le_trans with m; auto.
          eapply Fs_le. eapply Fs_iter_f. }
-   specialize (H (S k) n). lia.
+   specialize (H k n). lia.
 Qed.
 
 Lemma fs_step k p n : (f k ^^p) (S n) = (f k ^^p) n \/
@@ -429,7 +432,7 @@ split.
 - destruct n; auto.
   assert (H := f_eqn k n).
   intros.
-  assert (H' : (f k ^^S k) n = 0) by lia.
+  assert (H' : (f k ^^k) n = 0) by lia.
   apply fs_0_inv in H'.
   now subst.
 - inversion_clear 1. apply f_k_1.
@@ -471,13 +474,14 @@ Qed.
 
 (** [f] cannot stay flat very long *)
 
-Lemma f_nonflat k n : f k (1+n) = f k n -> f k (2+n) = S (f k n).
+Lemma f_nonflat k n : k<>0 -> f k (1+n) = f k n -> f k (2+n) = S (f k n).
 Proof.
- generalize (f_eqn k (1+n)) (f_eqn k n).
+ destruct k. now intros []. intros _.
+ generalize (f_eqn (S k) (1+n)) (f_eqn (S k) n).
  rewrite !iter_S. intros. rewrite H1 in *. simpl in *. lia.
 Qed.
 
-Lemma f_nonflat' k n : f k (S n) = f k n -> f k (n-1) = f k n - 1.
+Lemma f_nonflat' k n : k<>0 -> f k (S n) = f k n -> f k (n-1) = f k n - 1.
 Proof.
  destruct n.
  - now rewrite f_k_0, f_k_1.
@@ -488,14 +492,15 @@ Proof.
    + lia.
 Qed.
 
-Lemma f_SS k n : f k n < f k (S (S n)).
+Lemma f_SS k n : k<>0 -> f k n < f k (S (S n)).
 Proof.
+ intros Hk.
  destruct (f_step k n) as [E|E].
- - generalize (f_nonflat _ _ E). simpl in *. lia.
+ - generalize (f_nonflat _ Hk E). simpl in *. lia.
  - apply Nat.lt_le_trans with (f k (S n)). lia. auto using f_mono_S.
 Qed.
 
-Lemma f_double_le k n : n <= f k (2*n).
+Lemma f_double_le k n : k<>0 -> n <= f k (2*n).
 Proof.
 induction n.
 - trivial.
@@ -503,7 +508,7 @@ induction n.
   transitivity (S (f k (2*n))). lia. now apply f_SS.
 Qed.
 
-Lemma f_div2_le k n : n/2 <= f k n.
+Lemma f_div2_le k n : k<>0 -> n/2 <= f k n.
 Proof.
  rewrite <- Nat.div2_div.
  rewrite (Nat.div2_odd n) at 2.
@@ -527,26 +532,26 @@ Proof.
    generalize (@f_lt k ((f k^^p) n)). lia.
 Qed.
 
-Lemma fs_init k n : 1 <= n <= k+2 -> (f k^^(S k)) n = 1.
+Lemma fs_init k n : 1 <= n <= k+1 -> (f k^^k) n = 1.
 Proof.
  intros.
  destruct (Nat.eq_dec n 1) as [->|NE].
  - now rewrite fs_k_1.
- - destruct (le_lt_dec ((f k^^S k) n) 1) as [LE|LT].
-   + generalize (@fs_nonzero k n (S k)). lia.
+ - destruct (le_lt_dec ((f k^^k) n) 1) as [LE|LT].
+   + generalize (@fs_nonzero k n k). lia.
    + apply fs_bound in LT; try lia.
-     generalize (@fs_nonzero k n (S k)). lia.
+     generalize (@fs_nonzero k n k). lia.
 Qed.
 
-Lemma f_init k n : 2 <= n <= k+3 -> f k n = n-1.
+Lemma f_init k n : 2 <= n <= k+2 -> f k n = n-1.
 Proof.
  intros. rewrite f_pred. rewrite fs_init; lia.
 Qed.
 
 (* Said otherwise : for any n, [f k n] will eventually be stationary
    when k grows. More precisely, for [n>=2], [f k n = n-1] as soon as
-   [k>=n-3]. And for [n<2], we always have [f k n = n].
-   Conjecture: at fixed n and growing k, [f k n] will be increasing.
+   [k>=n-2]. And for [n<2], we always have [f k n = n].
+   Conjecture: at fixed n and growing k, [f k n] is increasing.
    TODO, no full proof yet, more on that in [GenAdd].
 *)
 
@@ -614,7 +619,7 @@ Fixpoint ftabulate k n :=
  | 0 => [0]
  | S n =>
    let stk := ftabulate k n in
-   (S n - fdescend stk (S k) n)::stk
+   (S n - fdescend stk k n)::stk
  end.
 
 Lemma fdescend_spec k stk p n :
@@ -666,12 +671,12 @@ Qed.
     Study of the reverse problem [f k n = a] for some [a]. *)
 
 Lemma f_max_two_antecedents k n m :
-  f k n = f k m -> n<m -> m = S n.
+  k<>0 -> f k n = f k m -> n<m -> m = S n.
 Proof.
- intros H H'.
+ intros Hk H H'.
  destruct (le_lt_dec (2+n) m) as [LE|LT]; try lia.
  apply (f_mono k) in LE.
- rewrite (f_nonflat k n) in LE. lia.
+ rewrite (f_nonflat n Hk) in LE. lia.
  apply Nat.le_antisymm.
  - rewrite H. now apply f_mono.
  - apply f_mono_S.
@@ -680,70 +685,74 @@ Qed.
 (** Another formulation of the same fact *)
 
 Lemma f_inv k n m :
-  f k n = f k m -> (n = m \/ n = S m \/ m = S n).
+  f k n = f k m -> (k = 0 \/ n = m \/ n = S m \/ m = S n).
 Proof.
  intros.
+ destruct (Nat.eq_dec k 0) as [Hk|Hk]; auto.
  destruct (lt_eq_lt_dec n m) as [[LT|EQ]|LT]; auto.
- - generalize (@f_max_two_antecedents k n m); auto.
- - generalize (@f_max_two_antecedents k m n); auto.
+ - generalize (@f_max_two_antecedents k n m Hk); auto.
+ - generalize (@f_max_two_antecedents k m n Hk); auto.
 Qed.
 
-(** [f] is an onto map *)
+(** [f k] is an onto map when k<>0 *)
 
-Lemma f_onto k a : exists n, f k n = a.
+Lemma f_onto k a : k<>0 -> exists n, f k n = a.
 Proof.
 induction a.
 - exists 0; trivial.
-- destruct IHa as (n,Ha).
+- intros Hk. destruct (IHa Hk) as (n,Ha).
   destruct (f_step k n); [ | exists (S n); lia].
   destruct (f_step k (S n)); [ | exists (S (S n)); lia].
   exfalso.
-  generalize (@f_max_two_antecedents k n (S (S n))). lia.
+  generalize (@f_max_two_antecedents k n (S (S n)) Hk). lia.
 Qed.
 
 (** We even have an explicit expression of one antecedent *)
 
-Definition rchild k n := n + (f k ^^ k) n.
-Definition lchild k n := n + (f k ^^ k) n - 1. (** left son, if there's one *)
+Definition rchild k n := n + (f k ^^ (k-1)) n.
+Definition lchild k n := n + (f k ^^ (k-1)) n - 1. (** left son, if exists *)
 
-Lemma rightmost_child_carac k a n : f k n = a ->
+Lemma rightmost_child_carac k a n : k<>0 -> f k n = a ->
  (f k (S n) = S a <-> n = rchild k a).
 Proof.
- intros Hn.
+ intros Hk Hn.
  assert (H' := f_eqn k n).
+ destruct k; [lia|].
  rewrite iter_S in H'.
  rewrite Hn in H'.
- unfold rchild; lia.
+ unfold rchild. replace (S k -1) with k; lia.
 Qed.
 
-Lemma f_onto_eqn k a : f k (rchild k a) = a.
+Lemma f_onto_eqn k a : k<>0 -> f k (rchild k a) = a.
 Proof.
-destruct (f_onto k a) as (n,Hn).
+intros Hk.
+destruct (f_onto a Hk) as (n,Hn).
 destruct (f_step k n) as [H|H].
 - unfold rchild.
   rewrite <- Hn. rewrite <- H at 1 3. f_equal.
-  rewrite <- iter_S. apply f_eqn.
+  rewrite <- iter_S. replace (S (k-1)) with k by lia. apply f_eqn.
 - rewrite Hn in H.
   rewrite rightmost_child_carac in H; trivial. congruence.
 Qed.
 
-Lemma f_children k a n : f k n = a ->
+Lemma f_children k a n : k<>0 -> f k n = a ->
   n = rchild k a \/ n = lchild k a.
 Proof.
-intros Hn.
+intros Hk Hn.
 destruct (f_step k n) as [H|H].
 - right.
   destruct (f_step k (S n)) as [H'|H'].
   + exfalso.
-    generalize (@f_max_two_antecedents k n (S (S n))). lia.
+    generalize (@f_max_two_antecedents k n (S (S n)) Hk). lia.
   + rewrite rightmost_child_carac in H'; trivial.
     rewrite H, Hn in H'. unfold lchild, rchild in *; lia.
-- rewrite <- (@rightmost_child_carac k a n); lia.
+- rewrite <- (@rightmost_child_carac k a n Hk); lia.
 Qed.
 
-Lemma f_lchild k a :
+Lemma f_lchild k a : k<>0 ->
  f k (lchild k a) = a - 1 \/ f k (lchild k a) = a.
 Proof.
+ intros Hk.
  destruct (le_gt_dec a 0).
   + replace a with 0 by lia. unfold lchild.
     rewrite fs_k_0. simpl. rewrite f_k_0. now left.
@@ -759,29 +768,31 @@ Qed.
 (** This provides easily a first relationship between f and
     generalized Fibonacci numbers *)
 
-Lemma fs_A k n p : (f k ^^p) (A k n) = A k (n-p).
+Lemma fs_A k n p : (f (S k) ^^p) (A k n) = A k (n-p).
 Proof.
 revert p.
 induction n; intros.
 - simpl. apply fs_k_1.
 - destruct p; auto.
   rewrite iter_S; simpl. rewrite <- (IHn p). f_equal.
-  rewrite <- (IHn k). apply f_onto_eqn.
+  rewrite <- (IHn k).
+  replace (@Nat.iter k) with (@Nat.iter ((S k)-1)) by (f_equal; lia).
+  apply f_onto_eqn; auto.
 Qed.
 
-Lemma f_A k n : f k (A k n) = A k (n-1).
+Lemma f_A k n : f (S k) (A k n) = A k (n-1).
 Proof.
  apply (fs_A k n 1).
 Qed.
 
-Lemma f_SA k n : n<>0 -> f k (S (A k n)) = S (A k (n-1)).
+Lemma f_SA k n : n<>0 -> f (S k) (S (A k n)) = S (A k (n-1)).
 Proof.
  intros.
  rewrite <- (@f_A k n).
- apply rightmost_child_carac; trivial.
+ apply rightmost_child_carac; auto.
  unfold rchild.
  rewrite f_A, fs_A.
- replace (n-1-k) with (n-S k) by lia.
+ replace (n-1-_) with (n-S k) by lia.
  now apply A_sum.
 Qed.
 
@@ -814,7 +825,7 @@ Proof.
    symmetry. apply map_decr_S.
 Qed.
 
-Lemma fbis_is_f k n : fbis k n = f k n.
+Lemma fbis_is_f k n : fbis k n = f (S k) n.
 Proof.
  apply f_unique.
  - reflexivity.
@@ -842,13 +853,13 @@ Proof.
        eapply Delta_nz; eauto. lia.
 Qed.
 
-Lemma f_decomp k n : f k n = sumA k (map pred (decomp k n)).
+Lemma f_decomp k n : f (S k) n = sumA k (map pred (decomp k n)).
 Proof.
  symmetry. apply fbis_is_f.
 Qed.
 
 Lemma fs_decomp k p n :
-  p <= S k -> (f k^^p) n = sumA k (map (decr p) (decomp k n)).
+  p <= S k -> (f (S k)^^p) n = sumA k (map (decr p) (decomp k n)).
 Proof.
  intros.
  rewrite <- fsbis; auto.
@@ -857,19 +868,19 @@ Proof.
 Qed.
 
 Lemma f_sumA k l : Delta (S k) l ->
- f k (sumA k l) = sumA k (map pred l).
+ f (S k) (sumA k l) = sumA k (map pred l).
 Proof.
  intros. rewrite f_decomp. f_equal. f_equal. auto.
 Qed.
 
 Lemma fs_sumA k p l : p <= S k -> Delta (S k) l ->
- (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+ (f (S k) ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros. rewrite fs_decomp; auto. f_equal. f_equal. auto.
 Qed.
 
 Lemma f_sumA_lax k l : k<>0 -> Delta k l ->
- f k (sumA k l) = sumA k (map pred l).
+ f (S k) (sumA k l) = sumA k (map pred l).
 Proof.
  intros. rewrite <- renorm_sum.
  rewrite f_sumA; auto.
@@ -877,7 +888,7 @@ Proof.
 Qed.
 
 Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
- (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+ (f (S k) ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros. rewrite <- renorm_sum.
  rewrite fs_sumA; auto with arith.
@@ -888,7 +899,7 @@ Qed.
     Note that [f k n] cannot be [n] or more except when [n<=1], see [f_lt].
     The conditions below are optimal, see [f_subid_inv] later. *)
 
-Lemma f_subid k n : n<>1 -> n <= k+3 -> f k n = n-1.
+Lemma f_subid k n : n<>1 -> n <= k+2 -> f k n = n-1.
 Proof.
  intros Hn Hn'.
  destruct (Nat.eq_dec n 0).
@@ -899,9 +910,14 @@ Qed.
 
 (** Some particular cases : early diagonals *)
 
-Lemma f_k_k k : k<>1 -> f k k = k-1.
+Lemma f_k_pred_k k : k<>2 -> f k (k-1) = k-2.
 Proof.
- intros. apply f_subid; lia.
+ intros. rewrite f_subid; lia.
+Qed.
+
+Lemma f_k_k k : 1<k -> f k k = k-1.
+Proof.
+ intros. rewrite f_subid; lia.
 Qed.
 
 Lemma f_k_Sk k : k<>0 -> f k (S k) = k.
@@ -914,77 +930,76 @@ Proof.
  rewrite f_subid; lia.
 Qed.
 
-Lemma f_k_plus_3 k : f k (3+k) = 2+k.
+Lemma f_k_plus_3 k : f k (3+k) = S k.
 Proof.
- rewrite f_subid; lia.
-Qed.
-
-Lemma f_k_plus_4 k : f k (4+k) = 2+k.
-Proof.
- replace (4+k) with (sumA k [S (S k)]).
+ destruct k; auto.
+ replace (3+S k) with (sumA k [S (S k)]).
  2:{ cbn -[A]. rewrite A_S.
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
  rewrite f_sumA; auto. cbn -[A]. rewrite A_base; lia.
 Qed.
 
-Lemma f_k_plus_5 k : f k (5+k) = 3+k.
+Lemma f_k_plus_4 k : k<>0 -> f k (4+k) = 2+k.
 Proof.
- replace (5+k) with (sumA k [0;S (S k)]).
+ destruct k; [lia|intros _].
+ replace (4+S k) with (sumA k [0;S (S k)]).
  2:{ cbn -[A]. rewrite A_S.
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
  rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
-Lemma f_k_plus_6 k : f k (6+k) = 3+k.
+Lemma f_k_plus_5 k : k<>0 -> f k (5+k) = 2+k.
 Proof.
- replace (6+k) with (sumA k [1;S (S k)]).
+ destruct k; [lia|intros _].
+ replace (5+S k) with (sumA k [1;S (S k)]).
  2:{ cbn -[A]. rewrite (A_S k (S k)).
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
  rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
-Lemma f_k_plus_7 k : f k (7+k) = 4+k.
+Lemma f_k_plus_6 k : k<>0 -> f k (6+k) = 3+k.
 Proof.
+ destruct k; [lia|intros _].
  destruct (Nat.eq_dec k 0) as [->|Hk]. now compute.
- replace (7+k) with (sumA k [2;S (S k)]).
+ replace (6+S k) with (sumA k [2;S (S k)]).
  2:{ cbn -[A]. rewrite (A_S k (S k)).
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
  rewrite f_sumA_lax; auto. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
-Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+3.
+Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+2.
 Proof.
  intros E. split.
  - intros ->. rewrite f_k_1 in E. discriminate.
  - rewrite Nat.le_ngt. intros LT.
-   generalize (f_lipschitz k (4+k) n).
-   rewrite f_k_plus_4, E. lia.
+   generalize (f_lipschitz k (3+k) n).
+   rewrite f_k_plus_3, E. lia.
 Qed.
 
-(** Summarize some of the last results (note that [f 0 p = (p+1)/2]). *)
+(** Summarize some of the last results (note that [f 1 p = (p+1)/2]). *)
 
-Lemma f_k_plus_some k p : 2 <= p <= 7 -> f k (k+p) = k + f 0 p.
+Lemma f_k_plus_some k p : 2 <= p <= 7 -> f (S k) (k+p) = k + f 1 p.
 Proof.
  intros Hp. rewrite !(Nat.add_comm k).
- destruct (Nat.eq_dec p 2) as [->|N2]. apply f_k_plus_2.
- destruct (Nat.eq_dec p 3) as [->|N3]. apply f_k_plus_3.
- destruct (Nat.eq_dec p 4) as [->|N4]. apply f_k_plus_4.
- destruct (Nat.eq_dec p 5) as [->|N5]. apply f_k_plus_5.
- destruct (Nat.eq_dec p 6) as [->|N6]. apply f_k_plus_6.
- destruct (Nat.eq_dec p 7) as [->|N7]. apply f_k_plus_7.
+ destruct (Nat.eq_dec p 2) as [->|N2]. apply f_k_Sk; auto.
+ destruct (Nat.eq_dec p 3) as [->|N3]. apply f_k_plus_2; auto.
+ destruct (Nat.eq_dec p 4) as [->|N4]. apply f_k_plus_3; auto.
+ destruct (Nat.eq_dec p 5) as [->|N5]. apply f_k_plus_4; auto.
+ destruct (Nat.eq_dec p 6) as [->|N6]. apply f_k_plus_5; auto.
+ destruct (Nat.eq_dec p 7) as [->|N7]. apply f_k_plus_6; auto.
  lia.
 Qed.
 
 (** Decomposition and positions in the F tree *)
 
 Lemma rchild_decomp k n :
- rchild k n = sumA k (map S (decomp k n)).
+ rchild (S k) n = sumA k (map S (decomp k n)).
 Proof.
- unfold rchild.
+ unfold rchild. replace (S k - 1) with k by lia.
  rewrite fs_decomp; auto.
  rewrite <- (@decomp_sum k n) at 1.
  remember (decomp k n) as l.
@@ -992,7 +1007,7 @@ Proof.
 Qed.
 
 Lemma flat_rank_0 k n :
- f k (S n) = f k n <-> rank k n = Some 0.
+ f (S k) (S n) = f (S k) n <-> rank k n = Some 0.
 Proof.
  rewrite !f_decomp.
  unfold rank.
@@ -1013,22 +1028,22 @@ Proof.
 Qed.
 
 Lemma step_rank_nz k n :
- f k (S n) = S (f k n) <-> rank k n <> Some 0.
+ f (S k) (S n) = S (f (S k) n) <-> rank k n <> Some 0.
 Proof.
  rewrite <- flat_rank_0.
- generalize (f_step k n). lia.
+ generalize (f_step (S k) n). lia.
 Qed.
 
 Lemma steps_ranks_nz k n p :
- f k (n+p) = f k n + p <-> (forall q, q<p -> rank k (n+q) <> Some 0).
+ f (S k) (n+p) = f (S k) n + p <-> (forall q, q<p -> rank k (n+q) <> Some 0).
 Proof.
  induction p.
  - rewrite !Nat.add_0_r. intuition.
  - rewrite !Nat.add_succ_r.
    split.
    + intros E q Hq.
-     assert (LE := f_le_add k p n). rewrite (Nat.add_comm p n) in LE.
-     assert (LE' := f_le_add k 1 (n+p)). simpl in LE'.
+     assert (LE := f_le_add (S k) p n). rewrite (Nat.add_comm p n) in LE.
+     assert (LE' := f_le_add (S k) 1 (n+p)). simpl in LE'.
      inversion Hq.
      * subst q. apply step_rank_nz. lia.
      * apply IHp; try lia.
@@ -1038,25 +1053,28 @@ Proof.
      apply IHp. intros q Hq. apply H. lia.
 Qed.
 
-(** At most [k+1] consecutive [+1] steps *)
+(** At most [k] consecutive [+1] steps *)
 
-Lemma f_maxsteps k n :
- f k (n+k+2) <= f k n + k+1.
+Lemma f_maxsteps k n : k<>0 ->
+ f k (n+S k) <= f k n + k.
 Proof.
+ destruct k; [lia|intros _].
  destruct (rank_later_is_zero k n) as (p & LE & H).
  apply flat_rank_0 in H.
- transitivity (f k (S (p + n)) + (k+2-S p)).
- - generalize (f_lipschitz k (S (p+n)) (n+k+2)). lia.
+ transitivity (f (S k) (S (p + n)) + (k+2-S p)).
+ - generalize (f_lipschitz (S k) (S (p+n)) (n+S (S k))). lia.
  - rewrite H.
-   generalize (f_lipschitz k n (p+n)). lia.
+   generalize (f_lipschitz (S k) n (p+n)). lia.
 Qed.
 
-(** A first example of such [k+1] consecutive [+1] steps : [n=2] *)
+(** A first example of such [k] consecutive [+1] steps : [n=2] *)
 
-Lemma f_maxsteps_example2 k : f k (2+S k) = f k 2 + S k.
+Lemma f_maxsteps_example2 k : f k (2+k) = f k 2 + k.
 Proof.
- rewrite f_k_2. simpl. apply f_k_plus_3.
+ rewrite f_k_2. apply f_k_plus_2.
 Qed.
+
+======TODO=======
 
 (** More generally, [k+1] consecutive [+1] steps for numbers [2+n]
     when [n=0] or [rank k n > 2k]. *)
