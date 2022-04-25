@@ -1,7 +1,7 @@
 (** * FunG_prog : Alternative definition of Hofstadter's G function *)
 
-Require Import Arith Lia List Program Program.Wf.
-Require Import FunG.
+From Coq Require Import Program Program.Wf.
+Require Import DeltaList FunG.
 Set Implicit Arguments.
 
 (** Same as [FunG.g_spec], but via the Program framework *)
@@ -11,6 +11,9 @@ Program Fixpoint g_spec n { measure n } : { r : nat | G n r } :=
  | O => O
  | S n => S n - g_spec (g_spec n)
  end.
+Next Obligation.
+ autoh.
+Defined.
 Next Obligation.
  destruct g_spec; simpl. apply le_n_S. now apply G_le.
 Defined.

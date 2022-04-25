@@ -1,6 +1,5 @@
 (** * FunG : Hofstadter's G function and tree *)
 
-Require Import Arith Lia List.
 Require Import DeltaList Fib.
 Import ListNotations.
 Set Implicit Arguments.
@@ -22,13 +21,13 @@ Set Implicit Arguments.
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
 | GS n a b c : G n a -> G a b -> S n = c+b -> G (S n) c.
-Hint Constructors G : core.
+Hint Constructors G : hof.
 
 Lemma G1 : G 1 1.
 Proof.
-eauto.
+eautoh.
 Qed.
-Hint Resolve G1 : core.
+Hint Resolve G1 : hof.
 
 Lemma GS_inv n a : G (S n) a ->
  exists b c, G n b /\ G b c /\ S n = a + c.
@@ -46,7 +45,7 @@ revert a.
 induction n using lt_wf_rec.
 destruct n; inversion_clear 1; lia.
 Qed.
-Hint Resolve G_le : core.
+Hint Resolve G_le : hof.
 
 Lemma G_rec (P:nat->Set) :
 P 0 ->
@@ -58,7 +57,7 @@ induction n as [[|n] IH] using lt_wf_rec.
 - apply P_0.
 - apply P_S.
   + apply IH. auto.
-  + intros. apply IH. auto with arith.
+  + intros. apply IH. auto with arith hof.
 Defined.
 
 (** The [G] relation is indeed functional: *)
@@ -80,7 +79,7 @@ Qed.
 Definition g_spec n : { a : nat | G n a }.
 Proof.
 induction n as [|n IH IH'] using G_rec.
-- now exists 0.
+- exists 0; autoh.
 - destruct IH as (a,Ha).
   destruct (IH' a Ha) as (b,Hb).
   assert (a <= n) by now apply G_le.
@@ -106,7 +105,7 @@ Lemma g_correct n : G n (g n).
 Proof.
 unfold g; now destruct (g_spec n).
 Qed.
-Hint Resolve g_correct : core.
+Hint Resolve g_correct : hof.
 
 Lemma g_complete n p : G n p <-> p = g n.
 Proof.
@@ -152,7 +151,7 @@ induction n as [|n IH IH'] using G_rec.
 - now rewrite f_0, g_0.
 - specialize (f_S n).
   rewrite IH in *.
-  rewrite (IH' (g n)) in * by auto.
+  rewrite (IH' (g n)) in * by autoh.
   generalize (g_eqn n). lia.
 Qed.
 
@@ -162,7 +161,7 @@ induction n as [|n IH IH'] using G_rec.
 - compute; auto.
 - rewrite (g_S n), (g_S (S n)).
   destruct IH as [-> | ->]; [lia|].
-  destruct (IH' (g n)) as [-> | ->]; auto; lia.
+  destruct (IH' (g n)) as [-> | ->]; autoh; lia.
 Qed.
 
 Lemma g_mono_S n : g n <= g (S n).
@@ -228,7 +227,7 @@ Qed.
 
 Lemma g_le n : g n <= n.
 Proof.
- apply G_le; auto.
+ apply G_le; autoh.
 Qed.
 
 Lemma g_lt n : 1<n -> g n < n.
@@ -237,7 +236,7 @@ intros H.
 destruct (le_lt_or_eq _ _ (g_le n)); trivial.
 rewrite g_fix in *. lia.
 Qed.
-Hint Resolve g_lt : core.
+Hint Resolve g_lt : hof.
 
 (** Two special formulations for [g_step] *)
 
@@ -953,12 +952,13 @@ Proof.
    { generalize (@fib_nz (S k)). lia. }
    rewrite <- preds_ok, <- sumfib_app in E'.
    assert (D2 := preds_delta (S k)).
-   assert (D1 : Delta 1 (1::preds (S k))) by eauto.
-   rewrite <- (map_S_pred (preds (S k))) in E' by (eauto using Delta_nz').
+   assert (D1 : Delta 1 (1::preds (S k))) by eautoh.
+   rewrite <- (map_S_pred (preds (S k))) in E'
+     by (eauto using Delta_nz' with hof).
    rewrite <- map_app in E'.
    apply IH in E'; try lia.
    2:{ change (Delta 1 (map pred (1::preds (S k))++l)).
-       eapply Delta_app; eauto using Delta_pred.
+       eapply Delta_app; eauto using Delta_pred with hof.
        intros y [<-|IN]; simpl; auto with arith.
        rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
        apply preds_lt in IN. lia. }
@@ -971,7 +971,7 @@ Proof.
      2:{ generalize (g_le n); lia. }
      2:{ change (Delta 1 (map pred (1::l))).
          apply Delta_pred; [|simpl;auto].
-         apply Delta_nz' with 1 0; simpl in *; auto. }
+         apply Delta_nz' with 1 0; simpl in *; autoh. }
      clear D D1 D2.
      simpl sumfib. simpl in E.
      generalize (@fib_eqn' k) (sumfib_eqn l Hl). lia.
@@ -985,18 +985,18 @@ Proof.
      assert (D3 : Delta 1 (map pred (3::ps) ++ l)).
      { eapply Delta_app; eauto.
        - apply Delta_pred; eauto.
-         + intros [[= ]|IN]. revert IN. apply Delta_nz' with 1 p; eauto.
-         + destruct (preds_low _ Hp); subst; eauto.
+         + intros [[= ]|IN]. revert IN. apply Delta_nz' with 1 p; eautoh.
+         + destruct (preds_low _ Hp); subst; eautoh.
        - intros y [<-|IN]; simpl; try lia.
          rewrite in_map_iff in IN. destruct IN as (z & Hz & IN).
          assert (z < S k) by (apply preds_lt; rewrite Hp; now right). lia. }
      rewrite <- (map_S_pred (_ ++ _)) in E'.
-     2:{ eapply Delta_nz' with 1 1; simpl in *; auto. }
+     2:{ eapply Delta_nz' with 1 1; simpl in *; autoh. }
      apply IH in E'.
      2:{ generalize (g_le n); lia. }
      2:{ change (Delta 1 (map pred (map pred (2::3::ps) ++ l))).
-         apply Delta_pred; [|simpl;auto].
-         apply Delta_nz' with 1 0; simpl in *; auto. }
+         apply Delta_pred; [|simpl;autoh].
+         apply Delta_nz' with 1 0; simpl in *; autoh. }
      clear D D1 D2 D3.
      simpl sumfib.
      rewrite map_app, sumfib_app in E'.
@@ -1010,7 +1010,7 @@ Lemma g_sumfib' l : Delta 1 (1::l) ->
  g (sumfib l) = sumfib (map Nat.pred l).
 Proof.
  intros.
- assert (~In 0 (1::l)) by eauto.
+ assert (~In 0 (1::l)) by eautoh.
  assert (~In 0 l) by (simpl in *; intuition).
  rewrite <- (map_S_pred l) at 1; auto.
  apply g_sumfib.
@@ -1056,20 +1056,20 @@ Lemma g_Low n k : 2<k -> Fib.Low 2 n k -> Fib.Low 2 (g n) (k-1).
 Proof.
  intros K (l & -> & D & _).
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; lia).
- rewrite g_sumfib'; eauto.
+ rewrite g_sumfib'; eautoh.
  rewrite (Nat.sub_1_r).
- exists (map Nat.pred l). repeat split; auto; try lia.
- apply Delta_pred in D; auto.
+ exists (map Nat.pred l). repeat split; autoh; try lia.
+ apply Delta_pred in D; autoh.
 Qed.
 
 Lemma g_Low' n k : 2<k -> Fib.Low 1 n k -> Fib.Low 1 (g n) (k-1).
 Proof.
  intros K (l & -> & D & _).
  assert (~In 0 (k::l)) by (eapply Delta_nz; eauto; lia).
- rewrite g_sumfib'; auto with arith.
+ rewrite g_sumfib'; auto with arith hof.
  rewrite (Nat.sub_1_r).
- exists (map Nat.pred l). repeat split; auto; try lia.
- apply Delta_pred in D; auto.
+ exists (map Nat.pred l). repeat split; autoh; try lia.
+ apply Delta_pred in D; autoh.
 Qed.
 
 Lemma g_Two n : Fib.Two 2 n -> g (S n) = g n.
@@ -1077,7 +1077,7 @@ Proof.
  intros (l & H & Hl & _).
  rewrite H.
  change (S (sumfib (2::l))) with (sumfib (3::l)).
- rewrite !g_sumfib'; eauto.
+ rewrite !g_sumfib'; eautoh.
 Qed.
 
 Lemma g_Two_iff n : Fib.Two 2 n <-> g (S n) = g n.
@@ -1089,15 +1089,15 @@ Proof.
  - destruct k as [|[|[|k]]].
    + inversion_clear D; lia.
    + inversion_clear D; lia.
-   + intros _. exists l; repeat split; eauto.
+   + intros _. exists l; repeat split; eautoh.
    + intros E'. exfalso.
      subst n.
      change (S (sumfib (S (S (S k)) :: l))) with
      (sumfib (2::S (S (S k))::l)) in E'.
-     rewrite !g_sumfib' in *; auto.
+     rewrite !g_sumfib' in *; autoh.
      * simpl map in *.
        rewrite sumfib_cons in E'. simpl fib in E'. lia.
-     * do 2 (constructor; eauto); lia.
+     * do 2 (constructor; eautoh); lia.
 Qed.
 
 Lemma g_not_Two n : ~Fib.Two 2 n -> g (S n) = S (g n).
@@ -1110,8 +1110,8 @@ Proof.
  intros (l & -> & D & _).
  apply Even_12. apply Two_Even.
  exists (map pred l); repeat split; auto.
- rewrite g_sumfib'; eauto.
- apply Delta_S_cons, Delta_pred in D; eauto.
+ rewrite g_sumfib'; eautoh.
+ apply Delta_S_cons, Delta_pred in D; eautoh.
 Qed.
 
 Lemma Three_g n : Fib.Three 2 n -> Fib.Two 2 (g n).
@@ -1125,7 +1125,7 @@ Proof.
  - intros (l & -> & D & _).
    simpl.
    change (g (sumfib (2::4::l)) = 2 + g (sumfib (3::l))).
-   rewrite !g_sumfib'; auto.
+   rewrite !g_sumfib'; autoh.
  - intros E.
    destruct (Nat.eq_dec n 0) as [->|Hn].
    + discriminate.
@@ -1141,11 +1141,11 @@ Lemma ThreeOdd_Sg n : Fib.ThreeOdd 2 n -> Fib.ThreeEven 1 (S (g n)).
 Proof.
 intros (k & l & -> & D).
 assert (1<k) by (inversion_clear D; lia).
-rewrite g_sumfib'; eauto.
+rewrite g_sumfib'; eautoh.
 exists k; exists (map pred l); split; auto.
 - simpl. do 4 f_equal. lia.
-- apply Delta_pred in D; eauto. simpl in D.
-  replace (2*k) with (pred (2*k+1)) by lia. auto.
+- apply Delta_pred in D; eautoh. simpl in D.
+  replace (2*k) with (pred (2*k+1)) by lia. autoh.
 Qed.
 
 Lemma ThreeEven_Sg n : Fib.ThreeEven 2 n -> Fib.ThreeOdd 2 (S (g n)).
@@ -1153,11 +1153,11 @@ Proof.
 intros (k & l & -> & D).
 apply ThreeOdd_12.
 assert (1<k) by (inversion_clear D; lia).
-rewrite g_sumfib'; eauto.
+rewrite g_sumfib'; eautoh.
 exists (k-1); exists (map pred l); split; auto.
 - simpl. do 4 f_equal. lia.
-- apply Delta_pred in D; eauto. simpl in D.
-  replace (2*(k-1)+1) with (pred (2*k)) by lia. auto.
+- apply Delta_pred in D; eautoh. simpl in D.
+  replace (2*(k-1)+1) with (pred (2*k)) by lia. autoh.
 Qed.
 
 Lemma High_g n : Fib.High 2 n -> ~Fib.Two 2 (g n).
@@ -1174,9 +1174,9 @@ apply Even_12. apply Two_Even.
 rewrite g_sumfib'; eauto.
 exists (map pred (k::l)). repeat split; simpl; auto.
 constructor. lia. change (Delta 1 (map pred (k :: l))).
-apply Delta_pred; eauto.
-eapply Delta_nz; eauto. lia.
-constructor. lia. eauto.
+apply Delta_pred; eautoh.
+eapply Delta_nz; eautoh.
+constructor; eautoh.
 Qed.
 
 Lemma Odd_g n : Fib.Odd 2 n -> Fib.Even 2 (g n).
@@ -1222,7 +1222,7 @@ Proof.
  - rewrite <- Nat.sub_1_r.
    rewrite Odd_gP.
    + rewrite g_fib'. f_equal; lia. lia.
-   + exists (S k). exists (@nil nat); repeat split; simpl; auto. lia.
+   + exists (S k). exists (@nil nat); repeat split; simpl; autoh.
 Qed.
 
 Lemma g_pred_fib_even k : g (pred (fib (2*k))) = fib (2*k-1) - 1.
@@ -1232,7 +1232,7 @@ Proof.
  - rewrite <- Nat.sub_1_r.
    rewrite Even_gP.
    + rewrite g_fib'; auto. lia.
-   + exists (S k); exists (@nil nat); repeat split; simpl; auto. lia.
+   + exists (S k); exists (@nil nat); repeat split; simpl; autoh.
 Qed.
 
 Lemma g_pred_pred_fib k : g (fib k - 2) = fib (k-1) - 1.
@@ -1245,15 +1245,15 @@ Proof.
      * rewrite Nat.sub_1_r. apply g_pred_fib_even.
      * apply EvenHigh_pred_Odd.
        { exists k'; exists (@nil nat).
-         repeat split; simpl; auto. lia. }
+         repeat split; simpl; autoh. }
        { exists (2*k'). split. lia.
-         exists (@nil nat); repeat split; simpl; auto; lia. }
+         exists (@nil nat); repeat split; simpl; autoh. }
    + rewrite Even_gP.
      * f_equal. rewrite Nat.sub_1_r. rewrite g_pred_fib_odd.
        f_equal. lia.
      * apply Two_Even, Odd_pred_Two.
        exists k'; exists (@nil nat).
-       simpl; repeat split; auto. lia.
+       simpl; repeat split; autoh.
 Qed.
 
 (*==============================================================*)
@@ -1395,7 +1395,7 @@ Inductive GD : nat -> nat -> Prop :=
                   GD x z -> GD (S x) z -> GD (2+n) (S y)
  | GD_b' n x y z t : GD n x -> GD (S n) y -> x <> y ->
                      GD x z -> GD (S x) t -> z <> t -> GD (2+n) y.
-Hint Constructors GD : core.
+Hint Constructors GD : hof.
 
 (** There is only one implementation of [GD] *)
 
@@ -1421,8 +1421,8 @@ Lemma g_implements_GD n : GD n (g n).
 Proof.
 induction n as [n IH] using lt_wf_rec.
 destruct n as [|[|n]].
-- auto.
-- auto.
+- autoh.
+- autoh.
 - assert (GD n (g n)) by (apply IH; lia).
   assert (GD (S n) (g (S n))) by (apply IH; lia).
   set (x := g n) in *.
@@ -1507,7 +1507,7 @@ Proof.
  - constructor. lia. constructor.
  - intro a. case Nat.leb_spec; intro.
    + inversion 1; subst. intros.
-     constructor. lia. constructor. lia. auto.
+     constructor. lia. constructor; autoh.
    + inversion 1; subst. intros.
      constructor. lia. apply IH; auto.
      apply Delta_low_hd with b. lia. auto.
@@ -1543,8 +1543,8 @@ Qed.
 Lemma rank_fib k : 1<k -> rank (fib k) mod 2 = k mod 2.
 Proof.
  intros Hk.
- replace (fib k) with (sumfib [k]) by (simpl; auto).
- apply rank_sumfib; auto.
+ replace (fib k) with (sumfib [k]) by (simpl; autoh).
+ apply rank_sumfib; autoh.
 Qed.
 
 (** General result about [g(n+p)-g(n)-g(p)].
@@ -1579,7 +1579,7 @@ destruct dp as [|a pl].
       destruct (In_dec Nat.eq_dec a nl) as [INa|NIa].
       - assert (NIb' : ~In (a-1) nl).
         { intro. apply (@Delta2_apart nl (a-1)); auto.
-          inversion_clear Dn; auto. simpl_sub; auto. }
+          inversion_clear Dn; autoh. simpl_sub; autoh. }
         set (nl' := insert (a-1) nl).
         assert (LT : fib (a-2) < p).
         { subst p. simpl. rewrite Nat.add_0_r. apply fib_lt; lia. }
@@ -1594,11 +1594,11 @@ destruct dp as [|a pl].
         { clear IH.
           subst p. subst n. simpl. rewrite Nat.add_0_r.
           rewrite !g_fib' by lia.
-          unfold nl'. rewrite !g_sumfib'; auto.
+          unfold nl'. rewrite !g_sumfib'; autoh.
           - rewrite map_pred_insert, sumfib_insert.
             rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
             generalize (fib_eqn (a-3)). simpl_sub. lia.
-          - apply insert_delta; auto. lia. }
+          - apply insert_delta; autoh. }
       - (* NIa : ~In a nl *)
         clear IH.
         subst p. simpl sumfib. rewrite Nat.add_0_r.
@@ -1607,10 +1607,10 @@ destruct dp as [|a pl].
         assert (a mod 2 < 2). { now apply Nat.mod_upper_bound. }
         assert (g (n + fib a) = g n + fib (a-1)); [|lia].
         { rewrite <- En. rewrite Nat.add_comm. rewrite <- sumfib_insert.
-          rewrite !g_sumfib'; auto.
+          rewrite !g_sumfib'; autoh.
           - rewrite map_pred_insert, sumfib_insert.
             rewrite Nat.sub_1_r. lia.
-          - apply insert_delta; auto. lia. }
+          - apply insert_delta; autoh. }
     }
   + set (pl' := b::pl) in *.
     apply Delta_inv2 in D. destruct D as (Hb,D).
@@ -1619,8 +1619,8 @@ destruct dp as [|a pl].
         destruct (decomp_exists n) as (nl & En & Dn).
         destruct (In_dec Nat.eq_dec b nl) as [INb|NIb].
         - assert (NIb' : ~In (b-1) nl).
-          { intro. apply (@Delta2_apart nl (b-1)); auto.
-            inversion_clear Dn; auto. simpl_sub; auto. }
+          { intro. apply (@Delta2_apart nl (b-1)); autoh.
+            inversion_clear Dn; autoh. simpl_sub; autoh. }
           set (nl' := insert (b-1) nl).
           set (pl2 := a::b-2::pl).
           assert (LT : sumfib pl2 < p).
@@ -1637,13 +1637,13 @@ destruct dp as [|a pl].
           assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|lia].
           { clear IH.
             unfold pl2. subst p. subst n. unfold pl'.
-            unfold nl'. rewrite !g_sumfib'; auto.
+            unfold nl'. rewrite !g_sumfib'; autoh.
             - rewrite map_pred_insert, sumfib_insert. simpl.
               rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
               generalize (fib_eqn (b-3)). simpl_sub. lia.
             - constructor; auto. constructor. lia.
-              apply Delta_S. apply Delta_low_hd with b; auto. lia.
-            - apply insert_delta; auto. lia. }
+              apply Delta_S. apply Delta_low_hd with b; autoh.
+            - apply insert_delta; autoh. }
         - (* NIb : ~In b dn *)
           set (nl' := insert b nl).
           set (pl2 := a::pl).
@@ -1655,15 +1655,15 @@ destruct dp as [|a pl].
               subst n. subst p. simpl. lia. }
           rewrite rank_sumfib in IH.
           2:{ constructor. lia.
-              apply Delta_low_hd with b; auto. lia. }
+              apply Delta_low_hd with b; autoh. }
           simpl head_or_0 in IH.
           assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|lia].
           { clear IH.
             unfold pl2. subst p. subst n. unfold pl', nl'.
-            rewrite !g_sumfib'; auto.
+            rewrite !g_sumfib'; autoh.
             - rewrite map_pred_insert, sumfib_insert. simpl. lia.
-            - constructor; auto. apply Delta_low_hd with b; auto. lia.
-            - apply insert_delta; auto. lia. }
+            - constructor; auto. apply Delta_low_hd with b; autoh.
+            - apply insert_delta; autoh. }
       }
     * assert (Hb2 : b = a + 2) by lia. clear Hb Hb'. rename Hb2 into Hb.
       destruct (decomp_exists n) as (nl & En & Dn).
@@ -1677,15 +1677,15 @@ destruct dp as [|a pl].
          2:{ unfold nl'. rewrite sumfib_insert.
              subst n. subst p. simpl. lia. }
          rewrite rank_sumfib in IH.
-         2:{ unfold pl'. constructor; auto. lia. }
+         2:{ unfold pl'. constructor; autoh. }
          simpl head_or_0 in IH.
          subst b. change (a+2) with (a+1*2) in IH.
          rewrite Nat.mod_add in IH; auto.
          assert (g (sumfib nl') + g (sumfib pl') = g n + g p); [|lia].
          { clear IH.
-           subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'; auto.
+           subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'; autoh.
            - rewrite map_pred_insert, sumfib_insert. simpl. lia.
-           - constructor; auto. lia.
+           - constructor; autoh.
            - apply insert_delta; auto. }
       }
      apply Nat.lt_eq_cases in Ha. destruct Ha as [Ha|<-].
@@ -1702,20 +1702,20 @@ destruct dp as [|a pl].
            generalize (fib_eqn (a-2)). simpl_sub. lia. }
        rewrite rank_sumfib in IH.
        2:{ unfold pl2. constructor. lia.
-           unfold pl'. constructor; auto. lia. }
+           unfold pl'. constructor; autoh. }
        simpl head_or_0 in IH.
        replace a with (a-2+1*2) by lia. rewrite Nat.mod_add; auto.
        assert (g (sumfib nl') + g (sumfib pl2) = g n + g p); [|lia].
        { clear IH.
-         subst p. subst n. unfold nl'. rewrite !g_sumfib'; auto.
+         subst p. subst n. unfold nl'. rewrite !g_sumfib'; autoh.
          - rewrite map_pred_insert, sumfib_insert. simpl.
            rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
            generalize (fib_eqn (a-3)). simpl_sub. lia.
-         - constructor; auto. lia. constructor; auto. lia.
-         - constructor; auto. lia. constructor; auto. lia.
+         - constructor; auto. lia. constructor; autoh.
+         - constructor; auto. lia. constructor; autoh.
          - apply insert_delta; auto. 2:lia.
-           intro. apply (@Delta2_apart nl (a-1)); auto.
-           inversion_clear Dn; auto. simpl_sub. auto. }
+           intro. apply (@Delta2_apart nl (a-1)); autoh.
+           inversion_clear Dn; autoh. simpl_sub. autoh. }
      }
      { (* a = 3 *)
        assert (LT : sumfib (2::pl') < p).
@@ -1724,7 +1724,7 @@ destruct dp as [|a pl].
        replace (1+n + sumfib (2::pl')) with (n + p) in IH.
        2:{ subst p. simpl. lia. }
        rewrite rank_sumfib in IH.
-       2:{ constructor. lia. constructor; auto. lia. }
+       2:{ constructor. lia. constructor; autoh. }
        simpl Nat.modulo in *.
        assert (0 < g p).
        { apply g_nonzero. subst p. simpl. lia. }
@@ -1732,15 +1732,15 @@ destruct dp as [|a pl].
        { clear IH.
          subst p. subst n.
          change (1+sumfib nl) with (sumfib (2::nl)).
-         rewrite !g_sumfib'; auto.
+         rewrite !g_sumfib'; autoh.
          - simpl. lia.
-         - constructor; auto. constructor; auto. lia.
-         - constructor; auto. constructor; auto. lia.
+         - constructor; auto. constructor; autoh.
+         - constructor; auto. constructor; autoh.
          - constructor; auto.
            destruct nl as [|c nl].
            + inversion INa.
            + apply Delta_inv2 in Dn. destruct Dn as (Hc,Dn).
-             replace c with 3 in *; auto.
+             replace c with 3 in *; autoh.
              simpl in INa. destruct INa as [INa|INa]; auto.
              apply Delta_alt in Dn. destruct Dn as (_,Dn).
              specialize (Dn _ INa). lia. }
@@ -1769,10 +1769,10 @@ destruct dp as [|a pl].
              apply Delta_alt in Dn. destruct Dn as (_,Dn).
              specialize (Dn _ INa). lia. }
            change (2+sumfib (2::nl)) with (sumfib (2::3::nl)).
-           rewrite !g_sumfib'; auto.
+           rewrite !g_sumfib'; autoh.
            + simpl. lia.
-           + constructor; auto. constructor; auto.
-           + constructor; auto. apply Delta_low_hd with 4; auto. }
+           + constructor; auto. constructor; autoh.
+           + constructor; auto. apply Delta_low_hd with 4; autoh. }
      }
 Qed.
 

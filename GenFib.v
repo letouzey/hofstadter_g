@@ -1,6 +1,5 @@
 (** * Fib : Fibonacci sequence and decomposition *)
 
-Require Import Arith Lia List.
 Require Import DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
@@ -491,11 +490,11 @@ Qed.
 
 Lemma decomp_delta k n : Delta (S k) (decomp k n).
 Proof.
- induction n as [[|n] IH] using lt_wf_rec; trivial.
+ induction n as [[|n] IH] using lt_wf_rec; autoh.
  cbn - [invA sumA].
  destruct (invA_spec k n) as (H,H').
  set (p := invA k n) in *.
- apply Delta_app_iff; repeat split; auto.
+ apply Delta_app_iff; repeat split; autoh.
  - apply IH. lia.
  - intros x x' IN [<-|[ ]].
    apply decomp_in in IN.
@@ -503,7 +502,7 @@ Proof.
    apply (A_lt_inv k).
    rewrite A_S in H'. lia.
 Qed.
-Hint Resolve decomp_sum decomp_delta : core.
+Hint Resolve decomp_sum decomp_delta : hof.
 
 Lemma decomp_exists k n :
   { l | sumA k l = n /\ Delta (S k) l }.
@@ -593,10 +592,10 @@ Qed.
 Lemma decomp_carac k n l :
  Delta (S k) l -> sumA k l = n -> decomp k n = l.
 Proof.
- intros D Eq. apply (@decomp_unique k); auto.
+ intros D Eq. apply (@decomp_unique k); autoh.
  now rewrite decomp_sum.
 Qed.
-Hint Resolve decomp_carac : core.
+Hint Resolve decomp_carac : hof.
 
 Lemma decomp_sum' k l :
  Delta (S k) l -> decomp k (sumA k l) = l.
@@ -665,7 +664,7 @@ Lemma renorm_length k l : length (renorm k l) <= length l.
 Proof.
  unfold renorm. now apply renorm_loop_length.
 Qed.
-Hint Resolve renorm_length : core.
+Hint Resolve renorm_length : hof.
 
 Lemma renorm_loop_sum k l n :
   length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
@@ -686,7 +685,7 @@ Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
 Proof.
  unfold renorm. now apply renorm_loop_sum.
 Qed.
-Hint Resolve renorm_sum : core.
+Hint Resolve renorm_sum : hof.
 
 Definition HeadStep k l l' := match l, l' with
 | [], [] => True
@@ -722,15 +721,15 @@ Lemma renorm_loop_delta k l n :
   length l <= n -> Delta k l -> Delta (S k) (renorm_loop k l n).
 Proof.
  revert l.
- induction n; intros [|p l] LE D; simpl in *; auto.
+ induction n; intros [|p l] LE D; simpl in *; autoh.
  apply Nat.succ_le_mono in LE.
  apply Delta_alt in D. destruct D as (D,IN).
  assert (D' := IHn l LE D).
  assert (LE' := renorm_loop_length k l LE).
  assert (Hd := renorm_loop_head k l LE).
- destruct renorm_loop as [|p' l']; simpl in *; auto.
+ destruct renorm_loop as [|p' l']; simpl in *; autoh.
  case Nat.eqb_spec; simpl in *; intros.
- - apply IHn; simpl; auto; lia.
+ - apply IHn; simpl; autoh; lia.
  - destruct l as [|x l]; simpl in *; [intuition|].
    destruct Hd as (m,Hd).
    constructor; auto.
@@ -742,7 +741,7 @@ Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
 Proof.
  unfold renorm. now apply renorm_loop_delta.
 Qed.
-Hint Resolve renorm_delta : core.
+Hint Resolve renorm_delta : hof.
 
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.
@@ -830,7 +829,7 @@ Proof.
    assert (D' := @renorm_loop_delta k l n LE D).
    destruct renorm_loop as [|p' l']; simpl in *; auto.
    case Nat.eqb_spec; simpl in *; intros.
-   + rewrite IHn; auto; try (simpl; lia).
+   + rewrite IHn; autoh; try (simpl; lia).
      subst p'. rewrite <- H'; auto.
      rewrite <- Nat.add_succ_r. simpl.
      rewrite Nat.add_assoc. f_equal.
@@ -868,8 +867,8 @@ Qed.
 
 Lemma next_decomp_delta k l : Delta (S k) l -> Delta (S k) (next_decomp k l).
 Proof.
- destruct l; simpl; trivial.
- case Nat.leb_spec; intros; auto using renorm_delta.
+ destruct l; simpl; autoh.
+ case Nat.leb_spec; intros; auto using renorm_delta with hof.
 Qed.
 
 Lemma decomp_S k n : decomp k (S n) = next_decomp k (decomp k n).
@@ -898,7 +897,7 @@ Proof.
    destruct (decomp k n) eqn:E.
    + discriminate.
    + injection 1 as ->.
-     exists l. rewrite <- E; auto.
+     exists l. rewrite <- E; autoh.
  - intros (l & E & D).
    unfold rank.
    rewrite decomp_carac with (l:=r::l); auto.
@@ -1053,12 +1052,12 @@ Qed.
 
 Lemma decompred_delta k n : Delta (S k) (decompred k n).
 Proof.
- induction n as [[|n] IH] using lt_wf_rec; trivial.
+ induction n as [[|n] IH] using lt_wf_rec; autoh.
  simpl. destruct (Nat.le_gt_cases n k).
  - replace (n-k) with 0 by lia. simpl. constructor.
  - apply Delta_app with (n-S k).
    + apply IH; lia.
-   + constructor. lia. auto.
+   + constructor. lia. autoh.
    + intros y IN. apply decompred_below in IN. lia.
 Qed.
 

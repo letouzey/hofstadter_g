@@ -1,6 +1,6 @@
 (** * Phi : Hofstadter G function and the golden ratio *)
 
-Require Import Arith Reals Lra Lia R_Ifp R_sqrt Znumtheory.
+From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Znumtheory.
 Require Import Fib FunG.
 
 Open Scope Z.

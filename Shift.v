@@ -1,4 +1,3 @@
-Require Import Arith Lia List Bool.
 Require Import DeltaList FunG GenFib GenG GenAdd.
 Import ListNotations.
 Set Implicit Arguments.
@@ -50,7 +49,7 @@ Proof.
    apply Delta_nz with (S k); auto. destruct a; intuition. }
  clear Hrank.
  rewrite <- E. rewrite f_sumA; auto.
- rewrite shift_sum by auto using Delta_pred.
+ rewrite shift_sum by auto using Delta_pred with hof.
  apply f_equal. rewrite map_map.
  rewrite <- (map_id (decomp k n)) at 2.
  apply map_ext_in. intros [|a] Ha; intuition.

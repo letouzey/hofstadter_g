@@ -1,8 +1,11 @@
 (** * DeltaList : lists of natural numbers with constrained differences *)
 
-Require Import Arith Lia List.
+From Coq Require Export Arith Lia List Bool.
 Import ListNotations.
 Set Implicit Arguments.
+
+Ltac autoh := lia || auto with hof.
+Ltac eautoh := lia || eauto with hof.
 
 (** * Increasing lists *)
 
@@ -13,7 +16,7 @@ Inductive Delta (p:nat) : list nat -> Prop :=
   | Dnil : Delta p []
   | Done n : Delta p [n]
   | Dcons n m l : m+p <= n -> Delta p (n::l) -> Delta p (m::n::l).
-Hint Constructors Delta : core.
+Hint Constructors Delta : hof.
 
 (** In particular:
     - [Delta 0 l] means that [l] is increasing
@@ -30,7 +33,7 @@ Proof.
    + intros x _. split. constructor. inversion 1.
    + intros x. inversion 1; subst. split; trivial.
      intros y [Hy|Hy]. now subst.
-     apply (IH a) in Hy; auto. lia.
+     apply (IH a) in Hy; autoh.
  - intros (H,H').
    destruct l; constructor; trivial. apply H'. now left.
 Qed.
@@ -48,7 +51,7 @@ Qed.
 
 Lemma Delta_more l p p' : p <= p' -> Delta p' l -> Delta p l.
 Proof.
- induction 2; constructor; auto; lia.
+ induction 2; constructor; autoh.
 Qed.
 
 Lemma Delta_S n l : Delta (S n) l -> Delta n l.
@@ -58,22 +61,22 @@ Qed.
 
 Lemma Delta_nz p k l : 0<k -> Delta p (k::l) -> ~In 0 (k::l).
 Proof.
- intros H H' [X|X]. lia.
- apply Delta_alt in H'. apply H' in X. lia.
+ intros H H' [X|X]. autoh.
+ apply Delta_alt in H'. apply H' in X. autoh.
 Qed.
-Hint Resolve Delta_S Delta_inv Delta_nz : core.
+Hint Resolve Delta_S Delta_inv Delta_nz : hof.
 
 Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
 Proof.
  intros H H' X.
- apply Delta_alt in H'. apply H' in X. lia.
+ apply Delta_alt in H'. apply H' in X. autoh.
 Qed.
 
 Lemma Delta_low_hd p k k' l :
  k'<=k -> Delta p (k::l) -> Delta p (k'::l).
 Proof.
  intros Hk. rewrite !Delta_alt. intros (H,H').
- split; trivial. intros y Hy. apply H' in Hy. lia.
+ split; trivial. intros y Hy. apply H' in Hy. autoh.
 Qed.
 
 Lemma Delta_S_cons k x l :
@@ -82,9 +85,9 @@ Proof.
   intros D. apply Delta_alt in D. destruct D as (D,D').
   apply Delta_alt; split.
   apply Delta_more with (S k); auto.
-  intros y Hy. apply D' in Hy. lia.
+  intros y Hy. apply D' in Hy. autoh.
 Qed.
-Hint Resolve Delta_S_cons : core.
+Hint Resolve Delta_S_cons : hof.
 
 Lemma Delta_map p p' f l :
   (forall x y, x+p <= y -> f x + p' <= f y) ->
@@ -96,7 +99,7 @@ Qed.
 Lemma Delta_pred p l :
  ~In 0 l -> Delta p l -> Delta p (map pred l).
 Proof.
- induction 2; simpl in *; constructor; intuition; lia.
+ induction 2; simpl in *; constructor; intuition; autoh.
 Qed.
 
 (* begin hide *)
@@ -118,7 +121,7 @@ Proof.
  revert n. induction k.
  - constructor.
  - intros. simpl. apply Delta_alt. split; auto.
-   intros y Hy. rewrite in_seq in Hy. lia.
+   intros y Hy. rewrite in_seq in Hy. autoh.
 Qed.
 
 Lemma Delta_app p x l l' :
@@ -126,15 +129,15 @@ Lemma Delta_app p x l l' :
   (forall y, In y l -> y <= x) -> Delta p (l++l').
 Proof.
  induction l.
- - intros _ Hl' H. simpl. eauto.
+ - intros _ Hl' H. simpl. eautoh.
  - intros Hl Hl' H. simpl. apply Delta_alt. split.
-   + apply IHl; eauto.
+   + apply IHl; eautoh.
      intros y Hy. apply H. now right.
    + intros y Hy. rewrite in_app_iff in Hy.
      destruct Hy as [Hy|Hy].
      * rewrite Delta_alt in Hl. now apply Hl.
      * assert (a <= x) by (apply H; now left).
-       apply Delta_alt in Hl'. apply Hl' in Hy. lia.
+       apply Delta_alt in Hl'. apply Hl' in Hy. autoh.
 Qed.
 
 (* Another approach, more suitable for inversion: *)
@@ -169,9 +172,9 @@ Proof.
  induction l as [|a l IH].
  - inversion 2.
  - rewrite Delta_alt. intros (D,D').
-   simpl. intros [E|H] [E'|H']; auto; try lia.
-   + apply D' in H'. lia.
-   + apply D' in H. lia.
+   simpl. intros [E|H] [E'|H']; autoh.
+   + apply D' in H'. autoh.
+   + apply D' in H. autoh.
 Qed.
 
 Lemma Delta_le k l x y : Delta k (x::l) -> In y l -> x <= y.
@@ -180,22 +183,20 @@ Proof.
  induction l as [|a l].
  - inversion 2.
  - intros x y. inversion 1; subst.
-   intros [<-|IN].
-   + lia.
-   + transitivity a; auto. lia.
+   intros [<-|IN]; autoh. transitivity a; autoh.
 Qed.
 
 Lemma Delta_last_le p l x y : Delta p (l++[x]) -> In y (l++[x]) -> y <= x.
 Proof.
  rewrite Delta_app_iff. intros (_ & _ & D).
  rewrite in_app_iff. intros [IN|[<-|[ ]]]; auto.
- specialize (D y x IN (or_introl eq_refl)). lia.
+ specialize (D y x IN (or_introl eq_refl)). autoh.
 Qed.
 
 Lemma Delta_up_last p l a b : Delta p (l++[a]) -> a<=b -> Delta p (l++[b]).
 Proof.
- rewrite !Delta_app_iff. intros (D1 & D2 & D3) LE. repeat split; auto.
- intros x x' IN [<-|[ ]]. specialize (D3 x a IN). simpl in D3. lia.
+ rewrite !Delta_app_iff. intros (D1 & D2 & D3) LE. repeat split; autoh.
+ intros x x' IN [<-|[ ]]. specialize (D3 x a IN). simpl in D3. autoh.
 Qed.
 
 (** * Decreasing lists *)
@@ -208,7 +209,7 @@ Inductive DeltaRev (p:nat) : list nat -> Prop :=
   | DRnil : DeltaRev p []
   | DRone n : DeltaRev p [n]
   | DRcons n m l : n+p <= m -> DeltaRev p (n::l) -> DeltaRev p (m::n::l).
-Hint Constructors DeltaRev : core.
+Hint Constructors DeltaRev : hof.
 
 Lemma DeltaRev_alt p x l :
  DeltaRev p (x::l) <-> DeltaRev p l /\ (forall y, In y l -> y+p <= x).
@@ -218,7 +219,7 @@ Proof.
    + intros x _. split. constructor. inversion 1.
    + intros x. inversion 1; subst. split; trivial.
      intros y [Hy|Hy]. now subst.
-     apply (IH a) in Hy; auto. lia.
+     apply (IH a) in Hy; autoh.
  - intros (H,H').
    destruct l; constructor; trivial. apply H'. now left.
 Qed.
@@ -237,7 +238,7 @@ Proof.
      destruct Hy as [Hy|Hy].
      * rewrite DeltaRev_alt in Hl. now apply Hl.
      * assert (x <= a) by (apply H; now left).
-       apply DeltaRev_alt in Hl'. apply Hl' in Hy. lia.
+       apply DeltaRev_alt in Hl'. apply Hl' in Hy. autoh.
 Qed.
 
 Lemma DeltaRev_app_inv p l l' :
@@ -260,20 +261,20 @@ Proof.
    + constructor.
    + constructor.
    + simpl in *.
-     apply DeltaRev_app with n; auto.
+     apply DeltaRev_app with n; autoh.
      intros y Hy. apply DeltaRev_app_inv in IHDelta.
      destruct IHDelta as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition; lia.
+     rewrite in_app_iff in Hy. simpl in *. intuition; autoh.
  - induction 1.
    + constructor.
    + constructor.
    + simpl in *.
-     apply Delta_app with n; auto.
+     apply Delta_app with n; autoh.
      intros y Hy. apply Delta_app_inv in IHDeltaRev.
      destruct IHDeltaRev as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition; lia.
+     rewrite in_app_iff in Hy. simpl in *. intuition; autoh.
 Qed.
 
 Lemma DeltaRev_rev p l : DeltaRev p (rev l) <-> Delta p l.

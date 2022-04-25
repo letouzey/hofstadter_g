@@ -1,5 +1,4 @@
 
-Require Import Arith Lia List Bool.
 Require Import DeltaList FunG GenFib GenG.
 Import ListNotations.
 Set Implicit Arguments.
@@ -152,7 +151,7 @@ Proof.
  unfold addlow.
  destruct (rev low) as [|a rlow'] eqn:E'.
  - apply rev_switch in E'. subst low. simpl in E. subst high.
-   apply Delta_app_iff. repeat split; auto using decomp_delta.
+   apply Delta_app_iff. repeat split; auto using decomp_delta with hof.
    intros x x' IN IN'. apply Hhigh in IN'.
    transitivity u; auto with arith.
    assert (A k x <= p).
@@ -167,8 +166,8 @@ Proof.
    rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
    case Nat.ltb_spec; intros.
    + apply decompminus_app_delta.
-     rewrite Delta_app_iff. repeat split; auto.
-     eapply Delta_up_last with a; auto. rewrite <- E'; auto.
+     rewrite Delta_app_iff. repeat split; autoh.
+     eapply Delta_up_last with a; auto. rewrite <- E'; autoh.
      intros x x' IN IN'.
      rewrite in_app_iff in IN. destruct IN as [IN|[<-|[ ]]].
      * specialize (D3 x x').
@@ -178,8 +177,8 @@ Proof.
        rewrite E', in_app_iff in D3.
        specialize (D3 (or_intror (or_introl eq_refl)) IN'). lia.
    + apply decompminus_app_delta.
-     rewrite <- app_assoc. apply Delta_app_iff; repeat split; auto.
-     * rewrite Delta_app_iff; repeat split; auto.
+     rewrite <- app_assoc. apply Delta_app_iff; repeat split; autoh.
+     * rewrite Delta_app_iff; repeat split; autoh.
        intros x x' [<-|[ ]] IN'. specialize (Hhigh x' IN').
        unfold bound_idx in u. lia.
      * intros x x'. rewrite in_app_iff.
@@ -229,7 +228,7 @@ Proof.
  subst l.
  rewrite sumA_app at 1.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
- rewrite !f_sumA_lax; auto.
+ rewrite !f_sumA_lax; autoh.
  - rewrite !map_app, !sumA_app. lia.
  - rewrite Delta_app_iff in D. intuition.
  - rewrite Delta_app_iff in D'. intuition.
@@ -443,7 +442,7 @@ Proof.
  unfold addlow_k2.
  destruct (rev low) as [|a rlow'] eqn:E'.
  - apply rev_switch in E'. subst low. simpl in E. subst high.
-   apply Delta_app_iff. repeat split; auto using decomp_delta.
+   apply Delta_app_iff. repeat split; auto using decomp_delta with hof.
    intros x x' IN IN'. apply Hhigh in IN'.
    transitivity u; auto with arith.
    assert (A 2 x <= p).
@@ -458,19 +457,19 @@ Proof.
    rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
    case Nat.ltb_spec; intros.
    + apply decompminus_app_delta.
-     rewrite Delta_app_iff. repeat split; auto.
-     * rewrite Delta_app_iff; repeat split; auto.
+     rewrite Delta_app_iff. repeat split; autoh.
+     * rewrite Delta_app_iff; repeat split; autoh.
        intros x x' IN [<-|[ ]].
        rewrite E' in *. eapply Delta_last_le in IN; eauto. lia.
      * intros x x'. rewrite in_app_iff. intros [IN|[<-|[ ]]] IN'.
        { specialize (D3 x x' IN IN'). lia. }
        { specialize (Hhigh x' IN'). unfold bound_idx_k2 in u. lia. }
    + apply decompminus_app_delta.
-     rewrite Delta_app_iff. repeat split; auto.
+     rewrite Delta_app_iff. repeat split; autoh.
      * rewrite E' in D1. rewrite Delta_app_iff in D1.
        destruct D1 as (D11 & D12 & D13).
-       rewrite Delta_app_iff. repeat split; auto.
-       { constructor; auto. unfold invA_up in v. lia. }
+       rewrite Delta_app_iff. repeat split; autoh.
+       { constructor; autoh. unfold invA_up in v. lia. }
        { intros x x' IN [<-|[<-|[ ]]].
          - specialize (D13 x a IN (or_introl eq_refl)). lia.
          - specialize (D13 x a IN (or_introl eq_refl)). lia. }
@@ -520,7 +519,7 @@ Proof.
  subst l.
  rewrite sumA_app at 1.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
- unfold h. rewrite !f_sumA_lax; auto.
+ unfold h. rewrite !f_sumA_lax; autoh.
  - rewrite !map_app, !sumA_app. lia.
  - rewrite Delta_app_iff in D. intuition.
  - rewrite Delta_app_iff in D'. intuition.
@@ -695,11 +694,11 @@ Lemma insert_delta x l :
  Delta 3 l -> ~In x l -> ~In (x-1) l -> ~In (x+1) l -> Delta 2 (insert x l).
 Proof.
  induction l.
- - simpl. auto.
+ - simpl. autoh.
  - intros D H0 H1 H2.
    simpl.
    case Nat.leb_spec; intros.
-   + constructor; auto.
+   + constructor; autoh.
      simpl in H0,H2. lia.
    + rewrite Delta_alt in *; split; auto.
      * apply IHl; simpl in *; auto. destruct D; auto.
@@ -818,18 +817,19 @@ Proof.
        simpl. rewrite Nat.sub_0_r.
        set (u := h (_+_)) in *; clearbody u.
        unfold h.
-       rewrite !f_sumA_lax by (try apply Delta_up_last with a; auto with arith).
+       rewrite !f_sumA_lax
+         by (try apply Delta_up_last with a; auto with arith hof).
        rewrite !map_app, !sumA_app. simpl.
        replace (pred a) with (a-1) by lia. lia. }
      { (* a <= q-2 *)
        clear IH.
        replace (A2 q + _) with (sumA 2 (l'++[a;q])).
        2:{ rewrite !sumA_app. simpl. lia. }
-       unfold h. rewrite !f_sumA_lax; auto.
+       unfold h. rewrite !f_sumA_lax; autoh.
        - rewrite !map_app, !sumA_app. simpl. replace (pred q) with (q-1); lia.
        - apply Delta_app_iff in D. destruct D as (D1 & D2 & D3).
-         apply Delta_app_iff; repeat split; auto.
-         + constructor. lia. auto.
+         apply Delta_app_iff; repeat split; autoh.
+         + constructor; autoh.
          + intros x x' IN [<-|[<-|[ ]]];
            specialize (D3 x a IN); simpl in *; lia. }
 Qed.
@@ -869,7 +869,7 @@ Proof.
    rewrite Nat.add_assoc in Hu.
    assert (Hv := h_addA v n).
    replace (A2 u + A2 v) with (sumA 2 [u;v]) at 1 4 by (simpl; lia).
-   unfold h at 1 5. rewrite f_sumA_lax; auto. simpl.
+   unfold h at 1 5. rewrite f_sumA_lax; autoh. simpl.
    replace (pred u) with (u-1) by lia.
    replace (pred v) with (v-1) by lia. lia. }
  assert (H' : forall u v, u < v -> p = A2 u + A2 v ->

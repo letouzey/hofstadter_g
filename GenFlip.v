@@ -1,6 +1,5 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import Arith Lia.
 Require Import DeltaList FunG GenFib GenG.
 Set Implicit Arguments.
 

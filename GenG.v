@@ -1,5 +1,4 @@
 
-Require Import Arith Lia List Bool.
 Require Import DeltaList FunG GenFib.
 Import ListNotations.
 Set Implicit Arguments.
@@ -36,54 +35,54 @@ with Fs : nat -> nat -> nat -> nat -> Prop :=
 | Fs0 k n : Fs 0 k n n
 | FsS p k a b c : Fs p k a b -> F k b c -> Fs (S p) k a c.
 
-Hint Constructors F Fs : core.
+Hint Constructors F Fs : hof.
 
 (** The early behavior of [F] and [Fs] when [n<=3] doesn't depend on k *)
 
 Lemma Fs_0 p k : Fs p k 0 0.
 Proof.
- induction p; eauto.
+ induction p; eautoh.
 Qed.
-Hint Resolve Fs_0 : core.
+Hint Resolve Fs_0 : hof.
 
 Lemma F_1 k : F k 1 1.
 Proof.
- induction k; eauto.
+ induction k; eautoh.
 Qed.
-Hint Resolve F_1 : core.
+Hint Resolve F_1 : hof.
 
 Lemma Fs_1 p k : Fs p k 1 1.
 Proof.
- induction p; eauto.
+ induction p; eautoh.
 Qed.
-Hint Resolve Fs_1 : core.
+Hint Resolve Fs_1 : hof.
 
 Lemma F_2 k : F k 2 1.
 Proof.
- induction k; eauto.
+ induction k; eautoh.
 Qed.
-Hint Resolve F_2 : core.
+Hint Resolve F_2 : hof.
 
 Lemma Fs_2 p k : Fs p k 2 (1+(1-p)).
 Proof.
- induction p; eauto.
+ induction p; eautoh.
  simpl.
- eapply FsS. apply IHp. destruct p; simpl; auto.
+ eapply FsS. apply IHp. destruct p; simpl; autoh.
 Qed.
-Hint Resolve Fs_2 : core.
+Hint Resolve Fs_2 : hof.
 
 Lemma F_3 k : F k 3 2.
 Proof.
- induction k; eauto.
+ induction k; eautoh.
 Qed.
-Hint Resolve F_3 : core.
+Hint Resolve F_3 : hof.
 
 Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
 Proof.
- induction p; eauto.
- eapply FsS; eauto. destruct p as [|[|p]]; simpl; auto.
+ induction p; eautoh.
+ eapply FsS; eauto. destruct p as [|[|p]]; simpl; autoh.
 Qed.
-Hint Resolve Fs_3 : core.
+Hint Resolve Fs_3 : hof.
 
 (** [F] and [Fs] aren't above the identity line *)
 
@@ -91,14 +90,14 @@ Lemma F_le k n a : F k n a -> a <= n.
 Proof.
  induction 1; lia.
 Qed.
-Hint Resolve F_le : core.
+Hint Resolve F_le : hof.
 
 Lemma Fs_le p k n a : Fs p k n a -> a <= n.
 Proof.
  induction 1; trivial.
- transitivity b; eauto.
+ transitivity b; eautoh.
 Qed.
-Hint Resolve Fs_le : core.
+Hint Resolve Fs_le : hof.
 
 (** [F] and [Fs] are functional relations : unique output *)
 
@@ -175,13 +174,13 @@ Lemma f_sound k n : F k n (f k n).
 Proof.
  now apply recf_sound.
 Qed.
-Hint Resolve f_sound : core.
+Hint Resolve f_sound : hof.
 
 Lemma f_complete k n a : F k n a <-> f k n = a.
 Proof.
 split; intros H.
 - apply (F_fun (f_sound k n) H).
-- subst; auto.
+- subst; autoh.
 Qed.
 
 (** A few examples *)
@@ -210,17 +209,17 @@ Qed.
 
 Lemma f_k_1 k : f k 1 = 1.
 Proof.
- now apply f_complete.
+ apply f_complete; autoh.
 Qed.
 
 Lemma f_k_2 k : f k 2 = 1.
 Proof.
- now apply f_complete.
+ apply f_complete; autoh.
 Qed.
 
 Lemma f_k_3 k : f k 3 = 2.
 Proof.
- now apply f_complete.
+ apply f_complete; autoh.
 Qed.
 
 (** Basic equations over [f] : the same as [F] *)
@@ -228,9 +227,9 @@ Qed.
 Lemma Fs_iter_f p k n : Fs p k n ((f k ^^p) n).
 Proof.
 induction p.
-- simpl. auto.
+- simpl. autoh.
 - eapply FsS; eauto. simpl.
-  now rewrite f_complete.
+  rewrite f_complete; autoh.
 Qed.
 
 Lemma fs_k_0 p k : (f k ^^p) 0 = 0.
@@ -438,7 +437,7 @@ Qed.
 
 Lemma f_le k n : f k n <= n.
 Proof.
- eapply F_le; eauto.
+ eapply F_le; eautoh.
 Qed.
 
 Lemma fs_le k p n : (f k^^p) n <= n.
@@ -452,7 +451,7 @@ intros H.
 destruct (le_lt_or_eq _ _ (f_le k n)); trivial.
 rewrite f_fix in *. lia.
 Qed.
-Hint Resolve f_lt : core.
+Hint Resolve f_lt : hof.
 
 (** Two special formulations for [f_step] *)
 
@@ -828,7 +827,7 @@ Proof.
    + unfold fbis. rewrite decomp_S, <- Hl. simpl.
      case Nat.leb_spec; intros.
      * rewrite <- map_decr_1.
-       rewrite renorm_mapdecr'; simpl; auto with arith.
+       rewrite renorm_mapdecr'; simpl; auto with arith hof.
        rewrite Nat.add_shuffle1.
        assert (~In 0 l).
        { apply (@Delta_nz' (S k) a); auto with arith. }
@@ -859,20 +858,20 @@ Qed.
 Lemma f_sumA k l : Delta (S k) l ->
  f k (sumA k l) = sumA k (map pred l).
 Proof.
- intros. rewrite f_decomp. f_equal. f_equal. auto.
+ intros. rewrite f_decomp. f_equal. f_equal. autoh.
 Qed.
 
 Lemma fs_sumA k p l : p <= S k -> Delta (S k) l ->
  (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
- intros. rewrite fs_decomp; auto. f_equal. f_equal. auto.
+ intros. rewrite fs_decomp; auto. f_equal. f_equal. autoh.
 Qed.
 
 Lemma f_sumA_lax k l : k<>0 -> Delta k l ->
  f k (sumA k l) = sumA k (map pred l).
 Proof.
  intros. rewrite <- renorm_sum.
- rewrite f_sumA; auto.
+ rewrite f_sumA; autoh.
  rewrite <- !map_decr_1, renorm_mapdecr; auto. lia.
 Qed.
 
@@ -880,7 +879,7 @@ Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
  (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros. rewrite <- renorm_sum.
- rewrite fs_sumA; auto with arith.
+ rewrite fs_sumA; auto with arith hof.
  now apply renorm_mapdecr.
 Qed.
 
@@ -925,7 +924,7 @@ Proof.
  2:{ cbn -[A]. rewrite A_S.
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
- rewrite f_sumA; auto. cbn -[A]. rewrite A_base; lia.
+ rewrite f_sumA; autoh. cbn -[A]. rewrite A_base; lia.
 Qed.
 
 Lemma f_k_plus_5 k : f k (5+k) = 3+k.
@@ -934,7 +933,7 @@ Proof.
  2:{ cbn -[A]. rewrite A_S.
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
- rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
+ rewrite f_sumA; autoh. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
 Lemma f_k_plus_6 k : f k (6+k) = 3+k.
@@ -943,7 +942,7 @@ Proof.
  2:{ cbn -[A]. rewrite (A_S k (S k)).
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
- rewrite f_sumA; auto. cbn -[A]. rewrite !A_base; lia.
+ rewrite f_sumA; autoh. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
 Lemma f_k_plus_7 k : f k (7+k) = 4+k.
@@ -953,7 +952,7 @@ Proof.
  2:{ cbn -[A]. rewrite (A_S k (S k)).
      replace (S k - k) with 1 by lia.
      rewrite !A_base; lia. }
- rewrite f_sumA_lax; auto. cbn -[A]. rewrite !A_base; lia.
+ rewrite f_sumA_lax; autoh. cbn -[A]. rewrite !A_base; lia.
 Qed.
 
 Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+3.
@@ -1007,7 +1006,7 @@ Proof.
        rewrite decr_0.
        rewrite !A_base by (auto; lia).
        split. intros; f_equal; lia. intros [= ->]; lia.
-     * apply Delta_S_cons. rewrite <- E; auto.
+     * apply Delta_S_cons. rewrite <- E; autoh.
      * simpl. auto with arith.
    + simpl. split. intros; f_equal; lia. intros [= ->]; lia.
 Qed.
@@ -1079,7 +1078,7 @@ Proof.
    destruct renorm as [|a l]; try easy. intros (b & ->) [= E].
  - apply renorm_delta. assert (D := decomp_delta k n).
    destruct decomp as [|u l]; try easy.
-   injection Hn as ->. constructor; auto. lia.
+   injection Hn as ->. constructor; autoh.
 Qed.
 
 (* No other situations with [k+1] consecutive [+1] steps,
@@ -1109,8 +1108,8 @@ Proof.
    rewrite decomp_S, E. simpl.
    case Nat.leb_spec; try lia. intros _.
    apply (@decomp_unique k).
-   - apply renorm_delta. constructor. lia. rewrite <- E'; auto.
-   - apply renorm_delta, Delta_S_cons. rewrite <- E'; auto.
+   - apply renorm_delta. constructor. lia. rewrite <- E'; autoh.
+   - apply renorm_delta, Delta_S_cons. rewrite <- E'; autoh.
    - rewrite !renorm_sum. simpl.
      replace (r -S k -k) with 0 by lia.
      rewrite (@A_base k (r-S k)) by lia.
@@ -1586,7 +1585,7 @@ Proof.
          { intro E'. apply E.
            unfold rank. replace (decomp k n) with [0;p]; auto.
            symmetry. apply decomp_carac; simpl; try lia.
-           constructor. lia. auto. }
+           constructor; autoh. }
          destruct (Nat.eq_dec (A k p) n) as [E'|NE'].
          - clear Hp.
            assert (S k < p).

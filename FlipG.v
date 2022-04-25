@@ -1,6 +1,5 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import Arith Lia List.
 Require Import DeltaList Fib FunG.
 Set Implicit Arguments.
 
@@ -829,10 +828,10 @@ Proof.
  assert (6 <= n) by now apply ThreeOdd_le.
  apply fg_g_S_inv; try lia.
  rewrite (IH (n-1)), IH; try (generalize (@g_lt (n-1)); lia).
- - rewrite Odd_gP by auto. apply g_Two, Three_g; auto.
- - rewrite Odd_gP by auto.
+ - rewrite Odd_gP by autoh. apply g_Two, Three_g; autoh.
+ - rewrite Odd_gP by autoh.
    now apply ThreeEven_not_ThreeOdd', ThreeOdd_Sg.
- - apply Two_not_ThreeOdd, Odd_pred_Two; auto.
+ - apply Two_not_ThreeOdd, Odd_pred_Two; autoh.
 Qed.
 
 Lemma fg_g_aux1 n : IHeq n -> 3<n -> Fib.Two 2 n -> fg n = g n.
@@ -841,12 +840,12 @@ Proof.
  apply fg_g_eq_inv; auto.
  assert (High 2 (n-1)). { apply Two_pred_High; auto; lia. }
  assert (Even 2 (g n)) by now apply Two_g.
- rewrite (IH (n-1)) by (auto;lia).
+ rewrite (IH (n-1)) by autoh.
  rewrite 2 Even_gP; auto using Two_Even.
  assert (g n <> 0) by (apply g_nz; lia).
  assert (g (g n) <> 0) by now apply g_nz.
  replace (S (g n - 1)) with (g n) by lia.
- rewrite IH; auto; try apply g_lt; lia.
+ rewrite IH; autoh; try apply g_lt; lia.
 Qed.
 
 Lemma fg_g_aux2 n :
@@ -856,10 +855,10 @@ Proof.
  apply fg_g_eq_inv; try lia.
  assert (H' := @g_lt (n-1)).
  rewrite (IH1 (n-1)), IH2; try lia.
- - rewrite Odd_gP by auto.
-   f_equal. apply g_Two. apply Three_g; auto.
- - rewrite Odd_gP by auto. now apply ThreeEven_Sg.
- - apply Two_not_ThreeOdd, Three_pred_Two; auto.
+ - rewrite Odd_gP by autoh.
+   f_equal. apply g_Two. apply Three_g; autoh.
+ - rewrite Odd_gP by autoh. now apply ThreeEven_Sg.
+ - apply Two_not_ThreeOdd, Three_pred_Two; autoh.
 Qed.
 
 Lemma fg_g_aux3 n : IHeq n -> IHsucc n -> 3<n ->
@@ -879,7 +878,7 @@ Proof.
    + (* four *)
      simpl in *.
      assert (T : Three 2 (g n)) by (revert L; apply g_Low; auto).
-     rewrite E1, Odd_gP by auto.
+     rewrite E1, Odd_gP by autoh.
      destruct L as (l & E & D & _).
      destruct l as [|k l]; [simpl in E; lia|].
      destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
@@ -887,7 +886,7 @@ Proof.
        assert (ThreeEven 2 (n-1)).
        { exists p; exists l; auto. subst; split; auto.
          eapply Delta_low_hd with 4; auto. }
-       rewrite (IH1 (n-1)) in * by (auto; lia).
+       rewrite (IH1 (n-1)) in * by autoh.
        rewrite E1, E2, IH2 in *; auto.
        replace n with (S (n-1)) by lia.
        rewrite g_not_Two. now apply ThreeEven_Sg.
@@ -896,10 +895,10 @@ Proof.
        assert (ThreeOdd 2 (n-1)).
        { exists p; exists l; auto. subst; split; auto.
          eapply Delta_low_hd with 4; auto. }
-       rewrite (IH2 (n-1)) in * by (auto; lia).
-       rewrite E1, E2, IH1 in *; auto using Odd_succ_Even.
+       rewrite (IH2 (n-1)) in * by autoh.
+       rewrite E1, E2, IH1 in *; auto using Odd_succ_Even with hof.
        apply g_not_Two.
-       intro. eapply Even_xor_Odd; eauto using Two_Even.
+       intro. eapply Even_xor_Odd; eauto using Two_Even with hof.
    + (* high odd *)
      remember (S (S p)) as k eqn:K'.
      assert (1<k) by lia. clear K K'.
@@ -913,9 +912,9 @@ Proof.
      rewrite E1, E2 in *.
      assert (Ev : Odd 2 (g n)) by now apply Even_g.
      rewrite Odd_gP by auto.
-     rewrite IH1; auto using Odd_succ_Even.
+     rewrite IH1; auto using Odd_succ_Even with hof.
      apply g_not_Two.
-     intro. apply Even_xor_Odd with (g n); eauto using Two_Even.
+     intro. apply Even_xor_Odd with (g n); eauto using Two_Even with hof.
  - (* odd *)
    assert (High 2 n) by (exists (2*p+1); auto).
    assert (Odd 2 n) by now exists p.
@@ -1021,7 +1020,7 @@ Inductive FD : nat -> nat -> Prop :=
                    FD y z -> FD (S y) z -> FD n (S y)
  | FD_c n x y z t : 4<n -> FD (n-2) x -> FD (n-1) y -> x<>y ->
                      FD y z -> FD (S y) t -> z <> t -> FD n y.
-Hint Constructors FD : core.
+Hint Constructors FD : hof.
 
 Lemma FD_le n k : FD n k -> k <= n.
 Proof.
@@ -1057,13 +1056,13 @@ Qed.
 Lemma FD_step n k k' : FD n k -> FD (S n) k' -> k'=k \/ k' = S k.
 Proof.
 inversion 2; subst; intros; simpl in *; rewrite ?Nat.sub_0_r in *.
-- replace k with 0 by (apply FD_unique with 0; auto). auto.
-- replace k with 1 by (apply FD_unique with 1; auto). auto.
-- replace k with 1 by (apply FD_unique with 2; auto). auto.
-- replace k with 2 by (apply FD_unique with 3; auto). auto.
-- replace x with k by (apply FD_unique with n; auto). lia.
-- replace y with k by (apply FD_unique with n; auto). lia.
-- replace k' with k by (apply FD_unique with n; auto). lia.
+- replace k with 0 by (apply FD_unique with 0; autoh). auto.
+- replace k with 1 by (apply FD_unique with 1; autoh). auto.
+- replace k with 1 by (apply FD_unique with 2; autoh). auto.
+- replace k with 2 by (apply FD_unique with 3; autoh). auto.
+- replace x with k by (apply FD_unique with n; autoh). lia.
+- replace y with k by (apply FD_unique with n; autoh). lia.
+- replace k' with k by (apply FD_unique with n; autoh). lia.
 Qed.
 
 (** [fg] is an implementation of [FD] (hence the only one). *)

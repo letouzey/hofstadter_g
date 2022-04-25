@@ -1,4 +1,3 @@
-Require Import Arith Lia List Bool.
 Require Import DeltaList GenFib GenG.
 Import ListNotations.
 
