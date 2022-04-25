@@ -1,12 +1,12 @@
 COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
 -I .
 -R . Top
+DeltaList.v
+Fib.v
+FunG.v
+FunG_prog.v
 FlipG.v
 Phi.v
-FunG_prog.v
-FunG.v
-Fib.v
-DeltaList.v
 GenFib.v
 GenG.v
 GenAdd.v
