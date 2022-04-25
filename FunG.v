@@ -22,13 +22,13 @@ Set Implicit Arguments.
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
 | GS n a b c : G n a -> G a b -> S n = c+b -> G (S n) c.
-Hint Constructors G.
+Hint Constructors G : core.
 
 Lemma G1 : G 1 1.
 Proof.
 eauto.
 Qed.
-Hint Resolve G1.
+Hint Resolve G1 : core.
 
 Lemma GS_inv n a : G (S n) a ->
  exists b c, G n b /\ G b c /\ S n = a + c.
@@ -46,7 +46,7 @@ revert a.
 induction n using lt_wf_rec.
 destruct n; inversion_clear 1; lia.
 Qed.
-Hint Resolve G_le.
+Hint Resolve G_le : core.
 
 Lemma G_rec (P:nat->Set) :
 P 0 ->
@@ -106,7 +106,7 @@ Lemma g_correct n : G n (g n).
 Proof.
 unfold g; now destruct (g_spec n).
 Qed.
-Hint Resolve g_correct.
+Hint Resolve g_correct : core.
 
 Lemma g_complete n p : G n p <-> p = g n.
 Proof.
@@ -237,7 +237,7 @@ intros H.
 destruct (le_lt_or_eq _ _ (g_le n)); trivial.
 rewrite g_fix in *. lia.
 Qed.
-Hint Resolve g_lt.
+Hint Resolve g_lt : core.
 
 (** Two special formulations for [g_step] *)
 
@@ -1395,7 +1395,7 @@ Inductive GD : nat -> nat -> Prop :=
                   GD x z -> GD (S x) z -> GD (2+n) (S y)
  | GD_b' n x y z t : GD n x -> GD (S n) y -> x <> y ->
                      GD x z -> GD (S x) t -> z <> t -> GD (2+n) y.
-Hint Constructors GD.
+Hint Constructors GD : core.
 
 (** There is only one implementation of [GD] *)
 

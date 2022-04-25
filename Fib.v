@@ -618,7 +618,7 @@ Lemma ThreeOdd_Three p n : ThreeOdd p n -> Three p n.
 Proof.
  firstorder.
 Qed.
-Hint Resolve ThreeOdd_Three ThreeEven_Three.
+Hint Resolve ThreeOdd_Three ThreeEven_Three : core.
 
 Lemma Three_split p n : 2<n -> Three p n -> ThreeEven p n \/ ThreeOdd p n.
 Proof.
@@ -726,8 +726,8 @@ Proof.
  - now apply High_not_ThreeOdd.
 Qed.
 
-Hint Resolve Two_not_ThreeOdd ThreeEven_not_ThreeOdd High_not_ThreeOdd.
-Hint Resolve Two_not_ThreeOdd' ThreeEven_not_ThreeOdd' High_not_ThreeOdd'.
+Hint Resolve Two_not_ThreeOdd ThreeEven_not_ThreeOdd High_not_ThreeOdd : core.
+Hint Resolve Two_not_ThreeOdd' ThreeEven_not_ThreeOdd' High_not_ThreeOdd' : core.
 
 (** Properties of Even and Odd *)
 
@@ -778,7 +778,7 @@ Proof.
  eapply Even_xor_Odd; eauto.
  now apply Three_Odd, ThreeOdd_Three.
 Qed.
-Hint Resolve Three_Odd Two_Even Even_not_ThreeOdd.
+Hint Resolve Three_Odd Two_Even Even_not_ThreeOdd : core.
 
 (** ** Decomposition of the predecessor of a Fibonacci number
 

@@ -67,6 +67,7 @@ Proof.
  - case Nat.leb_spec.
    + unfold Below; simpl; intuition.
    + destruct cut_lt_ge. unfold Below in *; simpl in *. intuition.
+     subst; auto.
 Qed.
 
 Lemma cut_snd p l a l':

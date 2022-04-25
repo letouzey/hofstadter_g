@@ -69,7 +69,7 @@ Proof.
  subst n. rewrite f_sumA; auto.
  rewrite shift_sum.
  2:{ change (Delta k (map pred (1::l))).
-     apply Delta_pred; auto using Delta_S_cons. simpl. intuition. }
+     apply Delta_pred; auto using Delta_S_cons. simpl. intuition lia. }
  simpl. f_equal. f_equal. f_equal.
  rewrite map_map.
  rewrite <- (map_id l) at 2.

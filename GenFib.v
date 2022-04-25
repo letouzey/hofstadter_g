@@ -503,7 +503,7 @@ Proof.
    apply (A_lt_inv k).
    rewrite A_S in H'. lia.
 Qed.
-Hint Resolve decomp_sum decomp_delta.
+Hint Resolve decomp_sum decomp_delta : core.
 
 Lemma decomp_exists k n :
   { l | sumA k l = n /\ Delta (S k) l }.
@@ -596,7 +596,7 @@ Proof.
  intros D Eq. apply (@decomp_unique k); auto.
  now rewrite decomp_sum.
 Qed.
-Hint Resolve decomp_carac.
+Hint Resolve decomp_carac : core.
 
 Lemma decomp_sum' k l :
  Delta (S k) l -> decomp k (sumA k l) = l.
@@ -665,7 +665,7 @@ Lemma renorm_length k l : length (renorm k l) <= length l.
 Proof.
  unfold renorm. now apply renorm_loop_length.
 Qed.
-Hint Resolve renorm_length.
+Hint Resolve renorm_length : core.
 
 Lemma renorm_loop_sum k l n :
   length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
@@ -686,7 +686,7 @@ Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
 Proof.
  unfold renorm. now apply renorm_loop_sum.
 Qed.
-Hint Resolve renorm_sum.
+Hint Resolve renorm_sum : core.
 
 Definition HeadStep k l l' := match l, l' with
 | [], [] => True
@@ -742,7 +742,7 @@ Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
 Proof.
  unfold renorm. now apply renorm_loop_delta.
 Qed.
-Hint Resolve renorm_delta.
+Hint Resolve renorm_delta : core.
 
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.

@@ -36,7 +36,7 @@ with Fs : nat -> nat -> nat -> nat -> Prop :=
 | Fs0 k n : Fs 0 k n n
 | FsS p k a b c : Fs p k a b -> F k b c -> Fs (S p) k a c.
 
-Hint Constructors F Fs.
+Hint Constructors F Fs : core.
 
 (** The early behavior of [F] and [Fs] when [n<=3] doesn't depend on k *)
 
@@ -44,25 +44,25 @@ Lemma Fs_0 p k : Fs p k 0 0.
 Proof.
  induction p; eauto.
 Qed.
-Hint Resolve Fs_0.
+Hint Resolve Fs_0 : core.
 
 Lemma F_1 k : F k 1 1.
 Proof.
  induction k; eauto.
 Qed.
-Hint Resolve F_1.
+Hint Resolve F_1 : core.
 
 Lemma Fs_1 p k : Fs p k 1 1.
 Proof.
  induction p; eauto.
 Qed.
-Hint Resolve Fs_1.
+Hint Resolve Fs_1 : core.
 
 Lemma F_2 k : F k 2 1.
 Proof.
  induction k; eauto.
 Qed.
-Hint Resolve F_2.
+Hint Resolve F_2 : core.
 
 Lemma Fs_2 p k : Fs p k 2 (1+(1-p)).
 Proof.
@@ -70,20 +70,20 @@ Proof.
  simpl.
  eapply FsS. apply IHp. destruct p; simpl; auto.
 Qed.
-Hint Resolve Fs_2.
+Hint Resolve Fs_2 : core.
 
 Lemma F_3 k : F k 3 2.
 Proof.
  induction k; eauto.
 Qed.
-Hint Resolve F_3.
+Hint Resolve F_3 : core.
 
 Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
 Proof.
  induction p; eauto.
  eapply FsS; eauto. destruct p as [|[|p]]; simpl; auto.
 Qed.
-Hint Resolve Fs_3.
+Hint Resolve Fs_3 : core.
 
 (** [F] and [Fs] aren't above the identity line *)
 
@@ -91,14 +91,14 @@ Lemma F_le k n a : F k n a -> a <= n.
 Proof.
  induction 1; lia.
 Qed.
-Hint Resolve F_le.
+Hint Resolve F_le : core.
 
 Lemma Fs_le p k n a : Fs p k n a -> a <= n.
 Proof.
  induction 1; trivial.
  transitivity b; eauto.
 Qed.
-Hint Resolve Fs_le.
+Hint Resolve Fs_le : core.
 
 (** [F] and [Fs] are functional relations : unique output *)
 
@@ -175,7 +175,7 @@ Lemma f_sound k n : F k n (f k n).
 Proof.
  now apply recf_sound.
 Qed.
-Hint Resolve f_sound.
+Hint Resolve f_sound : core.
 
 Lemma f_complete k n a : F k n a <-> f k n = a.
 Proof.
@@ -452,7 +452,7 @@ intros H.
 destruct (le_lt_or_eq _ _ (f_le k n)); trivial.
 rewrite f_fix in *. lia.
 Qed.
-Hint Resolve f_lt.
+Hint Resolve f_lt : core.
 
 (** Two special formulations for [f_step] *)
 
@@ -1006,10 +1006,10 @@ Proof.
      * simpl.
        rewrite decr_0.
        rewrite !A_base by (auto; lia).
-       split. intuition. injection 1 as ->. lia.
+       split. intros; f_equal; lia. intros [= ->]; lia.
      * apply Delta_S_cons. rewrite <- E; auto.
      * simpl. auto with arith.
-   + simpl. split. intuition. injection 1 as ->. lia.
+   + simpl. split. intros; f_equal; lia. intros [= ->]; lia.
 Qed.
 
 Lemma step_rank_nz k n :
@@ -1023,7 +1023,7 @@ Lemma steps_ranks_nz k n p :
  f k (n+p) = f k n + p <-> (forall q, q<p -> rank k (n+q) <> Some 0).
 Proof.
  induction p.
- - rewrite !Nat.add_0_r. intuition.
+ - rewrite !Nat.add_0_r. intuition lia.
  - rewrite !Nat.add_succ_r.
    split.
    + intros E q Hq.
@@ -1218,6 +1218,7 @@ Definition olt (o : option nat) n :=
  | Some a => a < n
  end.
 
+Declare Scope option_nat_scope.
 Delimit Scope option_nat_scope with onat.
 
 Infix "<" := olt : option_nat_scope.
@@ -1236,7 +1237,7 @@ Proof.
      destruct Hd as (m,Hd); simpl in Hd.
      split; auto with arith.
      intros _. injection 1 as ->. discriminate.
-   + intuition.
+   + intuition lia.
 Qed.
 
 Lemma fs_flat_low_rank k p n : p <= S k ->
@@ -1249,7 +1250,7 @@ Proof.
    unfold rank.
    rewrite decomp_S.
    destruct (decomp k n) as [|a l] eqn:E.
-   + simpl. intuition.
+   + simpl. intuition lia.
    + simpl.
      case Nat.leb_spec; intros.
      * rewrite renorm_mapdecr by lia.
@@ -1257,7 +1258,7 @@ Proof.
        unfold decr at 1 3.
        rewrite !A_base by (auto; lia).
        lia.
-     * simpl. intuition.
+     * simpl. intuition lia.
  - rewrite <- rank_S_nz_iff.
    rewrite <- step_rank_nz.
    rewrite 2 f_S.
@@ -1284,7 +1285,7 @@ Lemma fs_nonflat_high_rank' k p n : p <= S k ->
 Proof.
  intros.
  rewrite fs_nonflat_high_rank by trivial.
- destruct rank; simpl; intuition.
+ destruct rank; simpl; intuition lia.
 Qed.
 
 (** [(f k)^^p] cannot have more than [p+1] consecutive flats *)
@@ -1376,9 +1377,7 @@ Proof.
      - assert (p-1 < S q); try lia.
        apply steps_inv_lt.
        replace (p-1+1) with p by lia.
-       apply Nat.le_lt_trans with (2*n-2*p); try lia.
-       rewrite !Nat.mul_add_distr_l in IH1.
-       rewrite !Nat.mul_sub_distr_r. lia. }
+       apply Nat.le_lt_trans with (2*n-2*p); lia. }
    replace (S q) with (q+1) by lia.
    replace (q+1+1) with (q+2) by lia.
    replace (q+1+2) with (q+3) by lia.

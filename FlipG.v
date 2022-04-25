@@ -1021,7 +1021,7 @@ Inductive FD : nat -> nat -> Prop :=
                    FD y z -> FD (S y) z -> FD n (S y)
  | FD_c n x y z t : 4<n -> FD (n-2) x -> FD (n-1) y -> x<>y ->
                      FD y z -> FD (S y) t -> z <> t -> FD n y.
-Hint Constructors FD.
+Hint Constructors FD : core.
 
 Lemma FD_le n k : FD n k -> k <= n.
 Proof.

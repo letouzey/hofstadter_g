@@ -13,7 +13,7 @@ Inductive Delta (p:nat) : list nat -> Prop :=
   | Dnil : Delta p []
   | Done n : Delta p [n]
   | Dcons n m l : m+p <= n -> Delta p (n::l) -> Delta p (m::n::l).
-Hint Constructors Delta.
+Hint Constructors Delta : core.
 
 (** In particular:
     - [Delta 0 l] means that [l] is increasing
@@ -61,7 +61,7 @@ Proof.
  intros H H' [X|X]. lia.
  apply Delta_alt in H'. apply H' in X. lia.
 Qed.
-Hint Resolve Delta_S Delta_inv Delta_nz.
+Hint Resolve Delta_S Delta_inv Delta_nz : core.
 
 Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
 Proof.
@@ -84,7 +84,7 @@ Proof.
   apply Delta_more with (S k); auto.
   intros y Hy. apply D' in Hy. lia.
 Qed.
-Hint Resolve Delta_S_cons.
+Hint Resolve Delta_S_cons : core.
 
 Lemma Delta_map p p' f l :
   (forall x y, x+p <= y -> f x + p' <= f y) ->
@@ -208,7 +208,7 @@ Inductive DeltaRev (p:nat) : list nat -> Prop :=
   | DRnil : DeltaRev p []
   | DRone n : DeltaRev p [n]
   | DRcons n m l : n+p <= m -> DeltaRev p (n::l) -> DeltaRev p (m::n::l).
-Hint Constructors DeltaRev.
+Hint Constructors DeltaRev : core.
 
 Lemma DeltaRev_alt p x l :
  DeltaRev p (x::l) <-> DeltaRev p l /\ (forall y, In y l -> y+p <= x).
