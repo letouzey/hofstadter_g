@@ -1,6 +1,6 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import Arith Omega List.
+Require Import Arith Lia List.
 Require Import DeltaList Fib FunG.
 Set Implicit Arguments.
 
@@ -57,13 +57,13 @@ Proof.
  unfold flip.
  case_eq (n <=? 1); tac_leb; trivial.
  intros.
- assert (depth n <> 0) by (rewrite depth_0; omega).
+ assert (depth n <> 0) by (rewrite depth_0; lia).
  apply depth_carac; trivial.
  set (k := depth n) in *.
  assert (S (fib (S k)) <= n <= fib (S (S k)))
   by now apply depth_carac.
  rewrite fib_eqn.
- omega.
+ lia.
 Qed.
 
 Lemma flip_eqn0 n : depth n <> 0 ->
@@ -72,7 +72,7 @@ Proof.
  intros.
  rewrite depth_0 in *.
  unfold flip.
- case_eq (n <=? 1); tac_leb; omega.
+ case_eq (n <=? 1); tac_leb; lia.
 Qed.
 
 Lemma flip_eqn k n : 1 <= n <= fib k ->
@@ -81,14 +81,14 @@ Proof.
  intros Hn.
  unfold flip.
  case_eq (fib (S k) + n <=? 1); tac_leb.
- - generalize (@fib_nz (S k)); omega.
+ - generalize (@fib_nz (S k)); lia.
  - intros H.
    replace (depth (fib (S k) + n)) with k.
-   + rewrite fib_eqn. omega.
+   + rewrite fib_eqn. lia.
    + assert (k<>0).
-     { intros ->. simpl in Hn; omega. }
+     { intros ->. simpl in Hn; lia. }
      symmetry. apply depth_carac; auto.
-     rewrite fib_eqn; omega.
+     rewrite fib_eqn; lia.
 Qed.
 
 (** Two special cases : leftmost and rightmost node at a given depth *)
@@ -97,23 +97,23 @@ Lemma flip_Sfib k : 1<k -> flip (S (fib k)) = fib (S k).
 Proof.
  intros H.
  destruct k.
- - omega.
+ - lia.
  - rewrite <- Nat.add_1_r.
    rewrite flip_eqn.
-   omega.
-   split; trivial. apply fib_nz. omega.
+   lia.
+   split; trivial. apply fib_nz. lia.
 Qed.
 
 Lemma flip_fib k : 1<k -> flip (fib (S k)) = S (fib k).
 Proof.
  intros H.
  destruct k.
- - omega.
- - rewrite fib_eqn' by omega.
+ - lia.
+ - rewrite fib_eqn' by lia.
    rewrite flip_eqn; auto.
-   rewrite fib_eqn'; auto. omega.
-   replace (S k - 1) with k by omega.
-   split; auto. apply fib_nz. omega.
+   rewrite fib_eqn'; auto. lia.
+   replace (S k - 1) with k by lia.
+   split; auto. apply fib_nz. lia.
 Qed.
 
 (** flip is involutive (and hence a bijection) *)
@@ -127,16 +127,16 @@ Proof.
    intros Hn.
    set (k := depth n).
    assert (k<>0).
-   { contradict Hn. unfold k in *. rewrite depth_0 in Hn. omega. }
+   { contradict Hn. unfold k in *. rewrite depth_0 in Hn. lia. }
    assert (Hn' : S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    rewrite fib_eqn.
    replace (S (fib (S (S k)) + fib (S k)) - n) with
-    (fib (S k) + (S (fib (S (S k))) - n)) by omega.
-   rewrite flip_eqn; auto. omega.
-   split. omega. rewrite fib_eqn'; auto.
-   replace (S k - 1) with k by omega.
-   omega.
+    (fib (S k) + (S (fib (S (S k))) - n)) by lia.
+   rewrite flip_eqn; auto. lia.
+   split. lia. rewrite fib_eqn'; auto.
+   replace (S k - 1) with k by lia.
+   lia.
 Qed.
 
 Lemma flip_eq n m : flip n = flip m <-> n = m.
@@ -154,15 +154,15 @@ Qed.
 Lemma flip_low n : n <= 1 <-> flip n <= 1.
 Proof.
  split; intros.
- - assert (EQ : n = 0 \/ n = 1) by omega.
+ - assert (EQ : n = 0 \/ n = 1) by lia.
    destruct EQ as [-> | ->]; compute; auto.
- - assert (EQ : flip n = 0 \/ flip n = 1) by omega.
-   rewrite !flip_swap in EQ. compute in EQ. omega.
+ - assert (EQ : flip n = 0 \/ flip n = 1) by lia.
+   rewrite !flip_swap in EQ. compute in EQ. lia.
 Qed.
 
 Lemma flip_high n : 1 < n <-> 1 < flip n.
 Proof.
- generalize (flip_low n). omega.
+ generalize (flip_low n). lia.
 Qed.
 
 (** flip and neighbors *)
@@ -171,18 +171,18 @@ Lemma flip_S n : 1<n -> depth (S n) = depth n ->
   flip (S n) = flip n - 1.
 Proof.
  intros Hn EQ.
- assert (depth n <> 0) by (rewrite depth_0; omega).
- rewrite !flip_eqn0, EQ; omega.
+ assert (depth n <> 0) by (rewrite depth_0; lia).
+ rewrite !flip_eqn0, EQ; lia.
 Qed.
 
 Lemma flip_pred n : 1<n -> depth (n-1) = depth n ->
   flip (n-1) = S (flip n).
 Proof.
  intros Hn EQ.
- assert (depth n <> 0) by (rewrite depth_0; omega).
- rewrite !flip_eqn0, EQ; try omega.
+ assert (depth n <> 0) by (rewrite depth_0; lia).
+ rewrite !flip_eqn0, EQ; try lia.
  assert (n <= fib (S (S (depth n)))) by (apply depth_carac; auto).
- rewrite fib_eqn; omega.
+ rewrite fib_eqn; lia.
 Qed.
 
 
@@ -202,49 +202,49 @@ Qed.
 Lemma fg_fib k : k<>0 -> fg (fib (S k)) = fib k.
 Proof.
  destruct k as [|[|[|k]]].
- - omega.
+ - lia.
  - reflexivity.
  - reflexivity.
  - intros _.
    unfold fg.
-   now rewrite flip_fib, g_Sfib, flip_Sfib by omega.
+   now rewrite flip_fib, g_Sfib, flip_Sfib by lia.
 Qed.
 
 Lemma fg_Sfib k : 1<k -> fg (S (fib (S k))) = S (fib k).
 Proof.
  intros Hk.
  unfold fg.
- rewrite flip_Sfib by omega.
- rewrite g_fib by omega.
+ rewrite flip_Sfib by lia.
+ rewrite g_fib by lia.
  rewrite flip_fib; auto.
 Qed.
 
 Lemma fg_fib' k : 1<k -> fg (fib k) = fib (k-1).
 Proof.
  destruct k.
- - omega.
- - intros. rewrite fg_fib; f_equal; omega.
+ - lia.
+ - intros. rewrite fg_fib; f_equal; lia.
 Qed.
 
 Lemma fg_Sfib' k : 2<k -> fg (S (fib k)) = S (fib (k-1)).
 Proof.
  destruct k.
  - inversion 1.
- - intros. rewrite Nat.sub_1_r. apply fg_Sfib. simpl. omega.
+ - intros. rewrite Nat.sub_1_r. apply fg_Sfib. simpl. lia.
 Qed.
 
 Lemma fg_step n : fg (S n) = fg n \/ fg (S n) = S (fg n).
 Proof.
  destruct (le_lt_dec n 1) as [LE|LT].
- - assert (EQ : n = 0 \/ n = 1) by omega.
+ - assert (EQ : n = 0 \/ n = 1) by lia.
    destruct EQ as [-> | ->]; compute; auto.
  - set (k := depth n).
-   assert (k<>0) by (unfold k; rewrite depth_0; omega).
+   assert (k<>0) by (unfold k; rewrite depth_0; lia).
    assert (S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    destruct (eq_nat_dec n (fib (S (S k)))) as [EQ|NE].
-   + rewrite EQ. rewrite fg_Sfib, fg_fib; auto. omega.
-   + assert (depth (S n) = k). { apply depth_carac; omega. }
+   + rewrite EQ. rewrite fg_Sfib, fg_fib; auto. lia.
+   + assert (depth (S n) = k). { apply depth_carac; lia. }
      assert (depth (flip (S n)) = k). { rewrite flip_depth; auto. }
      assert (1 < flip n). { now apply (flip_high n). }
      unfold fg.
@@ -252,20 +252,20 @@ Proof.
      destruct (eq_nat_dec (g (flip n - 1)) (g (flip n))) as [EQ|NE'].
      * left; f_equal; trivial.
      * right.
-       rewrite g_prev in NE' by omega.
+       rewrite g_prev in NE' by lia.
        rewrite NE'.
        apply flip_pred.
        { unfold lt. change 2 with (g 3). apply g_mono.
          assert (flip n <> 2).
          { intros EQ. rewrite EQ in *. now compute in NE'. }
-         omega. }
+         lia. }
        { rewrite <- NE'. rewrite !g_depth. rewrite flip_depth.
-         unfold k in *; omega. }
+         unfold k in *; lia. }
 Qed.
 
 Lemma fg_mono_S n : fg n <= fg (S n).
 Proof.
- generalize (fg_step n). omega.
+ generalize (fg_step n). lia.
 Qed.
 
 Lemma fg_mono n m : n<=m -> fg n <= fg m.
@@ -278,8 +278,8 @@ Qed.
 Lemma fg_lipschitz n m : fg m - fg n <= m - n.
 Proof.
 destruct (le_ge_dec n m) as [H|H].
-- induction H; try generalize (fg_step m); omega.
-- generalize (fg_mono H). omega.
+- induction H; try generalize (fg_step m); lia.
+- generalize (fg_mono H). lia.
 Qed.
 
 Lemma fg_nonzero n : 0 < n -> 0 < fg n.
@@ -291,7 +291,7 @@ Lemma fg_0_inv n : fg n = 0 -> n = 0.
 Proof.
 destruct n; trivial.
 assert (0 < fg (S n)) by (apply fg_nonzero; auto with arith).
-omega.
+lia.
 Qed.
 
 Lemma fg_nz n : n <> 0 -> fg n <> 0.
@@ -307,14 +307,14 @@ Qed.
 
 Lemma fg_le n : fg n <= n.
 Proof.
- generalize (fg_lipschitz 0 n). change (fg 0) with 0. omega.
+ generalize (fg_lipschitz 0 n). change (fg 0) with 0. lia.
 Qed.
 
 Lemma fg_lt n : 1<n -> fg n < n.
 Proof.
 intros H.
 destruct (le_lt_or_eq _ _ (fg_le n)); trivial.
-rewrite fg_fix in *. omega.
+rewrite fg_fix in *. lia.
 Qed.
 
 Lemma fg_onto a : exists n, fg n = a.
@@ -327,29 +327,29 @@ Lemma fg_nonflat n : fg (S n) = fg n -> fg (S (S n)) = S (fg n).
 Proof.
  intros H.
  destruct (le_lt_dec n 1) as [Hn|Hn].
- - assert (EQ : n = 0 \/ n = 1) by omega.
+ - assert (EQ : n = 0 \/ n = 1) by lia.
    destruct EQ as [-> | ->]; reflexivity.
- - destruct (fg_step (S n)) as [H'|H']; [|omega].
+ - destruct (fg_step (S n)) as [H'|H']; [|lia].
    exfalso.
    set (k := depth n).
-   assert (Hk : k<>0) by (unfold k; rewrite depth_0; omega).
+   assert (Hk : k<>0) by (unfold k; rewrite depth_0; lia).
    assert (Hnk : S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    destruct (eq_nat_dec n (fib (S (S k)))) as [EQ|NE].
-   + rewrite EQ in H. rewrite fg_fib, fg_Sfib in H; omega.
+   + rewrite EQ in H. rewrite fg_fib, fg_Sfib in H; lia.
    + destruct (eq_nat_dec (S n) (fib (S (S k)))) as [EQ|NE'].
-     * rewrite EQ in H'. rewrite fg_fib, fg_Sfib in H'; omega.
+     * rewrite EQ in H'. rewrite fg_fib, fg_Sfib in H'; lia.
      * revert H'. rewrite H; clear H. unfold fg. rewrite flip_eq.
-       assert (depth (S n) = k). { apply depth_carac; omega. }
+       assert (depth (S n) = k). { apply depth_carac; lia. }
        assert (depth (flip (S n)) = k). { rewrite flip_depth; auto. }
-       assert (depth (S (S n)) = k). { apply depth_carac; omega. }
+       assert (depth (S (S n)) = k). { apply depth_carac; lia. }
        assert (depth (flip (S (S n))) = k). { rewrite flip_depth; auto. }
-       rewrite flip_S by omega.
-       rewrite flip_S by (unfold k in H; omega).
+       rewrite flip_S by lia.
+       rewrite flip_S by (unfold k in H; lia).
        assert (HH : forall m, 1<m -> g (m-1-1) <> g m).
        { intros.
          generalize (@g_max_two_antecedents (g m) (m-1-1) m).
-         omega. }
+         lia. }
        apply HH. apply flip_high in Hn. auto.
 Qed.
 
@@ -360,10 +360,10 @@ Proof.
  unfold lt in LT.
  assert (LE := fg_mono LT).
  rewrite <- H in LE.
- destruct (fg_step n) as [EQ|EQ]; [|omega].
+ destruct (fg_step n) as [EQ|EQ]; [|lia].
  apply fg_nonflat in EQ.
- destruct (le_lt_dec m (S n)) as [LE'|LT']; [omega|].
- unfold lt in LT'. apply fg_mono in LT'. omega.
+ destruct (le_lt_dec m (S n)) as [LE'|LT']; [lia|].
+ unfold lt in LT'. apply fg_mono in LT'. lia.
 Qed.
 
 Lemma fg_inv n m : fg n = fg m -> n = m \/ n = S m \/ m = S n.
@@ -382,72 +382,72 @@ Proof.
  { unfold k. change 3 with (depth 4).
    apply depth_mono; auto. }
  assert (LE : S (fib (S k)) <= n <= fib (S (S k))).
- { apply depth_carac. omega. auto. }
+ { apply depth_carac. lia. auto. }
  destruct (eq_nat_dec (S (fib (S k))) n) as [EQ|NE].
  - (* n = S (fib (S k)) *)
-   replace (n-1) with (fib (S k)) by omega.
+   replace (n-1) with (fib (S k)) by lia.
    rewrite <- EQ.
-   rewrite fg_fib, !fg_Sfib' by omega.
-   replace (S k - 1) with k by omega.
-   rewrite fib_eqn'; omega.
+   rewrite fg_fib, !fg_Sfib' by lia.
+   replace (S k - 1) with k by lia.
+   rewrite fib_eqn'; lia.
  - (* n > S (fib (S k)) *)
    assert (Hk : depth (n-1) = k).
-   { apply depth_carac; omega. }
+   { apply depth_carac; lia. }
    assert (Hk' : depth (fg (n-1)) = k-1).
    { now rewrite fg_depth, Hk. }
    assert (LE' : S (fib k) <= fg (n-1) <= fib (S k)).
-   { replace k with (S (k-1)) by omega.
-     apply depth_carac; auto. omega. }
+   { replace k with (S (k-1)) by lia.
+     apply depth_carac; auto. lia. }
    destruct (eq_nat_dec (fg (n-1)) (fib (S k))) as [EQ|NE'].
    + (* fg(n-1) = fib (S k) *)
      rewrite EQ.
-     rewrite fg_Sfib' by omega.
+     rewrite fg_Sfib' by lia.
      assert (EQ' : fg n = fib (S k)).
      { destruct (fg_step (n-1)) as [EQ'|EQ'];
-       replace (S (n-1)) with n in EQ'; try omega.
+       replace (S (n-1)) with n in EQ'; try lia.
        rewrite EQ in EQ'.
-       assert (H' : depth (fg n) = k) by (apply depth_carac; omega).
-       rewrite fg_depth in H'. unfold k in *. omega. }
+       assert (H' : depth (fg n) = k) by (apply depth_carac; lia).
+       rewrite fg_depth in H'. unfold k in *. lia. }
      rewrite EQ'.
-     rewrite Nat.add_succ_r. rewrite <- fib_eqn' by omega.
+     rewrite Nat.add_succ_r. rewrite <- fib_eqn' by lia.
      f_equal.
      assert (EQ'' : fg (n-1) = fg (fib (S (S k)))) by now rewrite EQ, fg_fib.
-     apply fg_max_two_antecedents in EQ''; omega.
+     apply fg_max_two_antecedents in EQ''; lia.
    + (* fg(n-1) <> fib (S k) *)
      assert (Hk'' : depth (S (fg (n-1))) = k-1).
-     { apply depth_carac. omega.
-       replace (S (k-1)) with k by omega.
-       omega. }
+     { apply depth_carac. lia.
+       replace (S (k-1)) with k by lia.
+       lia. }
      unfold fg at 2.
      rewrite flip_eqn0;
-     rewrite g_depth, flip_depth, Hk''; [|omega].
-     replace (S (S (k-1-1))) with k by omega.
+     rewrite g_depth, flip_depth, Hk''; [|lia].
+     replace (S (S (k-1-1))) with k by lia.
      assert (LT : 1 < fg (n-1)).
-     { unfold lt. change 2 with (fg 3). apply fg_mono. omega. }
-     rewrite flip_S by omega.
+     { unfold lt. change 2 with (fg 3). apply fg_mono. lia. }
+     rewrite flip_S by lia.
      unfold fg at 2. rewrite flip_flip.
-     rewrite flip_pred; try (unfold k in Hk; omega).
+     rewrite flip_pred; try (unfold k in Hk; lia).
      clear LT Hk'' NE' LE' Hk Hk'.
      replace (g (g (S (flip n)) - 1)) with (flip n - g (flip n))
-     by (generalize (g_alt_eqn (flip n)); omega).
+     by (generalize (g_alt_eqn (flip n)); lia).
      rewrite <- (flip_flip (g (flip n))).
      fold (fg n).
-     rewrite !flip_eqn0 by (rewrite ?fg_depth; unfold k in H; omega).
+     rewrite !flip_eqn0 by (rewrite ?fg_depth; unfold k in H; lia).
      rewrite fg_depth.
      change (depth n) with k.
-     replace (S (k-1)) with k by omega.
+     replace (S (k-1)) with k by lia.
      rewrite fib_eqn.
      assert (Hnk : depth (fg n) = k-1).
-     { rewrite fg_depth. unfold k. omega. }
-     apply depth_carac in Hnk; [|omega].
-     replace (S (k-1)) with k in Hnk by omega.
+     { rewrite fg_depth. unfold k. lia. }
+     apply depth_carac in Hnk; [|lia].
+     replace (S (k-1)) with k in Hnk by lia.
      replace (fib k) with (fib (S (S k)) - fib (S k)) in Hnk;
-      [|rewrite fib_eqn; omega].
+      [|rewrite fib_eqn; lia].
      set (FSSK := fib (S (S k))) in *.
      set (FSK := fib (S k)) in *.
      replace (S (FSSK+FSK) -n - (S FSSK - fg n))
-      with (FSK + fg n - n) by omega.
-     omega.
+      with (FSK + fg n - n) by lia.
+     lia.
 Qed.
 
 (** This equation, along with initial values up to [n=3],
@@ -467,13 +467,13 @@ Proof.
  induction n as [n IH] using lt_wf_rec.
  destruct (le_lt_dec n 3) as [Hn|Hn].
  - destruct n as [|[|[|n]]]; try assumption.
-   replace n with 0 by omega. assumption.
+   replace n with 0 by lia. assumption.
  - assert (E := fg_eqn Hn).
    specialize (Fn n Hn).
-   rewrite (IH (n-1)) in Fn by omega.
+   rewrite (IH (n-1)) in Fn by lia.
    rewrite (IH (S (fg (n-1)))) in Fn.
-   + generalize (@fg_lt n). omega.
-   + generalize (@fg_lt (n-1)). omega.
+   + generalize (@fg_lt n). lia.
+   + generalize (@fg_lt (n-1)). lia.
 Qed.
 
 (*=============================================================*)
@@ -513,24 +513,24 @@ Proof.
    destruct (eq_nat_dec (fg (S n)) a);
    destruct (eq_nat_dec (fg (n-1)) a).
    + exfalso.
-     generalize (@fg_max_two_antecedents (n-1) (S n)). omega.
+     generalize (@fg_max_two_antecedents (n-1) (S n)). lia.
    + exists n; exists (S n); repeat split; auto.
      intros k Hk.
-     destruct (fg_inv n k) as [H|[H|H]]; try omega.
-     subst n. simpl in *. rewrite Nat.sub_0_r in *. omega.
-   + exists n; exists (n-1); repeat split; auto; try omega.
+     destruct (fg_inv n k) as [H|[H|H]]; try lia.
+     subst n. simpl in *. rewrite Nat.sub_0_r in *. lia.
+   + exists n; exists (n-1); repeat split; auto; try lia.
      intros k Hk.
-     destruct (fg_inv n k) as [H|[H|H]]; try omega.
-     subst k. omega.
+     destruct (fg_inv n k) as [H|[H|H]]; try lia.
+     subst k. lia.
    + elim U.
      intros u v Hu Hv.
      assert (u = n).
      { destruct (fg_inv n u) as [H|[H|H]]; subst;
-       simpl in *; rewrite ?Nat.sub_0_r in *; omega. }
+       simpl in *; rewrite ?Nat.sub_0_r in *; lia. }
      assert (v = n).
      { destruct (fg_inv n v) as [H'|[H'|H']]; subst;
-       simpl in *; rewrite ?Nat.sub_0_r in *; omega. }
-     omega.
+       simpl in *; rewrite ?Nat.sub_0_r in *; lia. }
+     lia.
  - intros (n & m & Hn & Hm & Hnm & H) U.
    apply Hnm. now apply (U n m).
 Qed.
@@ -561,17 +561,17 @@ Proof.
    destruct n as [|[|n]].
    + compute. auto.
    + compute. auto.
-   + replace n with 0 by omega. compute. auto.
+   + replace n with 0 by lia. compute. auto.
  - assert (2 <= a).
    { change 2 with (fg 3). rewrite <- Hn. apply fg_mono. assumption. }
    unfold rchild.
    destruct eq_nat_dec.
-   + destruct a as [|[|[|a]]]; trivial; omega.
-   + assert (Hn' : 3 < S n) by omega.
+   + destruct a as [|[|[|a]]]; trivial; lia.
+   + assert (Hn' : 3 < S n) by lia.
      assert (H' := fg_eqn Hn').
-     replace (S n - 1) with n in H' by omega.
+     replace (S n - 1) with n in H' by lia.
      rewrite Hn in H'.
-     omega.
+     lia.
 Qed.
 
 Lemma fg_onto_eqn a : fg (rchild a) = a.
@@ -595,7 +595,7 @@ Definition lchild n :=
 Lemma lchild'_alt n : n<>1 -> lchild n = flip (flip n + flip (fg n)).
 Proof.
  unfold lchild, FunG.rchild, fg.
- destruct eq_nat_dec; [intros; omega|intros].
+ destruct eq_nat_dec; [intros; lia|intros].
  f_equal. f_equal.
  symmetry. apply flip_flip.
 Qed.
@@ -614,57 +614,57 @@ Proof.
  destruct (le_lt_dec n 1).
  - destruct n as [|n].
    + now compute.
-   + replace n with 0 by omega; now compute.
+   + replace n with 0 by lia; now compute.
  - set (k:=depth n).
-   assert (k<>0) by (unfold k; rewrite depth_0; omega).
+   assert (k<>0) by (unfold k; rewrite depth_0; lia).
    assert (S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    destruct (eq_nat_dec n (S (fib (S k)))) as [E|N].
    + rewrite E.
-     replace (S (fib (S k)) - 1) with (fib (S k)) by omega.
+     replace (S (fib (S k)) - 1) with (fib (S k)) by lia.
      unfold lchild.
      destruct eq_nat_dec.
-     * generalize (@fib_nz k); intros; omega.
-     * rewrite flip_Sfib by omega.
-       unfold FunG.rchild. rewrite g_fib by omega.
+     * generalize (@fib_nz k); intros; lia.
+     * rewrite flip_Sfib by lia.
+       unfold FunG.rchild. rewrite g_fib by lia.
        rewrite <- fib_eqn.
-       rewrite flip_fib by omega.
-       replace (S (fib (S (S k))) - 1) with (fib (S (S k))) by omega.
-       apply fg_fib; omega.
+       rewrite flip_fib by lia.
+       replace (S (fib (S (S k))) - 1) with (fib (S (S k))) by lia.
+       apply fg_fib; lia.
    + unfold fg. apply flip_swap.
      assert (1 < lchild n).
      { generalize (fg_onto_eqn' n).
        generalize (@fg_mono (lchild n) 2). change (fg 2) with 1.
-       omega. }
+       lia. }
      rewrite !flip_pred; auto.
      * unfold lchild.
-       destruct eq_nat_dec; [omega|].
+       destruct eq_nat_dec; [lia|].
        rewrite flip_flip.
        rewrite FunG.rightmost_child_carac; auto.
        apply g_onto_eqn.
-     * change (depth n) with k; apply depth_carac; omega.
+     * change (depth n) with k; apply depth_carac; lia.
      * assert (D : depth (lchild n) = S k).
        { unfold k. rewrite <- (fg_onto_eqn' n) at 2.
          rewrite fg_depth. generalize (depth_0 (lchild n)).
-         omega. }
+         lia. }
        rewrite D.
        apply depth_carac in D; auto.
        assert (lchild n <> S (fib (S (S k)))).
        { contradict N.
-         rewrite <- (fg_onto_eqn' n), N. rewrite fg_Sfib; omega. }
-       apply depth_carac; auto. omega.
+         rewrite <- (fg_onto_eqn' n), N. rewrite fg_Sfib; lia. }
+       apply depth_carac; auto. lia.
 Qed.
 
 Lemma lchild_leftmost' n a :
   fg n = a -> n = lchild a \/ n = S (lchild a).
 Proof.
  intros Hn.
- destruct (fg_inv (lchild a) n) as [H|[H|H]]; try omega.
+ destruct (fg_inv (lchild a) n) as [H|[H|H]]; try lia.
  - rewrite <- Hn. apply fg_onto_eqn'.
  - exfalso.
    generalize (lchild_leftmost a).
    rewrite H. simpl. rewrite Nat.sub_0_r, Hn.
-   intros. replace a with 0 in * by omega.
+   intros. replace a with 0 in * by lia.
    discriminate.
 Qed.
 
@@ -676,7 +676,7 @@ Qed.
 
 Lemma lchild_rchild n : lchild n <= rchild n.
 Proof.
- destruct (rchild_lchild n); omega.
+ destruct (rchild_lchild n); lia.
 Qed.
 
 Lemma fg_children a n :
@@ -684,10 +684,10 @@ Lemma fg_children a n :
 Proof.
  intros H.
  destruct (lchild_leftmost' _ H) as [Hn|Hn]; auto.
- destruct (rchild_lchild a) as [Ha|Ha]; try omega.
+ destruct (rchild_lchild a) as [Ha|Ha]; try lia.
  exfalso.
  symmetry in Ha. apply rightmost_child_carac in Ha.
- rewrite <- Hn in Ha. omega.
+ rewrite <- Hn in Ha. lia.
  apply fg_onto_eqn'.
 Qed.
 
@@ -696,7 +696,7 @@ Lemma binary_lchild_is_unary n :
 Proof.
  rewrite multary_flip, unary_flip.
  unfold lchild.
- destruct eq_nat_dec; try omega.
+ destruct eq_nat_dec; try lia.
  rewrite flip_flip.
  intros. now apply binary_rchild_is_unary.
 Qed.
@@ -710,7 +710,7 @@ Proof.
  - apply flip_swap. apply fg_onto_eqn.
  - rewrite <- flip_swap.
    set (k:=depth n).
-   assert (k<>0) by (unfold k; rewrite depth_0; omega).
+   assert (k<>0) by (unfold k; rewrite depth_0; lia).
    assert (S (fib (S k)) <= n <= fib (S (S k))).
    { apply depth_carac; auto. }
    destruct (eq_nat_dec n (fib (S (S k)))) as [E|N].
@@ -718,31 +718,31 @@ Proof.
      { symmetry.
        apply rightmost_child_carac.
        - now rewrite fg_fib.
-       - rewrite fg_Sfib; omega. }
+       - rewrite fg_Sfib; lia. }
      rewrite E'.
-     rewrite flip_fib by omega.
-     replace (S (fib (S (S k))) - 1) with (fib (S (S k))) by omega.
-     rewrite g_fib by omega.
-     rewrite E, flip_swap, flip_fib; omega.
+     rewrite flip_fib by lia.
+     replace (S (fib (S (S k))) - 1) with (fib (S (S k))) by lia.
+     rewrite g_fib by lia.
+     rewrite E, flip_swap, flip_fib; lia.
    + assert (1 < rchild n).
      { generalize (fg_onto_eqn n).
        generalize (@fg_mono (rchild n) 2). change (fg 2) with 1.
-       omega. }
+       lia. }
      rewrite <- flip_S; auto.
      * change (fg (S (rchild n)) <> n).
        assert (H' := fg_onto_eqn n).
-       destruct (fg_step (rchild n)); try omega.
-       apply rightmost_child_carac in H'. omega.
+       destruct (fg_step (rchild n)); try lia.
+       apply rightmost_child_carac in H'. lia.
      * assert (D : depth (rchild n) = S k).
        { unfold k. rewrite <- (fg_onto_eqn n) at 2.
          rewrite fg_depth. generalize (depth_0 (rchild n)).
-         omega. }
+         lia. }
        rewrite D.
        apply depth_carac in D; auto.
        assert (rchild n <> fib (S (S (S k)))).
        { contradict N.
          rewrite <- (fg_onto_eqn n), N. now rewrite fg_fib. }
-       apply depth_carac; auto. omega.
+       apply depth_carac; auto. lia.
 Qed.
 
 Lemma unary_child_is_binary n :
@@ -750,9 +750,9 @@ Lemma unary_child_is_binary n :
 Proof.
  intros Hn H.
  destruct (le_lt_dec n 1).
- - replace n with 1 in * by omega.
+ - replace n with 1 in * by lia.
    exfalso.
-   specialize (H 1 2). compute in H. omega.
+   specialize (H 1 2). compute in H. lia.
  - now apply rightmost_son_is_binary.
 Qed.
 
@@ -790,15 +790,15 @@ Lemma fg_g_S_inv n : 3<n ->
 Proof.
  intros Hn H.
  replace (fg n) with (S n - fg (S (fg (n-1))))
-   by (rewrite <- fg_eqn; omega).
- replace n with (S (n-1)) at 3 by omega.
+   by (rewrite <- fg_eqn; lia).
+ replace n with (S (n-1)) at 3 by lia.
  rewrite g_S.
- replace (S (n-1)) with n by omega.
+ replace (S (n-1)) with n by lia.
  rewrite H.
  assert (g (g (n-1)) <= n).
  { transitivity (g (n-1)). apply g_le.
-   generalize (g_le (n-1)); omega. }
- omega.
+   generalize (g_le (n-1)); lia. }
+ lia.
 Qed.
 
 Lemma fg_g_eq_inv n : 3<n ->
@@ -807,11 +807,11 @@ Lemma fg_g_eq_inv n : 3<n ->
 Proof.
  intros Hn H.
  replace (fg n) with (S n - fg (S (fg (n-1))))
-   by (rewrite <- fg_eqn; omega).
- replace n with (S (n-1)) at 3 by omega.
+   by (rewrite <- fg_eqn; lia).
+ replace n with (S (n-1)) at 3 by lia.
  rewrite g_S.
- replace (S (n-1)) with n by omega.
- rewrite H. omega.
+ replace (S (n-1)) with n by lia.
+ rewrite H. lia.
 Qed.
 
 (** Now, the proof that [fg(n)] is either [g(n)] or [g(n)+1].
@@ -827,8 +827,8 @@ Lemma fg_g_aux0 n : IHeq n -> Fib.ThreeOdd 2 n -> fg n = S (g n).
 Proof.
  intros IH TE.
  assert (6 <= n) by now apply ThreeOdd_le.
- apply fg_g_S_inv; try omega.
- rewrite (IH (n-1)), IH; try (generalize (@g_lt (n-1)); omega).
+ apply fg_g_S_inv; try lia.
+ rewrite (IH (n-1)), IH; try (generalize (@g_lt (n-1)); lia).
  - rewrite Odd_gP by auto. apply g_Two, Three_g; auto.
  - rewrite Odd_gP by auto.
    now apply ThreeEven_not_ThreeOdd', ThreeOdd_Sg.
@@ -839,23 +839,23 @@ Lemma fg_g_aux1 n : IHeq n -> 3<n -> Fib.Two 2 n -> fg n = g n.
 Proof.
  intros IH N FO.
  apply fg_g_eq_inv; auto.
- assert (High 2 (n-1)). { apply Two_pred_High; auto; omega. }
+ assert (High 2 (n-1)). { apply Two_pred_High; auto; lia. }
  assert (Even 2 (g n)) by now apply Two_g.
- rewrite (IH (n-1)) by (auto;omega).
+ rewrite (IH (n-1)) by (auto;lia).
  rewrite 2 Even_gP; auto using Two_Even.
- assert (g n <> 0) by (apply g_nz; omega).
+ assert (g n <> 0) by (apply g_nz; lia).
  assert (g (g n) <> 0) by now apply g_nz.
- replace (S (g n - 1)) with (g n) by omega.
- rewrite IH; auto; try apply g_lt; omega.
+ replace (S (g n - 1)) with (g n) by lia.
+ rewrite IH; auto; try apply g_lt; lia.
 Qed.
 
 Lemma fg_g_aux2 n :
  IHeq n -> IHsucc n -> 3<n -> Fib.ThreeEven 2 n -> fg n = g n.
 Proof.
  intros IH1 IH2 N TO.
- apply fg_g_eq_inv; try omega.
+ apply fg_g_eq_inv; try lia.
  assert (H' := @g_lt (n-1)).
- rewrite (IH1 (n-1)), IH2; try omega.
+ rewrite (IH1 (n-1)), IH2; try lia.
  - rewrite Odd_gP by auto.
    f_equal. apply g_Two. apply Three_g; auto.
  - rewrite Odd_gP by auto. now apply ThreeEven_Sg.
@@ -870,46 +870,46 @@ Proof.
  destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
  - (* even *)
    assert (E1 : g (n-1) = g n - 1) by (apply Even_gP; now exists p).
-   assert (S (fg (n-1)) < n) by (generalize (@fg_lt (n-1)); omega).
-   assert (g n <> 0) by (apply g_nz; omega).
-   assert (E2 : S (g n - 1) = g n) by omega.
+   assert (S (fg (n-1)) < n) by (generalize (@fg_lt (n-1)); lia).
+   assert (g n <> 0) by (apply g_nz; lia).
+   assert (E2 : S (g n - 1) = g n) by lia.
    destruct p as [|[|[|p]]].
-   + omega.
-   + omega.
+   + lia.
+   + lia.
    + (* four *)
      simpl in *.
      assert (T : Three 2 (g n)) by (revert L; apply g_Low; auto).
      rewrite E1, Odd_gP by auto.
      destruct L as (l & E & D & _).
-     destruct l as [|k l]; [simpl in E; omega|].
+     destruct l as [|k l]; [simpl in E; lia|].
      destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
      * (* next term after 3 is even *)
        assert (ThreeEven 2 (n-1)).
        { exists p; exists l; auto. subst; split; auto.
          eapply Delta_low_hd with 4; auto. }
-       rewrite (IH1 (n-1)) in * by (auto; omega).
+       rewrite (IH1 (n-1)) in * by (auto; lia).
        rewrite E1, E2, IH2 in *; auto.
-       replace n with (S (n-1)) by omega.
+       replace n with (S (n-1)) by lia.
        rewrite g_not_Two. now apply ThreeEven_Sg.
        intro. eapply Two_not_Three; eauto using ThreeEven_Three.
      * (* next term after 4 is odd *)
        assert (ThreeOdd 2 (n-1)).
        { exists p; exists l; auto. subst; split; auto.
          eapply Delta_low_hd with 4; auto. }
-       rewrite (IH2 (n-1)) in * by (auto; omega).
+       rewrite (IH2 (n-1)) in * by (auto; lia).
        rewrite E1, E2, IH1 in *; auto using Odd_succ_Even.
        apply g_not_Two.
        intro. eapply Even_xor_Odd; eauto using Two_Even.
    + (* high odd *)
      remember (S (S p)) as k eqn:K'.
-     assert (1<k) by omega. clear K K'.
+     assert (1<k) by lia. clear K K'.
      assert (Even 2 n) by now exists (S k).
      assert (~Two 2 n).
-     { intro O. generalize (Low_unique L O). omega. }
+     { intro O. generalize (Low_unique L O). lia. }
      assert (~Four 2 n).
-     { intro T. generalize (Low_unique L T). omega. }
+     { intro T. generalize (Low_unique L T). lia. }
      assert (ThreeOdd 2 (n-1)) by now apply EvenHigh_pred_ThreeOdd.
-     rewrite (IH2 (n-1)) in *; auto; try omega.
+     rewrite (IH2 (n-1)) in *; auto; try lia.
      rewrite E1, E2 in *.
      assert (Ev : Odd 2 (g n)) by now apply Even_g.
      rewrite Odd_gP by auto.
@@ -920,10 +920,10 @@ Proof.
    assert (High 2 n) by (exists (2*p+1); auto).
    assert (Odd 2 n) by now exists p.
    rewrite (IH1 (n-1));
-     [ | omega | now apply Two_not_ThreeOdd, Odd_pred_Two ].
-   assert (S (g (n-1)) < n) by (generalize (@g_lt (n-1)); omega).
+     [ | lia | now apply Two_not_ThreeOdd, Odd_pred_Two ].
+   assert (S (g (n-1)) < n) by (generalize (@g_lt (n-1)); lia).
    rewrite Odd_gP in * by auto.
-   rewrite IH1; try omega.
+   rewrite IH1; try lia.
    + apply g_not_Two. now apply High_g.
    + now apply Even_not_ThreeOdd, High_Sg.
 Qed.
@@ -943,8 +943,8 @@ Proof.
  - intros.
    destruct (le_lt_dec n 3) as [LE|LT].
    + destruct n as [|[|[|n]]]; try reflexivity.
-     replace n with 0 by omega. reflexivity.
-   + assert (LT' : 2 < n) by omega.
+     replace n with 0 by lia. reflexivity.
+   + assert (LT' : 2 < n) by lia.
      destruct (decomp_complete' LT') as [X|[X|[X|X]]].
      * now apply fg_g_aux1.
      * now apply fg_g_aux2.
@@ -979,8 +979,8 @@ Proof.
  destruct (le_lt_dec n 3) as [LE|LT].
  - left.
    destruct n as [|[|[|n]]]; try reflexivity.
-   replace n with 0 by omega. reflexivity.
- - assert (LT' : 2 < n) by omega.
+   replace n with 0 by lia. reflexivity.
+ - assert (LT' : 2 < n) by lia.
    destruct (decomp_complete' LT') as [X|[X|[X|X]]].
    * left. apply fg_g. now apply Two_not_ThreeOdd.
    * left. apply fg_g. now apply ThreeEven_not_ThreeOdd.
@@ -990,7 +990,7 @@ Qed.
 
 Lemma g_le_fg n : g n <= fg n.
 Proof.
- destruct (fg_g_step n); omega.
+ destruct (fg_g_step n); lia.
 Qed.
 
 
@@ -1025,17 +1025,17 @@ Hint Constructors FD : core.
 
 Lemma FD_le n k : FD n k -> k <= n.
 Proof.
-induction 1; auto with arith; omega.
+induction 1; auto with arith; lia.
 Qed.
 
 Lemma FD_nz n k : FD n k -> 0<n -> 0<k.
 Proof.
-induction 1; auto with arith; omega.
+induction 1; auto with arith; lia.
 Qed.
 
 Lemma FD_lt n k : FD n k -> 1<n -> 0<k<n.
 Proof.
-induction 1; auto with arith; omega.
+induction 1; auto with arith; lia.
 Qed.
 
 (* begin hide *)
@@ -1051,7 +1051,7 @@ Lemma FD_unique n k k' : FD n k -> FD n k' -> k = k'.
 Proof.
 intros H1.
 revert k'.
-induction H1; inversion 1; subst; auto; try omega; uniq.
+induction H1; inversion 1; subst; auto; try lia; uniq.
 Qed.
 
 Lemma FD_step n k k' : FD n k -> FD (S n) k' -> k'=k \/ k' = S k.
@@ -1061,9 +1061,9 @@ inversion 2; subst; intros; simpl in *; rewrite ?Nat.sub_0_r in *.
 - replace k with 1 by (apply FD_unique with 1; auto). auto.
 - replace k with 1 by (apply FD_unique with 2; auto). auto.
 - replace k with 2 by (apply FD_unique with 3; auto). auto.
-- replace x with k by (apply FD_unique with n; auto). omega.
-- replace y with k by (apply FD_unique with n; auto). omega.
-- replace k' with k by (apply FD_unique with n; auto). omega.
+- replace x with k by (apply FD_unique with n; auto). lia.
+- replace y with k by (apply FD_unique with n; auto). lia.
+- replace k' with k by (apply FD_unique with n; auto). lia.
 Qed.
 
 (** [fg] is an implementation of [FD] (hence the only one). *)
@@ -1073,34 +1073,34 @@ Proof.
 induction n as [n IH] using lt_wf_rec.
 destruct (le_lt_dec n 4) as [Hn|Hn].
 - destruct n as [|[|[|[|n]]]]; try constructor.
-  replace n with 0 by omega. constructor.
-- assert (FD (n-2) (fg (n-2))) by (apply IH; omega).
-  assert (FD (n-1) (fg (n-1))) by (apply IH; omega).
+  replace n with 0 by lia. constructor.
+- assert (FD (n-2) (fg (n-2))) by (apply IH; lia).
+  assert (FD (n-1) (fg (n-1))) by (apply IH; lia).
   destruct (fg_step (n-2)) as [E|N].
-  + replace n with (S (S (n-2))) at 2 by omega.
+  + replace n with (S (S (n-2))) at 2 by lia.
     rewrite (fg_nonflat (n-2)); auto.
     constructor; auto. rewrite <- E.
-    replace (S (n-2)) with (n-1) by omega. auto.
-  + replace (S (n-2)) with (n-1) in N by omega.
+    replace (S (n-2)) with (n-1) by lia. auto.
+  + replace (S (n-2)) with (n-1) in N by lia.
     set (x := fg (n-2)) in *.
     set (y := fg (n-1)) in *.
     assert (FD y (fg y)).
-    { apply IH. unfold y. generalize (fg_le (n-1)); omega. }
+    { apply IH. unfold y. generalize (fg_le (n-1)); lia. }
     assert (FD (S y) (fg (S y))).
-    { apply IH. unfold y. generalize (@fg_lt (n-1)); omega. }
-    assert (Hn' : 3 < n) by omega.
-    assert (Hn'' : 3 < n-1) by omega.
+    { apply IH. unfold y. generalize (@fg_lt (n-1)); lia. }
+    assert (Hn' : 3 < n) by lia.
+    assert (Hn'' : 3 < n-1) by lia.
     assert (EQ := fg_eqn Hn').
     assert (EQ' := fg_eqn Hn'').
     change (fg(n-1)) with y in EQ,EQ'.
-    replace (n-1-1) with (n-2) in EQ' by omega.
+    replace (n-1-1) with (n-2) in EQ' by lia.
     change (fg(n-2)) with x in EQ'.
     rewrite <- N in EQ'.
     destruct (fg_step y) as [E'|N'].
-    * replace (fg n) with (S y) by omega.
-      eapply FD_b; eauto. omega. rewrite <- E'; auto.
-    * replace (fg n) with y by omega.
-      eapply FD_c; eauto. omega. omega.
+    * replace (fg n) with (S y) by lia.
+      eapply FD_b; eauto. lia. rewrite <- E'; auto.
+    * replace (fg n) with y by lia.
+      eapply FD_c; eauto. lia. lia.
 Qed.
 
 Lemma fg_unique n k : FD n k <-> k = fg n.
@@ -1116,11 +1116,11 @@ Lemma fg_a n : 0<n -> fg (n-2) = fg (n-1) -> fg n = S (fg (n-1)).
 Proof.
 destruct (le_lt_dec n 4).
 - destruct n as [|[|[|[|n]]]].
-  + omega.
+  + lia.
   + reflexivity.
   + discriminate.
   + reflexivity.
-  + replace n with 0 by omega. compute. reflexivity.
+  + replace n with 0 by lia. compute. reflexivity.
 - intros.
   symmetry. apply fg_unique.
   apply FD_a; auto using fg_implements_FD.
@@ -1165,15 +1165,15 @@ Proof.
  inversion Hg; subst.
  - reflexivity.
  - compute in H1. discriminate.
- - omega.
+ - lia.
  - compute in H1. discriminate.
  - compute in H1. discriminate.
  - assert (x = fg(n-1)).
    { eapply FD_unique; eauto using fg_implements_FD. }
-   omega.
+   lia.
  - assert (y = fg(n-1)).
    { eapply FD_unique; eauto using fg_implements_FD. }
-   omega.
+   lia.
  - set (y := fg(n-1)) in *.
    assert (y = fg n).
    { eapply FD_unique with n; eauto using fg_implements_FD. }
@@ -1190,7 +1190,7 @@ Definition d n := fg (S n) - fg n.
 
 Lemma delta_0_1 n : d n = 0 \/ d n = 1.
 Proof.
- unfold d. destruct (fg_step n); omega.
+ unfold d. destruct (fg_step n); lia.
 Qed.
 
 Lemma delta_a n : n<>0 -> d (n-1) = 0 -> d n = 1.
@@ -1199,8 +1199,8 @@ Proof.
  unfold d in *.
  generalize (fg_nonflat (n-1)).
  generalize (fg_mono_S (n-1)).
- replace (S (n-1)) with n by omega.
- omega.
+ replace (S (n-1)) with n by lia.
+ lia.
 Qed.
 
 Lemma delta_b n : 4<=n ->
@@ -1208,11 +1208,11 @@ Lemma delta_b n : 4<=n ->
 Proof.
  unfold d.
  intros.
- replace (S (n-1)) with n in * by omega.
- rewrite (@fg_b (S n) (fg n)); try omega.
- f_equal. omega.
- simpl. omega.
- generalize (fg_step (fg n)). omega.
+ replace (S (n-1)) with n in * by lia.
+ rewrite (@fg_b (S n) (fg n)); try lia.
+ f_equal. lia.
+ simpl. lia.
+ generalize (fg_step (fg n)). lia.
 Qed.
 
 Lemma delta_c n : 4<=n ->
@@ -1220,10 +1220,10 @@ Lemma delta_c n : 4<=n ->
 Proof.
  unfold d.
  intros.
- replace (S (n-1)) with n in * by omega.
- rewrite (@fg_c (S n) (fg n)); try omega.
- f_equal. omega.
- simpl. omega.
+ replace (S (n-1)) with n in * by lia.
+ rewrite (@fg_c (S n) (fg n)); try lia.
+ f_equal. lia.
+ simpl. lia.
 Qed.
 
 Lemma delta_bc n : 4<=n -> d (n-1) = 1 -> d n = 1 - d (fg n).
@@ -1242,7 +1242,7 @@ Lemma delta_eqn n : 4<=n ->
 Proof.
  intros.
  destruct (delta_0_1 (n-1)) as [E|E]; rewrite E.
- - simpl. apply delta_a; auto; omega.
+ - simpl. apply delta_a; auto; lia.
  - rewrite Nat.mul_1_l. now apply delta_bc.
 Qed.
 
@@ -1262,40 +1262,40 @@ Proof.
  { unfold k. change 3 with (depth 4).
    apply depth_mono; auto. }
  assert (LE : S (fib (S k)) <= n <= fib (S (S k))).
- { apply depth_carac. omega. auto. }
+ { apply depth_carac. lia. auto. }
  unfold fg. rewrite flip_flip.
- rewrite flip_eqn0; rewrite !g_depth, flip_depth; [|unfold k in *; omega].
+ rewrite flip_eqn0; rewrite !g_depth, flip_depth; [|unfold k in *; lia].
  fold k.
- replace (S (S (k-1-1))) with k by omega.
+ replace (S (S (k-1-1))) with k by lia.
  destruct (eq_nat_dec n (S (fib (S k)))) as [EQ|NE].
  - rewrite EQ.
-   replace (S (fib (S k)) - 1) with (fib (S k)) by omega.
-   rewrite flip_Sfib by omega.
-   replace k with (S (k-1)) by omega.
-   rewrite flip_fib by omega.
-   rewrite !g_fib by omega.
-   replace (k-1) with (S (k-2)) at 3 by omega.
-   rewrite g_Sfib by omega.
-   rewrite flip_Sfib by omega.
-   replace (S (k-2)) with (k-1) by omega.
-   rewrite fib_eqn'; omega.
+   replace (S (fib (S k)) - 1) with (fib (S k)) by lia.
+   rewrite flip_Sfib by lia.
+   replace k with (S (k-1)) by lia.
+   rewrite flip_fib by lia.
+   rewrite !g_fib by lia.
+   replace (k-1) with (S (k-2)) at 3 by lia.
+   rewrite g_Sfib by lia.
+   rewrite flip_Sfib by lia.
+   replace (S (k-2)) with (k-1) by lia.
+   rewrite fib_eqn'; lia.
  - assert (Hk' : depth (n-1) = k).
-   { apply depth_carac; omega. }
+   { apply depth_carac; lia. }
    rewrite (flip_eqn0 (g _)); rewrite g_depth, flip_depth, Hk';
-    [|omega].
-   replace (S (k-1)) with k by omega.
-   rewrite flip_pred by (unfold k in Hk'; omega).
+    [|lia].
+   replace (S (k-1)) with k by lia.
+   rewrite flip_pred by (unfold k in Hk'; lia).
    rewrite g_S.
-   rewrite (flip_eqn0 n) at 2 by (unfold k in Hk; omega).
+   rewrite (flip_eqn0 n) at 2 by (unfold k in Hk; lia).
    fold k.
    assert (Hk'' : depth (g (g (flip n))) = k-2).
-   { rewrite !g_depth, flip_depth. unfold k; omega. }
-   apply depth_carac in Hk'' ; [|omega].
+   { rewrite !g_depth, flip_depth. unfold k; lia. }
+   apply depth_carac in Hk'' ; [|lia].
    rewrite (fib_eqn (S k)).
-   replace (S (S (k-2))) with k in * by omega.
+   replace (S (S (k-2))) with k in * by lia.
    assert (fib k <= fib (S k)).
-   { apply fib_mono. omega. }
-   omega.
+   { apply fib_mono. lia. }
+   lia.
 Qed.
 
 (** This last equation f(f(n)) + f(n-1) = n for n > 3
@@ -1318,20 +1318,20 @@ Definition oups n :=
 
 Lemma oups_def n : 7<n -> oups n = if Nat.even n then n-2 else 4.
 Proof.
- do 8 (destruct n; try omega). reflexivity.
+ do 8 (destruct n; try lia). reflexivity.
 Qed.
 
 Lemma oups_alt_eqn n : 3<n -> oups (oups n) + oups (n-1) = n.
 Proof.
 intros.
 destruct (le_lt_dec n 9).
-- do 10 (destruct n; simpl; try omega).
+- do 10 (destruct n; simpl; try lia).
 - case_eq (Nat.even n); intros E.
-  + rewrite (@oups_def n),E,!oups_def by omega.
-    rewrite !Nat.even_sub,E by omega. simpl. omega.
-  + rewrite (@oups_def n),E by omega. simpl.
-    rewrite oups_def by omega.
-    rewrite !Nat.even_sub,E by omega. simpl. omega.
+  + rewrite (@oups_def n),E,!oups_def by lia.
+    rewrite !Nat.even_sub,E by lia. simpl. lia.
+  + rewrite (@oups_def n),E by lia. simpl.
+    rewrite oups_def by lia.
+    rewrite !Nat.even_sub,E by lia. simpl. lia.
 Qed.
 
 (** We will show below that if we require this equation along
@@ -1360,16 +1360,16 @@ intros ((H0 & H1 & H2 & H3),Hf).
 induction n as [n IH] using lt_wf_rec.
 intros Hn.
 destruct (le_lt_dec n 3) as [Hn'|Hn'].
-- destruct n as [|[|[|n]]]; try omega. replace n with 0; omega.
+- destruct n as [|[|[|n]]]; try lia. replace n with 0; lia.
 - assert (1 < f (f n) < n).
-  { generalize (IH (n-1)) (Hf n). omega. }
+  { generalize (IH (n-1)) (Hf n). lia. }
   assert (f (f (S n)) + f n = S n).
-  { replace n with (S n - 1) at 2 by omega. apply Hf; omega. }
-  assert (f n <> 0). { intros E. rewrite E in *. omega. }
-  assert (f n <> n). { intros E. rewrite !E in *. omega. }
+  { replace n with (S n - 1) at 2 by lia. apply Hf; lia. }
+  assert (f n <> 0). { intros E. rewrite E in *. lia. }
+  assert (f n <> n). { intros E. rewrite !E in *. lia. }
   assert (f n <> S n).
-  { intros E. rewrite E in *. specialize (IH (f (S n))). omega. }
-  omega.
+  { intros E. rewrite E in *. specialize (IH (f (S n))). lia. }
+  lia.
 Qed.
 
 Lemma alt_bound' f : AltSpec f -> forall n, 0 <= f n <= n.
@@ -1377,7 +1377,7 @@ Proof.
 intros Hf [|[|n]].
 - replace (f 0) with 0. auto. symmetry. apply Hf.
 - replace (f 1) with 1. auto. symmetry. apply Hf.
-- generalize (@alt_bound _ Hf (S (S n))). omega.
+- generalize (@alt_bound _ Hf (S (S n))). lia.
 Qed.
 
 Lemma alt_4 f : AltSpec f -> f 4 = 3.
@@ -1386,7 +1386,7 @@ Proof.
  assert (0 < f 4 < 4) by (apply alt_bound; auto).
  assert (f (f 4) + f 3 = 4) by (apply Hf; auto).
  destruct Hf as ((F0 & F1 & F2 & F3),_).
- destruct (f 4) as [|[|[|[|n]]]]; omega.
+ destruct (f 4) as [|[|[|[|n]]]]; lia.
 Qed.
 
 Lemma alt_5 f : AltSpec f -> f 5 = 3.
@@ -1396,7 +1396,7 @@ Proof.
  assert (f (f 5) + f 4 = 5) by (apply Hf; auto).
  assert (f 4 = 3) by (apply alt_4; auto).
  destruct Hf as ((F0 & F1 & F2 & F3),_).
- destruct (f 5) as [|[|[|[|[|n]]]]]; omega.
+ destruct (f 5) as [|[|[|[|[|n]]]]]; lia.
 Qed.
 
 (** Alas, [f(n)] isn't unique for [n>5] (e.g 4 or 5 for [n=6]) *)
@@ -1424,15 +1424,15 @@ assert (main : forall n m, 3 < n <= m -> f m - f n <= m - n).
   rewrite Nat.sub_0_r in *.
   generalize (@monotone_equiv _ Mon (S n) (S m)).
   generalize (@monotone_equiv _ Mon (f (S n)) (f (S m))).
-  omega.
+  lia.
 }
 intros n m. destruct (le_lt_dec n 3); intros.
 - destruct (le_lt_dec m 3); intros.
   + destruct Hf as ((F0 & F1 & F2 & F3), _).
-    destruct m as [|[|[|[|m]]]], n as [|[|[|[|n]]]]; omega.
+    destruct m as [|[|[|[|m]]]], n as [|[|[|[|n]]]]; lia.
   + specialize (main 4 m). rewrite alt_4 in main; auto.
     destruct Hf as ((F0 & F1 & F2 & F3), _).
-    destruct n as [|[|[|[|n]]]]; omega.
+    destruct n as [|[|[|[|n]]]]; lia.
 - apply main; auto.
 Qed.
 
@@ -1446,25 +1446,25 @@ induction n as [n IH] using lt_wf_rec.
 destruct (le_lt_dec n 3).
 - destruct Hf1 as ((F10 & F11 & F12 & F13),_),
            Hf2 as ((F20 & F21 & F22 & F23),_).
-  destruct n as [|[|[|[|n]]]]; omega.
-- assert (f1 (n-1) = f2 (n-1)) by (apply IH; omega).
+  destruct n as [|[|[|[|n]]]]; lia.
+- assert (f1 (n-1) = f2 (n-1)) by (apply IH; lia).
   assert (f1 (f1 n) = f2 (f2 n)).
   { destruct Hf1 as (_,Hf1), Hf2 as (_,Hf2).
-    specialize (Hf1 n). specialize (Hf2 n). omega. }
+    specialize (Hf1 n). specialize (Hf2 n). lia. }
   set (x1:=f1 n) in *.
   set (x2:=f2 n) in *.
   assert (f1 x1 = f2 x1).
-  { apply IH. apply alt_bound; auto. omega. }
+  { apply IH. apply alt_bound; auto. lia. }
   assert (f1 x2 = f2 x2).
-  { apply IH. apply alt_bound; auto. omega. }
+  { apply IH. apply alt_bound; auto. lia. }
   assert (f2 (n-1) <= x2 /\ x2-f2(n-1) <= 1).
   { unfold x2; split.
-    - generalize (Mon2 (n-1)); replace (S (n-1)) with n; omega.
-    - generalize (@alt_mono_bound _ Hf2 Mon2 (n-1) n); omega. }
+    - generalize (Mon2 (n-1)); replace (S (n-1)) with n; lia.
+    - generalize (@alt_mono_bound _ Hf2 Mon2 (n-1) n); lia. }
   assert (f1 (n-1) <= x1 /\ x1-f1(n-1) <= 1).
   { unfold x1; split.
-    - generalize (Mon1 (n-1)); replace (S (n-1)) with n; omega.
-    - generalize (@alt_mono_bound _ Hf1 Mon1 (n-1) n); omega. }
+    - generalize (Mon1 (n-1)); replace (S (n-1)) with n; lia.
+    - generalize (@alt_mono_bound _ Hf1 Mon1 (n-1) n); lia. }
   destruct (lt_eq_lt_dec x1 x2) as [[LT|EQ]|LT]; trivial; exfalso.
   + (* x1 < x2 *)
     assert (f1 (S x1) <= f1 x2).
@@ -1473,14 +1473,14 @@ destruct (le_lt_dec n 3).
     { destruct Hf1 as (_,Hf1).
       generalize (Hf1 (S n)) (Hf1 n); simpl.
       rewrite Nat.sub_0_r.
-      unfold x1 in *; omega. }
+      unfold x1 in *; lia. }
     assert (f1 (f1 (S n)) = f1 (S x1)).
     { f_equal.
       generalize
         (@alt_mono_bound _ Hf1 Mon1 n (S n))
         (@alt_mono_bound _ Hf1 Mon1 x1 (f1 (S n)) (Mon1 n)).
-      unfold x1 in *; omega. }
-    omega.
+      unfold x1 in *; lia. }
+    lia.
   + (* x2 < x1 *)
     assert (f2 (S x2) <= f2 x1).
     { apply monotone_equiv. apply Mon2. apply LT. }
@@ -1488,14 +1488,14 @@ destruct (le_lt_dec n 3).
     { destruct Hf2 as (_,Hf2).
       generalize (Hf2 (S n)) (Hf2 n); simpl.
       rewrite Nat.sub_0_r.
-      unfold x2 in *; omega. }
+      unfold x2 in *; lia. }
     assert (f2 (f2 (S n)) = f2 (S x2)).
     { f_equal.
       generalize
         (@alt_mono_bound _ Hf2 Mon2 n (S n))
         (@alt_mono_bound _ Hf2 Mon2 (f2 n) (f2 (S n)) (Mon2 n)).
-      unfold x2 in *; omega. }
-    omega.
+      unfold x2 in *; lia. }
+    lia.
 Qed.
 
 Lemma alt_mono_is_fg f :
