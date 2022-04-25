@@ -2,7 +2,7 @@
 (** A slow (but tail-rec) definition of Fibonacci, using only +1.
     Seen in a student's answer to an exam. *)
 
-Require Import Arith ROmega List Program Program.Wf.
+Require Import Arith Lia List Program Program.Wf.
 Import ListNotations.
 Open Scope list.
 
@@ -51,7 +51,7 @@ Next Obligation.
  clear.
  change (sumpowtwo (S (S n)::l)) with (2*(2*2^n) + sumpowtwo l).
  assert (2^n <> 0) by now apply Nat.pow_nonzero.
- romega with nat.
+ lia.
 Qed.
 Next Obligation.
  destruct f as (r,->). simpl. auto with arith.
