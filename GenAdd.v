@@ -285,8 +285,8 @@ Fixpoint maxlist a l :=
 
 Definition extrems l :=
   match l with
-  | [] => None
-  | a::l => Some (minlist a l, maxlist a l)
+  | [] => (0,0)
+  | a::l => (minlist a l, maxlist a l)
   end.
 
 Lemma minlist_spec a l x : In x (a::l) -> minlist a l <= x.
@@ -303,7 +303,7 @@ Proof.
  - simpl in *. intuition; lia.
 Qed.
 
-Lemma extrems_spec l a b x : In x l -> extrems l = Some (a,b) -> a<=x<=b.
+Lemma extrems_spec l a b x : In x l -> extrems l = (a,b) -> a<=x<=b.
 Proof.
  intros IN.
  destruct l as [|n l]; try easy.
@@ -314,7 +314,7 @@ Qed.
 Definition calc_additivity k p bound := extrems (all_diffs k p bound).
 
 Lemma decide_additivity k p a b : k<>0 ->
- calc_additivity k p (add_bound k p) = Some (a,b) ->
+ calc_additivity k p (add_bound k p) = (a,b) ->
  forall n, a + f k n <= f k (p+n) <= b + f k n.
 Proof.
  intros Hk E n.
@@ -537,7 +537,7 @@ Proof.
 Qed.
 
 Lemma decide_additivity_k2 p a b :
- calc_additivity 2 p (add_bound_k2 p) = Some (a,b) ->
+ calc_additivity 2 p (add_bound_k2 p) = (a,b) ->
  forall n, a + h n <= h (p+n) <= b + h n.
 Proof.
  intros E n.
