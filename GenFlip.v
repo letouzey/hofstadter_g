@@ -4,9 +4,9 @@ Require Import Arith Omega.
 Require Import DeltaList FunG GenFib GenG.
 Set Implicit Arguments.
 
-(** See first the file [FunG] for the study of:
+(** See first the file [GenG] for the study of:
 
-     - [fk (S n) + fk^(S k) (n) = S n]
+     - [fk (S n) + fk^k (n) = S n]
      - [fk 0 = 0]
 
    and the associated tree where nodes are labeled breadth-first
