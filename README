@@ -3,7 +3,7 @@
 Investigation of Hofstadter's G function, tree, and mirror
 ==========================================================
 
-A Coq development by Pierre Letouzey, Summer 2015.
+A Coq development by Pierre Letouzey, started in summer 2015.
 
 http://www.pps.univ-paris-diderot.fr/~letouzey/hofstadter_g
 
@@ -12,7 +12,8 @@ The technical report is now on HAL: http://hal.inria.fr/hal-01195587
 Usage
 -----
 
-To be compiled with Coq >= 8.5. For Coq 8.4, see the coq8.4 git branch.
+To be compiled with Coq 8.12. With other versions your mileage may
+vary. With older Coq, you may try older git branches coq8.4 and coq8.9.
 
 Use "make" to compile the Coq files.
 Use "make gallinahtml" to generate the short html documentation.
