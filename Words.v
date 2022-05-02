@@ -627,3 +627,135 @@ Proof.
  rewrite fs_count_above by lia.
  apply count_above_kseq_k.
 Qed.
+
+(* aux *)
+
+Lemma Prefix_len u v : Prefix u v -> length u <= length v.
+Proof.
+ intros (w,<-). rewrite app_length. lia.
+Qed.
+
+Lemma apply_alt s w : apply s w = concat (map s w).
+Proof.
+ induction w; simpl; auto. now f_equal.
+Qed.
+
+Lemma apply_grow s w : NoErase s -> length w <= length (apply s w).
+Proof.
+ intros NE.
+ induction w; simpl; auto.
+ rewrite app_length. specialize (NE a). destruct (s a); simpl; lia || easy.
+Qed.
+
+Lemma napply_mono s n m w :
+ NoErase s -> n <= m -> length (napply s n w) <= length (napply s m w).
+Proof.
+ induction 2; auto.
+ rewrite IHle. clear IHle H0. rewrite napply_alt. now apply apply_grow.
+Qed.
+
+Lemma napply_nil s n : napply s n [] = [].
+Proof.
+ induction n; simpl; auto.
+Qed.
+
+Lemma napply_concat s n w :
+  napply s n w = concat (map (fun a => napply s n [a]) w).
+Proof.
+ induction w; simpl; auto using napply_nil.
+ rewrite napply_cons. now f_equal.
+Qed.
+
+Lemma Prefix_nil u : Prefix u [] -> u = [].
+Proof.
+ intros Pr. apply Prefix_len in Pr. simpl in Pr. now destruct u.
+Qed.
+
+Lemma Prefix_cons a u v : Prefix u v -> Prefix (a::u) (a::v).
+Proof.
+ intros (w,<-). now exists w.
+Qed.
+
+Lemma Prefix_id w : Prefix w w.
+Proof.
+ exists []. apply app_nil_r.
+Qed.
+
+Lemma Prefix_app u v w :
+ Prefix u (v++w) -> Prefix u v \/ exists u', u = v++u' /\ Prefix u' w.
+Proof.
+ revert v w.
+ induction u.
+ - intros v w _. left. now exists v.
+ - intros v w (t,E). simpl in E.
+   destruct v.
+   + right. exists (a::u). split; auto. now exists t.
+   + injection E as <- E.
+     destruct (IHu v w) as [IH|(u',IH)]; try now exists t.
+     * left. now apply Prefix_cons.
+     * right. exists u'. simpl; split. now f_equal. apply IH.
+Qed.
+
+(* From a Prefix of napply of a word to a prefix of napply of a letter *)
+
+Lemma napply_prefix s n u v :
+  NoErase s -> v<>[] ->
+  Prefix u (napply s n v) ->
+  exists w t a,
+    Prefix (w++[a]) v /\ u = napply s n w ++ t /\ Prefix t (napply s n [a]).
+Proof.
+ intros NE. revert u.
+ induction v; try easy.
+ - intros u _. rewrite napply_cons. intros Pr.
+   apply Prefix_app in Pr. destruct Pr as [Pr|(u' & E & Pr)].
+   + exists [], u, a. rewrite napply_nil. simpl. split; auto. now exists v.
+   + destruct (list_eq_dec Nat.eq_dec v []) as [->|NE'].
+     * rewrite napply_nil in Pr. apply Prefix_nil in Pr. subst u'.
+       rewrite app_nil_r in E.
+       exists [], u, a. rewrite napply_nil.
+       repeat split; subst; auto using Prefix_id.
+     * destruct (IHv u' NE' Pr) as (w & t & b & Hv & E' & Ht).
+       exists (a::w), t, b. repeat split; auto.
+       { simpl. now apply Prefix_cons. }
+       { now rewrite napply_cons, app_ass, <- E', <- E. }
+Qed.
+
+(* Saari's Lemma 4 : decomposition of a prefix of s^n(a) *)
+
+Definition Bound s n N := forall a:letter, length (napply s n [a]) <= N.
+
+Lemma Saari_lemma4 s a n w G M1 MG : G<>0 -> n<>0 ->
+ Bound s 1 M1 -> Bound s G MG ->
+ NoErase s ->
+ Prefix w (napply s n [a]) ->
+ exists l : list (nat * word), exists z,
+  w = concat (map (fun '(ni,ui) => napply s ni ui) l) ++ z
+  /\ Forall (fun '(ni,ui) => length ui <= M1 /\ G <= ni < n) l
+  /\ DeltaRev 1 (map fst l)
+  /\ length z <= MG.
+Proof.
+ intros HG. revert a w.
+ induction n as [n IH] using lt_wf_ind.
+ intros a w Hn B1 BG NE Pr.
+ destruct (Nat.le_gt_cases n G).
+ - exists []. exists w. simpl. repeat split; auto. constructor.
+   apply Prefix_len in Pr.
+   etransitivity; [apply Pr|]. red in BG.
+   rewrite <- (BG a). now apply napply_mono.
+ - destruct n as [|n]; try easy.
+   simpl in Pr. rewrite app_nil_r in Pr.
+   destruct (napply_prefix s n w (s a) NE (NE a) Pr)
+     as (w1 & w2 & b & H1 & H2 & H3).
+   destruct (IH n (Nat.lt_succ_diag_r n) b w2)
+     as (l & z & EQ & F & D & LE); auto; try lia.
+   exists ((n,w1)::l), z; repeat split; auto.
+   + simpl. now rewrite app_ass, <-EQ.
+   + constructor; try split; auto; try lia.
+     * rewrite <- (B1 a). simpl. rewrite app_nil_r.
+       apply Prefix_len in H1. rewrite app_length in H1. simpl in H1. lia.
+     * clear -F. rewrite Forall_forall in *.
+       intros (m,u) IN. apply F in IN. lia.
+   + simpl. apply DeltaRev_alt. split; auto.
+     intros y. rewrite in_map_iff. intros ((m,y') & <- & IN). simpl.
+     rewrite Forall_forall in F. apply F in IN. lia.
+Qed.
