@@ -179,6 +179,33 @@ Proof.
    transitivity (A k (S m)). apply A_Sk_le. apply A_mono; lia.
 Qed.
 
+(* (A k) is sub-multiplicative
+
+   Note : Thanks to Fekete theorem, this implies that
+   [(ln (A k n))/n] has a finite limit when n grows. But without
+   extra details about the next term in the asymptotic development,
+   we cannot say much more this way, especially nothing on the limit
+   of the ratio [A k (S n) / A k n] or even its existence.
+*)
+
+Lemma A_submult k p n : A k (n+p) <= A k n * A k p.
+Proof.
+ induction n as [[|n] IH] using lt_wf_ind.
+ - cbn. lia.
+ - destruct (Nat.le_gt_cases k n).
+   + cbn.
+     assert (IHn := IH n).
+     assert (IHnk := IH (n-k)).
+     replace (n-k+p) with (n+p-k) in IHnk; lia.
+   + rewrite (@A_base k (S n)) by lia.
+     (* apply A_shift_mult. lia. *)
+     cbn - ["*"].
+     assert (IHn := IH n).
+     rewrite (@A_base k n) in IHn by lia.
+     assert (LE : n + p - k <= p) by lia.
+     apply (A_mono k) in LE. lia.
+Qed.
+
 (* After the "base" zone, a "triangular" zone *)
 
 Definition triangle k := k*(k+1)/2.
