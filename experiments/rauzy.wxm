@@ -1,6 +1,11 @@
 /* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
 /* [ Created with wxMaxima version 20.12.1 ] */
 /* [wxMaxima: input   start ] */
+myround(x) := (round(realpart(x)*10^15)+round(imagpart(x)*10^15))/10^15;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
 A : matrix([1,0,1],[1,0,0],[0,1,0]);
 /* [wxMaxima: input   end   ] */
 
@@ -16,7 +21,7 @@ roots : allroots(P);
 
 
 /* [wxMaxima: input   start ] */
-tau : 1/subst(roots[3],x);
+theta : subst(roots[3],x);
 /* [wxMaxima: input   end   ] */
 
 
@@ -26,7 +31,27 @@ alpha : subst(roots[1],x);
 
 
 /* [wxMaxima: input   start ] */
-float(expand(alpha*conjugate(alpha)));
+alpbar : conjugate(alpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau : 1/theta;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2-theta;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(expand(alpha*alpbar-tau));
 /* [wxMaxima: input   end   ] */
 
 
@@ -41,12 +66,22 @@ expand(charpoly(B,x));
 
 
 /* [wxMaxima: input   start ] */
-(1/tau-1)^2-4*tau;
+expand(charpoly(B,x)-(x^2+tau^2*x+tau));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-alpha+conjugate(alpha);
+expand(charpoly(B,x)*(x-theta));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+discr : tau^4-4*tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+alpha+alpbar;
 /* [wxMaxima: input   end   ] */
 
 
@@ -56,27 +91,22 @@ tau^2;
 
 
 /* [wxMaxima: input   start ] */
-alpha+conjugate(alpha)+1/tau;
+alpha+alpbar+theta;
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-M : matrix([alpha,-1],[-conjugate(alpha),1]);
+Diag : matrix([alpha,0],[0,alpbar]);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-IM : matrix([1,1],[conjugate(alpha),alpha]);
+M : matrix([alpha,-1],[-alpbar,1]);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-Diag : matrix([alpha,0],[0,conjugate(alpha)]);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-determinant(IM);
+IM : matrix([1,1],[alpbar,alpha]);
 /* [wxMaxima: input   end   ] */
 
 
@@ -86,13 +116,164 @@ Attention ! la multiplication de matrices c'est . pas * (et ^^ la puissance)
 
 
 /* [wxMaxima: input   start ] */
-M.IM;
+expand(M.IM);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-expand(M.B-Diag.M);
+det : determinant(IM);
 /* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+InvM : expand((1/det)*IM);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(determinant(InvM));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Attention, det(k*M) = k^n*M si M est de dim n.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: comment start ]
+Bref, InvM est bien l'inverse de M
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(InvM.M);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(M.InvM);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+On a bien notre diagonalisation de B
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(B-InvM.Diag.M);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(M.B-Diag.M);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Vecteur initial
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vect_z : transpose([tau^2-1,tau^3]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Norme venant de Rauzy : sqrt(<Mx,Mx>) (sans doute à un facteur près)
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(z) := cabs(matrix([alpha,-1]).z);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+mynorm(vect_z);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+||Bx|| = cabs(alpha)*||x|| = sqrt(tau)*||x|| donc B contractant pour cette norme
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ratio : mynorm(B.transpose([x,y]))/(mynorm(transpose([x,y]))*sqrt(tau));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+maxima ne trouve pas que ratio = 1 en général (soucis d'arrondi), mais au moins lorsque x=y
+ou en essayant des valeurs particulières
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rat(ratio^2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(subst([y=x],ratio));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Premier majorant de la norme de \delta(N)
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/(1-cabs(alpha))*tau^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Mieux : paquets de 3
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/(1-cabs(alpha)^3)*max(mynorm(vect_z),mynorm(B.vect_z),mynorm((B^^2).vect_z));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+paquets de 6
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/(1-cabs(alpha)^6)*max(mynorm(vect_z),mynorm(vect_z+(B^^3).vect_z),mynorm(vect_z+(B^^4).vect_z),mynorm(vect_z+(B^^5).vect_z));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Paquets de 9
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ln2 : makelist(mynorm(vect_z+(B^^k).vect_z),k,3,8);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ln3 : flatten(makelist(makelist(mynorm(vect_z+(B^^a).vect_z+(B^^b).vect_z),b,a+3,8),a,3,5));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+1/(1-cabs(alpha)^9)*last(sort(append(ln2,ln3)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Lieu des points de norme au plus 1 : une ellipse
+   [wxMaxima: comment end   ] */
 
 
 /* [wxMaxima: input   start ] */
@@ -102,150 +283,97 @@ load(implicit_plot);
 
 
 /* [wxMaxima: input   start ] */
-implicit_plot ([tau*x^2+tau^2*x*y+y^2 = 1.067^2,y=x*(tau-1/sqrt(tau)),y=x*(tau+1/sqrt(tau))],
+implicit_plot ([tau*x^2+tau^2*x*y+y^2 = 1,y=x*(tau-1/sqrt(tau)),y=x*(tau+1/sqrt(tau))],
  [x, -1.5, 1.5],[y,-1.5,1.5],same_xy);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: comment start ]
-NB : pour k après, la présence d'une racine non dominante mais de norme>1 a l'air très fréquent...
+Calcul direct de (B^^n).vect_z
    [wxMaxima: comment end   ] */
 
 
 /* [wxMaxima: input   start ] */
-cabs(allroots(x^8-x^7-1));
+GenBn : expand(InvM.matrix([u,0],[0,v]).M.vect_z);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-tau*1.4^2-tau^4*1.4*0.7+tau^4*0.7^2;
+a : subst([u=1,v=0],GenBn);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-a1 : rectform((alpha*(tau^2-1)-tau^3)/(alpha-conjugate(alpha)));
+abar : subst([u=0,v=1],GenBn);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-a2 : rectform(conjugate(alpha)*a1);
+a1 : rectform((alpha*(tau^2-1)-tau^3)/(alpha-alpbar));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-13-tau*19;
+a2 : rectform(alpbar*a1);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-2*cabs(a1)/(1-cabs(alpha)^3);
+myround(a-transpose([a1,a2]));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-1/(1-cabs(alpha)^3);
+myround(abar-transpose([conjugate(a1),conjugate(a2)]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Première majoration de \delta(N) : 
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+2*cabs(a)/(1-cabs(alpha)^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Majoration plus fine, par paquets de 9 termes :
+On veut des sommes de puissances de alpha parmi 1,alpha,alpha^2...alpha^8 écartées d'au moins 3,
+p.ex. (1+alpha^3+alpha^6). Donc au plus trois éléments dans ces sommes. Quel module max ?
+Rq : s'il n'y a pas 1 dans la somme, on factorise par alpha et le module est donc > ailleurs.
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+l2 : makelist(cabs(1+alpha^k),k,3,8);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-2*cabs(a2);
+l3 : flatten(makelist(makelist(cabs(1+alpha^a+alpha^b),b,a+3,8),a,3,5));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-cabs(1+alpha^3);
+last(sort(append(l2,l3)));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-cabs(alpha^3);
+maxmod : cabs(1+alpha^3+alpha^7);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-cabs(alpha^2+alpha^5);
+2*cabs(a)*maxmod/(1-cabs(alpha)^9);
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: input   start ] */
-2*cabs(a1)*cabs(1+alpha^3+alpha^7)/(1-cabs(alpha)^9);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-cabs(1+alpha^3+alpha^6);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-cabs(1+alpha^5);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-makelist(cabs(1+alpha^5+alpha^k),k,8,8);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-mynorm(z) := cabs(alpha*z[1][1]-z[2][1]);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-vect_z : transpose([tau^2-1,tau^3]);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-mynorm(vect_z);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau^2;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau^3
-;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-vect_z+(B^^3).vect_z;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-mynorm(vect_z+(B^^5).vect_z+(B^^8).vect_z);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-transpose(B.transpose(vect_z));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-mynorm(vect_z+(B^^3).vect_z+(B^^7).vect_z)/(1-cabs(alpha)^9);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau^3*0.5^2-tau^3*0.5+1;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-0.956^2;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-float(1.21*tau);
-/* [wxMaxima: input   end   ] */
+/* [wxMaxima: comment start ]
+Exclusion des points entiers differents de (0,0)
+   [wxMaxima: comment end   ] */
 
 
 /* [wxMaxima: input   start ] */
@@ -255,26 +383,6 @@ B^^3;
 
 /* [wxMaxima: input   start ] */
 matrix([1-tau^2,tau^2],[-tau^3,tau^3]);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau*1.21;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau^2*1.21+0.996;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-0.966*tau;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-vect_z+(B^^3).transpose([-1.21,-0.996]);
 /* [wxMaxima: input   end   ] */
 
 
@@ -304,7 +412,12 @@ B3points:makelist(args(transpose(vect_z+(B^^3).transpose(p)))[1],p,points);
 
 
 /* [wxMaxima: input   start ] */
-wxplot2d([[discrete,points],[discrete,Bpoints],[discrete,B3points]]);
+plot2d([[discrete,points],[discrete,Bpoints],[discrete,B3points]]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+
 /* [wxMaxima: input   end   ] */
 
 
