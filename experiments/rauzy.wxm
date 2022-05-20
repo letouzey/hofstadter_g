@@ -31,7 +31,7 @@ alpha : subst(roots[1],x);
 
 
 /* [wxMaxima: input   start ] */
-alpbar : conjugate(alpha);
+bar(z) := conjugate(z);
 /* [wxMaxima: input   end   ] */
 
 
@@ -51,7 +51,7 @@ tau^2-theta;
 
 
 /* [wxMaxima: input   start ] */
-myround(expand(alpha*alpbar-tau));
+myround(expand(alpha*bar(alpha)-tau));
 /* [wxMaxima: input   end   ] */
 
 
@@ -81,7 +81,7 @@ discr : tau^4-4*tau;
 
 
 /* [wxMaxima: input   start ] */
-alpha+alpbar;
+alpha+bar(alpha);
 /* [wxMaxima: input   end   ] */
 
 
@@ -91,22 +91,22 @@ tau^2;
 
 
 /* [wxMaxima: input   start ] */
-alpha+alpbar+theta;
+alpha+bar(alpha)+theta;
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-Diag : matrix([alpha,0],[0,alpbar]);
+Diag : matrix([alpha,0],[0,bar(alpha)]);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-M : matrix([alpha,-1],[-alpbar,1]);
+M : matrix([alpha,-1],[-bar(alpha),1]);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-IM : matrix([1,1],[alpbar,alpha]);
+IM : matrix([1,1],[bar(alpha),alpha]);
 /* [wxMaxima: input   end   ] */
 
 
@@ -309,12 +309,12 @@ abar : subst([u=0,v=1],GenBn);
 
 
 /* [wxMaxima: input   start ] */
-a1 : rectform((alpha*(tau^2-1)-tau^3)/(alpha-alpbar));
+a1 : rectform((alpha*(tau^2-1)-tau^3)/(alpha-bar(alpha)));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-a2 : rectform(alpbar*a1);
+a2 : rectform(bar(alpha)*a1);
 /* [wxMaxima: input   end   ] */
 
 
@@ -324,7 +324,7 @@ myround(a-transpose([a1,a2]));
 
 
 /* [wxMaxima: input   start ] */
-myround(abar-transpose([conjugate(a1),conjugate(a2)]));
+myround(abar-transpose([bar(a1),bar(a2)]));
 /* [wxMaxima: input   end   ] */
 
 
