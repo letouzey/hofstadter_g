@@ -736,7 +736,7 @@ Proof.
    destruct (additivity_bounded_k2 (A2 q) n) as (m & Hm & E).
    cut (A2 (q - 1) + h m - 1 <= h (A2 q + m) <= A2 (q - 1) + h m + 1).
    { generalize (@f_mono 2 n (A2 q + n)) (@f_mono 2 m (A2 q + m)).
-     generalize (@A_nz 2 (q-1)). unfold A2, h in *. lia. }
+     generalize (@A_nz 2 (q-1)). unfold h in *. lia. }
    clear E n.
    replace (add_bound_k2 (A2 q)) with (A2 (q+3)) in Hm.
    2:{ unfold add_bound_k2. f_equal. f_equal. rewrite invA_up_A; lia. }

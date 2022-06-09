@@ -22,7 +22,7 @@ Proof.
    rewrite Nat.add_0_r, Nat.add_assoc. f_equal.
    replace (n-S k -1) with (n-1-S k) by lia. symmetry.
    rewrite Nat.add_comm. apply A_sum. lia.
- - constructor. lia. constructor. lia. auto.
+ - constructor. lia. constructor. lia. constructor.
 Qed.
 
 
@@ -67,7 +67,7 @@ Proof.
    f_equal. rewrite sumA_0_even; auto.
    now rewrite Nat.div2_succ_double, Nat.div2_double.
  - intros H. simpl in H.
-   apply f0_nozero. simpl. intuition.
+   apply f0_nozero. simpl. now intuition.
 Qed.
 
 
@@ -288,8 +288,6 @@ Qed.
 
 (******* k=2 *******)
 
-Definition A2 := A 2.
-
 (* pour k = 2:
    strict = Delta 3
    lax = Delta 2
@@ -309,7 +307,7 @@ Proof.
  - subst; trivial.
  - destruct (Nat.eq_dec n 2).
    + subst; trivial.
-   + intro H. unfold h,A2. rewrite f_AA; try lia. f_equal. f_equal. lia.
+   + intro H. unfold h. rewrite f_AA; try lia. f_equal. f_equal. lia.
 Qed.
 
 (* Deux nombres égaux: *)
@@ -334,7 +332,7 @@ Compute decomp 2 (2 * A2 9). (* [2;7;10] *)
 
 Lemma A2_times2 n : 2 * A2 (7+n) = sumA 2 [n;5+n;8+n].
 Proof.
- unfold A2. simpl. rewrite Nat.sub_0_r; lia.
+ simpl. rewrite Nat.sub_0_r; lia.
 Qed.
 
 Lemma A2_times2' n : 5<=n -> 2 * A2 n = sumA 2 [n-7;n-2;n+1].
@@ -382,7 +380,7 @@ Compute decomp 2 (3 * A2 12). (* [2;7;11;14] *)
 
 Lemma A2_times3 n : 3 * A2 (10+n) = sumA 2 [n;5+n;9+n;12+n].
 Proof.
- unfold A2. simpl. rewrite Nat.sub_0_r; lia.
+ simpl. rewrite Nat.sub_0_r; lia.
 Qed.
 
 Lemma A2_times3' n : 9<=n -> 3 * A2 n = sumA 2 [n-10;n-5;n-1;n+2].
@@ -458,9 +456,11 @@ Qed.
 
 
 (*
-Ajout de p=A2 q à un nombre n. Apparemment f2 (n+p) = f2(n)+f2(p) + {-1,0,1}
-En utilisant le théorème précédent, on peut se ramener à un n tel
-que sa décomposition a au plus q+2 comme plus grand terme.
+Ajout de p=A2 q à un nombre n.
+PROVED : Theorem GenAdd.h_addA : f2 (n+p) = f2(n)+f2(p) + {-1,0,1}
+En utilisant le théorème additivity_bounded_k2, on peut se ramener
+à un n tel que sa décomposition a au plus q+2 comme plus grand terme
+(car add_bound (A2 q) = A2 (q+3))
 
 #### Si n a <=q-2 comme grand terme #####
 OK, l'addition est une decomp lax
@@ -476,7 +476,7 @@ OK
 
 Si q>=4
 
-Reste+A(q-1))+Aq<
+(Reste+A(q-1))+Aq<
  = Reste+A(q-4)+A(q-2)+Aq
  = Reste+A(q-4)+A(q+1)
 
@@ -515,7 +515,86 @@ OK!
 
 *)
 
-(* Generalization à h(n+p), p quelconque au lieu de Aq.
+(* Pire cas inférieur : ecart de -2 *)
+
+Compute decomp 2 18. (* [0; 3; 6], donne du -2 avec lui-même *)
+Compute decomp 2 59. (* [0; 3; 6; 9] donne du -2 avec lui-même *)
+Compute decomp 2 188. (* [0; 3; 6; 9; 12] donne du -2 avec lui-même *)
+
+(** Avec n = [0;3;...3*q] et au moins 3 termes donc q>=2,
+    on a h (2n) = 2h(n)-2
+    Ce sont les nombres A(3q+1)-1 pour q>=2 : *)
+
+Lemma h_additivity_minus2 q:
+ let p := A2 (3*q+7)-1 in
+ h (2*p) = 2 * h p - 2.
+Proof.
+ intros p.
+ assert (E : h (S p) = h p).
+ { apply flat_rank_0.
+   unfold p. rewrite rank_pred with (r:=3*q+7); try lia.
+   - f_equal. replace (3*q+7-1) with (6+q*3) by lia.
+     rewrite Nat.mod_add; auto.
+   - unfold rank. replace (A2 _) with (sumA 2 [3*q+7]) by (simpl; lia).
+     rewrite decomp_sum'; auto. constructor. }
+ rewrite <- E.
+ replace (S p) with (A2 (3*q+7)) by (generalize (@A_nz 2 (3*q+7)); lia).
+ unfold h at 2. rewrite f_A.
+ rewrite <- f2_times2 by lia.
+ unfold p. clear E p. set (q' := 3*q+7).
+ replace (2*(A2 q' - 1)) with (2*A2 q' - 2) by lia.
+ set (p' := 2*A2 q').
+ assert (R : rank 2 p' = Some (3*q)).
+ { unfold p'. rewrite A2_times2' by lia.
+   unfold rank. rewrite decomp_sum'. f_equal. lia.
+   constructor. lia. constructor. lia. constructor. }
+ destruct (Nat.eq_dec q 0) as [->|NE].
+ - simpl in q'. clear R. subst p' q'. unfold h. now rewrite <- !fopt_spec.
+ - assert (NE' : 3*q<>0) by lia.
+   assert (R1 := @rank_pred 2 p' _ R NE').
+   replace (3*q-1) with (2+(q-1)*3) in R1 by lia.
+   rewrite Nat.mod_add in R1; auto. simpl in R1.
+   assert (NE'' : 2<>0) by lia.
+   assert (R2 := @rank_pred 2 (p'-1) _ R1 NE'').
+   simpl in R2. replace (p'-1-1) with (p'-2) in R2 by lia.
+   assert (E2 : h (S (p'-2)) = S (h (p'-2))).
+   { apply step_rank_nz. now rewrite R2. }
+   replace (S (p'-2)) with (p'-1) in E2 by (generalize (@A_nz 2 q'); lia).
+   assert (E1 : h (S (p'-1)) = S (h (p'-1))).
+   { apply step_rank_nz. now rewrite R1. }
+   replace (S (p'-1)) with p' in E1 by (generalize (@A_nz 2 q'); lia).
+   lia.
+Qed.
+
+(*
+generalisation en quasi-add -2..2 pour p=(A2 q) -1 :
+
+h(n+A2 q -1)
+= h(n-1+A2 q)
+= h(n-1)+h(A2 q) + {-1,0,1}
+= h(n)+{-1,0} + h(A2 q - 1) + {0,1} + {-1,0,1}
+= h(n)+h(A2 q -1) + {-2..2}
+
+(ça c'est pour n<>0.
+ et h(0+A2 q -1) = h(0) + h(A2 q -1) + 0)
+
+Pour (A2 q) -2:
+
+h(n+A2 q -2)
+= h(n-2)+h(A2 q) + {-1..1}
+= h(n)+{-2,-1}+h(A2 q -2) + {1,2} + {-1..1}
+= h(n)+h(A2 q-2)+{-2..2}
+
+idem pour (A2 q)-4
+          (A2 q)-5
+          (A2 q)-8
+          (A2 q)-11
+                 33
+*)
+
+(* TODO : integrer modifs dans Laxer_modif.v *)
+
+(* Generalization de h_addA à h(n+p), p quelconque au lieu de Aq.
    Essayons la même idée.
    on peut passer de n à m en coupant au dela de q+2 si
    q est le terme dominant de p.
