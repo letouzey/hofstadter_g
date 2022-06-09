@@ -1,7 +1,7 @@
 /* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
 /* [ Created with wxMaxima version 20.12.1 ] */
 /* [wxMaxima: input   start ] */
-myround(x) := (round(realpart(x)*10^15)+round(imagpart(x)*10^15))/10^15;
+load("myround.mac");
 /* [wxMaxima: input   end   ] */
 
 
@@ -60,6 +60,69 @@ B : matrix([-tau^2,-1],[tau,0]);
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Passage du vecteur R au vecteur Delta (pour l'instant de taille 3)
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Q : matrix([tau^2-1,tau^2,tau^2],[tau^3,tau^3-1,tau^3],[tau^4,tau^4,tau^4-1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Restriction 2x2 du précédent
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+P : matrix([tau^2-1,tau^2],[tau^3,tau^3-1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+submatrix : les indices avant la matrice sont les lignes à supprimer,
+les indices après sont les colonnes à supprimer
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Pbis : submatrix(3,Q,3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+determinant(P);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Delta[1..3](Pi(V)) = Q.R(Pi(V)) = Q.A.R(V)   (R vect de dim 3)
+Delta[1..2](Pi(V)) = submatrix(3,Q).A.R(V)
+Or on veut Delta[1..2](Pi(V)) = B.Delta[1..2](V) = B.submatrix(3,Q).R(V) 
+Donc B.submatrix(3,Q) = submatrix(3,Q).A
+          B.submatrix(3,Q,3) = submatrix(3,Q).submatrix(A,3)
+          B = submatrix(3,Q).submatrix(A,3).invert(submatrix(3,Q,3))
+En effet P = submatrix(3,Q,3) est inversible.
+
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: comment start ]
+Attention ! la multiplication de matrices c'est . pas * (et ^^ la puissance)
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(submatrix(3,Q).submatrix(A,3).invert(P));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+B;
+/* [wxMaxima: input   end   ] */
+
+
 /* [wxMaxima: input   start ] */
 expand(charpoly(B,x));
 /* [wxMaxima: input   end   ] */
@@ -110,11 +173,6 @@ IM : matrix([1,1],[bar(alpha),alpha]);
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: comment start ]
-Attention ! la multiplication de matrices c'est . pas * (et ^^ la puissance)
-   [wxMaxima: comment end   ] */
-
-
 /* [wxMaxima: input   start ] */
 expand(M.IM);
 /* [wxMaxima: input   end   ] */
@@ -146,12 +204,12 @@ Bref, InvM est bien l'inverse de M
 
 
 /* [wxMaxima: input   start ] */
-myround(InvM.M);
+myround(expand(InvM.M));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-myround(M.InvM);
+myround(expand(M.InvM));
 /* [wxMaxima: input   end   ] */
 
 
@@ -161,12 +219,12 @@ On a bien notre diagonalisation de B
 
 
 /* [wxMaxima: input   start ] */
-myround(B-InvM.Diag.M);
+myround(expand(B-InvM.Diag.M));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-myround(M.B-Diag.M);
+myround(expand(M.B-Diag.M));
 /* [wxMaxima: input   end   ] */
 
 
@@ -278,7 +336,6 @@ Lieu des points de norme au plus 1 : une ellipse
 
 /* [wxMaxima: input   start ] */
 load(implicit_plot);
-
 /* [wxMaxima: input   end   ] */
 
 
@@ -413,11 +470,6 @@ B3points:makelist(args(transpose(vect_z+(B^^3).transpose(p)))[1],p,points);
 
 /* [wxMaxima: input   start ] */
 plot2d([[discrete,points],[discrete,Bpoints],[discrete,B3points]]);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-
 /* [wxMaxima: input   end   ] */
 
 

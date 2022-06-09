@@ -271,3 +271,12 @@ B(S n) = tau*(tau^n*A(n))+tau^(S k)*tau(n-k)*A(n-k)
        = tau*B(n) + (1-tau)*B(n-k)
 
 (* f k n / n ---> tau(k) *)
+
+(* For complex numbers and matrices :
+
+http://coquelicot.saclay.inria.fr/
+https://www.cs.umd.edu/~rrand/vqc/index.html
+https://coqinterval.gitlabpages.inria.fr/
+
+*)
+

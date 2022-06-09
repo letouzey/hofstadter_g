@@ -1,0 +1,245 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 20.12.1 ] */
+/* [wxMaxima: input   start ] */
+load("myround.mac");
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+A:matrix([0,0,0,0,1],[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,1]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(charpoly(A,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+factor(charpoly(A,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+roots:map(rhs,allroots(charpoly(A,x)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+theta:roots[5];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau:1/theta;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+ji:(1+%i*sqrt(3))/2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(float(rectform(roots[1]-ji)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+alpha:roots[3];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+bar(z) := conjugate(z);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(alpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(rectform(theta + alpha + bar(alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(tau + 1/alpha + 1/bar(alpha));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(theta * alpha * bar(alpha));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cabs(alpha)^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+eig:[tau^4,tau^5,tau^6,tau^7,tau^8];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+sum(tau^k,k,4,8);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Abis:matrix([1,0,0,0,1],[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(charpoly(Abis,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(Abis.eig-theta*eig);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Q:tau^4*transpose([1,tau,tau^2,tau^3,tau^4]).[1,1,1,1,1]-ident(5);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Q44 : submatrix(5,Q,5);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+determinant(Q44);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Bbis : myround(submatrix(5,Q).submatrix(Abis,5).invert(Q44));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(Bbis);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+B:matrix([-tau^4,-1,-1,-1],[tau,0,0,0],[-tau^6,1,0,0],[-tau^7,0,1,0]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(charpoly(B,x));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(expand(charpoly(B,x)*(x-theta)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau^2;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vect_z : transpose([tau^4-1,tau^5,tau^6,tau^7]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(ji^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(ji^5-ji^4-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+=========TODO========
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+float(rectform(eigenvectors(B)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(rectform(-alpha^2*tau^3-alpha*tau^2-tau));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(alpha^3);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+P:rectform(matrix([-alpha^2,alpha+1,alpha],[-bar(alpha)^2,bar(alpha)+1,bar(alpha)],[-beta^2,beta+1,beta]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(P.B-(matrix([alpha,0,0],[0,conjugate(alpha),0],[0,0,beta])).P);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+invP:rectform(matrix([alpha^2,bar(alpha)^2,beta^2],[tau*alpha,tau*bar(alpha),tau*beta],[tau*(tau-1)*alpha+tau,tau*(tau-1)*bar(alpha)+tau,tau*(tau-1)*beta+tau]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(determinant(P));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(P.invP);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(B.invP-invP.(matrix([alpha,0,0],[0,bar(alpha),0],[0,0,beta])));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau*(tau-1)*beta+tau;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+tau-tau^5*beta;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(determinant(P));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(invert(P));
+/* [wxMaxima: input   end   ] */
+
+
+
+/* Old versions of Maxima abort on loading files that end in a comment. */
+"Created with wxMaxima 20.12.1"$
