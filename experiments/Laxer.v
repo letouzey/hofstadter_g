@@ -1,5 +1,4 @@
-Require Import Arith Lia List Bool.
-Require Import DeltaList GenFib GenG GenAdd.
+Require Import DeltaList GenFib GenG GenAdd ZArith.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -23,7 +22,7 @@ Proof.
    rewrite Nat.add_0_r, Nat.add_assoc. f_equal.
    replace (n-S k -1) with (n-1-S k) by lia. symmetry.
    rewrite Nat.add_comm. apply A_sum. lia.
- - constructor. lia. constructor. lia. auto.
+ - constructor. lia. constructor. lia. constructor.
 Qed.
 
 
@@ -68,7 +67,7 @@ Proof.
    f_equal. rewrite sumA_0_even; auto.
    now rewrite Nat.div2_succ_double, Nat.div2_double.
  - intros H. simpl in H.
-   apply f0_nozero. simpl. intuition.
+   apply f0_nozero. simpl. now intuition.
 Qed.
 
 
@@ -457,9 +456,11 @@ Qed.
 
 
 (*
-Ajout de p=A2 q à un nombre n. Apparemment f2 (n+p) = f2(n)+f2(p) + {-1,0,1}
-En utilisant le théorème précédent, on peut se ramener à un n tel
-que sa décomposition a au plus q+2 comme plus grand terme.
+Ajout de p=A2 q à un nombre n.
+PROVED : Theorem GenAdd.h_addA : f2 (n+p) = f2(n)+f2(p) + {-1,0,1}
+En utilisant le théorème additivity_bounded_k2, on peut se ramener
+à un n tel que sa décomposition a au plus q+2 comme plus grand terme
+(car add_bound (A2 q) = A2 (q+3))
 
 #### Si n a <=q-2 comme grand terme #####
 OK, l'addition est une decomp lax
@@ -475,7 +476,7 @@ OK
 
 Si q>=4
 
-Reste+A(q-1))+Aq<
+(Reste+A(q-1))+Aq<
  = Reste+A(q-4)+A(q-2)+Aq
  = Reste+A(q-4)+A(q+1)
 
@@ -514,14 +515,76 @@ OK!
 
 *)
 
+(*
+generalisation de h_addA en quasi-add -2..2 pour p=(A2 q) -1 :
+
+h(n+A2 q -1)
+= h(n-1+A2 q)
+= h(n-1)+h(A2 q) + {-1,0,1}
+= h(n)+{-1,0} + h(A2 q - 1) + {0,1} + {-1,0,1}
+= h(n)+h(A2 q -1) + {-2..2}
+
+(ça c'est pour n<>0.
+ et h(0+A2 q -1) = h(0) + h(A2 q -1) + 0)
+*)
+
+Lemma h_add_Am1 q :
+  let p := A2 q - 1 in
+  forall n, h p + h n -2 <= h (p+n) <= h p + h n + 2.
+Proof.
+ intros.
+ destruct n.
+ - rewrite !Nat.add_0_r. lia.
+ - unfold p.
+   replace (A2 q - 1 + S n) with (A2 q + n) by (generalize (A_nz 2 q); lia).
+   generalize (h_addA q n).
+   generalize (h_add_1 n) (h_add_1 p). simpl.
+   change (A2 q - 1) with p.
+   replace (S p) with (A2 q) by (unfold p; generalize (A_nz 2 q); lia).
+   rewrite (f_A 2). lia.
+Qed.
+
+Lemma h_add_Am2 q :
+  let p := A2 q - 2 in
+  forall n, h p + h n -2 <= h (p+n) <= h p + h n + 2.
+Proof.
+ intros.
+ destruct (Nat.le_gt_cases n 1).
+ - destruct n.
+   + rewrite !Nat.add_0_r. lia.
+   + replace n with 0 by lia. cbn. generalize (h_add_1 p).
+     replace (p+1) with (1+p); lia.
+ - destruct (Nat.eq_dec q 0).
+   + subst; cbn in p. subst p. simpl. lia.
+   + assert (2 <= A2 q).
+     { change 2 with (A2 1). apply A_mono. lia. }
+     unfold p.
+     replace (A2 q - 2 + n) with (A2 q + (n-2)) by lia.
+     generalize (h_addA q (n-2)).
+     generalize (h_add_2 (n-2)) (h_add_2 p).
+     replace (2+(n-2)) with n by lia.
+     change (A2 q - 2) with p.
+     replace (2 + p) with (A2 q) by (unfold p; lia).
+     rewrite (f_A 2). lia.
+Qed.
+
+(* Pas de preuve directe ainsi pour (A2 q -3) :
+   {-1..1}+{-3..-1}+{1..3} = {-3..3} <> {-2..2}
+
+   Mais ça marche dès que h_add_U encadre entre V et V+1,
+   donc p.ex. pour A2 q -4, -5, -8, -11, -33
+   {-1..1}+{-V-1..-V}+{V..V+1} = {-2..2}
+*)
+
+(* Pire cas inférieur atteint : écart de -2 *)
+
 Compute decomp 2 18. (* [0; 3; 6], donne du -2 avec lui-même *)
 Compute decomp 2 59. (* [0; 3; 6; 9] donne du -2 avec lui-même *)
 Compute decomp 2 188. (* [0; 3; 6; 9; 12] donne du -2 avec lui-même *)
 
-(** Apparement avec n = [0;3;...3*q] et au moins 3 termes donc q>=2,
-    h (2n) = 2h(n)-2
-
-Ce sont les nombres A(3q+1)-1 pour q>=2 *)
+(** Avec n = [0;3;...3*q] et au moins 3 termes donc q>=2,
+    on a h (2n) = 2h(n)-2
+    Ce sont les nombres A(3q+1)-1 pour q>=2 : *)
 
 Lemma h_additivity_minus2 q:
  let p := A2 (3*q+7)-1 in
@@ -534,7 +597,7 @@ Proof.
    - f_equal. replace (3*q+7-1) with (6+q*3) by lia.
      rewrite Nat.mod_add; auto.
    - unfold rank. replace (A2 _) with (sumA 2 [3*q+7]) by (simpl; lia).
-     rewrite decomp_sum'; auto. }
+     rewrite decomp_sum'; auto. constructor. }
  rewrite <- E.
  replace (S p) with (A2 (3*q+7)) by (generalize (@A_nz 2 (3*q+7)); lia).
  unfold h at 2. rewrite f_A.
@@ -545,7 +608,7 @@ Proof.
  assert (R : rank 2 p' = Some (3*q)).
  { unfold p'. rewrite A2_times2' by lia.
    unfold rank. rewrite decomp_sum'. f_equal. lia.
-   constructor. lia. constructor. lia. auto. }
+   constructor. lia. constructor. lia. constructor. }
  destruct (Nat.eq_dec q 0) as [->|NE].
  - simpl in q'. clear R. subst p' q'. unfold h. now rewrite <- !fopt_spec.
  - assert (NE' : 3*q<>0) by lia.
@@ -556,60 +619,44 @@ Proof.
    assert (R2 := @rank_pred 2 (p'-1) _ R1 NE'').
    simpl in R2. replace (p'-1-1) with (p'-2) in R2 by lia.
    assert (E2 : h (S (p'-2)) = S (h (p'-2))).
-   { apply nonflat_rank_nz. now rewrite R2. }
+   { apply step_rank_nz. now rewrite R2. }
    replace (S (p'-2)) with (p'-1) in E2 by (generalize (@A_nz 2 q'); lia).
    assert (E1 : h (S (p'-1)) = S (h (p'-1))).
-   { apply nonflat_rank_nz. now rewrite R1. }
+   { apply step_rank_nz. now rewrite R1. }
    replace (S (p'-1)) with p' in E1 by (generalize (@A_nz 2 q'); lia).
    lia.
 Qed.
 
-(*
-generalisation en quasi-add -2..2 pour p=(A2 q) -1 :
+Definition diff n m :=
+  Z.sub (Z.of_nat (fopt 2 (n+m))) (Z.of_nat (fopt 2 n + fopt 2 m)).
 
-h(n+A2 q -1)
-= h(n-1+A2 q)
-= h(n-1)+h(A2 q) + {-1,0,1}
-= h(n)+{-1,0} + h(A2 q - 1) + {0,1} + {-1,0,1}
-= h(n)+h(A2 q -1) + {-2..2}
+(* Autres situations avec delta=-2 *)
 
-(ça c'est pour n<>0.
- et h(0+A2 q -1) = h(0) + h(A2 q -1) + 0)
-
-Pour (A2 q) -2:
-
-h(n+A2 q -2)
-= h(n-2)+h(A2 q) + {-1..1}
-= h(n)+{-2,-1}+h(A2 q -2) + {1,2} + {-1..1}
-= h(n)+h(A2 q-2)+{-2..2}
-
-idem pour (A2 q)-4
-          (A2 q)-5
-          (A2 q)-8
-          (A2 q)-11
-                 33
-*)
-
-
-
-
+Compute diff 46 78.
 Compute (decomp 2 46, decomp 2 78). (* [0; 3; 9], [0; 3; 6; 10] *)
 (* Cf règle An+A(Sn) = A(n-3)+A(n+2)
    qui amène ici à   [0;3;6]+[0;3;6;11] et le 11 dégage par reduction *)
 
+Compute (sumA 2 [0;3;6], sumA 2 [0;3;6;11]).
+Compute reduced_k2 18 106.
+
+Compute diff 65 59.
 Compute decomp 2 65. (* [0; 3; 10], avec 59 par exemple *)
 (* [0;3;6;9] [0;3;10]
    Encore An+ASn ...
    [0;3;6;11] [0;3;6] puis idem
 *)
 
+Compute diff 84 84.
 Compute decomp 2 84. (* [0; 3; 7; 10] avec lui-même *)
 Compute sumA 2 [0;3;7].
+
 
 Compute decomp 2 78. (* [0; 3; 6; 10] avec 18 (reduced_k2 vers 18) *)
 Compute decomp 2 106. (* [0; 3; 6; 11] avec 18 (reduced_k2 vers 18) *)
 Compute decomp 2 147. (* [0; 3; 6; 12] avec 18 (reduced_k2 vers 18) *)
 
+Compute diff 134 267.
 Compute (decomp 2 134, decomp 2 267).
 (* ([0; 3; 12], [0; 3; 6; 10; 13])
    règle An+A(Sn) =A(n-3)+A(n+2)
@@ -618,12 +665,7 @@ Compute (decomp 2 134, decomp 2 267).
    ce qui ramène à 46+78
 *)
 
-Compute (fopt 2 (sumA 2 [0;3;7;12] + sumA 2 [0;3;6;9;13]),
-         fopt 2 (sumA 2 [0;3;7;12]) + fopt 2 (sumA 2 [0;3;6;9;13])).
-
-Compute (fopt 2 (sumA 2 [0;3;10] + sumA 2 [0;3;6;9]),
-         fopt 2 (sumA 2 [0;3;10]) + fopt 2 (sumA 2 [0;3;6;9])).
-
+Compute diff 153 248.
 Compute (decomp 2 153, decomp 2 248).
  (* ([0; 3; 7; 12], [0; 3; 6; 9; 13])
     règle An+ASn
@@ -632,6 +674,7 @@ Compute (decomp 2 153, decomp 2 248).
     ce qui ramène à 65+59
  *)
 
+Compute diff 175 267.
 Compute (decomp 2 175, decomp 2 267).
  (* ([0; 3; 9; 12], [0; 3; 6; 10; 13])
     règle An+ASn
@@ -642,6 +685,7 @@ Compute (decomp 2 175, decomp 2 267).
     et 12+14 = 15, qui dégage par réduction, on arrive à 2*18
  *)
 
+Compute diff 194 207.
 Compute (decomp 2 194, decomp 2 207).
  (* ([0; 3; 13], [0; 3; 6; 13])
     2*[13] = [6;11;14] donc
@@ -650,29 +694,29 @@ Compute (decomp 2 194, decomp 2 207).
 
 (** Pour delta=+2 *)
 
+Compute diff 39 39.
 Compute decomp 2 39. (* [1; 5; 8] donne +2 avec lui même *)
+
+Compute diff 99 168.
 Compute (decomp 2 99, decomp 2 168).
  (* ([1; 5; 11], [1; 5; 8; 12]) *)
+
+Compute diff 124 124.
 Compute decomp 2 124. (* [1; 4; 8; 11] donne +2 avec lui-même *)
 Compute decomp 2 127. (* [1; 5; 8; 11] donne +2 avec lui-même *)
 Compute decomp 2 140. (* [1; 5; 12] donne +2 avec 127 *)
-Compute decomp 2 168. (* [1; 5; 8; 12] donne +2 avec 39 :
-                         exemple de reduction de 168 vers 39 *)
+Compute decomp 2 168. (* [1; 5; 8; 12] donne +2 avec 39 *)
 
-(* [1;5;8] : +4 +3
-   [1;4;8;11] : +3 +4 +3
-   [1;5;8;11] : +4 +3 +3
-   [1;5;8;12] : +4 +3 +4
-*)
 
-(** bound_idx_k2 : si p est un A2 q, alors q+3
+(** NB: bound_idx_k2 : si p est un A2 q, alors c'est q+3
     sinon, avec A2 q le terme dominant de p, alors q+4
     (invA_up donne (q+1) pour majorer p).
- *)
+*)
 
 
+(*================================*)
 
-(* Generalization à h(n+p), p quelconque au lieu de Aq.
+(* Generalization de h_addA à h(n+p), p quelconque au lieu de Aq.
    Essayons la même idée.
    on peut passer de n à m en coupant au dela de q+3 si
    q est le terme dominant de p.
@@ -680,7 +724,6 @@ Compute decomp 2 168. (* [1; 5; 8; 12] donne +2 avec 39 :
 #### Si m < p
 
 On inverse les roles de m et p, puis HR sur m
-
 
 #### Si m a q+3 comme grand terme #####
 
@@ -693,14 +736,6 @@ m = xxx..*..*
 p = xxx..*
 
 ??
-
-
-HR sur
-
-m'= xxxxxx...*
-p'= xxxx
-
-OK
 
 
 #### Si m a q+2 comme grand terme #####
