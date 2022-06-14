@@ -97,10 +97,32 @@ k=3 : Etude à faire. Poly x^4-x^3-1 donne nombre de Pisot Q2 = 1.3802
 k=4 : Etude à faire. x^5-x^4-1 = (x^2-x+1)(x^3-x-1)
      ou encore x^5+x-1 = (x^2-x+1)(x^3+x^2-1) sur le poly dual.
      Nombre de Pisot minimal (plastic = 1.3247), mais aussi des racines j et conj(j)
-     en plus. Sans doute quasi-additivité et borne sur f4-floor(n*tau4) ?
+     en plus. Sans doute *pas* quasi-additivité et divergence lente de
+     f4-floor(n*tau4) (en log(n)) 
 k>=5 : des racines secondaires de norme > 1, donc sans doute pas
      de quasi-additivité ni de borne finie sur fk(n)-n*tauk.
      Ces racines secondaires ont normes croissantes juqu'à k=12 (norme=1.0768)
      puis décroissance tout en restant >1. P.ex k=200 norme=1.017.
 
-Conjecture: fk(n)-n*tauk ~ (racine suivante)^n
+Conjecture: fk(n)-n*tauk ~ K.n^expo avec 0<expo<1 
+
+    En considérant u(n) = sigma(A k ((k+1)*i),i=0..n) : 
+    u(n) ~ K*sigma(primroot^((k+1)*i,i=0..n) ~ K*(primroot^(k+1))^n
+
+    delta(u(n)) = sigma(B^((k+1)*i).z,i=0..n)
+     ~ K*sigma(|sndroot|^((k+1)*i,i=0..n)
+     ~ K*(|sndroot|^((k+1)*n)
+     
+    log (delta(u(n)) ~ (k+1)*n*log |sndroot|
+    log (u(n)) ~ (k+1)*n*log primroot
+    
+    log (delta(u(n))) ~ (log |sndroot| / log primroot)* log(u(n))
+    
+    expo = log |sndroot| / log primroot
+     
+    delta(u(n)) ~ K*(u(n))^expo
+    
+    Pour k=6 expo=0.128 donc grosso modo une racine huitième
+    Pour k=7 expo=0.221                      racine quatre-et-demi
+    Ca monte ensuite assez vite 0.6 0.7 0.8 convergence vers 1
+
