@@ -798,7 +798,7 @@ let _ = output_gnuplot_file "/tmp/out4bis" delta4bis
     See http://oeis.org/A000930 (Narayana)
     Here we start at the last 1 (no 0, no ambiguity over 1)
 *)
-let rec s2 n = if n<4 then n+1 else s3 (n-1) + s3 (n-3)
+let rec s2 n = if n<4 then n+1 else s2 (n-1) + s2 (n-3)
 
 (** Ratio converges to expo *)
 let _ = Array.init 20 (fun n -> float (s2 (n+2)) /. float (s2 (n+1)))
