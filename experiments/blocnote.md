@@ -125,3 +125,13 @@ Conjecture: pour k>=5, fk(n)-n*tauk ~ K.n^expo avec 0<expo<1
     Pour k=6 expo=0.128 donc grosso modo une racine huitième
     Pour k=7 expo=0.221                      racine quatre-et-demi
     Ca monte ensuite assez vite 0.6 0.7 0.8 convergence vers 1
+
+Et pourquoi pas prendre tout simplement u(n) = A k n ?
+NB: tau = 1 / primroot
+alors delta(u(n)) = A k (n-1) - tau * A k n
+                  = K1 * primroot^(n-1) + K2 * sndroot^(n-1) + ...
+                   - K1 * primroot^n * tau + K2 * sndroot^n + ...
+                  = K2*(1/sndroot-tau)*sndroot^n + ...
+ Or u(n) ~ K1 * primroot^n
+ donc on retrouve delta(u(n)) ~ Cst*(u(n))^expo
+ avec expo = log |sndroot| / log primroot

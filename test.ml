@@ -407,7 +407,7 @@ let _ = Array.init 35 @@
 (* ================== *)
 (* f4 *)
 
-(* All numbers : f4(n+i)-f4(n)-f4(i) \in [-5..5] ?
+(* All numbers : f4(n+i)-f4(n)-f4(i) \in [-5..5] ? PROBABLY NOT
    i=928 j=1227 delta=-5
    i=12580 j=14755 delta=5
 *)
@@ -442,7 +442,7 @@ let _ = Array.init 40 @@
 (* ================== *)
 (* f5 *)
 
-(* All numbers : f5(n+i)-f5(n)-f5(i) \in [-11..11] ?
+(* All numbers : f5(n+i)-f5(n)-f5(i) \in [-11..11] ? PROBABLY NOT
    i=9852 j=12648 delta=-11
    i=18553 j=42773 delta=11
 *)
@@ -852,6 +852,91 @@ let a20942 =
 let _ = List.map (fun (n,_) -> a2.(n+1) - a2.(n)) a20942
 
 
+(** Zeckendorf decomposition for k=4 *)
+
+let rec s4 n = if n<6 then n+1 else s4 (n-1) + s4 (n-5)
+
+(** Ratio converges to expo *)
+let _ = Array.init 20 (fun n -> float (s4 (n+2)) /. float (s4 (n+1)))
+let _ = Array.init 20
+          (fun n -> float (s4 (n+2)) /. float (s4 (n+1)) -. 1./.lims.(4))
+
+(** Memoized version of the sequence : cf earlier gfib *)
+
+let _ = gfib 4 10 = Array.init 10 s4
+
+let s4opt = gfib 4 151
+
+let _ =
+  Array.init 100 @@ fun i -> float s4opt.(i) *. (lims.(4) ** float i)
+
+(** s4(n) ~ 1.5549670321610 * expo^n *)
+
+(** Interesting numbers leading to divergent delta (f4-n*tau4) *)
+
+let rec nb n = if n = 0 then 1 else nb (n-1) + s4opt.(6*n)
+
+(* indirect computation of (f4 (nb n)) : *)
+let rec f4nb n = if n = 0 then 1 else f4nb (n-1) + s4opt.(6*n-1)
+
+let _ = List.init 25 nb
+let _ = List.init 25 f4nb
+
+(* Check when possible that f4nb is indeed f4(nb) *)
+let _ = List.init 25 (fun n ->
+            let nb_n = nb n in
+            let f4nb_n = f4nb n in
+            if nb_n < Array.length a4 then
+              Some (f4nb_n - a4.(nb_n))
+            else None)
+
+let delta_nb n = float (f4nb n) -. lims.(4) *. float (nb n)
+
+let _ = List.init 25 delta_nb
+
+(* Too bad, not enough precision to compute delta_nb accurately
+   after n=20 roughly. Increment of about 0.0378 between two steps.
+   Values arbitrarily large can theoretically be reached.
+   Cf rauzy4.wxm for values between 1 and 1.3 (sic).
+*)
+
+
+(** Zeckendorf decomposition for k=5 *)
+
+let rec s5 n = if n<7 then n+1 else s5 (n-1) + s5 (n-6)
+
+(** Ratio converges to expo *)
+let _ = Array.init 20 (fun n -> float (s5 (n+2)) /. float (s5 (n+1)))
+let _ = Array.init 20
+          (fun n -> float (s5 (n+2)) /. float (s5 (n+1)) -. 1./.lims.(5))
+
+(** Memoized version of the sequence : cf earlier gfib *)
+
+let _ = gfib 5 10 = Array.init 10 s5
+
+let s5opt = gfib 5 170
+
+let _ =
+  Array.init 170 @@ fun i -> float s5opt.(i) *. (lims.(5) ** float i)
+
+(** s5(n) ~ 1.662117470913826 * expo^n *)
+
+(** Interesting numbers leading to divergent delta (f5-n*tau5) *)
+
+(* Check when possible that shifting down s5opt is indeed f5(s5opt) *)
+
+let _ = List.init 169 (fun n ->
+            let nb_n = s5opt.(n+1) in
+            let f5nb_n = s5opt.(n) in
+            if nb_n < Array.length a5 then
+              Some (f5nb_n - a5.(nb_n))
+            else None)
+
+let delta_nb n = float s5opt.(n) -. lims.(5) *. float s5opt.(n+1)
+
+let _ = List.init 169 delta_nb
+
+(* Seems unbounded, but hard to conclude anything, accuracy ?? *)
 
 
 (** FLIPPED *)

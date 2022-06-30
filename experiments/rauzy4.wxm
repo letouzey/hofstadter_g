@@ -278,6 +278,31 @@ du nombre de départ.
    [wxMaxima: comment end   ] */
 
 
+/* [wxMaxima: input   start ] */
+delta2_Nm (m) := sum(Bnz(6*i)[2,1],i,0,m-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+l : makelist(delta2_Nm(m),m,1,30);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Attention, au dela de m=30 la précision devient catastrophique
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+makelist(l[i+1]-l[i],i,1,29);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+2*realpart(cj)[2];
+/* [wxMaxima: input   end   ] */
+
+
 
 /* Old versions of Maxima abort on loading files that end in a comment. */
 "Created with wxMaxima 20.12.1"$
