@@ -74,7 +74,7 @@ let tabulate k n =
   done;
   a
 
-let a = tabulate 10 1000000
+let a = tabulate 10 10000000
 let a0 = a.(0)
 let a1 = a.(1)
 let a2 = a.(2)
@@ -605,7 +605,7 @@ two cases:
 
 let delta2 = Array.init 100000 @@ fun i -> float a2.(i) -. float i *. lims.(2)
 
-let _ = extrems delta2 (* -0.7..0.85 hence more than 1 of wide *)
+let _ = extrems delta2 (* -0.7..0.85 hence more than 1 of width *)
 
 (* two increasing lines, one partly below the other *)
 let _ = output_gnuplot_file "/tmp/out2"
@@ -787,6 +787,17 @@ let delta4bis = Array.init 10000 @@ fun i -> (delta4.(i),delta4.(a4.(i)))
 (* Strange figure, globally a cloud but with "detached" agglomeration points *)
 let _ = output_gnuplot_file "/tmp/out4bis" delta4bis
 
+
+(**** k = 5 *****)
+
+let _ = lims.(5)
+
+let delta5 =
+  Array.init 10000000 @@ fun i -> float a5.(i) -. float i *. lims.(5)
+
+let _ = extrems delta5 (* 10^5 : -4.66..5.4
+                          10^6 : -7.8..7.25
+                          10^7 : -10.8..9.46 *)
 
 
 (** DECOMPOSITION *)
