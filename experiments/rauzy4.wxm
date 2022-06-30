@@ -5,6 +5,16 @@ load("myround.mac");
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Etude de f4 (et des suites à 5 lettres et poly degré 5).
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(x) := myround(float(rectform(x)));
+/* [wxMaxima: input   end   ] */
+
+
 /* [wxMaxima: input   start ] */
 A:matrix([0,0,0,0,1],[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,1]);
 /* [wxMaxima: input   end   ] */
@@ -41,7 +51,7 @@ ji:(1+%i*sqrt(3))/2;
 
 
 /* [wxMaxima: input   start ] */
-myround(float(rectform(roots[1]-ji)));
+cround(roots[1]-ji);
 /* [wxMaxima: input   end   ] */
 
 
@@ -61,17 +71,17 @@ cabs(alpha);
 
 
 /* [wxMaxima: input   start ] */
-myround(rectform(theta + alpha + bar(alpha)));
+cround(theta + alpha + bar(alpha));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-rectform(tau + 1/alpha + 1/bar(alpha));
+cround(tau + 1/alpha + 1/bar(alpha)+1);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-rectform(theta * alpha * bar(alpha));
+cround(theta * alpha * bar(alpha)-1);
 /* [wxMaxima: input   end   ] */
 
 
@@ -81,7 +91,7 @@ cabs(alpha)^2;
 
 
 /* [wxMaxima: input   start ] */
-tau;
+cround(cabs(alpha)^2-tau);
 /* [wxMaxima: input   end   ] */
 
 
@@ -91,7 +101,7 @@ eig:[tau^4,tau^5,tau^6,tau^7,tau^8];
 
 
 /* [wxMaxima: input   start ] */
-sum(tau^k,k,4,8);
+cround(sum(tau^k,k,4,8)-1);
 /* [wxMaxima: input   end   ] */
 
 
@@ -131,11 +141,6 @@ Bbis : myround(submatrix(5,Q).submatrix(Abis,5).invert(Q44));
 
 
 /* [wxMaxima: input   start ] */
-myround(Bbis);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
 B:matrix([-tau^4,-1,-1,-1],[tau,0,0,0],[-tau^6,1,0,0],[-tau^7,0,1,0]);
 /* [wxMaxima: input   end   ] */
 
@@ -150,8 +155,73 @@ myround(expand(charpoly(B,x)*(x-theta)));
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Diagonalisation de B
+   [wxMaxima: comment end   ] */
+
+
 /* [wxMaxima: input   start ] */
-tau^2;
+listpropji : cround([1,tau*bar(ji),-tau+tau^2*bar(ji),-tau*bar(ji)-tau^2+tau^3*bar(ji)]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vectpropji : transpose(listpropji);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(B.vectpropji-ji*vectpropji);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(B.bar(vectpropji)-bar(ji)*bar(vectpropji));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+listpropalpha : cround([1,tau/alpha,-tau^6/alpha+tau/alpha^2,-tau^7/alpha-tau^6/alpha^2+tau/alpha^3]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+vectpropalpha : transpose(listpropalpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(B.vectpropalpha-alpha*vectpropalpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+M : transpose(apply('matrix,[listpropji,bar(listpropji),listpropalpha,bar(listpropalpha)]));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+IM : cround(invert(M));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+diagmat(a,b,c,d) := matrix([a,0,0,0],[0,b,0,0],[0,0,c,0],[0,0,0,d]);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+diag : diagmat(ji,bar(ji),alpha,bar(alpha));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(IM.B.M - diag);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+Bter : cround(M.diag.IM);
 /* [wxMaxima: input   end   ] */
 
 
@@ -161,83 +231,51 @@ vect_z : transpose([tau^4-1,tau^5,tau^6,tau^7]);
 
 
 /* [wxMaxima: input   start ] */
-expand(ji^3);
+cj : cround(M.diagmat(1,0,0,0).IM.vect_z);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-expand(ji^5-ji^4-1);
+cjbar : cround(M.diagmat(0,1,0,0).IM.vect_z);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-=========TODO========
+cround(cj-bar(cjbar));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-float(rectform(eigenvectors(B)));
+ca : cround(M.diagmat(0,0,1,0).IM.vect_z);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-myround(rectform(-alpha^2*tau^3-alpha*tau^2-tau));
+cabar : cround(M.diagmat(0,0,0,1).IM.vect_z);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-rectform(alpha^3);
+cround(ca-bar(cabar));
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-P:rectform(matrix([-alpha^2,alpha+1,alpha],[-bar(alpha)^2,bar(alpha)+1,bar(alpha)],[-beta^2,beta+1,beta]));
+Bnz (n) := 2*realpart(ji^n.cj)+2*realpart(alpha^n.ca);
 /* [wxMaxima: input   end   ] */
 
 
 /* [wxMaxima: input   start ] */
-rectform(P.B-(matrix([alpha,0,0],[0,conjugate(alpha),0],[0,0,beta])).P);
+makelist(cround(Bnz(n)-(B^^n).vect_z),n,0,20);
 /* [wxMaxima: input   end   ] */
 
 
-/* [wxMaxima: input   start ] */
-invP:rectform(matrix([alpha^2,bar(alpha)^2,beta^2],[tau*alpha,tau*bar(alpha),tau*beta],[tau*(tau-1)*alpha+tau,tau*(tau-1)*bar(alpha)+tau,tau*(tau-1)*beta+tau]));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-rectform(determinant(P));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-rectform(P.invP);
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-rectform(B.invP-invP.(matrix([alpha,0,0],[0,bar(alpha),0],[0,0,beta])));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau*(tau-1)*beta+tau;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-tau-tau^5*beta;
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-rectform(determinant(P));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-rectform(invert(P));
-/* [wxMaxima: input   end   ] */
+/* [wxMaxima: comment start ]
+En paticulier Bnz[2] redonne delta2(n) = f4(n)-tau.n
+Pour expliciter la divergence : somme des espacés de 6 (pour que ji^6n=1)
+Alors sum(Bnz(6i),i,0,m-1) = O(m) où m est le nombre de termes donc un log
+du nombre de départ.
+   [wxMaxima: comment end   ] */
 
 
 

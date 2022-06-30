@@ -92,19 +92,19 @@ k=1 : G(n) = floor((n+1)*tau) avec tau=0.618. Quasi-add avec C=1
 k=2 : H. Etude "à la Rauzy" donne Quasi-add avec C=2
     et H(n)=floor(n*tau2)+{0,1}
     avec tau2 = root(x^3+x-1) = 1/root(x^3-x^2-1) (inverse du Pisot P3 = 1.4655)
-k=3 : Etude à faire. Poly x^4-x^3-1 donne nombre de Pisot Q2 = 1.3802
-    donc a priori on a quasi-additivité et proximité de f3 avec floor(n*tau3)
-k=4 : Etude à faire. x^5-x^4-1 = (x^2-x+1)(x^3-x-1)
+k=3 : Poly x^4-x^3-1 donne nombre de Pisot Q2 = 1.3802
+    On montre que f3(n) = |n*tau3| + {-1,0,1,2}. Et on a bien quasi-additivité du coup.
+k=4 : x^5-x^4-1 = (x^2-x+1)(x^3-x-1)
      ou encore x^5+x-1 = (x^2-x+1)(x^3+x^2-1) sur le poly dual.
      Nombre de Pisot minimal (plastic = 1.3247), mais aussi des racines j et conj(j)
-     en plus. Sans doute *pas* quasi-additivité et divergence lente de
-     f4-floor(n*tau4) (en log(n)) 
-k>=5 : des racines secondaires de norme > 1, donc sans doute pas
-     de quasi-additivité ni de borne finie sur fk(n)-n*tauk.
+     (de norme 1) en plus. Elles entrainent une divergence lente de f4-|n*tau4|
+     (en log(n)). Et donc *pas* de quasi-additivité de f4.
+k>=5 : des racines secondaires de norme > 1, donc pas de borne finie sur fk(n)-n*tauk
+     ni quasi-additivité de fk.
      Ces racines secondaires ont normes croissantes juqu'à k=12 (norme=1.0768)
      puis décroissance tout en restant >1. P.ex k=200 norme=1.017.
 
-Conjecture: fk(n)-n*tauk ~ K.n^expo avec 0<expo<1 
+Conjecture: pour k>=5, fk(n)-n*tauk ~ K.n^expo avec 0<expo<1
 
     En considérant u(n) = sigma(A k ((k+1)*i),i=0..n) : 
     u(n) ~ K*sigma(primroot^((k+1)*i,i=0..n) ~ K*(primroot^(k+1))^n
@@ -125,4 +125,3 @@ Conjecture: fk(n)-n*tauk ~ K.n^expo avec 0<expo<1
     Pour k=6 expo=0.128 donc grosso modo une racine huitième
     Pour k=7 expo=0.221                      racine quatre-et-demi
     Ca monte ensuite assez vite 0.6 0.7 0.8 convergence vers 1
-

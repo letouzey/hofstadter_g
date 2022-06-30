@@ -5,6 +5,11 @@ load("myround.mac");
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Etude de h = f2 (et des suites à 3 lettres et poly degré 3).
+   [wxMaxima: comment end   ] */
+
+
 /* [wxMaxima: input   start ] */
 A : matrix([1,0,1],[1,0,0],[0,1,0]);
 /* [wxMaxima: input   end   ] */
@@ -426,6 +431,12 @@ maxmod : cabs(1+alpha^3+alpha^7);
 /* [wxMaxima: input   start ] */
 2*cabs(a)*maxmod/(1-cabs(alpha)^9);
 /* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Et donc delta2(n) = h(n)-tau.n est de norme < 1
+Donc h(n) = |tau.n| + {0,1}.
+   [wxMaxima: comment end   ] */
 
 
 /* [wxMaxima: comment start ]

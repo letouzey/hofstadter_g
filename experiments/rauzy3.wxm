@@ -5,6 +5,11 @@ load("myround.mac");
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Etude de f3 (et des suites à 4 lettres et poly degré 4).
+   [wxMaxima: comment end   ] */
+
+
 /* [wxMaxima: input   start ] */
 A:matrix([0,0,0,1],[1,0,0,0],[0,1,0,0],[0,0,1,1]);
 /* [wxMaxima: input   end   ] */
@@ -111,7 +116,7 @@ determinant(Q33);
 
 
 /* [wxMaxima: input   start ] */
-Bbis : submatrix(4,Q).submatrix(Abis,4).invert(Q33);
+Bbis : myround(submatrix(4,Q).submatrix(Abis,4).invert(Q33));
 /* [wxMaxima: input   end   ] */
 
 
@@ -343,6 +348,15 @@ maxbeta : last(sort(flatten(append(l2b,l3b,l4b))));
 /* [wxMaxima: input   start ] */
 2*cabs(a)*maxalpha/(1-cabs(alpha)^16)+cabs(b)*maxbeta/(1-cabs(beta)^16);
 /* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Donc on a bien |delta2(n)| < 2.
+Et comme delta2(n) = f3(n) - tau.n on en déduit donc f3(n) = |tau.n| + {-1..2}.
+On a bien aussi quasi-additivité de f3 : |f3(n+m)-f3(n)-f3(m)|<= 5
+(expérimentalement c'est plutôt 3 la meilleure constante).
+
+   [wxMaxima: comment end   ] */
 
 
 
