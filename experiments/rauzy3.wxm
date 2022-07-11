@@ -55,6 +55,36 @@ cabs(alpha);
 /* [wxMaxima: input   end   ] */
 
 
+/* [wxMaxima: comment start ]
+Express alpha in term of theta (i.e. 1/tau) and beta
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(cabs(alpha)^2*theta*beta+1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(cabs(alpha)-sqrt(tau/(-beta)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(2*realpart(alpha)+theta+beta-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(realpart(alpha)-(1-theta-beta)/2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(alpha-((1-theta-beta)/2+%i*sqrt(tau/(-beta)-(1-theta-beta)^2/4)));
+/* [wxMaxima: input   end   ] */
+
+
 /* [wxMaxima: input   start ] */
 myround(rectform(1/roots[1]+1/roots[2]+1/roots[3]+1/roots[4]));
 /* [wxMaxima: input   end   ] */

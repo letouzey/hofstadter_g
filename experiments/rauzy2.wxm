@@ -56,6 +56,36 @@ tau^2-theta;
 
 
 /* [wxMaxima: input   start ] */
+myround(tau^3+tau-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(expand(theta*alpha*bar(alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(theta^2+alpha^2+bar(alpha)^2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand((alpha-theta)*(bar(alpha)-theta)*(alpha-bar(alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand(theta^2+2*tau)*2*imagpart(alpha);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand((b-a)*(c-a)*(b-c));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
 myround(expand(alpha*bar(alpha)-tau));
 /* [wxMaxima: input   end   ] */
 
@@ -160,6 +190,64 @@ tau^2;
 
 /* [wxMaxima: input   start ] */
 alpha+bar(alpha)+theta;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(realpart(alpha)-(1-theta)/2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(realpart(alpha)+tau^2/2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(cabs(alpha)-sqrt(tau));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(imagpart(alpha)-sqrt(tau-tau^4/4));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(imagpart(alpha)-(1/2)*sqrt(tau)*sqrt(3+tau));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+myround(rectform(alpha-(1/2)*(-tau^2+%i*sqrt(tau)*sqrt(3+tau))));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: comment start ]
+Suite Fibo généralisée u(n) = u(n-1)+u(n-3) et u(0) = 1; u(1) = 2; u(2) = 3
+On a u(n) = a.theta^n+b.alpha^n+bar(b).bar(alpha)^n
+Calcul de a et b
+   [wxMaxima: comment end   ] */
+
+
+/* [wxMaxima: input   start ] */
+coefs : rectform(invert(matrix([1,1,1],[theta,alpha,bar(alpha)],[theta^2,alpha^2,bar(alpha)^2])).transpose([1,2,3]))
+;
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+coefs[1,1]+coefs[2,1]+coefs[3,1];
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+rectform(expand((3-theta^2+(alpha+theta)*(theta-2))/(bar(alpha)-theta)/(bar(alpha)-alpha)));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+expand((al-th)*(3-th^2+(al+th)*(th-2)));
 /* [wxMaxima: input   end   ] */
 
 

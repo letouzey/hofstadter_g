@@ -66,6 +66,16 @@ bar(z) := conjugate(z);
 
 
 /* [wxMaxima: input   start ] */
+cround(theta^3-theta-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(tau^3+tau^2-1);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
 cabs(alpha);
 /* [wxMaxima: input   end   ] */
 
@@ -92,6 +102,16 @@ cabs(alpha)^2;
 
 /* [wxMaxima: input   start ] */
 cround(cabs(alpha)^2-tau);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(realpart(alpha)-(-theta)/2);
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+cround(alpha-(-theta/2+%i*theta*sqrt(3/4-tau^2)));
 /* [wxMaxima: input   end   ] */
 
 
