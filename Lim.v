@@ -297,17 +297,6 @@ Non, rien de direct...
 
 (* f k n / n ---> tau(k) *)
 
-(* POUR k=2, autres racines, et expression de A 2 n *)
-
-Definition mu2 := mu 2.
-Definition tau2 := tau 2.
-
-Definition re_alpha := (1 - mu2)/2.
-Definition im_alpha := sqrt (tau2 * (3+tau2))/2.
-
-Definition alpha : C := (re_alpha, im_alpha).
-Definition alphabar : C := (re_alpha, - im_alpha).
-
 (* Some complements to Coquelicot *)
 
 Global Arguments Re _%C.
@@ -372,7 +361,32 @@ Proof.
  unfold Cconj, RtoC, Ci, Cminus, Cplus, Cdiv, Cmult. simpl. f_equal; field.
 Qed.
 
+Lemma re_conj (c:C) : Re (Cconj c) = Re c.
+Proof.
+ now destruct c.
+Qed.
+
+Lemma im_conj (c:C) : Im (Cconj c) = (- Im c)%R.
+Proof.
+ now destruct c.
+Qed.
+
+Lemma im_alt' (c:C) : c - Cconj c = 2*Ci*Im c.
+Proof.
+ rewrite im_alt. field. split; compute; injection; lra.
+Qed.
+
 Lemma re_plus a b : (Re (a+b) = Re a + Re b)%R.
+Proof.
+ now destruct a as (xa,ya), b as (xb,yb).
+Qed.
+
+Lemma re_opp a : (Re (-a) = - Re a)%R.
+Proof.
+ now destruct a as (xa,ya).
+Qed.
+
+Lemma re_mult a b : (Re (a*b) = Re a * Re b - Im a * Im b)%R.
 Proof.
  now destruct a as (xa,ya), b as (xb,yb).
 Qed.
@@ -382,12 +396,42 @@ Proof.
  now destruct a as (xa,ya), b as (xb,yb).
 Qed.
 
-Lemma re_scal (r:R)(c:C) : (Re (r*c) = r * Re c)%R.
+Lemma im_opp a : (Im (-a) = - Im a)%R.
+Proof.
+ now destruct a as (xa,ya).
+Qed.
+
+Lemma im_mult a b : (Im (a*b) = Re a * Im b + Im a * Re b)%R.
+Proof.
+ now destruct a as (xa,ya), b as (xb,yb).
+Qed.
+
+Lemma re_RtoC (r:R) : Re (RtoC r) = r.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma im_RtoC (r:R) : Im (RtoC r) = 0%R.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma re_scal_l (r:R)(c:C) : (Re (r*c) = r * Re c)%R.
 Proof.
  destruct c as (x,y); simpl. lra.
 Qed.
 
 Lemma re_scal_r (c:C)(r:R) : (Re (c*r) = Re c * r)%R.
+Proof.
+ destruct c as (x,y); simpl. lra.
+Qed.
+
+Lemma im_scal_l (r:R)(c:C) : (Im (r*c) = r * Im c)%R.
+Proof.
+ destruct c as (x,y); simpl. lra.
+Qed.
+
+Lemma im_scal_r (c:C)(r:R) : (Im (c*r) = Im c * r)%R.
 Proof.
  destruct c as (x,y); simpl. lra.
 Qed.
@@ -448,30 +492,54 @@ Proof.
  induction n; simpl; auto. rewrite RtoC_mult. now f_equal.
 Qed.
 
+Lemma invCi : /Ci = -Ci.
+Proof.
+ compute. f_equal; lra.
+Qed.
+
+Lemma ReCi (c:C) : (Re (c*Ci) = - Im c)%R.
+Proof.
+ destruct c as (x,y). compute. lra.
+Qed.
+
 End ExtraC.
 Import ExtraC.
 Global Arguments Cpow _%C _%nat.
 Global Infix "^" := Cpow : C_scope.
 
-Lemma re_alpha_alt : re_alpha = - tau2 ^ 2 / 2.
+Module K_2.
+
+(* The case k=2 : other complex roots, and expressing (A 2 n) in term of
+   combinations of root powers. *)
+
+Definition mu := mu 2.
+Definition tau := tau 2.
+
+Definition re_alpha := (1 - mu)/2.
+Definition im_alpha := sqrt (tau * (3+tau))/2.
+
+Definition alpha : C := (re_alpha, im_alpha).
+Definition alphabar : C := (re_alpha, - im_alpha).
+
+Lemma re_alpha_alt : re_alpha = - tau ^ 2 / 2.
 Proof.
  unfold re_alpha. f_equal.
- unfold mu2. rewrite tau_inv. fold tau2.
- assert (tau2 <> 0) by (unfold tau2; generalize tau_2; lra).
- apply Rmult_eq_reg_l with (tau2); trivial.
+ unfold mu. rewrite tau_inv. fold tau.
+ assert (tau <> 0) by (unfold tau; generalize tau_2; lra).
+ apply Rmult_eq_reg_l with (tau); trivial.
  field_simplify; trivial.
- generalize (tau_carac 2); fold tau2; lra.
+ generalize (tau_carac 2); fold tau; lra.
 Qed.
 
-Lemma im_alpha_2 : im_alpha ^ 2 = tau2 * (3+tau2) / 4.
+Lemma im_alpha_2 : im_alpha ^ 2 = tau * (3+tau) / 4.
 Proof.
  unfold im_alpha.
  unfold Rdiv.
  rewrite Rpow_mult_distr, pow2_sqrt; try lra.
- apply Rmult_le_pos; generalize (tau_2); fold tau2; lra.
+ apply Rmult_le_pos; generalize (tau_2); fold tau; lra.
 Qed.
 
-Lemma alphamod : (Cmod alpha)^2 = tau2.
+Lemma alphamod : (Cmod alpha)^2 = tau.
 Proof.
  unfold Cmod.
  rewrite pow2_sqrt.
@@ -479,15 +547,15 @@ Proof.
  unfold alpha; simpl. ring_simplify.
  rewrite im_alpha_2. rewrite re_alpha_alt.
  field_simplify.
- assert ((tau2)^3 = 1 - tau2) by (generalize (tau_carac 2); fold tau2; lra).
- replace ((tau2)^4) with ((tau2)^3 * tau2) by field.
+ assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
+ replace ((tau)^4) with ((tau)^3 * tau) by field.
  rewrite H.
  field_simplify. lra.
 Qed.
 
-Lemma mu_is_Croot : (mu2 ^3 = mu2 ^2 + 1)%C.
+Lemma mu_is_Croot : (mu ^3 = mu ^2 + 1)%C.
 Proof.
- rewrite <- !RtoC_pow, <- RtoC_plus. unfold mu2. now rewrite (mu_carac 2).
+ rewrite <- !RtoC_pow, <- RtoC_plus. unfold mu. now rewrite (mu_carac 2).
 Qed.
 
 Lemma alpha_is_root : (alpha^3 = alpha^2 + 1)%C.
@@ -498,9 +566,9 @@ Proof.
    rewrite im_alpha_2, re_alpha_alt.
    unfold Rdiv. rewrite !Rpow_mult_distr.
    field_simplify.
-   assert ((tau2)^3 = 1 - tau2) by (generalize (tau_carac 2); fold tau2; lra).
-   replace ((tau2)^6) with (((tau2)^3)^2) by field.
-   replace ((tau2)^4) with ((tau2)^3 * tau2) by field.
+   assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
+   replace ((tau)^6) with (((tau)^3)^2) by field.
+   replace ((tau)^4) with ((tau)^3 * tau) by field.
    rewrite H.
    lra.
  - replace (im_alpha ^ 3) with (im_alpha^2 * im_alpha) by ring.
@@ -509,8 +577,8 @@ Proof.
    f_equal.
    rewrite im_alpha_2. rewrite re_alpha_alt.
    field_simplify.
-   assert ((tau2)^3 = 1 - tau2) by (generalize (tau_carac 2); fold tau2; lra).
-   replace ((tau2)^4) with ((tau2)^3 * tau2) by field.
+   assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
+   replace ((tau)^4) with ((tau)^3 * tau) by field.
    rewrite H.
    lra.
 Qed.
@@ -524,21 +592,21 @@ Qed.
 
 Lemma re_alpha_nz : re_alpha <> 0.
 Proof.
- unfold re_alpha, mu2. generalize mu_2. lra.
+ unfold re_alpha, mu. generalize mu_2. lra.
 Qed.
 
 Lemma im_alpha_nz : im_alpha <> 0.
 Proof.
  assert (LT : 0 < im_alpha ^2).
  { rewrite im_alpha_2. unfold Rdiv.
-   repeat apply Rmult_lt_0_compat; unfold tau2; generalize tau_2; lra. }
+   repeat apply Rmult_lt_0_compat; unfold tau; generalize tau_2; lra. }
  apply sqrt_lt_R0 in LT. rewrite sqrt_pow2 in LT.
  lra.
  unfold im_alpha. apply Rle_mult_inv_pos; try lra. apply sqrt_pos.
 Qed.
 
 Lemma distinct_roots :
-  RtoC mu2 <> alpha /\ RtoC mu2 <> alphabar /\ alpha <> alphabar.
+  alpha <> mu /\ alphabar <> mu /\ alpha <> alphabar.
 Proof.
  unfold alpha, alphabar, RtoC; repeat split.
  - intros [= A B]. now destruct im_alpha_nz.
@@ -547,7 +615,7 @@ Proof.
 Qed.
 
 Definition coef_alpha : C :=
- ((3-mu2^2+(alphabar+mu2)*(mu2-2))/(alpha-mu2)/(alpha-alphabar))%C.
+ ((3-mu^2+(alphabar+mu)*(mu-2))/(alpha-mu)/(alpha-alphabar))%C.
 
 Definition coef_mu : R := 1 - 2 * Re coef_alpha.
 
@@ -556,7 +624,7 @@ Proof.
  unfold coef_mu. lra.
 Qed.
 
-Lemma coefs_eqn2 : coef_mu * mu2 + 2 * Re (coef_alpha * alpha) = 2.
+Lemma coefs_eqn2 : coef_mu * mu + 2 * Re (coef_alpha * alpha) = 2.
 Proof.
  unfold coef_mu. unfold Rminus.
  rewrite Rmult_plus_distr_r, Rmult_1_l.
@@ -564,22 +632,34 @@ Proof.
  rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
  rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
  rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp. fold (Cminus alpha mu2).
+ rewrite Cplus_comm, RtoC_opp. fold (Cminus alpha mu).
  unfold coef_alpha.
+ change alphabar with (Cconj alpha); rewrite im_alt'.
+ remember (Cplus _ _) as z eqn:EQ. simpl Im.
+ replace (Cmult _ _) with (z/(2*im_alpha)/Ci)%C.
+ 2:{ field; repeat split.
+     - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
+     - intro. destruct im_alpha_nz. now apply RtoC_inj.
+     - compute; injection; lra.
+     - compute; injection; lra. }
+ unfold Cdiv at 1. rewrite invCi.
+ replace (Cmult _ _) with ((-z/(2*im_alpha))*Ci)%C.
+ 2: { field; repeat split.
+     - intro. destruct im_alpha_nz. now apply RtoC_inj.
+     - compute; injection; lra. }
+ rewrite ReCi.
+ unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
+ 2: { generalize im_alpha_nz. lra. }
+ rewrite im_scal_r, im_opp.
+ rewrite EQ; clear EQ z.
+ rewrite im_plus.
+ rewrite <- RtoC_pow, <- RtoC_minus, im_RtoC.
+ rewrite <- RtoC_minus, im_scal_r, im_plus, im_RtoC.
+ rewrite im_conj. simpl Im.
+ field. apply im_alpha_nz.
+Qed.
 
-(*
-Re (1/(alpha-alphabar) * (3-mu^2+(alphabar+mu)*(mu-2)))
-
-= Re (1/(2*Ci*Im alpha) * (3-mu^2+mu*(mu-2)+ alphabar*(mu-2)))
-= Re (-Ci/(2*Im alpha) * ((3-mu^2+mu*(mu-2) + re_alpha*(mu-2))%R + Ci * im_alpha*(mu-2))
-= (mu-2)*im_alpha/(2*im_alpha)
-= (mu-2)/2
-L'opposé de ce qu'il faut ?!
-*)
-
-Admitted.
-
-Lemma coefs_eqn3 : coef_mu * mu2 ^2 + 2 * Re (coef_alpha * alpha ^2)%C = 3.
+Lemma coefs_eqn3 : coef_mu * mu ^2 + 2 * Re (coef_alpha * alpha ^2)%C = 3.
 Proof.
  unfold coef_mu. unfold Rminus.
  rewrite Rmult_plus_distr_r, Rmult_1_l.
@@ -587,26 +667,39 @@ Proof.
  rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
  rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
  rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp, RtoC_pow. fold (Cminus (alpha^2) (mu2^2))%C.
+ rewrite Cplus_comm, RtoC_opp, RtoC_pow. fold (Cminus (alpha^2) (mu^2))%C.
  unfold coef_alpha.
-
-(*
-Re ((alpha+mu)/(alpha-alphabar) * (3-mu^2+(alphabar+mu)*(mu-2)))
-
-= Re (1/(2*Ci*Im alpha) * (alpha+mu)*(3-mu^2+(alphabar+mu)*(mu-2)))
-
-= -1/(2*Im alpha) * Im ((alpha+mu)*(3-mu^2+(alphabar+mu)*(mu-2)))
-= -1/(2*Im alpha) * [ (mu+re_alpha)*Im (...) + im_alpha* Re (...) ]
-= -1/(2*Im alpha) * [ (mu+re_alpha)*im_alpha*(mu-2)
-                      + im_alpha* (3-mu^2+(re_alpha+mu)*(mu-2) ]
-= -1/2 * [ (mu+re_alpha)*(mu-2) + 3-mu^2 + (mu+re_alpha)*(mu-2) ]
-
-Encore quelques inversions ?!
-*)
-Admitted.
+ change alphabar with (Cconj alpha); rewrite im_alt'.
+ remember (Cplus _ _) as z eqn:EQ. simpl Im.
+ replace (Cmult _ _) with ((z*(alpha+mu))/(2*im_alpha)/Ci)%C.
+ 2:{ simpl Cpow. field; repeat split.
+     - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
+     - intro. destruct im_alpha_nz. now apply RtoC_inj.
+     - compute; injection; lra.
+     - compute; injection; lra. }
+ unfold Cdiv at 1. rewrite invCi.
+ replace (Cmult _ _) with (((-z*(alpha+mu))/(2*im_alpha))*Ci)%C.
+ 2: { field; repeat split.
+     - intro. destruct im_alpha_nz. now apply RtoC_inj.
+     - compute; injection; lra. }
+ rewrite ReCi.
+ unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
+ 2: { generalize im_alpha_nz. lra. }
+ rewrite im_scal_r.
+ rewrite EQ; clear EQ z.
+ rewrite im_mult.
+ rewrite !im_plus, !re_plus, !re_RtoC, !im_RtoC. simpl (Im alpha).
+ simpl (Re alpha).
+ replace (im_alpha + 0) with im_alpha by ring.
+ rewrite re_opp, im_opp, re_plus, im_plus.
+ rewrite <- !RtoC_pow, <- !RtoC_minus, re_RtoC, im_RtoC.
+ rewrite re_scal_r, im_scal_r, re_plus, im_plus, re_RtoC, im_RtoC.
+ rewrite re_conj, im_conj. simpl Re. simpl Im.
+ field. apply im_alpha_nz.
+Qed.
 
 Lemma A2_eqn n :
- INR (A 2 n) = coef_mu * mu2 ^n + 2 * Re (coef_alpha * alpha^n)%C.
+ INR (A 2 n) = coef_mu * mu ^n + 2 * Re (coef_alpha * alpha^n)%C.
 Proof.
  induction n as [n IH] using lt_wf_ind.
  destruct n.
@@ -621,7 +714,7 @@ Proof.
        replace (INR (2+1)) with 3 by (compute; lra).
        generalize coefs_eqn3. lra.
    + replace (S n) with (3+(n-2))%nat by lia.
-     rewrite pow_add. unfold mu2. rewrite (mu_carac 2). fold mu2.
+     rewrite pow_add. unfold mu. rewrite (mu_carac 2). fold mu.
      rewrite Cpow_add. rewrite alpha_is_root.
      rewrite plus_INR.
      rewrite (IH n) by lia. rewrite (IH (n-2)%nat) by lia.
@@ -634,8 +727,8 @@ Proof.
 Qed.
 
 
-(* Puis limites (A2 n / mu2^n) = coef_mu
-             et (A2 (S n) / A2 n) = mu2 *)
+(* Puis limites (A2 n / mu^n) = coef_mu
+             et (A2 (S n) / A2 n) = mu *)
 
 
 (* For complex numbers and matrices :
@@ -667,3 +760,4 @@ Pour k=4, racines complexes : j et bar(j) connus, et ensuite
 
 *)
 
+End K_2.
