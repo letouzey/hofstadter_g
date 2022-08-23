@@ -19,10 +19,74 @@ Definition word := list letter.
 
 Definition Prefix (u v:word) := exists w, u++w = v.
 
-Lemma Prefix_nth u v :
-  Prefix u v -> forall n a, n < length u -> nth n u a = nth n v a.
+Lemma Prefix_id w : Prefix w w.
 Proof.
- intros (w & <-). intros n a LT. rewrite app_nth1; auto.
+ exists []. apply app_nil_r.
+Qed.
+
+Lemma Prefix_len u v : Prefix u v -> length u <= length v.
+Proof.
+ intros (w,<-). rewrite app_length. lia.
+Qed.
+
+Lemma Prefix_nil u : Prefix u [] -> u = [].
+Proof.
+ intros Pr. apply Prefix_len in Pr. simpl in Pr. now destruct u.
+Qed.
+
+Lemma Prefix_cons a u v : Prefix u v -> Prefix (a::u) (a::v).
+Proof.
+ intros (w,<-). now exists w.
+Qed.
+
+Lemma Prefix_nth u v :
+  Prefix u v <-> forall n a, n < length u -> nth n u a = nth n v a.
+Proof.
+ split.
+ - intros (w & <-). intros n a LT. rewrite app_nth1; auto.
+ - revert v. induction u; intros v H.
+   + now exists v.
+   + destruct v.
+     * specialize (H 0 (S a)). simpl in H. lia.
+     * assert (P : Prefix u v).
+       { apply IHu. intros n b H'. apply (H (S n) b); simpl; auto with arith. }
+       destruct P as (w & P).
+       exists w. simpl. f_equal; auto.
+       apply (H 0 0). simpl. lia.
+Qed.
+
+Lemma Prefix_cons_inv a u v :
+  Prefix u (a::v) -> u = [] \/ exists u', u = a::u' /\ Prefix u' v.
+Proof.
+ intros (w,E).
+ destruct u as [|a' u'].
+ - now left.
+ - right. exists u'. injection E as -> E'. split; auto. now exists w.
+Qed.
+
+Lemma Prefix_app u v w :
+ Prefix u (v++w) -> Prefix u v \/ exists u', u = v++u' /\ Prefix u' w.
+Proof.
+ revert v w.
+ induction u.
+ - intros v w _. left. now exists v.
+ - intros v w (t,E). simpl in E.
+   destruct v.
+   + right. exists (a::u). split; auto. now exists t.
+   + injection E as <- E.
+     destruct (IHu v w) as [IH|(u',IH)]; try now exists t.
+     * left. now apply Prefix_cons.
+     * right. exists u'. simpl; split. now f_equal. apply IH.
+Qed.
+
+Lemma Prefix_seq w a n :
+ Prefix w (List.seq a n) -> w = List.seq a (length w).
+Proof.
+ revert w a.
+ induction n as [|n IH]; simpl; intros w a P.
+ - apply Prefix_nil in P. now subst w.
+ - apply Prefix_cons_inv in P. destruct P as [->|(w' & -> & P)]; trivial.
+   simpl. f_equal; auto.
 Qed.
 
 (** Sequence a.k.a Infinite word : function from nat to letter *)
@@ -104,6 +168,16 @@ Proof.
  now rewrite IHu, app_assoc.
 Qed.
 
+Lemma apply_alt s w : apply s w = concat (map s w).
+Proof.
+ induction w; simpl; auto. now f_equal.
+Qed.
+
+Lemma napply_nil s n : napply s n [] = [].
+Proof.
+ induction n; simpl; auto.
+Qed.
+
 Lemma napply_app s n u v : napply s n (u++v) = napply s n u ++ napply s n v.
 Proof.
  revert u v. induction n; intros; simpl; auto.
@@ -127,6 +201,13 @@ Proof.
  induction n.
  - simpl; auto.
  - now rewrite Nat.add_succ_l, !napply_alt, IHn.
+Qed.
+
+Lemma napply_concat s n w :
+  napply s n w = concat (map (fun a => napply s n [a]) w).
+Proof.
+ induction w; simpl; auto using napply_nil.
+ rewrite napply_cons. now f_equal.
 Qed.
 
 Definition NoErase (s:subst) := forall a, s a <> [].
@@ -173,6 +254,20 @@ Proof.
  - destruct IHle as (w & E).
    destruct (napply_prefix_S s a m) as (w' & E'); auto.
    exists (w++w'). now rewrite app_assoc, E, E'.
+Qed.
+
+Lemma apply_grow s w : NoErase s -> length w <= length (apply s w).
+Proof.
+ intros NE.
+ induction w; simpl; auto.
+ rewrite app_length. specialize (NE a). destruct (s a); simpl; lia || easy.
+Qed.
+
+Lemma napply_mono s n m w :
+ NoErase s -> n <= m -> length (napply s n w) <= length (napply s m w).
+Proof.
+ induction 2; auto.
+ rewrite IHle. clear IHle H0. rewrite napply_alt. now apply apply_grow.
 Qed.
 
 (** Any nonerasing prolongeable substitution leads to a unique infinite
@@ -244,6 +339,22 @@ Definition kseq k := subst2seq (ksubst k) k.
 (* Compute map (kseq 2) (List.seq 0 20). *)
 (* [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0; 1; 2; 2; 0; 2] *)
 
+Lemma ksubst_noerase k : NoErase (ksubst k).
+Proof.
+ red. intros c. unfold ksubst. now case Nat.eqb_spec.
+Qed.
+
+Lemma ksubst_prolong k : Prolong (ksubst k) k.
+Proof.
+ red. exists [0]. split. easy.
+ unfold ksubst. now rewrite Nat.eqb_refl.
+Qed.
+
+Lemma kseq_SubstSeq k : SubstSeq (ksubst k) (kseq k) k.
+Proof.
+ apply substseq_exists. apply ksubst_noerase. apply ksubst_prolong.
+Qed.
+
 (** Initial values *)
 
 Lemma kword_0 k : kword k 0 = [k].
@@ -311,6 +422,14 @@ Proof.
      rewrite seq_length. rewrite !A_base; lia.
 Qed.
 
+Lemma kseq_alt k n m a : n < A k m -> kseq k n = nth n (kword k m) a.
+Proof.
+ intros LE.
+ rewrite (kseq_SubstSeq k m).
+ change (napply _ _ _) with (kword k m).
+ rewrite kword_len, take_nth; auto.
+Qed.
+
 (** Link between [kseq] and Zeckendorf decomposition :
     0 iff rank 0,
     1 iff rank 1,
@@ -320,11 +439,13 @@ Qed.
     Hence 0 in [kseq] whenever the [f k] function is flat.
 *)
 
-Definition bounded_rank k n :=
- match rank k n with
- | None => k
- | Some p => Nat.min p k
- end.
+Definition omin (oa:option nat) (b:nat) :=
+  match oa with
+  | None => b
+  | Some a => Nat.min a b
+  end.
+
+Definition bounded_rank k n := omin (rank k n) k.
 
 Lemma kseq_bounded_rank k n : kseq k n = bounded_rank k n.
 Proof.
@@ -339,19 +460,7 @@ Proof.
      split.
      + simpl; lia.
      + apply decomp_max. apply Delta_rev. now rewrite <- E'. }
-   assert (NE : NoErase (ksubst k)).
-   { red. intros c. unfold ksubst. now case Nat.eqb_spec. }
-   assert (PR : Prolong (ksubst k) k).
-   { red. exists [0]. split. easy.
-     unfold ksubst. now rewrite Nat.eqb_refl. }
-   assert (SU := substseq_exists _ _ NE PR (S a)).
-   unfold PrefixSeq in SU.
-   change (napply _ _ _) with (kword k (S a)) in SU.
-   change (subst2seq _ _) with (kseq k) in SU.
-   rewrite kword_len in SU.
-   replace (kseq k n) with (nth n (kword k (S a)) 0).
-   2:{ rewrite SU. rewrite take_nth; auto. lia. }
-   clear SU.
+   rewrite (kseq_alt k n (S a) 0) by lia.
    destruct (Nat.lt_ge_cases a k) as [LT|LE].
    + rewrite kword_low by lia.
      destruct n as [|n]; try easy.
@@ -359,31 +468,17 @@ Proof.
      rewrite !A_base in H; try lia.
      replace n with a by lia.
      rewrite seq_nth by lia. simpl.
-     unfold bounded_rank, rank.
-     replace (S a) with (sumA k [a]).
-     2:{ rewrite <- (@A_base k a); simpl; lia. }
-     rewrite decomp_sum'; try constructor. rewrite Nat.min_l; auto; try lia.
+     unfold bounded_rank, rank. rewrite decomp_low; simpl; lia.
    + rewrite kword_alt by auto.
      rewrite app_nth2; rewrite kword_len; try lia.
-     set (m := n - A k a) in *.
-     assert (Hm : m < n) by (generalize (@A_nz k a); lia).
-     specialize (IH m Hm).
-     assert (SU' := substseq_exists _ _ NE PR (a-k)).
-     unfold PrefixSeq in SU'.
-     change (napply _ _ _) with (kword k (a-k)) in SU'.
-     change (subst2seq _ _) with (kseq k) in SU'.
-     rewrite kword_len in SU'.
-     rewrite SU', take_nth.
-     2:{ unfold m. simpl in H. lia. }
-     rewrite IH. clear SU' NE PR.
-     unfold m.
-     unfold bounded_rank, rank. fold l. rewrite E'.
-     simpl rev.
-     replace (n-A k a) with (sumA k (rev rl)).
-     2:{ rewrite <-E, E'. simpl. rewrite sumA_app. simpl. lia. }
-     rewrite decomp_sum'.
-     2:{ rewrite E' in D. simpl in D. apply Delta_app_iff in D. intuition. }
-     destruct (rev rl) eqn:E''; simpl; auto. rewrite Nat.min_r; auto.
+     rewrite <- kseq_alt by (simpl in H; lia).
+     rewrite IH by (generalize (@A_nz k a); lia).
+     unfold bounded_rank, rank. fold l; rewrite E'; simpl rev.
+     replace (decomp _ _) with (rev rl).
+     2:{ symmetry; apply decomp_carac.
+         - rewrite E' in D. simpl in D. now apply Delta_app_iff in D.
+         - revert E. rewrite E'. simpl. rewrite sumA_app. simpl. lia. }
+     destruct (rev rl); simpl; lia.
 Qed.
 
 (** Another possible susbstitution for Hofstadter functions,
@@ -398,6 +493,22 @@ Definition kseqbis k := subst2seq (ksubstbis k) (S k).
 
 (* Compute map (kseqbis 2) (List.seq 0 20). *)
 (* [3; 0; 1; 2; 3; 0; 3; 0; 1; 3; 0; 1; 2; 3; 0; 1; 2; 3; 0; 3] *)
+
+Lemma ksubstbis_noerase k : NoErase (ksubstbis k).
+Proof.
+ red. intros c. unfold ksubstbis. now case Nat.ltb_spec.
+Qed.
+
+Lemma ksubstbis_prolong k : Prolong (ksubstbis k) (S k).
+Proof.
+ red. exists [0]. split. easy.
+ unfold ksubstbis. case Nat.ltb_spec; auto; lia.
+Qed.
+
+Lemma kseqbis_SubstSeq k : SubstSeq (ksubstbis k) (kseqbis k) (S k).
+Proof.
+ apply substseq_exists. apply ksubstbis_noerase. apply ksubstbis_prolong.
+Qed.
 
 (** Initial values *)
 
@@ -479,6 +590,14 @@ Proof.
      rewrite seq_length. rewrite !A_base; lia.
 Qed.
 
+Lemma kseqbis_alt k n m a : n < A k m -> kseqbis k n = nth n (kwordbis k m) a.
+Proof.
+ intros LE.
+ rewrite (kseqbis_SubstSeq k m).
+ change (napply _ _ _) with (kwordbis k m).
+ rewrite kwordbis_len, take_nth; auto.
+Qed.
+
 (** Link between [kseqbis] and Zeckendorf decomposition :
     0 iff rank 0,
     1 iff rank 1,
@@ -488,11 +607,7 @@ Qed.
     Hence 0 in [kseqbis] whenever the [f k] function is flat.
 *)
 
-Definition bounded_rankbis k n :=
- match rank k n with
- | None => S k
- | Some p => Nat.min p (S k)
- end.
+Definition bounded_rankbis k n := omin (rank k n) (S k).
 
 Lemma kseqbis_bounded_rank k n : kseqbis k n = bounded_rankbis k n.
 Proof.
@@ -507,19 +622,7 @@ Proof.
      split.
      + simpl; lia.
      + apply decomp_max. apply Delta_rev. now rewrite <- E'. }
-   assert (NE : NoErase (ksubstbis k)).
-   { red. intros c. unfold ksubstbis. now case Nat.ltb_spec. }
-   assert (PR : Prolong (ksubstbis k) (S k)).
-   { red. exists [0]. split. easy.
-     unfold ksubstbis. case Nat.ltb_spec; auto; try lia. }
-   assert (SU := substseq_exists _ _ NE PR (S a)).
-   unfold PrefixSeq in SU.
-   change (napply _ _ _) with (kwordbis k (S a)) in SU.
-   change (subst2seq _ _) with (kseqbis k) in SU.
-   rewrite kwordbis_len in SU.
-   replace (kseqbis k n) with (nth n (kwordbis k (S a)) 0).
-   2:{ rewrite SU. rewrite take_nth; auto. lia. }
-   clear SU.
+   rewrite (kseqbis_alt k n (S a) 0) by lia.
    destruct (Nat.le_gt_cases a k) as [LE|LT].
    + rewrite kwordbis_low by lia.
      destruct n as [|n]; try easy.
@@ -527,41 +630,108 @@ Proof.
      rewrite !A_base in H; try lia.
      replace n with a by lia.
      rewrite seq_nth by lia. simpl.
-     unfold bounded_rankbis, rank.
-     replace (S a) with (sumA k [a]).
-     2:{ rewrite <- (@A_base k a); simpl; lia. }
-     rewrite decomp_sum'; try constructor. rewrite Nat.min_l; auto; try lia.
+     unfold bounded_rankbis, rank. rewrite decomp_low; simpl; lia.
    + rewrite kwordbis_alt by auto.
      rewrite app_nth2; rewrite kwordbis_len; try lia.
-     set (m := n - A k a) in *.
-     assert (Hm : m < n) by (generalize (@A_nz k a); lia).
-     specialize (IH m Hm).
-     assert (SU' := substseq_exists _ _ NE PR (a-k)).
-     unfold PrefixSeq in SU'.
-     change (napply _ _ _) with (kwordbis k (a-k)) in SU'.
-     change (subst2seq _ _) with (kseqbis k) in SU'.
-     rewrite kwordbis_len in SU'.
-     rewrite SU', take_nth.
-     2:{ unfold m. simpl in H. lia. }
-     rewrite IH. clear SU' NE PR.
-     unfold m.
-     unfold bounded_rankbis, rank. fold l. rewrite E'.
-     simpl rev.
-     replace (n-A k a) with (sumA k (rev rl)).
-     2:{ rewrite <-E, E'. simpl. rewrite sumA_app. simpl. lia. }
-     rewrite decomp_sum'.
-     2:{ rewrite E' in D. simpl in D. apply Delta_app_iff in D. intuition. }
-     destruct (rev rl) eqn:E''; simpl; auto. rewrite Nat.min_r; auto.
+     rewrite <- kseqbis_alt by (simpl in H; lia).
+     rewrite IH by (generalize (@A_nz k a); lia).
+     unfold bounded_rankbis, rank. fold l; rewrite E'; simpl rev.
+     replace (decomp _ _) with (rev rl).
+     2:{ symmetry; apply decomp_carac.
+         - rewrite E' in D. simpl in D. now apply Delta_app_iff in D.
+         - revert E. rewrite E'. simpl. rewrite sumA_app. simpl. lia. }
+     destruct (rev rl); simpl; lia.
 Qed.
 
 Lemma kseqbis_kseq k n : kseq k n = Nat.min k (kseqbis k n).
 Proof.
  rewrite kseq_bounded_rank, kseqbis_bounded_rank.
  unfold bounded_rank, bounded_rankbis.
- destruct rank.
- - rewrite (Nat.min_comm _ (S k)), Nat.min_assoc.
-   rewrite (Nat.min_l k) by auto. apply Nat.min_comm.
- - rewrite Nat.min_l; auto.
+ destruct rank; simpl; lia.
+Qed.
+
+(** Counting letter a in word w *)
+
+Fixpoint nbocc a w :=
+ match w with
+ | [] => 0
+ | b::w' => nbocc a w' + if b =? a then 1 else 0
+ end.
+
+Lemma nbocc_app a u v : nbocc a (u++v) = nbocc a u + nbocc a v.
+Proof.
+ induction u; simpl; auto; lia.
+Qed.
+
+Fixpoint natsum f n :=
+  match n with
+  | 0 => 0
+  | S n => f n + natsum f n
+  end.
+
+Lemma natsum_ext f g n :
+  (forall m, m < n -> f m = g m) ->
+  natsum f n = natsum g n.
+Proof.
+ revert f g. induction n; simpl; auto.
+ intros f g E. f_equal; auto.
+Qed.
+
+Lemma natsum_0 n : natsum (fun _ => 0) n = 0.
+Proof.
+ induction n; simpl; auto.
+Qed.
+
+Lemma natsum_add f g n :
+ natsum (fun m => f m + g m) n = natsum f n + natsum g n.
+Proof.
+ induction n; simpl; auto. rewrite IHn; lia.
+Qed.
+
+Lemma natsum_test a n : a < n ->
+ natsum (fun m : nat => if a =? m then 1 else 0) n = 1.
+Proof.
+ revert a. induction n; intros a Ha.
+ - lia.
+ - simpl. case Nat.eqb_spec.
+   + intros ->. simpl. f_equal. erewrite natsum_ext. apply natsum_0.
+     intros; simpl. case Nat.eqb_spec; lia.
+   + intros. simpl. apply IHn; lia.
+Qed.
+
+Lemma nbocc_total u k :
+  (forall n, In n u -> n < k) ->
+  length u = natsum (fun n => nbocc n u) k.
+Proof.
+ induction u; simpl; intros H.
+ - now rewrite natsum_0.
+ - rewrite natsum_add. rewrite <- IHu. 2:intuition.
+   rewrite natsum_test. lia. apply H. now left.
+Qed.
+
+Definition listsum l := List.fold_right Nat.add 0 l.
+
+Lemma listsum_cons x l : listsum (x::l) = x + listsum l.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma listsum_app l l' : listsum (l++l') = listsum l + listsum l'.
+Proof.
+ induction l; simpl; rewrite ?IHl; lia.
+Qed.
+
+Lemma listsum_rev l : listsum (rev l) = listsum l.
+Proof.
+ induction l; simpl; auto.
+ rewrite listsum_app, IHl. simpl; lia.
+Qed.
+
+Lemma nbocc_concat a l :
+ nbocc a (concat l) = listsum (map (nbocc a) l).
+Proof.
+ induction l as [|w l IH]; simpl; auto.
+ rewrite nbocc_app. now f_equal.
 Qed.
 
 (** Counting letter 0 in [kseq k] leads back to the [f k] fonction.
@@ -572,6 +742,12 @@ Fixpoint count f a n :=
  | 0 => 0
  | S n => count f a n + if f n =? a then 1 else 0
  end.
+
+Lemma count_nbocc f a n : count f a n = nbocc a (take n f).
+Proof.
+ induction n; simpl; auto.
+ rewrite nbocc_app. simpl. now f_equal.
+Qed.
 
 Lemma f_count_0 k n : k<>0 -> count (kseq k) 0 n + f k n = n.
 Proof.
@@ -606,10 +782,10 @@ Proof.
    unfold bounded_rank.
    destruct (fs_step k p n) as [E|E].
    + rewrite E. rewrite fs_flat_low_rank in E by lia.
-     destruct (rank k n); try easy.
+     destruct (rank k n); simpl; try easy.
      red in E. case Nat.leb_spec; lia.
    + rewrite E. rewrite fs_nonflat_high_rank in E by lia.
-     destruct (rank k n); unfold olt in E; case Nat.leb_spec; lia.
+     destruct (rank k n); simpl in *; case Nat.leb_spec; lia.
 Qed.
 
 (* Particular case : p=k *)
@@ -619,81 +795,13 @@ Lemma count_above_kseq_k k n :
 Proof.
  induction n; simpl; auto.
  rewrite kseq_bounded_rank. unfold bounded_rank.
- destruct (rank k n); case Nat.leb_spec; case Nat.eqb_spec; lia.
+ destruct (rank k n); simpl in *; case Nat.leb_spec; case Nat.eqb_spec; lia.
 Qed.
 
 Lemma fs_count_k k n : Nat.iter k (f k) n = count (kseq k) k n.
 Proof.
  rewrite fs_count_above by lia.
  apply count_above_kseq_k.
-Qed.
-
-(* aux *)
-
-Lemma Prefix_len u v : Prefix u v -> length u <= length v.
-Proof.
- intros (w,<-). rewrite app_length. lia.
-Qed.
-
-Lemma apply_alt s w : apply s w = concat (map s w).
-Proof.
- induction w; simpl; auto. now f_equal.
-Qed.
-
-Lemma apply_grow s w : NoErase s -> length w <= length (apply s w).
-Proof.
- intros NE.
- induction w; simpl; auto.
- rewrite app_length. specialize (NE a). destruct (s a); simpl; lia || easy.
-Qed.
-
-Lemma napply_mono s n m w :
- NoErase s -> n <= m -> length (napply s n w) <= length (napply s m w).
-Proof.
- induction 2; auto.
- rewrite IHle. clear IHle H0. rewrite napply_alt. now apply apply_grow.
-Qed.
-
-Lemma napply_nil s n : napply s n [] = [].
-Proof.
- induction n; simpl; auto.
-Qed.
-
-Lemma napply_concat s n w :
-  napply s n w = concat (map (fun a => napply s n [a]) w).
-Proof.
- induction w; simpl; auto using napply_nil.
- rewrite napply_cons. now f_equal.
-Qed.
-
-Lemma Prefix_nil u : Prefix u [] -> u = [].
-Proof.
- intros Pr. apply Prefix_len in Pr. simpl in Pr. now destruct u.
-Qed.
-
-Lemma Prefix_cons a u v : Prefix u v -> Prefix (a::u) (a::v).
-Proof.
- intros (w,<-). now exists w.
-Qed.
-
-Lemma Prefix_id w : Prefix w w.
-Proof.
- exists []. apply app_nil_r.
-Qed.
-
-Lemma Prefix_app u v w :
- Prefix u (v++w) -> Prefix u v \/ exists u', u = v++u' /\ Prefix u' w.
-Proof.
- revert v w.
- induction u.
- - intros v w _. left. now exists v.
- - intros v w (t,E). simpl in E.
-   destruct v.
-   + right. exists (a::u). split; auto. now exists t.
-   + injection E as <- E.
-     destruct (IHu v w) as [IH|(u',IH)]; try now exists t.
-     * left. now apply Prefix_cons.
-     * right. exists u'. simpl; split. now f_equal. apply IH.
 Qed.
 
 (* From a Prefix of napply of a word to a prefix of napply of a letter *)
@@ -759,3 +867,65 @@ Proof.
      intros y. rewrite in_map_iff. intros ((m,y') & <- & IN). simpl.
      rewrite Forall_forall in F. apply F in IN. lia.
 Qed.
+
+(* Full decomposition of any prefix of kword, then kseq *)
+
+Lemma decomp_prefix_kword k w n l :
+ Prefix w (kword k n) ->
+ l = rev (decomp k (length w)) ->
+ w = concat (map (kword k) l).
+Proof.
+ revert w l. induction n as [n IH] using lt_wf_ind.
+ intros w l P.
+ destruct (Nat.le_gt_cases n (S k)).
+ - clear IH. rewrite kword_low in * by trivial.
+   destruct (Prefix_cons_inv _ _ _ P) as [->|(w' & E' & P')].
+   + simpl. now intros ->.
+   + assert (LE := Prefix_len _ _ P'). rewrite seq_length in LE.
+     apply Prefix_seq in P'.
+     rewrite E'. simpl length. set (p := length w') in *.
+     rewrite decomp_low by lia.
+     replace (S _ -1) with p by lia. intros ->. simpl.
+     rewrite kword_low, <-P', app_nil_r by lia. trivial.
+ - assert (P' := P). destruct P' as ([|a u] & E).
+   + rewrite app_nil_r in E. rewrite E. rewrite kword_len.
+     replace (decomp k (A k n)) with [n].
+     2:{ symmetry; apply decomp_carac; try constructor; simpl; auto. }
+     intros ->. simpl. now rewrite app_nil_r.
+   + assert (LT : length w < A k n).
+     { rewrite <- kword_len, <- E, app_length. simpl. lia. }
+     clear  E.
+     destruct n; [lia|].
+     rewrite kword_alt in P by lia.
+     apply Prefix_app in P. destruct P as [P|(w' & -> & P)].
+     * apply (IH n); auto.
+     * rewrite app_length, kword_len in *.
+       rewrite Nat.add_comm, decomp_plus_A by (simpl in LT; lia).
+       rewrite rev_app_distr. intros ->. simpl.
+       f_equal. apply (IH (n-k)); auto. lia.
+Qed.
+
+Lemma decomp_prefix_kseq k n :
+ take n (kseq k) = concat (map (kword k) (rev (decomp k n))).
+Proof.
+ assert (H := invA_spec k n). set (m := invA k n) in *.
+ assert (H' : n <= A k (S m)) by lia. clear H. clearbody m.
+ apply (decomp_prefix_kword _ _ (S m)).
+ - apply Prefix_nth. intros p a. rewrite take_length. intros LT.
+   rewrite take_nth by trivial.
+   apply kseq_alt; lia.
+ - now rewrite take_length.
+Qed.
+
+Lemma count_kseq_decomp k n a :
+ count (kseq k) a n =
+  listsum (map (fun m => nbocc a (kword k m)) (decomp k n)).
+Proof.
+ rewrite count_nbocc, decomp_prefix_kseq, nbocc_concat.
+ now rewrite map_map, map_rev, listsum_rev.
+Qed.
+(*
+   TODO:
+   ensuite nbocc a (kword k m) = (matrice_occurrence^m) * projection ...
+   puis faire idem avec Delta (et matrice reduite) au lieu de Count
+*)

@@ -630,6 +630,26 @@ Proof.
  intros D. now apply decomp_carac.
 Qed.
 
+Lemma decomp_low k n : 1 <= n <= k+2 -> decomp k n = [n-1].
+Proof.
+ intros.
+ apply decomp_carac. constructor. cbn. rewrite A_base; lia.
+Qed.
+
+Lemma decomp_plus_A k n p :
+  p < A k (n-k) -> decomp k (p + A k n) = decomp k p ++ [n].
+Proof.
+ intros LT.
+ apply decomp_carac.
+ - apply Delta_app_iff; repeat split;
+     [apply decomp_delta|constructor|].
+   intros x x' Hx [<-|[ ]].
+   apply decomp_in in Hx.
+   assert (LT' := Nat.le_lt_trans _ _ _ Hx LT).
+   apply A_lt_inv in LT'. lia.
+ - rewrite sumA_app, decomp_sum. simpl. lia.
+Qed.
+
 (** ** Normalisation of a Fibonacci decomposition.
 
     Starting from an relaxed decomposition (with gaps

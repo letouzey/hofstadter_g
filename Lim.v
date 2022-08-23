@@ -886,6 +886,8 @@ End K_2.
 
 (* TODO : Dans le cas général :
 
+  A k n / mu^n ---> Cst avec Cst<>0
+
   A k (S n) / A k n ---> mu k
 
   f k n / n ---> tau k
