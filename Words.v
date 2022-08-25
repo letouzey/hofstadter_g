@@ -1,4 +1,4 @@
-Require Import DeltaList GenFib GenG.
+Require Import DeltaList FunG GenFib GenG.
 Import ListNotations.
 
 (** * Morphic words
@@ -355,6 +355,30 @@ Proof.
  apply substseq_exists. apply ksubst_noerase. apply ksubst_prolong.
 Qed.
 
+Lemma kword_S k n : kword k (S n) = apply (ksubst k) (kword k n).
+Proof.
+ apply napply_alt.
+Qed.
+
+(** kword letters are always in 0..k *)
+
+Lemma ksubst_letters k w :
+ Forall (fun a => a <= k) w ->
+ Forall (fun a => a <= k) (apply (ksubst k) w).
+Proof.
+ induction w; simpl; auto.
+ intros H; inversion_clear H. apply Forall_app. split; auto.
+ unfold ksubst.
+ case Nat.eqb_spec; intro; repeat (constructor; try lia).
+Qed.
+
+Lemma kword_letters k n : Forall (fun a => a <= k) (kword k n).
+Proof.
+ unfold kword. induction n.
+ - simpl. now constructor.
+ - rewrite napply_alt. now apply ksubst_letters.
+Qed.
+
 (** Initial values *)
 
 Lemma kword_0 k : kword k 0 = [k].
@@ -428,6 +452,13 @@ Proof.
  rewrite (kseq_SubstSeq k m).
  change (napply _ _ _) with (kword k m).
  rewrite kword_len, take_nth; auto.
+Qed.
+
+Lemma kseq_take_A k n : take (A k n) (kseq k) = kword k n.
+Proof.
+ apply take_carac.
+ - apply kword_len.
+ - intros. symmetry. now apply kseq_alt.
 Qed.
 
 (** Link between [kseq] and Zeckendorf decomposition :
@@ -699,14 +730,22 @@ Proof.
    + intros. simpl. apply IHn; lia.
 Qed.
 
-Lemma nbocc_total u k :
-  (forall n, In n u -> n < k) ->
+Lemma nbocc_total_lt u k :
+  Forall (fun n => n < k) u ->
   length u = natsum (fun n => nbocc n u) k.
 Proof.
  induction u; simpl; intros H.
  - now rewrite natsum_0.
- - rewrite natsum_add. rewrite <- IHu. 2:intuition.
-   rewrite natsum_test. lia. apply H. now left.
+ - inversion_clear H. rewrite natsum_add. rewrite IHu by trivial.
+   rewrite natsum_test; simpl; lia.
+Qed.
+
+Lemma nbocc_total_le u k :
+  Forall (fun n => n <= k) u ->
+  length u = natsum (fun n => nbocc n u) (S k).
+Proof.
+ intros H. apply nbocc_total_lt. eapply Forall_impl; eauto.
+ simpl; intros; lia.
 Qed.
 
 Definition listsum l := List.fold_right Nat.add 0 l.
@@ -773,7 +812,7 @@ Fixpoint count_above f a n :=
  end.
 
 Lemma fs_count_above k p n :
-  p <= k -> Nat.iter p (f k) n = count_above (kseq k) p n.
+  p <= k -> (f k ^^p) n = count_above (kseq k) p n.
 Proof.
  intros Hp.
  induction n.
@@ -798,7 +837,7 @@ Proof.
  destruct (rank k n); simpl in *; case Nat.leb_spec; case Nat.eqb_spec; lia.
 Qed.
 
-Lemma fs_count_k k n : Nat.iter k (f k) n = count (kseq k) k n.
+Lemma fs_count_k k n : (f k ^^k) n = count (kseq k) k n.
 Proof.
  rewrite fs_count_above by lia.
  apply count_above_kseq_k.
@@ -924,8 +963,56 @@ Proof.
  rewrite count_nbocc, decomp_prefix_kseq, nbocc_concat.
  now rewrite map_map, map_rev, listsum_rev.
 Qed.
-(*
-   TODO:
-   ensuite nbocc a (kword k m) = (matrice_occurrence^m) * projection ...
-   puis faire idem avec Delta (et matrice reduite) au lieu de Count
+
+(* Special case k=2
+
+ 0 -> 1
+ 1 -> 2
+ 2 -> 20
+
+ Occurrence matrix :
+
+ 001
+ 100
+ 011
+
 *)
+
+Lemma nbocc_ksubst2 w :
+ let s := apply (ksubst 2) in
+ nbocc 0 (s w) = nbocc 2 w /\
+ nbocc 1 (s w) = nbocc 0 w /\
+ nbocc 2 (s w) = nbocc 1 w + nbocc 2 w.
+Proof.
+ induction w; simpl; auto.
+ rewrite !nbocc_app.
+ destruct IHw as (-> & -> & ->).
+ destruct a as [|[|[|n]]]; simpl; lia.
+Qed.
+
+Definition tripleocc w := (nbocc 0 w, nbocc 1 w, nbocc 2 w).
+
+Definition occurmatrix '(x,y,z) : nat*nat*nat := (z,x,y+z).
+
+Lemma nbocc_ksubst2_bis w :
+ tripleocc (apply (ksubst 2) w) = occurmatrix (tripleocc w).
+Proof.
+ unfold tripleocc.
+ now destruct (nbocc_ksubst2 w) as (-> & -> & ->).
+Qed.
+
+Lemma len_alt w :
+  Forall (fun a => a <= 2) w ->
+  length w = nbocc 0 w + nbocc 1 w + nbocc 2 w.
+Proof.
+ intros. rewrite nbocc_total_le with (k:=2); simpl; auto; lia.
+Qed.
+
+Lemma len_ksubst2 w :
+ length (apply (ksubst 2) w) = length w + nbocc 2 w.
+Proof.
+ induction w; simpl; auto.
+ rewrite app_length, IHw.
+ unfold ksubst at 1.
+ case Nat.eqb_spec; simpl; lia.
+Qed.

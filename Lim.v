@@ -1,7 +1,7 @@
 
 From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
 From Coquelicot Require Import Complex Lim_seq.
-Require Import GenFib GenG Words.
+Require Import FunG GenFib GenG Words.
 
 Open Scope Z.
 Open Scope R.
@@ -852,6 +852,324 @@ Proof.
    rewrite is_lim_seq_incr_1 in L. apply L.
 Qed.
 
+(* Occurrences of letters in (Words.kseq 2)
+   and consequences for (f 2) and (f 2)^^2 *)
+
+Definition Delta0 w := tau^3 * INR (length w) - INR (nbocc 0 w).
+Definition Delta2 w := tau^2 * INR (length w) - INR (nbocc 2 w).
+
+Definition delta0 n := Delta0 (take n (kseq 2)).
+Definition delta2 n := Delta2 (take n (kseq 2)).
+
+Lemma tau3 : tau^3 = 1 - tau.
+Proof.
+ assert (E := tau_carac 2). fold tau in E. lra.
+Qed.
+
+Lemma tau234 : tau^2 + tau^3 + tau^4 = 1.
+Proof.
+ assert (E := tau3).
+ assert (E' := E). apply (Rmult_eq_compat_l tau) in E'.
+ ring_simplify in E'. lra.
+Qed.
+
+Lemma Delta0_ksubst2 w :
+  Delta0 (apply (ksubst 2) w) = tau * Delta2 w.
+Proof.
+ unfold Delta0, Delta2.
+ rewrite len_ksubst2, plus_INR.
+ destruct (nbocc_ksubst2 w) as (-> & _ & _).
+ ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
+ rewrite tau3. lra.
+Qed.
+
+Lemma Delta2_ksubst2 w :
+  List.Forall (fun a => a <= 2)%nat w ->
+  Delta2 (apply (ksubst 2) w) = - tau^2 * Delta2 w - Delta0 w.
+Proof.
+ intros H.
+ unfold Delta0, Delta2.
+ rewrite len_ksubst2.
+ destruct (nbocc_ksubst2 w) as (_ & _ & ->).
+ rewrite !plus_INR.
+ replace (INR (nbocc 1 w) + INR (nbocc 2 w)) with
+     (INR (length w) - INR (nbocc 0 w)).
+ 2:{ apply len_alt in H. rewrite H. rewrite !plus_INR. lra. }
+ ring_simplify.
+ replace (tau^4) with (1-tau^2-tau^3) by (generalize tau234; lra).
+ unfold letter in *. lra.
+Qed.
+
+Lemma delta0_alt n :
+  delta0 n = INR (f 2 n) - tau * INR n.
+Proof.
+ unfold delta0, Delta0. rewrite take_length.
+ rewrite <- count_nbocc.
+ rewrite tau3. rewrite Rmult_minus_distr_r.
+ rewrite <- (f_count_0 2 n) at 1 by easy. rewrite plus_INR. lra.
+Qed.
+
+Lemma delta2_alt n :
+  delta2 n = tau^2 * INR n - INR ((f 2 ^^2) n).
+Proof.
+ unfold delta2, Delta2. rewrite take_length.
+ rewrite <- count_nbocc.
+ now rewrite fs_count_k.
+Qed.
+
+Definition coefa2 := ((alpha*(tau^2-1)-tau^3)/(alpha-alphabar))%C.
+Definition coefa0 := (alphabar * coefa2)%C.
+
+Lemma re_coefa2 : 2*Re coefa2 = tau^2-1.
+Proof.
+ unfold coefa2.
+ change alphabar with (Cconj alpha). rewrite im_alt'.
+ change (Im alpha) with im_alpha.
+ unfold Cdiv.
+ replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
+ 2:{ field; repeat split; try cconst.
+     negapply RtoC_inj; apply im_alpha_nz. }
+ rewrite invCi.
+ replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
+ rewrite !Cmult_assoc.
+ rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
+  by (generalize im_alpha_nz; lra).
+ rewrite re_scal_r, ReCi.
+ simpl. field. apply im_alpha_nz.
+Qed.
+
+Lemma re_coefa0 : 2*Re coefa0 = tau^3.
+Proof.
+ unfold coefa0, coefa2. unfold Cdiv.
+ rewrite Cmult_assoc.
+ replace (alphabar * _)%C
+  with ((alpha * alphabar) * (tau^2-1) - alphabar * tau^3)%C by ring.
+ rewrite <- Cmod2_conj, alphamod.
+ change alphabar with (Cconj alpha) at 2. rewrite im_alt'.
+ change (Im alpha) with im_alpha.
+ replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
+ 2:{ field; repeat split; try cconst.
+     negapply RtoC_inj; apply im_alpha_nz. }
+ rewrite invCi.
+ replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
+ rewrite !Cmult_assoc.
+ rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
+  by (generalize im_alpha_nz; lra).
+ rewrite re_scal_r, ReCi.
+ simpl. field. apply im_alpha_nz.
+Qed.
+
+Lemma delta_A n :
+ delta0 (A 2 n) = 2 * Re(coefa0 * alpha^n)%C /\
+ delta2 (A 2 n) = 2 * Re(coefa2 * alpha^n)%C.
+Proof.
+ induction n as [|n IH].
+ - simpl A. simpl Cpow.
+   unfold delta0, delta2. simpl take. change (kseq 2 0) with 2%nat.
+   unfold Delta0, Delta2. simpl length. simpl nbocc.
+   rewrite !Cmult_1_r. rewrite re_coefa0, re_coefa2. simpl; lra.
+ - unfold delta0, delta2.
+   rewrite kseq_take_A, kword_S.
+   rewrite Delta0_ksubst2, Delta2_ksubst2 by (apply kword_letters).
+   rewrite <- kseq_take_A. fold (delta0 (A 2 n)) (delta2 (A 2 n)).
+   destruct IH as (-> & ->).
+   simpl Cpow.
+   split.
+   + rewrite Cmult_assoc. rewrite (Cmult_comm coefa0). unfold coefa0.
+     rewrite Cmult_assoc. change alphabar with (Cconj alpha).
+     rewrite <- Cmod2_conj, alphamod.
+     rewrite <- Cmult_assoc, re_scal_l. lra.
+   + unfold coefa0.
+     rewrite (Cmult_assoc coefa2), (Cmult_comm coefa2 alpha).
+     rewrite <- !Cmult_assoc.
+     set (c := (coefa2 * (alpha^n))%C).
+     replace (-tau^2*(2*Re c)-2*Re (alphabar * c)) with
+         (2 * ((-tau^2)*Re c + (-1)*(Re (alphabar * c)))) by ring.
+     f_equal.
+     rewrite <-!re_scal_l, <-re_plus.
+     f_equal.
+     rewrite Cmult_assoc. rewrite <- Cmult_plus_distr_r. f_equal.
+     replace (-tau^2) with (2*re_alpha) by (rewrite re_alpha_alt; lra).
+     rewrite RtoC_mult.
+     change re_alpha with (Re alpha).
+     rewrite re_alt.
+     change (Cconj alpha) with alphabar.
+     change (-1) with (-(1)). rewrite RtoC_opp. field. cconst.
+Qed.
+
+Definition Rlistsum l := List.fold_right Rplus 0 l.
+
+Lemma Rlistsum_cons x l : Rlistsum (x::l) = x + Rlistsum l.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Rlistsum_app l l' : Rlistsum (l++l') = Rlistsum l + Rlistsum l'.
+Proof.
+ induction l; simpl; rewrite ?IHl; lra.
+Qed.
+
+Lemma Rlistsum_rev l : Rlistsum (List.rev l) = Rlistsum l.
+Proof.
+ induction l; simpl; auto.
+ rewrite Rlistsum_app, IHl. simpl; lra.
+Qed.
+
+Lemma Delta0_app u v : Delta0 (u++v) = Delta0 u + Delta0 v.
+Proof.
+ unfold Delta0.
+ rewrite List.app_length, nbocc_app, !plus_INR. lra.
+Qed.
+
+Lemma Delta0_concat l : Delta0 (List.concat l) = Rlistsum (List.map Delta0 l).
+Proof.
+ induction l; simpl; auto.
+ - unfold Delta0. simpl. lra.
+ - rewrite Delta0_app. lra.
+Qed.
+
+Lemma delta0_decomp_eqn n :
+  delta0 n =
+   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C) (decomp 2 n)).
+Proof.
+ unfold delta0.
+ rewrite decomp_prefix_kseq.
+ rewrite Delta0_concat, List.map_map, List.map_rev, Rlistsum_rev.
+ f_equal.
+ apply List.map_ext; intros.
+ rewrite <- kseq_take_A. apply delta_A.
+Qed.
+
+Lemma delta0_decomp_bound n :
+ Rabs (delta0 n) <=
+  2 * Cmod coefa0 * Rlistsum (List.map (pow (Cmod alpha)) (decomp 2 n)).
+Proof.
+ rewrite delta0_decomp_eqn.
+ induction decomp.
+ - simpl. rewrite Rabs_R0. lra.
+ - cbn -[Re].
+   eapply Rle_trans. apply Rabs_triang.
+   rewrite Rmult_plus_distr_l.
+   apply Rplus_le_compat; [|apply IHl].
+   rewrite Rabs_mult. rewrite Rabs_right by lra.
+   rewrite Rmult_assoc.
+   apply Rmult_le_compat_l; try lra.
+   rewrite <- Cmod_pow, <-Cmod_mult.
+   apply re_le_cmod.
+Qed.
+
+Lemma Rle_pow_low r n m : 0<=r<1 -> (n<=m)%nat -> r^m <= r^n.
+Proof.
+ induction 2; try lra.
+ simpl. apply Rle_trans with (1 * r^m); try lra.
+ apply Rmult_le_compat_r; try lra. apply pow_le; lra.
+Qed.
+
+Lemma sum_pow_Delta l n r :
+  0<=r<1 -> DeltaList.Delta 3 (n::l) ->
+  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^3).
+Proof.
+ intros Hr.
+ assert (H3 : 0 <= r^3 < 1).
+ { apply pow_lt_1_compat. lra. lia. }
+ revert n.
+ induction l.
+ - intros n _. cbn -[pow].
+   rewrite Rplus_0_r.
+   apply Rcomplements.Rle_div_r; try lra.
+   rewrite <- (Rmult_1_r (r^n)) at 2.
+   apply Rmult_le_compat_l; try lra.
+   apply pow_le; lra.
+ - intros n. inversion_clear 1.
+   change (Rlistsum _) with (r^n + Rlistsum (List.map (pow r) (a::l))).
+   eapply Rle_trans. eapply Rplus_le_compat_l. apply IHl; eauto.
+   apply Rcomplements.Rle_div_r; try lra.
+   field_simplify; try lra.
+   rewrite <- Ropp_mult_distr_l, <- pow_add.
+   assert (r^a <= r^(n+3)). { apply Rle_pow_low; auto. }
+   lra.
+Qed.
+
+Lemma sum_pow_Delta' l r :
+  0<=r<1 -> DeltaList.Delta 3 l ->
+  Rlistsum (List.map (pow r) l) <= /(1-r^3).
+Proof.
+ intros Hr D.
+ assert (H3 : 0 <= r^3 < 1).
+ { apply pow_lt_1_compat. lra. lia. }
+ destruct l as [|n l].
+ - cbn -[pow].
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rcomplements.Rle_div_r; try lra.
+ - eapply Rle_trans. apply sum_pow_Delta; auto.
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rmult_le_compat_r.
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rcomplements.Rle_div_r; try lra.
+   rewrite <-(pow1 n).
+   apply pow_maj_Rabs. rewrite Rabs_right; lra.
+Qed.
+
+Lemma delta0_indep_bound n :
+ Rabs (delta0 n) <= 2 * Cmod coefa0 / (1 - (Cmod alpha)^3).
+Proof.
+ eapply Rle_trans. apply delta0_decomp_bound.
+ unfold Rdiv.
+ apply Rmult_le_compat_l.
+ - generalize (Cmod_ge_0 coefa0). lra.
+ - apply sum_pow_Delta'; try apply decomp_delta.
+   split. apply Cmod_ge_0.
+   rewrite <- (Rabs_right (Cmod alpha)) by apply Rle_ge, Cmod_ge_0.
+   rewrite <- (Rabs_right 1) by lra.
+   apply Rsqr_lt_abs_0.
+   rewrite !Rsqr_pow2.
+   rewrite alphamod. generalize tau_2. fold tau. lra.
+Qed.
+
+(* Experimentally, this first bound is around 1.112.
+   Having this finite bound is enough to prove that (f 2 n)/n
+   converges towards tau.
+   We will prove later a better bound, strictly below 1.
+*)
+
+Lemma Lim_H_div_n :
+ is_lim_seq (fun n => INR (f 2 n) / INR n) tau.
+Proof.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_ext with
+  (u := fun n => tau + delta0 (S n) / INR (S n)).
+ - intros n. rewrite delta0_alt. field. rewrite S_INR.
+   generalize (pos_INR n). lra.
+ - replace (Rbar.Finite tau) with (Rbar.Finite (tau + 0)) by (f_equal; lra).
+   eapply is_lim_seq_plus'. apply is_lim_seq_const.
+   set (K := 2 * Cmod coefa0 / (1 - (Cmod alpha)^3)).
+   apply is_lim_seq_le_le with
+     (u := fun n => -K / (INR (S n)))
+     (w := fun n => K / (INR (S n))).
+   + intros n.
+     assert (LE := delta0_indep_bound (S n)). fold K in LE.
+     apply Rcomplements.Rabs_le_between in LE.
+     assert (0 <= / INR (S n)).
+     { rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos; try lra.
+       rewrite S_INR. generalize (pos_INR n). lra. }
+     split; unfold Rdiv; apply Rmult_le_compat_r; lra.
+   + apply (is_lim_seq_div _ _ (-K) Rbar.p_infty); try easy.
+     * apply is_lim_seq_const.
+     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+     * red. red. simpl. now rewrite Rmult_0_r.
+   + apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
+     * apply is_lim_seq_const.
+     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+     * red. red. simpl. now rewrite Rmult_0_r.
+Qed.
+
+(* NB : Classical reals are now Dedekind cuts,
+   just 4 logical axioms remaining :)
+*)
+
+(* Print Assumptions Lim_H_div_n. *)
+
+End K_2.
 
 (* For complex numbers and matrices :
 
@@ -881,8 +1199,6 @@ Pour k=4, racines complexes : j et bar(j) connus, et ensuite
 
 
 *)
-
-End K_2.
 
 (* TODO : Dans le cas général :
 
