@@ -1574,6 +1574,38 @@ Proof.
            lia. }
 Qed.
 
+Lemma Clistsum_delta N l :
+  DeltaList.Delta 3 l -> Below l N ->
+  Cmod (Clistsum (List.map (Cpow alpha) l)) <=
+   Cmod (1+alpha^3+alpha^7)%C/(1-(Cmod alpha)^9).
+Proof.
+ revert l.
+ induction N as [N IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases N 9).
+ - clear IH. intros l D B.
+   eapply Rle_trans. apply best_3pack; auto.
+   unfold Below in *. intros y Hy. specialize (B y Hy). lia.
+   rewrite <- (Rmult_1_r (Cmod _)) at 1. unfold Rdiv.
+   apply Rmult_le_compat_l; try apply Cmod_ge_0.
+   rewrite <- (Rmult_1_l (/ _)).
+   assert (P := Cmod_ge_0 alpha).
+   apply Rcomplements.Rle_div_r.
+   + assert (Cmod alpha < 1).
+     { apply Rsqr_incrst_0; try lra.
+       rewrite !Rsqr_pow2. rewrite alphamod. generalize tau_approx; lra. }
+     apply Rlt_Rminus.
+     change ((Cmod alpha)^9) with ((Cmod alpha)*(Cmod alpha)^8).
+     apply Rle_lt_trans with (Cmod alpha * 1); try lra.
+     apply Rmult_le_compat_l; try lra.
+     rewrite <- (pow1 8).
+     apply pow_incr. lra.
+   + apply pow_le with (n:=9%nat) in P. lra.
+ - intros l D B. destruct (cut_lt_ge 9 l) as (l1,l2) eqn:E.
+   assert (E' := cut_app 9 l). rewrite E in E'. rewrite <- E'.
+   rewrite List.map_app, Clistsum_app.
+   admit.
+Admitted.
+
 End K_2.
 
 (* For complex numbers and matrices :
