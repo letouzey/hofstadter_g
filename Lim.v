@@ -1,7 +1,7 @@
 
 From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
 From Coquelicot Require Import Complex Lim_seq.
-Require Import FunG GenFib GenG Words.
+Require Import FunG GenFib GenG GenAdd Words.
 
 Open Scope Z.
 Open Scope R.
@@ -274,6 +274,15 @@ Proof.
  cconst.
 Qed.
 
+Lemma Ceq_minus (c c' : C) : c = c' <-> c-c' = 0.
+Proof.
+ split; intros H.
+ - subst c. ring.
+ - destruct c as (x,y), c' as (x',y'). compute in H.
+   injection H as Hx Hy.
+   f_equal. lra. lra.
+Qed.
+
 Fixpoint Cpow (c : C) n : C :=
  match n with
  | O => 1
@@ -286,6 +295,16 @@ Global Infix "^" := Cpow : C_scope.
 Lemma Cpow_1_l n : 1^n = 1.
 Proof.
  induction n; simpl; auto. rewrite IHn. ring.
+Qed.
+
+Lemma Cpow_1_r c : c^1 = c.
+Proof.
+ simpl. ring.
+Qed.
+
+Lemma Cpow_S c n : c^(S n) = c*c^n.
+Proof.
+ reflexivity.
 Qed.
 
 Lemma Cpow_add c n m : c^(n+m) = c^n*c^m.
@@ -502,6 +521,37 @@ End ExtraC.
 Import ExtraC.
 Global Arguments Cpow _%C _%nat.
 Global Infix "^" := Cpow : C_scope.
+(* Sums of (list R) and (list C). *)
+
+Definition Rlistsum l := List.fold_right Rplus 0 l.
+
+Lemma Rlistsum_cons x l : Rlistsum (x::l) = x + Rlistsum l.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Rlistsum_app l l' : Rlistsum (l++l') = Rlistsum l + Rlistsum l'.
+Proof.
+ induction l; simpl; rewrite ?IHl; lra.
+Qed.
+
+Lemma Rlistsum_rev l : Rlistsum (List.rev l) = Rlistsum l.
+Proof.
+ induction l; simpl; auto.
+ rewrite Rlistsum_app, IHl. simpl; lra.
+Qed.
+
+Definition Clistsum l := List.fold_right Cplus 0%C l.
+
+Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
+Proof.
+ induction l; simpl; rewrite ?IHl; ring.
+Qed.
 
 Module K_2.
 
@@ -517,14 +567,56 @@ Definition im_alpha := sqrt (tau * (3+tau))/2.
 Definition alpha : C := (re_alpha, im_alpha).
 Definition alphabar : C := (re_alpha, - im_alpha).
 
+Lemma tau3 : tau^3 = 1 - tau.
+Proof.
+ assert (E := tau_carac 2). fold tau in E. lra.
+Qed.
+
+Lemma tau234 : tau^2 + tau^3 + tau^4 = 1.
+Proof.
+ assert (E := tau3).
+ assert (E' := E). apply (Rmult_eq_compat_l tau) in E'.
+ ring_simplify in E'. lra.
+Qed.
+
+Lemma tau4 : tau^4 = tau - tau^2.
+Proof.
+ generalize tau234. rewrite tau3. lra.
+Qed.
+
+Lemma tau5 : tau^5 = tau + tau^2 - 1.
+Proof.
+ change (tau^5) with (tau*tau^4). rewrite tau4. ring_simplify.
+ rewrite tau3. ring.
+Qed.
+
+Lemma tau6 : tau^6 = (1-tau)^2.
+Proof.
+ change 6%nat with (3*2)%nat. now rewrite pow_mult, tau3.
+Qed.
+
+Lemma tau_approx : 0.6823 < tau < 0.6824.
+Proof.
+ apply tau_2.
+Qed.
+
+Lemma tau2_approx : 0.46553 < tau^2 < 0.46567.
+Proof.
+ assert (H := tau_approx).
+ simpl. rewrite Rmult_1_r. split.
+ - apply Rlt_trans with (0.6823*0.6823); try lra.
+   apply Rmult_le_0_lt_compat; lra.
+ - apply Rlt_trans with (0.6824*0.6824); try lra.
+   apply Rmult_le_0_lt_compat; lra.
+Qed.
+
 Lemma re_alpha_alt : re_alpha = - tau ^ 2 / 2.
 Proof.
  unfold re_alpha. f_equal.
  unfold mu. rewrite tau_inv. fold tau.
- assert (tau <> 0) by (unfold tau; generalize tau_2; lra).
+ assert (tau <> 0) by (generalize tau_approx; lra).
  apply Rmult_eq_reg_l with (tau); trivial.
- field_simplify; trivial.
- generalize (tau_carac 2); fold tau; lra.
+ field_simplify; trivial. rewrite tau3. lra.
 Qed.
 
 Lemma im_alpha_2 : im_alpha ^ 2 = tau * (3+tau) / 4.
@@ -532,7 +624,7 @@ Proof.
  unfold im_alpha.
  unfold Rdiv.
  rewrite Rpow_mult_distr, pow2_sqrt; try lra.
- apply Rmult_le_pos; generalize (tau_2); fold tau; lra.
+ apply Rmult_le_pos; generalize tau_approx; lra.
 Qed.
 
 Lemma alphamod : (Cmod alpha)^2 = tau.
@@ -542,11 +634,7 @@ Proof.
  2: generalize (pow2_ge_0 (fst alpha)) (pow2_ge_0 (snd alpha)); lra.
  unfold alpha; simpl. ring_simplify.
  rewrite im_alpha_2. rewrite re_alpha_alt.
- field_simplify.
- assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
- replace ((tau)^4) with ((tau)^3 * tau) by field.
- rewrite H.
- field.
+ field_simplify. rewrite tau4. field.
 Qed.
 
 Lemma mu_is_Croot : (mu ^3 = mu ^2 + 1)%C.
@@ -562,21 +650,14 @@ Proof.
    rewrite im_alpha_2, re_alpha_alt.
    unfold Rdiv. rewrite !Rpow_mult_distr.
    field_simplify.
-   assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
-   replace ((tau)^6) with (((tau)^3)^2) by field.
-   replace ((tau)^4) with ((tau)^3 * tau) by field.
-   rewrite H.
-   lra.
+   rewrite tau6, tau4, tau3. field.
  - replace (im_alpha ^ 3) with (im_alpha^2 * im_alpha) by ring.
    cut ((3* re_alpha^2 - im_alpha^2)*im_alpha = (2 * re_alpha)*im_alpha);
     try lra.
    f_equal.
    rewrite im_alpha_2. rewrite re_alpha_alt.
    field_simplify.
-   assert ((tau)^3 = 1 - tau) by (generalize (tau_carac 2); fold tau; lra).
-   replace ((tau)^4) with ((tau)^3 * tau) by field.
-   rewrite H.
-   lra.
+   rewrite tau4. field.
 Qed.
 
 Lemma alphabar_is_root : (alphabar^3 = alphabar^2 + 1)%C.
@@ -595,7 +676,7 @@ Lemma im_alpha_nz : im_alpha <> 0.
 Proof.
  assert (LT : 0 < im_alpha ^2).
  { rewrite im_alpha_2. unfold Rdiv.
-   repeat apply Rmult_lt_0_compat; unfold tau; generalize tau_2; lra. }
+   repeat apply Rmult_lt_0_compat; generalize tau_approx; lra. }
  apply sqrt_lt_R0 in LT. rewrite sqrt_pow2 in LT.
  lra.
  unfold im_alpha. apply Rle_mult_inv_pos; try lra. apply sqrt_pos.
@@ -657,9 +738,7 @@ Qed.
 
 Lemma re_coef_alpha_bound : -0.16 < Re coef_alpha < -0.15.
 Proof.
- generalize tau_2 mu_2. fold tau. fold mu. intros H H'.
- assert (0.6823^2 < tau^2 < 0.6824^2).
- { split; rewrite <-!Rsqr_pow2; apply Rsqr_incrst_1; lra. }
+ generalize tau_approx tau2_approx mu_2. fold mu. intros H H' H''.
  assert (1.465^2 < mu^2 < 1.466^2).
  { split; rewrite <-!Rsqr_pow2; apply Rsqr_incrst_1; lra. }
  rewrite re_coef_alpha_alt.
@@ -797,10 +876,9 @@ Proof.
  rewrite Cmod_div by (negapply RtoC_inj; lra).
  rewrite Cmod_R. rewrite Rabs_right by lra.
  unfold Rdiv. rewrite Rpow_mult_distr. rewrite alphamod.
- unfold mu. rewrite tau_inv, Rinv_involutive; fold tau.
- 2:(unfold tau; generalize tau_2; lra).
- fold tau. change (tau^3 < 1).
- unfold tau. generalize (tau_carac 2) tau_2. lra.
+ assert (0 < tau) by (generalize tau_approx; lra).
+ unfold mu. rewrite tau_inv, Rinv_involutive; fold tau; try lra.
+ change (tau^3 < 1). rewrite tau3. lra.
 Qed.
 
 Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -852,6 +930,7 @@ Proof.
    rewrite is_lim_seq_incr_1 in L. apply L.
 Qed.
 
+
 (* Occurrences of letters in (Words.kseq 2)
    and consequences for (f 2) and (f 2)^^2 *)
 
@@ -861,16 +940,17 @@ Definition Delta2 w := tau^2 * INR (length w) - INR (nbocc 2 w).
 Definition delta0 n := Delta0 (take n (kseq 2)).
 Definition delta2 n := Delta2 (take n (kseq 2)).
 
-Lemma tau3 : tau^3 = 1 - tau.
+Lemma Delta0_app u v : Delta0 (u++v) = Delta0 u + Delta0 v.
 Proof.
- assert (E := tau_carac 2). fold tau in E. lra.
+ unfold Delta0.
+ rewrite List.app_length, nbocc_app, !plus_INR. lra.
 Qed.
 
-Lemma tau234 : tau^2 + tau^3 + tau^4 = 1.
+Lemma Delta0_concat l : Delta0 (List.concat l) = Rlistsum (List.map Delta0 l).
 Proof.
- assert (E := tau3).
- assert (E' := E). apply (Rmult_eq_compat_l tau) in E'.
- ring_simplify in E'. lra.
+ induction l; simpl; auto.
+ - unfold Delta0. simpl. lra.
+ - rewrite Delta0_app. lra.
 Qed.
 
 Lemma Delta0_ksubst2 w :
@@ -997,37 +1077,6 @@ Proof.
      change (-1) with (-(1)). rewrite RtoC_opp. field. cconst.
 Qed.
 
-Definition Rlistsum l := List.fold_right Rplus 0 l.
-
-Lemma Rlistsum_cons x l : Rlistsum (x::l) = x + Rlistsum l.
-Proof.
- reflexivity.
-Qed.
-
-Lemma Rlistsum_app l l' : Rlistsum (l++l') = Rlistsum l + Rlistsum l'.
-Proof.
- induction l; simpl; rewrite ?IHl; lra.
-Qed.
-
-Lemma Rlistsum_rev l : Rlistsum (List.rev l) = Rlistsum l.
-Proof.
- induction l; simpl; auto.
- rewrite Rlistsum_app, IHl. simpl; lra.
-Qed.
-
-Lemma Delta0_app u v : Delta0 (u++v) = Delta0 u + Delta0 v.
-Proof.
- unfold Delta0.
- rewrite List.app_length, nbocc_app, !plus_INR. lra.
-Qed.
-
-Lemma Delta0_concat l : Delta0 (List.concat l) = Rlistsum (List.map Delta0 l).
-Proof.
- induction l; simpl; auto.
- - unfold Delta0. simpl. lra.
- - rewrite Delta0_app. lra.
-Qed.
-
 Lemma delta0_decomp_eqn n :
   delta0 n =
    Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C) (decomp 2 n)).
@@ -1038,6 +1087,17 @@ Proof.
  f_equal.
  apply List.map_ext; intros.
  rewrite <- kseq_take_A. apply delta_A.
+Qed.
+
+Lemma delta0_decomp_eqn' n :
+  delta0 n =
+   2*Re (coefa0 * Clistsum (List.map (Cpow alpha) (decomp 2 n))).
+Proof.
+ rewrite delta0_decomp_eqn.
+ induction decomp; cbn -[Re].
+ - rewrite Cmult_0_r. cconst.
+ - rewrite Cmult_plus_distr_l, re_plus, Rmult_plus_distr_l.
+   f_equal. apply IHl.
 Qed.
 
 Lemma delta0_decomp_bound n :
@@ -1065,12 +1125,12 @@ Proof.
  apply Rmult_le_compat_r; try lra. apply pow_le; lra.
 Qed.
 
-Lemma sum_pow_Delta l n r :
-  0<=r<1 -> DeltaList.Delta 3 (n::l) ->
-  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^3).
+Lemma sum_pow_cons k l n r :
+  O<>k -> 0<=r<1 -> DeltaList.Delta k (n::l) ->
+  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
 Proof.
- intros Hr.
- assert (H3 : 0 <= r^3 < 1).
+ intros Hk Hr.
+ assert (H3 : 0 <= r^k < 1).
  { apply pow_lt_1_compat. lra. lia. }
  revert n.
  induction l.
@@ -1086,22 +1146,22 @@ Proof.
    apply Rcomplements.Rle_div_r; try lra.
    field_simplify; try lra.
    rewrite <- Ropp_mult_distr_l, <- pow_add.
-   assert (r^a <= r^(n+3)). { apply Rle_pow_low; auto. }
+   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. }
    lra.
 Qed.
 
-Lemma sum_pow_Delta' l r :
-  0<=r<1 -> DeltaList.Delta 3 l ->
-  Rlistsum (List.map (pow r) l) <= /(1-r^3).
+Lemma sum_pow k l r :
+  O<>k -> 0<=r<1 -> DeltaList.Delta k l ->
+  Rlistsum (List.map (pow r) l) <= /(1-r^k).
 Proof.
- intros Hr D.
- assert (H3 : 0 <= r^3 < 1).
+ intros Hk Hr D.
+ assert (H3 : 0 <= r^k < 1).
  { apply pow_lt_1_compat. lra. lia. }
  destruct l as [|n l].
  - cbn -[pow].
    rewrite <- (Rmult_1_l (/ _)).
    apply Rcomplements.Rle_div_r; try lra.
- - eapply Rle_trans. apply sum_pow_Delta; auto.
+ - eapply Rle_trans. apply (sum_pow_cons k); auto.
    rewrite <- (Rmult_1_l (/ _)).
    apply Rmult_le_compat_r.
    rewrite <- (Rmult_1_l (/ _)).
@@ -1117,13 +1177,13 @@ Proof.
  unfold Rdiv.
  apply Rmult_le_compat_l.
  - generalize (Cmod_ge_0 coefa0). lra.
- - apply sum_pow_Delta'; try apply decomp_delta.
+ - apply sum_pow; try lia; try apply decomp_delta.
    split. apply Cmod_ge_0.
    rewrite <- (Rabs_right (Cmod alpha)) by apply Rle_ge, Cmod_ge_0.
    rewrite <- (Rabs_right 1) by lra.
    apply Rsqr_lt_abs_0.
    rewrite !Rsqr_pow2.
-   rewrite alphamod. generalize tau_2. fold tau. lra.
+   rewrite alphamod. generalize tau_approx. lra.
 Qed.
 
 (* Experimentally, this first bound is around 1.112.
@@ -1168,6 +1228,351 @@ Qed.
 *)
 
 (* Print Assumptions Lim_H_div_n. *)
+
+Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
+Proof.
+ simpl. ring.
+Qed.
+
+Lemma re_alpha2_tau : Re (alpha^2) = -tau*(1+tau)/2.
+Proof.
+ rewrite re_alpha2. rewrite re_alpha_alt, im_alpha_2.
+ field_simplify.
+ rewrite tau4. field.
+Qed.
+
+Lemma im_alpha2 : Im (alpha^2) = 2*re_alpha*im_alpha.
+Proof.
+ simpl. ring.
+Qed.
+
+Lemma cmod2_trinom_alpha (a b c : R) :
+ (Cmod (a + b*alpha + c*alpha^2)%C)^2 =
+ (1/4)*((2*a - b*tau^2 - c*tau*(1+tau))^2 + tau*(3+tau)*(b-c*tau^2)^2).
+Proof.
+ rewrite Cmod2_alt.
+ rewrite !re_plus, !im_plus, re_RtoC, im_RtoC.
+ rewrite !re_scal_l, !im_scal_l, re_alpha2_tau, im_alpha2.
+ simpl Im. simpl Re.
+ replace (0 + _ + _) with (im_alpha * (b + c * (2*re_alpha))) by ring.
+ rewrite Rpow_mult_distr, im_alpha_2, re_alpha_alt. field.
+Qed.
+
+Lemma alpha4 : (alpha^4 = 1 + alpha + alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha_is_root. ring_simplify.
+ rewrite <- Cpow_S, alpha_is_root. ring.
+Qed.
+
+(* TODO : ring on C cannot handle basic constant simplification like 2+1=3 *)
+
+Lemma alpha5 : (alpha^5 = 1 + alpha + 2*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha4. ring_simplify.
+ rewrite <- Cpow_S, alpha_is_root.
+ replace (RtoC 2) with (1+1)%C by cconst. simpl. ring.
+Qed.
+
+Lemma alpha6 : (alpha^6 = 2 + alpha + 3*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha5. ring_simplify.
+ replace (alpha * 2 * alpha^2)%C with (2*alpha^3)%C by (simpl; ring).
+ rewrite alpha_is_root.
+ replace (RtoC 3) with (1+2)%C by cconst. simpl. ring.
+Qed.
+
+Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha6. ring_simplify.
+ replace (alpha * 3 * alpha^2)%C with (3*alpha^3)%C by (simpl; ring).
+ rewrite alpha_is_root.
+ replace (RtoC 4) with (1+3)%C by cconst. simpl. ring.
+Qed.
+
+Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha7. ring_simplify.
+ replace (alpha * 4 * alpha^2)%C with (4*alpha^3)%C by (simpl; ring).
+ rewrite alpha_is_root.
+ replace (RtoC 6) with (2+4)%C by cconst. simpl. ring.
+Qed.
+
+Lemma eqn_037 :
+ (Cmod (1+alpha^3+alpha^7)%C)^2 = 15 - 11*tau - 10*tau^2.
+Proof.
+ transitivity ((Cmod (5+2*alpha+5*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha7, alpha_is_root.
+   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
+   replace (RtoC 5) with (1+4)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify.
+   rewrite tau6, tau5, tau4, tau3. field.
+Qed.
+
+Lemma approx_037 :
+ 2.8369 < (Cmod (1+alpha^3+alpha^7)%C)^2 < 2.8394.
+Proof.
+ rewrite eqn_037. generalize tau_approx, tau2_approx. lra.
+Qed.
+
+Lemma eqn_03 :
+ (Cmod (1+alpha^3)%C)^2 = 4 - 2*tau - tau^2.
+Proof.
+ transitivity ((Cmod (2+0*alpha+1*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha_is_root.
+   replace (RtoC 2) with (1+1)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_04 :
+ (Cmod (1+alpha^4)%C)^2 = 3 - 3 * tau^2.
+Proof.
+ transitivity ((Cmod (2+1*alpha+1*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha4.
+   replace (RtoC 2) with (1+1)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_05 :
+ (Cmod (1+alpha^5)%C)^2 = 2 - tau - 2 * tau^2.
+Proof.
+ transitivity ((Cmod (2+1*alpha+2*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha5.
+   replace (RtoC 2) with (1+1)%C at 2 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_06 :
+ (Cmod (1+alpha^6)%C)^2 = 6 - 5 * tau - 3 * tau^2.
+Proof.
+ transitivity ((Cmod (3+1*alpha+3*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha6.
+   replace (RtoC 3) with (1+2)%C at 2 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_07 :
+ (Cmod (1+alpha^7)%C)^2 = 8 - 4 * tau - 8 * tau^2.
+Proof.
+ transitivity ((Cmod (4+2*alpha+4*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha7.
+   replace (RtoC 4) with (1+3)%C at 2 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_08 :
+ (Cmod (1+alpha^8)%C)^2 = 7 - 3 * tau - 9 * tau^2.
+Proof.
+ transitivity ((Cmod (5+3*alpha+6*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha8.
+   replace (RtoC 5) with (1+4)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_036 :
+ (Cmod (1+alpha^3+alpha^6)%C)^2 = 12 - 11*tau - 4*tau^2.
+Proof.
+ transitivity ((Cmod (4+1*alpha+4*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha6, alpha_is_root.
+   replace (RtoC 4) with (1+1+2)%C at 1 by cconst.
+   replace (RtoC 4) with (1+3)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_038 :
+ (Cmod (1+alpha^3+alpha^8)%C)^2 = 15 - 12*tau - 11*tau^2.
+Proof.
+ transitivity ((Cmod (6+3*alpha+7*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha8, alpha_is_root.
+   replace (RtoC 6) with (1+1+4)%C at 2 by cconst.
+   replace (RtoC 7) with (1+6)%C by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_047 :
+ (Cmod (1+alpha^4+alpha^7)%C)^2 = 10 - tau - 15*tau^2.
+Proof.
+ transitivity ((Cmod (5+3*alpha+5*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha7, alpha4.
+   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
+   replace (RtoC 5) with (1+4)%C by cconst.
+   replace (RtoC 3) with (1+2)%C at 3 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_048 :
+ (Cmod (1+alpha^4+alpha^8)%C)^2 = 8 + 2*tau - 17*tau^2.
+Proof.
+ transitivity ((Cmod (6+4*alpha+7*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha8, alpha4.
+   replace (RtoC 7) with (1+6)%C by cconst.
+   replace (RtoC 4) with (1+3)%C by cconst.
+   replace (RtoC 6) with (1+1+1+3)%C at 2 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+Lemma eqn_058 :
+ (Cmod (1+alpha^5+alpha^8)%C)^2 = 4 - 8*tau^2.
+Proof.
+ transitivity ((Cmod (6+4*alpha+8*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha8, alpha5.
+   replace (RtoC 8) with (2+6)%C by cconst.
+   replace (RtoC 4) with (1+3)%C at 2 by cconst.
+   replace (RtoC 6) with (1+1+4)%C at 2 by cconst. simpl. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
+Qed.
+
+(* TODO : pretty ugly, but will do for the moment *)
+Lemma best_3pack_1 l :
+  DeltaList.Delta 3 (O::l) -> Below l 9 ->
+  Cmod (Clistsum (List.map (Cpow alpha) (O::l)))
+  <= Cmod (1+alpha^3+alpha^7)%C.
+Proof.
+ intros D B.
+ apply Rsqr_incr_0_var; try apply Cmod_ge_0; rewrite !Rsqr_pow2.
+ destruct l as [|a l]; cbn -[Cpow pow]; simpl (alpha^0)%C.
+ - (* 1 *)
+   rewrite Cplus_0_r, Cmod_1, eqn_037.
+   generalize tau_approx tau2_approx; lra.
+ - inversion_clear D.
+   case (Nat.eqb_spec a 3); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1 + alpha^3 *)
+       rewrite Cplus_0_r, eqn_03, eqn_037.
+       generalize tau_approx tau2_approx; lra.
+     - inversion_clear H0.
+       case (Nat.eqb_spec b 6); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1 + alpha^3 + alpha^7 *)
+           rewrite Cplus_0_r, Cplus_assoc, eqn_036, eqn_037.
+           generalize tau_approx, tau2_approx; lra.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       case (Nat.eqb_spec b 7); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1 + alpha^3 + alpha^7 *)
+           rewrite Cplus_0_r, Cplus_assoc. apply Rle_refl.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       case (Nat.eqb_spec b 8); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1+alpha^3+alpha^8 *)
+           rewrite Cplus_0_r, Cplus_assoc, eqn_038, eqn_037.
+           generalize tau_approx, tau2_approx; lra.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       specialize (B b). simpl in B. lia. }
+   case (Nat.eqb_spec a 4); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1+alpha^4*)
+       rewrite Cplus_0_r, eqn_04, eqn_037.
+       generalize tau_approx, tau2_approx; lra.
+     - inversion_clear H0.
+       case (Nat.eqb_spec b 7); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1+alpha^4+alpha^7 *)
+           rewrite Cplus_0_r, Cplus_assoc, eqn_047, eqn_037.
+           generalize tau_approx, tau2_approx; lra.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       case (Nat.eqb_spec b 8); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1+alpha^4+alpha^8 *)
+           rewrite Cplus_0_r, Cplus_assoc, eqn_048, eqn_037.
+           generalize tau_approx, tau2_approx; lra.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       specialize (B b). simpl in B. lia. }
+   case (Nat.eqb_spec a 5); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1+alpha^5 *)
+       rewrite Cplus_0_r, eqn_05, eqn_037.
+       generalize tau_approx, tau2_approx; lra.
+     - inversion_clear H0.
+       case (Nat.eqb_spec b 8); [intros ->| intros].
+       { destruct l as [|c l]; cbn -[Cpow pow].
+         - (* 1+alpha^5+alpha^8 *)
+           rewrite Cplus_0_r, Cplus_assoc, eqn_058, eqn_037.
+           generalize tau_approx, tau2_approx; lra.
+         - inversion_clear H2. specialize (B c). simpl in B. lia. }
+       specialize (B b). simpl in B. lia. }
+   case (Nat.eqb_spec a 6); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1+alpha^6 *)
+       rewrite Cplus_0_r, eqn_06, eqn_037.
+       generalize tau_approx, tau2_approx; lra.
+     - inversion_clear H0.
+       specialize (B b). simpl in B. lia. }
+   case (Nat.eqb_spec a 7); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1+alpha^7 *)
+       rewrite Cplus_0_r, eqn_07, eqn_037.
+       generalize tau_approx, tau2_approx; lra.
+     - inversion_clear H0.
+       specialize (B b). simpl in B. lia. }
+   case (Nat.eqb_spec a 8); [intros ->| intros].
+   { destruct l as [|b l]; cbn -[Cpow pow].
+     - (* 1+alpha^8 *)
+       rewrite Cplus_0_r, eqn_08, eqn_037.
+       generalize tau_approx, tau2_approx; lra.
+     - inversion_clear H0.
+       specialize (B b). simpl in B. lia. }
+   specialize (B a). simpl in B. lia.
+Qed.
+
+Lemma Clistsum_factor l :
+ Clistsum (List.map (fun n => alpha^(S n))%C l) =
+ (alpha * Clistsum (List.map (Cpow alpha) l))%C.
+Proof.
+ induction l; cbn -[Cpow].
+ - ring.
+ - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
+   simpl. ring.
+Qed.
+
+Lemma best_3pack l :
+  DeltaList.Delta 3 l -> Below l 9 ->
+  Cmod (Clistsum (List.map (Cpow alpha) l)) <= Cmod (1+alpha^3+alpha^7)%C.
+Proof.
+ intros D B.
+ destruct l as [|a l].
+ - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
+ - revert l D B. induction a as [|a IH]; intros l D B.
+   + apply best_3pack_1; auto. unfold Below in *. simpl in *. intuition.
+   + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
+     2:{ simpl. f_equal. rewrite List.map_map.
+         rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
+         intros b Hb.
+         assert (b<>O); try lia.
+         { contradict Hb. subst b.
+           apply (@DeltaList.Delta_nz' 3 (S a) l); auto; try lia. }}
+     rewrite List.map_map, Clistsum_factor, Cmod_mult.
+     set (l' := List.map pred l).
+     eapply Rle_trans. 2:apply (IH l').
+     * set (c := Clistsum _). rewrite <- (Rmult_1_l (Cmod c)) at 2.
+       apply Rmult_le_compat_r; try apply Cmod_ge_0.
+       apply Rsqr_incr_0_var; try lra; rewrite !Rsqr_pow2.
+       rewrite alphamod. generalize tau_approx; lra.
+     * unfold l'. clear l'.
+       destruct l as [|b l].
+       { simpl; constructor. }
+       { inversion_clear D. simpl. constructor. lia.
+         apply (@DeltaList.Delta_pred 3 (b::l)); auto.
+         apply (@DeltaList.Delta_nz' 3 a (b::l)); try lia.
+         constructor; auto; try lia. }
+       { unfold Below in *. intros y [->|Hy].
+         - specialize (B (S y)). simpl in B; lia.
+         - unfold l' in *. clear l'.
+           rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
+           assert (x < 9)%nat by (apply (B x); simpl; intuition).
+           lia. }
+Qed.
 
 End K_2.
 
