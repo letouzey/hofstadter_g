@@ -832,8 +832,7 @@ Proof.
      rewrite RtoC_mult.
      change re_alpha with (Re alpha).
      rewrite re_alt.
-     change (Cconj alpha) with alphabar.
-     change (-1) with (-(1)). rewrite RtoC_opp. field. cconst.
+     change (Cconj alpha) with alphabar. field.
 Qed.
 
 Lemma delta0_decomp_eqn n :
@@ -995,6 +994,33 @@ Proof.
  simpl. ring.
 Qed.
 
+Definition alpha3 := alpha_is_root.
+
+Lemma alpha4 : (alpha^4 = 1 + alpha + alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha3. ring_simplify. rewrite alpha3. ring.
+Qed.
+
+Lemma alpha5 : (alpha^5 = 1 + alpha + 2*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha4. ring_simplify. rewrite alpha3. ring.
+Qed.
+
+Lemma alpha6 : (alpha^6 = 2 + alpha + 3*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha5. ring_simplify. rewrite alpha3. ring.
+Qed.
+
+Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha6. ring_simplify. rewrite alpha3. ring.
+Qed.
+
+Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
+Proof.
+ rewrite Cpow_S, alpha7. ring_simplify. rewrite alpha3. ring.
+Qed.
+
 Lemma cmod2_trinom_alpha (a b c : R) :
  (Cmod (a + b*alpha + c*alpha^2)%C)^2 =
  (1/4)*((2*a - b*tau^2 - c*tau*(1+tau))^2 + tau*(3+tau)*(b-c*tau^2)^2).
@@ -1007,269 +1033,72 @@ Proof.
  rewrite Rpow_mult_distr, im_alpha_2, re_alpha_alt. field.
 Qed.
 
-Lemma alpha4 : (alpha^4 = 1 + alpha + alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha_is_root. ring_simplify.
- rewrite alpha_is_root. ring.
-Qed.
-
-(* TODO : ring on C cannot handle basic constant simplification like 2+1=3 *)
-
-Lemma alpha5 : (alpha^5 = 1 + alpha + 2*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha4. ring_simplify.
- rewrite alpha_is_root.
- replace (RtoC 2) with (1+1)%C by cconst. ring.
-Qed.
-
-Lemma alpha6 : (alpha^6 = 2 + alpha + 3*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha5. ring_simplify.
- rewrite alpha_is_root.
- replace (RtoC 3) with (1+2)%C by cconst. ring.
-Qed.
-
-Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha6. ring_simplify.
- rewrite alpha_is_root.
- replace (RtoC 4) with (1+3)%C by cconst. ring.
-Qed.
-
-Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha7. ring_simplify.
- rewrite alpha_is_root.
- replace (RtoC 6) with (2+4)%C by cconst. ring.
-Qed.
-
-Lemma eqn_03 :
- (Cmod (1+alpha^3)%C)^2 = 4 - 2*tau - tau^2.
-Proof.
- transitivity ((Cmod (2+0*alpha+1*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha_is_root.
-   replace (RtoC 2) with (1+1)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_04 :
- (Cmod (1+alpha^4)%C)^2 = 3 - 3 * tau^2.
-Proof.
- transitivity ((Cmod (2+1*alpha+1*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha4.
-   replace (RtoC 2) with (1+1)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_05 :
- (Cmod (1+alpha^5)%C)^2 = 2 - tau - 2 * tau^2.
-Proof.
- transitivity ((Cmod (2+1*alpha+2*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha5.
-   replace (RtoC 2) with (1+1)%C at 2 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_06 :
- (Cmod (1+alpha^6)%C)^2 = 6 - 5 * tau - 3 * tau^2.
-Proof.
- transitivity ((Cmod (3+1*alpha+3*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha6.
-   replace (RtoC 3) with (1+2)%C at 2 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_07 :
- (Cmod (1+alpha^7)%C)^2 = 8 - 4 * tau - 8 * tau^2.
-Proof.
- transitivity ((Cmod (4+2*alpha+4*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha7.
-   replace (RtoC 4) with (1+3)%C at 2 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_08 :
- (Cmod (1+alpha^8)%C)^2 = 7 - 3 * tau - 9 * tau^2.
-Proof.
- transitivity ((Cmod (5+3*alpha+6*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha8.
-   replace (RtoC 5) with (1+4)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_036 :
- (Cmod (1+alpha^3+alpha^6)%C)^2 = 12 - 11*tau - 4*tau^2.
-Proof.
- transitivity ((Cmod (4+1*alpha+4*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha6, alpha_is_root.
-   replace (RtoC 4) with (1+1+2)%C at 1 by cconst.
-   replace (RtoC 4) with (1+3)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_037 :
- (Cmod (1+alpha^3+alpha^7)%C)^2 = 15 - 11*tau - 10*tau^2.
-Proof.
- transitivity ((Cmod (5+2*alpha+5*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha7, alpha_is_root.
-   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
-   replace (RtoC 5) with (1+4)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify.
-   rewrite tau6, tau5, tau4, tau3. field.
-Qed.
-
-Lemma eqn_038 :
- (Cmod (1+alpha^3+alpha^8)%C)^2 = 15 - 12*tau - 11*tau^2.
-Proof.
- transitivity ((Cmod (6+3*alpha+7*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha8, alpha_is_root.
-   replace (RtoC 6) with (1+1+4)%C at 2 by cconst.
-   replace (RtoC 7) with (1+6)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_047 :
- (Cmod (1+alpha^4+alpha^7)%C)^2 = 10 - tau - 15*tau^2.
-Proof.
- transitivity ((Cmod (5+3*alpha+5*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha7, alpha4.
-   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
-   replace (RtoC 5) with (1+4)%C by cconst.
-   replace (RtoC 3) with (1+2)%C at 3 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_048 :
- (Cmod (1+alpha^4+alpha^8)%C)^2 = 8 + 2*tau - 17*tau^2.
-Proof.
- transitivity ((Cmod (6+4*alpha+7*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha8, alpha4.
-   replace (RtoC 7) with (1+6)%C by cconst.
-   replace (RtoC 4) with (1+3)%C by cconst.
-   replace (RtoC 6) with (1+1+1+3)%C at 2 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
-
-Lemma eqn_058 :
- (Cmod (1+alpha^5+alpha^8)%C)^2 = 4 - 8*tau^2.
-Proof.
- transitivity ((Cmod (6+4*alpha+8*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha8, alpha5.
-   replace (RtoC 8) with (2+6)%C by cconst.
-   replace (RtoC 4) with (1+3)%C at 2 by cconst.
-   replace (RtoC 6) with (1+1+4)%C at 2 by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
-Qed.
+Ltac solve_trinom a b c :=
+  replace ((Cmod _)^2) with (Cmod (a+b*alpha+c*alpha^2)%C^2);
+  [ rewrite (cmod2_trinom_alpha a b c);
+    field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify
+  | f_equal; f_equal;
+    rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8; ring ].
 
 Definition max3pack := Cmod (1+alpha^3+alpha^7)%C.
 
 Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
 Proof.
- apply eqn_037.
+ unfold max3pack. solve_trinom 5 2 5. field.
 Qed.
 
-(* TODO : pretty ugly, but will do for the moment *)
+(* Curious note : all the trinoms we consider lead to N - M*tau - K*tau^2
+   except (Cmod (1+alpha^4+alpha^8)%C)^2 = 8 + 2*tau - 17*tau^2. *)
+
+(* TODO : how to improve the next lemma ? *)
+Ltac finish B n := specialize (B n); simpl in B; lia.
 Lemma best_3pack_0 l :
   DeltaList.Delta 3 (O::l) -> Below l 9 ->
   Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
 Proof.
  intros D B.
- apply Rle_pow2_inv; [apply Cmod_ge_0| ].
- destruct l as [|a l]; cbn -[Cpow pow]; simpl (alpha^0)%C.
- - (* 1 *)
-   rewrite Cplus_0_r, Cmod_1, max3pack_eqn.
-   generalize tau_approx tau2_approx; lra.
- - inversion_clear D.
-   case (Nat.eqb_spec a 3); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1 + alpha^3 *)
-       rewrite Cplus_0_r, eqn_03, max3pack_eqn.
-       generalize tau_approx tau2_approx; lra.
-     - inversion_clear H0.
-       case (Nat.eqb_spec b 6); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1 + alpha^3 + alpha^7 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_036, max3pack_eqn.
-           generalize tau_approx, tau2_approx; lra.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       case (Nat.eqb_spec b 7); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1 + alpha^3 + alpha^7 *)
-           rewrite Cplus_0_r, Cplus_assoc. apply Rle_refl.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       case (Nat.eqb_spec b 8); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1+alpha^3+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_038, max3pack_eqn.
-           generalize tau_approx, tau2_approx; lra.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       specialize (B b). simpl in B. lia. }
-   case (Nat.eqb_spec a 4); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1+alpha^4*)
-       rewrite Cplus_0_r, eqn_04, max3pack_eqn.
-       generalize tau_approx, tau2_approx; lra.
-     - inversion_clear H0.
-       case (Nat.eqb_spec b 7); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1+alpha^4+alpha^7 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_047, max3pack_eqn.
-           generalize tau_approx, tau2_approx; lra.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       case (Nat.eqb_spec b 8); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1+alpha^4+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_048, max3pack_eqn.
-           generalize tau_approx, tau2_approx; lra.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       specialize (B b). simpl in B. lia. }
-   case (Nat.eqb_spec a 5); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1+alpha^5 *)
-       rewrite Cplus_0_r, eqn_05, max3pack_eqn.
-       generalize tau_approx, tau2_approx; lra.
-     - inversion_clear H0.
-       case (Nat.eqb_spec b 8); [intros ->| intros].
-       { destruct l as [|c l]; cbn -[Cpow pow].
-         - (* 1+alpha^5+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_058, max3pack_eqn.
-           generalize tau_approx, tau2_approx; lra.
-         - inversion_clear H2. specialize (B c). simpl in B. lia. }
-       specialize (B b). simpl in B. lia. }
-   case (Nat.eqb_spec a 6); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1+alpha^6 *)
-       rewrite Cplus_0_r, eqn_06, max3pack_eqn.
-       generalize tau_approx, tau2_approx; lra.
-     - inversion_clear H0.
-       specialize (B b). simpl in B. lia. }
-   case (Nat.eqb_spec a 7); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1+alpha^7 *)
-       rewrite Cplus_0_r, eqn_07, max3pack_eqn.
-       generalize tau_approx, tau2_approx; lra.
-     - inversion_clear H0.
-       specialize (B b). simpl in B. lia. }
-   case (Nat.eqb_spec a 8); [intros ->| intros].
-   { destruct l as [|b l]; cbn -[Cpow pow].
-     - (* 1+alpha^8 *)
-       rewrite Cplus_0_r, eqn_08, max3pack_eqn.
-       generalize tau_approx, tau2_approx; lra.
-     - inversion_clear H0.
-       specialize (B b). simpl in B. lia. }
-   specialize (B a). simpl in B. lia.
+ apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
+ assert (T := tau_approx).
+ assert (T2 := tau2_approx).
+ inversion D; subst; cbn -[Cpow pow]; simpl (alpha^0)%C.
+ { rewrite Cplus_0_r, Cmod_1. lra. (* 1 *) }
+ destruct (Nat.eq_dec n 3) as [->|?].
+ { inversion H2; subst; cbn -[Cpow pow].
+   { solve_trinom 2 0 1. lra. (* 1 + alpha^3 *) }
+   destruct (Nat.eq_dec n 6) as [->|?].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     solve_trinom 4 1 4. lra. (* 1 + alpha^3 + alpha^6 *) }
+   destruct (Nat.eq_dec n 7) as [->|?].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     (* 1 + alpha^3 + alpha^7 *)
+     apply Req_le. now rewrite Cplus_0_r, Cplus_assoc, <- max3pack_eqn. }
+   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     solve_trinom 6 3 7. lra. (* 1+alpha^3+alpha^8 *) }}
+ destruct (Nat.eq_dec n 4) as [->|?].
+ { inversion H2; subst; cbn -[Cpow pow].
+   { solve_trinom 2 1 1. lra. (* 1+alpha^4*) }
+   destruct (Nat.eq_dec n 7) as [->|?].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     solve_trinom 5 3 5. lra. (* 1+alpha^4+alpha^7 *) }
+   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     solve_trinom 6 4 7. lra. (* 1+alpha^4+alpha^8 *) }}
+ destruct (Nat.eq_dec n 5) as [->|?].
+ { inversion H2; subst; cbn -[Cpow pow].
+   { solve_trinom 2 1 2. lra. (* 1+alpha^5 *) }
+   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
+   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
+     solve_trinom 6 4 8. lra. (* 1+alpha^5+alpha^8 *) }}
+ destruct (Nat.eq_dec n 6) as [->|?].
+ { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
+   solve_trinom 3 1 3. lra. (* 1+alpha^6 *) }
+ destruct (Nat.eq_dec n 7) as [->|?].
+ { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
+   solve_trinom 4 2 4. lra. (* 1+alpha^7 *) }
+ destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
+ { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
+   solve_trinom 5 3 6. lra. (* 1+alpha^8 *) }
 Qed.
 
 Lemma Clistsum_factor p l :

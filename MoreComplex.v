@@ -77,33 +77,21 @@ Qed.
 (* Better Ring / Field than in Coquelicot,
    handling Z constants and power *)
 
-Lemma C_gen_phiPOS1_alt (p:positive) :
- @gen_phiPOS1 C 1 Cplus Cmult p = RtoC (IZR (Zpos p)).
+Definition C_ring_morph :
+ ring_morph (RtoC 0) (RtoC 1) Cplus Cmult Cminus Copp (@eq C)
+  0%Z 1%Z Z.add Z.mul Z.sub Z.opp Z.eqb (fun z => RtoC (IZR z)).
 Proof.
- induction p; simpl; auto; rewrite IHp; simpl.
- - change (Zpos (p~1)) with (1+2*Zpos p)%Z.
-   rewrite plus_IZR, mult_IZR, RtoC_plus, RtoC_mult.
-   f_equal; f_equal. cconst.
- - change (Zpos (p~0)) with (2*Zpos p)%Z.
-   rewrite mult_IZR, RtoC_mult. f_equal. cconst.
+ constructor; try reflexivity; intros.
+ - now rewrite plus_IZR, RtoC_plus.
+ - now rewrite minus_IZR, RtoC_minus.
+ - now rewrite mult_IZR, RtoC_mult.
+ - now rewrite opp_IZR, RtoC_opp.
+ - f_equal. f_equal. now apply Z.eqb_eq.
 Qed.
 
-Lemma C_gen_phiPOS1_nz (p:positive) :
- @gen_phiPOS1 C 1 Cplus Cmult p <> 0.
+Lemma Zeqb_Ccomplete z z' : RtoC (IZR z) = RtoC (IZR z') -> Z.eqb z z' = true.
 Proof.
- rewrite C_gen_phiPOS1_alt.
- intros H. apply RtoC_inj in H. now apply eq_IZR in H.
-Qed.
-
-Lemma Zeq_bool_Ccomplete :
- forall c1 c2 : Z,
- @InitialRing.gen_phiZ C 0 1 Cplus Cmult Copp c1 =
- @InitialRing.gen_phiZ C 0 1 Cplus Cmult Copp c2 ->
- Zeq_bool c1 c2 = true.
-Proof.
- eapply (gen_phiZ_complete (Setoid.gen_st C)); eauto using C_field_theory.
- - constructor; repeat red; congruence.
- - apply C_gen_phiPOS1_nz.
+ intros H. apply Z.eqb_eq. now apply eq_IZR, RtoC_inj.
 Qed.
 
 Lemma C_power_theory : @power_theory C 1 Cmult (@eq C) _ N.to_nat Cpow.
@@ -123,8 +111,9 @@ Ltac IZC_tac t :=
 
 Add Field C_field2 :
  C_field_theory
-  (completeness Zeq_bool_Ccomplete,
-(*   constants [IZC_tac], *)
+  (morphism C_ring_morph,
+   completeness Zeqb_Ccomplete,
+   constants [IZC_tac],
    power_tac C_power_theory [Rpow_tac]).
 
 
@@ -185,7 +174,7 @@ Qed.
 
 Lemma im_alt' (c:C) : c - Cconj c = 2*Ci*Im c.
 Proof.
- rewrite im_alt. field. split; compute; injection; lra.
+ rewrite im_alt. field. cconst.
 Qed.
 
 Lemma re_conj (c:C) : Re (Cconj c) = Re c.
