@@ -29,6 +29,13 @@ Proof.
  apply Rsqr_lt_abs_0. now rewrite !Rsqr_pow2.
 Qed.
 
+Lemma Rle_pow2_inv x y : 0 <= y -> x^2 <= y^2 -> x <= y.
+Proof.
+ intros Hy LT.
+ destruct (Rle_or_lt 0 x) as [Hx|Hx]; try lra.
+ rewrite <- (Rabs_right x), <- (Rabs_right y) by lra.
+ apply Rsqr_le_abs_0. now rewrite !Rsqr_pow2.
+Qed.
 
 (** * Studying some limits *)
 
@@ -1179,7 +1186,7 @@ Lemma best_3pack_0 l :
   Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
 Proof.
  intros D B.
- apply Rsqr_incr_0_var; try apply Cmod_ge_0; rewrite !Rsqr_pow2.
+ apply Rle_pow2_inv; [apply Cmod_ge_0| ].
  destruct l as [|a l]; cbn -[Cpow pow]; simpl (alpha^0)%C.
  - (* 1 *)
    rewrite Cplus_0_r, Cmod_1, max3pack_eqn.
@@ -1306,9 +1313,9 @@ Proof.
      rewrite List.map_map, (Clistsum_factor 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
-     * set (c := Clistsum _). rewrite <- (Rmult_1_l (Cmod c)) at 2.
+     * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
-       apply Rsqr_incr_0_var; try lra; rewrite !Rsqr_pow2.
+       apply Rle_pow2_inv; try lra.
        rewrite alphamod2. generalize tau_approx; lra.
      * unfold l'. clear l'.
        destruct l as [|b l].
