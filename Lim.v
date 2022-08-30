@@ -546,6 +546,8 @@ Proof.
  field. apply im_alpha_nz.
 Qed.
 
+(* TODO : bizarreries avec les scopes et les operateurs infixes. *)
+
 Lemma coefs_eqn3 : coef_mu * mu ^2 + 2 * Re (coef_alpha * alpha^2)%C = 3.
 Proof.
  unfold coef_mu. unfold Rminus.
@@ -1034,24 +1036,6 @@ Proof.
  replace (RtoC 6) with (2+4)%C by cconst. ring.
 Qed.
 
-Lemma eqn_037 :
- (Cmod (1+alpha^3+alpha^7)%C)^2 = 15 - 11*tau - 10*tau^2.
-Proof.
- transitivity ((Cmod (5+2*alpha+5*alpha^2)%C)^2).
- - f_equal. f_equal. rewrite alpha7, alpha_is_root.
-   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
-   replace (RtoC 5) with (1+4)%C by cconst. ring.
- - rewrite cmod2_trinom_alpha.
-   field_simplify.
-   rewrite tau6, tau5, tau4, tau3. field.
-Qed.
-
-Lemma approx_037 :
- 2.8369 < (Cmod (1+alpha^3+alpha^7)%C)^2 < 2.8394.
-Proof.
- rewrite eqn_037. generalize tau_approx, tau2_approx. lra.
-Qed.
-
 Lemma eqn_03 :
  (Cmod (1+alpha^3)%C)^2 = 4 - 2*tau - tau^2.
 Proof.
@@ -1123,6 +1107,18 @@ Proof.
    field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
 Qed.
 
+Lemma eqn_037 :
+ (Cmod (1+alpha^3+alpha^7)%C)^2 = 15 - 11*tau - 10*tau^2.
+Proof.
+ transitivity ((Cmod (5+2*alpha+5*alpha^2)%C)^2).
+ - f_equal. f_equal. rewrite alpha7, alpha_is_root.
+   replace (RtoC 5) with (1+1+3)%C at 1 by cconst.
+   replace (RtoC 5) with (1+4)%C by cconst. ring.
+ - rewrite cmod2_trinom_alpha.
+   field_simplify.
+   rewrite tau6, tau5, tau4, tau3. field.
+Qed.
+
 Lemma eqn_038 :
  (Cmod (1+alpha^3+alpha^8)%C)^2 = 15 - 12*tau - 11*tau^2.
 Proof.
@@ -1170,29 +1166,35 @@ Proof.
    field_simplify. rewrite ?tau6, ?tau5, ?tau4, ?tau3. field.
 Qed.
 
+Definition max3pack := Cmod (1+alpha^3+alpha^7)%C.
+
+Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
+Proof.
+ apply eqn_037.
+Qed.
+
 (* TODO : pretty ugly, but will do for the moment *)
-Lemma best_3pack_1 l :
+Lemma best_3pack_0 l :
   DeltaList.Delta 3 (O::l) -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) (O::l)))
-  <= Cmod (1+alpha^3+alpha^7)%C.
+  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
 Proof.
  intros D B.
  apply Rsqr_incr_0_var; try apply Cmod_ge_0; rewrite !Rsqr_pow2.
  destruct l as [|a l]; cbn -[Cpow pow]; simpl (alpha^0)%C.
  - (* 1 *)
-   rewrite Cplus_0_r, Cmod_1, eqn_037.
+   rewrite Cplus_0_r, Cmod_1, max3pack_eqn.
    generalize tau_approx tau2_approx; lra.
  - inversion_clear D.
    case (Nat.eqb_spec a 3); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1 + alpha^3 *)
-       rewrite Cplus_0_r, eqn_03, eqn_037.
+       rewrite Cplus_0_r, eqn_03, max3pack_eqn.
        generalize tau_approx tau2_approx; lra.
      - inversion_clear H0.
        case (Nat.eqb_spec b 6); [intros ->| intros].
        { destruct l as [|c l]; cbn -[Cpow pow].
          - (* 1 + alpha^3 + alpha^7 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_036, eqn_037.
+           rewrite Cplus_0_r, Cplus_assoc, eqn_036, max3pack_eqn.
            generalize tau_approx, tau2_approx; lra.
          - inversion_clear H2. specialize (B c). simpl in B. lia. }
        case (Nat.eqb_spec b 7); [intros ->| intros].
@@ -1203,60 +1205,60 @@ Proof.
        case (Nat.eqb_spec b 8); [intros ->| intros].
        { destruct l as [|c l]; cbn -[Cpow pow].
          - (* 1+alpha^3+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_038, eqn_037.
+           rewrite Cplus_0_r, Cplus_assoc, eqn_038, max3pack_eqn.
            generalize tau_approx, tau2_approx; lra.
          - inversion_clear H2. specialize (B c). simpl in B. lia. }
        specialize (B b). simpl in B. lia. }
    case (Nat.eqb_spec a 4); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1+alpha^4*)
-       rewrite Cplus_0_r, eqn_04, eqn_037.
+       rewrite Cplus_0_r, eqn_04, max3pack_eqn.
        generalize tau_approx, tau2_approx; lra.
      - inversion_clear H0.
        case (Nat.eqb_spec b 7); [intros ->| intros].
        { destruct l as [|c l]; cbn -[Cpow pow].
          - (* 1+alpha^4+alpha^7 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_047, eqn_037.
+           rewrite Cplus_0_r, Cplus_assoc, eqn_047, max3pack_eqn.
            generalize tau_approx, tau2_approx; lra.
          - inversion_clear H2. specialize (B c). simpl in B. lia. }
        case (Nat.eqb_spec b 8); [intros ->| intros].
        { destruct l as [|c l]; cbn -[Cpow pow].
          - (* 1+alpha^4+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_048, eqn_037.
+           rewrite Cplus_0_r, Cplus_assoc, eqn_048, max3pack_eqn.
            generalize tau_approx, tau2_approx; lra.
          - inversion_clear H2. specialize (B c). simpl in B. lia. }
        specialize (B b). simpl in B. lia. }
    case (Nat.eqb_spec a 5); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1+alpha^5 *)
-       rewrite Cplus_0_r, eqn_05, eqn_037.
+       rewrite Cplus_0_r, eqn_05, max3pack_eqn.
        generalize tau_approx, tau2_approx; lra.
      - inversion_clear H0.
        case (Nat.eqb_spec b 8); [intros ->| intros].
        { destruct l as [|c l]; cbn -[Cpow pow].
          - (* 1+alpha^5+alpha^8 *)
-           rewrite Cplus_0_r, Cplus_assoc, eqn_058, eqn_037.
+           rewrite Cplus_0_r, Cplus_assoc, eqn_058, max3pack_eqn.
            generalize tau_approx, tau2_approx; lra.
          - inversion_clear H2. specialize (B c). simpl in B. lia. }
        specialize (B b). simpl in B. lia. }
    case (Nat.eqb_spec a 6); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1+alpha^6 *)
-       rewrite Cplus_0_r, eqn_06, eqn_037.
+       rewrite Cplus_0_r, eqn_06, max3pack_eqn.
        generalize tau_approx, tau2_approx; lra.
      - inversion_clear H0.
        specialize (B b). simpl in B. lia. }
    case (Nat.eqb_spec a 7); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1+alpha^7 *)
-       rewrite Cplus_0_r, eqn_07, eqn_037.
+       rewrite Cplus_0_r, eqn_07, max3pack_eqn.
        generalize tau_approx, tau2_approx; lra.
      - inversion_clear H0.
        specialize (B b). simpl in B. lia. }
    case (Nat.eqb_spec a 8); [intros ->| intros].
    { destruct l as [|b l]; cbn -[Cpow pow].
      - (* 1+alpha^8 *)
-       rewrite Cplus_0_r, eqn_08, eqn_037.
+       rewrite Cplus_0_r, eqn_08, max3pack_eqn.
        generalize tau_approx, tau2_approx; lra.
      - inversion_clear H0.
        specialize (B b). simpl in B. lia. }
@@ -1287,13 +1289,13 @@ Qed.
 
 Lemma best_3pack l :
   DeltaList.Delta 3 l -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <= Cmod (1+alpha^3+alpha^7)%C.
+  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max3pack.
 Proof.
  intros D B.
  destruct l as [|a l].
  - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
  - revert l D B. induction a as [|a IH]; intros l D B.
-   + apply best_3pack_1; auto. unfold Below in *. simpl in *. intuition.
+   + apply best_3pack_0; auto. unfold Below in *. simpl in *. intuition.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
      2:{ simpl. f_equal. rewrite List.map_map.
          rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
@@ -1355,16 +1357,15 @@ Qed.
 Lemma Clistsum_delta_below N l :
   DeltaList.Delta 3 l -> Below l N ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   Cmod (1+alpha^3+alpha^7)%C/(1 - Cmod alpha ^9).
+   max3pack / (1 - Cmod alpha ^9).
 Proof.
- set (K := Cmod (1+alpha^3+alpha^7)%C).
  revert l.
  induction N as [N IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases N 9).
  - clear IH. intros l D B.
    eapply Rle_trans. apply best_3pack; auto.
    unfold Below in *. intros y Hy. specialize (B y Hy). lia.
-   rewrite <- (Rmult_1_r (Cmod _)) at 1. unfold Rdiv.
+   rewrite <- (Rmult_1_r max3pack) at 1. unfold Rdiv.
    apply Rmult_le_compat_l; try apply Cmod_ge_0.
    rewrite <- (Rmult_1_l (/ _)).
    assert (P := Cmod_ge_0 alpha).
@@ -1378,13 +1379,13 @@ Proof.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
    + apply best_3pack; auto.
      generalize (cut_fst 9 l). now rewrite E.
-   + fold K.
-     assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
+   + assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 3 9 l); auto. now rewrite E. }
      rewrite (Clistsum_factor_above 9 l2) by trivial.
      set (l2' := List.map (decr 9) l2).
      rewrite Cmod_mult.
-     replace (K / _) with (K + Cmod (alpha^9) * (K / (1 - Cmod alpha ^9))).
+     replace (max3pack / _)
+       with (max3pack + Cmod (alpha^9) * (max3pack / (1 - Cmod alpha ^9))).
      * apply Rplus_le_compat_l.
        apply Rmult_le_compat_l; try apply Cmod_ge_0.
        apply (IH (N-9)%nat); try lia.
@@ -1415,7 +1416,7 @@ Qed.
 Lemma Clistsum_delta l :
   DeltaList.Delta 3 l ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   Cmod (1+alpha^3+alpha^7)%C/(1 - Cmod alpha ^9).
+   max3pack / (1 - Cmod alpha ^9).
 Proof.
  intros D.
  apply (Clistsum_delta_below (S (listmax l))); auto.
@@ -1423,21 +1424,20 @@ Proof.
 Qed.
 
 Lemma delta0_better_bound n :
- Rabs (delta0 n) <=
-  2 * Cmod coefa0 * Cmod (1+alpha^3+alpha^7)%C / (1 - Cmod alpha ^9).
+ Rabs (delta0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod alpha ^9).
 Proof.
  rewrite delta0_decomp_eqn'.
  rewrite Rabs_mult. rewrite Rabs_right by lra.
  unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l; try lra.
  eapply Rle_trans; [apply re_le_Cmod|].
  rewrite Cmod_mult. apply Rmult_le_compat_l; try apply Cmod_ge_0.
- apply Clistsum_delta. apply decomp_delta.
+ apply Clistsum_delta, decomp_delta.
 Qed.
 
-(* TODO : quelques bizarreries avec les scopes. *)
+(* TODO : toujours quelques %C parasites *)
 
 Lemma coefa2_inner_mod :
-  Cmod ((alpha * (tau ^ 2 - 1))%C - (tau ^ 3)%C) ^ 2 = tau*(1-tau).
+  Cmod (alpha * (tau ^ 2 - 1) - tau ^ 3)%C ^ 2 = tau*(1-tau).
 Proof.
  rewrite <- !RtoC_pow, <- RtoC_minus.
  rewrite Cmod2_alt. unfold Cminus.
@@ -1459,7 +1459,7 @@ Proof.
  apply Rlt_pow2_inv; try lra.
  clear A9.
  rewrite !Rpow_mult_distr.
- rewrite eqn_037.
+ rewrite max3pack_eqn.
  replace (Cmod alpha^9) with (((Cmod alpha)^2)^4*Cmod alpha) by ring.
  rewrite alphamod2, tau4.
  unfold coefa0, coefa2, Cdiv.
