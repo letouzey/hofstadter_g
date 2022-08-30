@@ -12,12 +12,21 @@ The technical report is now on HAL: http://hal.inria.fr/hal-01195587
 Usage
 -----
 
-To be compiled with Coq 8.12. With other versions your mileage may
+To be compiled with Coq 8.12 or newer. With other versions your mileage may
 vary. With older Coq, you may try older git branches coq8.4 and coq8.9.
 
 Use "make" to compile the Coq files.
 Use "make gallinahtml" to generate the short html documentation.
 Use "pdflatex report" to generate the pdf of the technical report.
+
+Recent files `MoreComplex.v` and `Lim.v` depends on external library
+Coquelicot. I advise to fetch it via opam :
+
+```
+opam install coq
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam install coq-coquelicot
+```
 
 Summary of files:
 ----------------

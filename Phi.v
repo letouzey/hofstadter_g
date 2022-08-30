@@ -27,8 +27,8 @@ Open Scope R.
      - [frac_part] : the faction part of a real, producing a [R]
 *)
 
-Coercion IZR : Z >-> R.
-Coercion INR : nat >-> R.
+Local Coercion IZR : Z >-> R.
+Local Coercion INR : nat >-> R.
 
 Definition nat_part r := Z.to_nat (Int_part r).
 
