@@ -372,11 +372,27 @@ Proof.
  case Nat.eqb_spec; intro; repeat (constructor; try lia).
 Qed.
 
+Lemma napply_ksubst_letters k n w :
+ Forall (fun a => a <= k) w ->
+ Forall (fun a => a <= k) (napply (ksubst k) n w).
+Proof.
+ induction n.
+ - simpl. trivial.
+ - rewrite napply_alt. intros. now apply ksubst_letters, IHn.
+Qed.
+
 Lemma kword_letters k n : Forall (fun a => a <= k) (kword k n).
 Proof.
- unfold kword. induction n.
- - simpl. now constructor.
- - rewrite napply_alt. now apply ksubst_letters.
+ apply napply_ksubst_letters. now constructor.
+Qed.
+
+Lemma kseq_letters k n : kseq k n <= k.
+Proof.
+ unfold kseq, subst2seq.
+ set (l := napply _ _ _).
+ assert (Forall (fun a => a <= k) l).
+ { apply napply_ksubst_letters. now constructor. }
+ clearbody l. revert n. induction H; simpl; now destruct n.
 Qed.
 
 (** Initial values *)
