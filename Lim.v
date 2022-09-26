@@ -37,6 +37,53 @@ Proof.
  apply Rsqr_le_abs_0. now rewrite !Rsqr_pow2.
 Qed.
 
+Lemma RSpos n : 0 < S n.
+Proof.
+ rewrite S_INR. generalize (pos_INR n). lra.
+Qed.
+
+Lemma RSnz n : INR (S n) <> 0.
+Proof.
+ generalize (RSpos n). lra.
+Qed.
+
+Lemma nat_part_le n r : 0<=r -> INR n <= r <-> (n <= nat_part r)%nat.
+Proof.
+ intros Hr.
+ rewrite INR_IZR_INZ.
+ rewrite int_part_le.
+ unfold nat_part.
+ rewrite Nat2Z.inj_le.
+ rewrite Z2Nat.id; try reflexivity.
+ now rewrite <- int_part_le.
+Qed.
+
+Lemma nat_part_lt n r : 0 <= r < INR n -> (nat_part r < n)%nat.
+Proof.
+ intros (Hr,H).
+ apply Nat.lt_nge. rewrite <- nat_part_le; lra.
+Qed.
+
+Lemma Int_part_mono a b : a <= b -> (Int_part a <= Int_part b)%Z.
+Proof.
+ intros H.
+ apply int_part_le. apply Rle_trans with a; trivial.
+ rewrite (int_frac a) at 2. generalize (base_fp a). lra.
+Qed.
+
+Lemma nat_part_mono a b : a <= b -> (nat_part a <= nat_part b)%nat.
+Proof.
+ intros H. unfold nat_part.
+ destruct (Z.le_gt_cases 0 (Int_part b)) as [LE|LT].
+ - destruct (Z.le_gt_cases 0 (Int_part a)).
+   + apply Z2Nat.inj_le; trivial. now apply Int_part_mono.
+   + destruct (Int_part a); simpl; try lia.
+ - assert (b < 0).
+   { rewrite Z.lt_nge in LT. rewrite <- int_part_le in LT. lra. }
+   assert (LT' : a < 0) by lra.
+   apply Rlt_not_le in LT'. rewrite int_part_le in LT'. lia.
+Qed.
+
 (** * Studying some limits *)
 
 (** ** Real roots of polynom [X^(k+1)-X^k-1] *)
@@ -622,6 +669,16 @@ Qed.
 
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
+Lemma is_lim_seq_abs u v :
+ (forall n, Rabs (u n) <= v n) -> is_lim_seq v 0 -> is_lim_seq u 0.
+Proof.
+ intros H Hv.
+ apply is_lim_seq_le_le with (u := fun n => -v n) (w := v); trivial.
+ - intros n. now apply Rcomplements.Rabs_le_between.
+ - rewrite is_lim_seq_opp in Hv. simpl in Hv.
+   replace (-0) with 0 in Hv by lra. trivial.
+Qed.
+
 Lemma Lim_A2_div_mu_n :
  is_lim_seq (fun n => A 2 n / mu ^ n) coef_mu.
 Proof.
@@ -631,16 +688,13 @@ Proof.
  replace (Rbar.Finite coef_mu) with (Rbar.Finite (coef_mu + 0))
    by (f_equal; lra).
  apply is_lim_seq_plus'; [apply is_lim_seq_const|].
- apply is_lim_seq_abs_0.
- apply is_lim_seq_le_le with
-     (u := fun _ => 0)
-     (w := fun n => 2 * Cmod coef_alpha * (Cmod (alpha/mu))^n).
- - intros n; split; try apply Rabs_pos.
+ apply is_lim_seq_abs with
+  (v := fun n => 2 * Cmod coef_alpha * (Cmod (alpha/mu))^n).
+ - intros n.
    rewrite Rabs_mult. rewrite (Rabs_right 2) by lra.
    rewrite Rmult_assoc, <- Cmod_pow, <- Cmod_mult.
    apply Rmult_le_compat_l; try lra.
    apply re_le_Cmod.
- - apply is_lim_seq_const.
  - replace 0 with ((2*Cmod coef_alpha) * 0) by lra.
    apply is_lim_seq_mult'; [apply is_lim_seq_const|].
    apply is_lim_seq_geom.
@@ -973,71 +1027,55 @@ Qed.
     of letter 0 is [tau^3] and that [h n / n] converges towards tau.
 *)
 
+Lemma is_lim_seq_bound u K :
+ (forall n, Rabs (u n) <= K) -> is_lim_seq (fun n => u n / n) 0.
+Proof.
+ intros H.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_abs with (fun n => K / S n).
+ - intros n. specialize (H (S n)). unfold Rdiv.
+   rewrite Rabs_mult, Rabs_Rinv by apply RSnz.
+   rewrite (Rabs_right (S n)) by (generalize (RSpos n); lra).
+   apply Rmult_le_compat_r; trivial.
+   rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos, RSpos; try lra.
+ - apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
+   + apply is_lim_seq_const.
+   + rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+   + red. red. simpl. now rewrite Rmult_0_r.
+Qed.
+
+Lemma lim_diff0_div_n : is_lim_seq (fun n => diff0 n / n) 0.
+Proof.
+ eapply is_lim_seq_bound. apply diff0_indep_bound.
+Qed.
+
 Lemma frequency_0 :
  is_lim_seq (fun n => count (kseq 2) 0 n / n) (tau^3).
 Proof.
  apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with
-  (u := fun n => tau^3 - diff0 (S n) / INR (S n)).
+ apply is_lim_seq_ext with (u := fun n => tau^3 - diff0 (S n) / S n).
  - intros n.
    unfold diff0, Diff0. rewrite take_length.
-   rewrite <- count_nbocc. field. rewrite S_INR.
-   generalize (pos_INR n). lra.
+   rewrite <- count_nbocc. field. apply RSnz.
  - replace (Rbar.Finite (tau^3)) with (Rbar.Finite (tau^3 + -0))
     by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
    change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
    apply -> is_lim_seq_opp.
-   set (K := 2 * Cmod coefa0 / (1 - (Cmod alpha)^3)).
-   apply is_lim_seq_le_le with
-     (u := fun n => -K / S n)
-     (w := fun n => K / S n).
-   + intros n.
-     assert (LE := diff0_indep_bound (S n)). fold K in LE.
-     apply Rcomplements.Rabs_le_between in LE.
-     assert (0 <= / S n).
-     { rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos; try lra.
-       rewrite S_INR. generalize (pos_INR n). lra. }
-     split; unfold Rdiv; apply Rmult_le_compat_r; lra.
-   + apply (is_lim_seq_div _ _ (-K) Rbar.p_infty); try easy.
-     * apply is_lim_seq_const.
-     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
-     * red. red. simpl. now rewrite Rmult_0_r.
-   + apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
-     * apply is_lim_seq_const.
-     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
-     * red. red. simpl. now rewrite Rmult_0_r.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
+   apply lim_diff0_div_n.
 Qed.
 
 Lemma Lim_h_div_n :
  is_lim_seq (fun n => h n / n) tau.
 Proof.
  apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with
-  (u := fun n => tau + diff0 (S n) / INR (S n)).
- - intros n. rewrite diff0_alt. field. rewrite S_INR.
-   generalize (pos_INR n). lra.
+ apply is_lim_seq_ext with (u := fun n => tau + diff0 (S n) / S n).
+ - intros n. rewrite diff0_alt. field. apply RSnz.
  - replace (Rbar.Finite tau) with (Rbar.Finite (tau + 0)) by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
-   set (K := 2 * Cmod coefa0 / (1 - (Cmod alpha)^3)).
-   apply is_lim_seq_le_le with
-     (u := fun n => -K / S n)
-     (w := fun n => K / S n).
-   + intros n.
-     assert (LE := diff0_indep_bound (S n)). fold K in LE.
-     apply Rcomplements.Rabs_le_between in LE.
-     assert (0 <= / S n).
-     { rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos; try lra.
-       rewrite S_INR. generalize (pos_INR n). lra. }
-     split; unfold Rdiv; apply Rmult_le_compat_r; lra.
-   + apply (is_lim_seq_div _ _ (-K) Rbar.p_infty); try easy.
-     * apply is_lim_seq_const.
-     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
-     * red. red. simpl. now rewrite Rmult_0_r.
-   + apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
-     * apply is_lim_seq_const.
-     * rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
-     * red. red. simpl. now rewrite Rmult_0_r.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
+   apply lim_diff0_div_n.
 Qed.
 
 (** NB : Classical reals are now Dedekind cuts,
@@ -1364,7 +1402,25 @@ Proof.
  rewrite tau4, tau3. field.
 Qed.
 
-(** And finally, we obtain that diff0 is always strictly less than 1 *)
+Lemma Cmod2_coefa2 :
+  Cmod coefa2 ^2 = (1-tau)/(3+tau).
+Proof.
+ unfold coefa2, Cdiv.
+ rewrite !Cmod_mult, !Rpow_mult_distr, Cmod_inv.
+ 2:{ apply Cminus_eq_contra. apply distinct_roots. }
+ rewrite coefa2_inner_mod.
+ rewrite im_alt', !Cmod_mult.
+ rewrite !Cmod_R, Rabs_right by lra.
+ rewrite Cmod_Ci, Rmult_1_r.
+ simpl Im.
+ rewrite <- Rinv_pow, Rpow_mult_distr.
+ 2:{ apply Rmult_integral_contrapositive. split; try lra.
+     apply Rabs_no_R0, im_alpha_nz. }
+ rewrite pow2_abs. rewrite im_alpha_2. field. generalize tau_approx; lra.
+Qed.
+
+(** And finally, we obtain that diff0 is always strictly less than 1.
+    (experimentally the new bound is around 0.996) *)
 
 Lemma diff0_lt_1 n : Rabs (diff0 n) < 1.
 Proof.
@@ -1377,44 +1433,18 @@ Proof.
  rewrite max3pack_eqn.
  replace (Cmod alpha^9) with (((Cmod alpha)^2)^4*Cmod alpha) by ring.
  rewrite alphamod2, tau4.
- unfold coefa0, coefa2, Cdiv.
- rewrite !Cmod_mult, !Rpow_mult_distr, Cmod_inv.
- 2:{ apply Cminus_eq_contra. apply distinct_roots. }
- rewrite coefa2_inner_mod.
- rewrite im_alt', !Cmod_mult.
- rewrite !Cmod_R, Rabs_right by lra.
- rewrite Cmod_Ci, Rmult_1_r.
- simpl Im.
- rewrite <- Rinv_pow, Rpow_mult_distr.
- 2:{ apply Rmult_integral_contrapositive. split; try lra.
-     apply Rabs_no_R0, im_alpha_nz. }
- rewrite pow2_abs. rewrite !Rmult_assoc, (Rmult_comm (/ _)), <-!Rmult_assoc.
- apply Rcomplements.Rlt_div_l.
- { rewrite im_alpha_2. field_simplify.
-   generalize tau_approx, tau2_approx; lra. }
- rewrite <- Rmult_assoc, (Rmult_comm _ (2^2)), !Rmult_assoc.
- apply Rmult_lt_compat_l; try lra.
- rewrite im_alpha_2.
+ unfold coefa0. rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
  change alphabar with (Cconj alpha). rewrite Cmod_conj, alphamod2.
- unfold Rdiv.
- rewrite (Rmult_assoc tau (3+tau)), <- (Rmult_assoc (_^2)).
- rewrite (Rmult_comm (_^2) tau).
- rewrite !Rmult_assoc.
- apply Rmult_lt_compat_l; [generalize tau_approx; lra|].
- field_simplify.
- rewrite !alphamod2, tau5, tau4, tau3; field_simplify.
- rewrite tau3. field_simplify.
- replace (_/4) with
-  (Cmod alpha * (tau^2 - 2*tau + 1/2) + (7*tau^2-8*tau+6)/4) by field.
- apply Rcomplements.Rlt_minus_l.
- apply Ropp_lt_cancel.
- rewrite Ropp_mult_distr_r.
- apply Rlt_pow2_inv; [generalize tau_approx, tau2_approx; lra| ].
- rewrite Rpow_mult_distr, alphamod2.
- apply Rminus_gt_0_lt.
- field_simplify.
- rewrite tau5, tau4, tau3. field_simplify.
- generalize tau_approx tau2_approx; lra.
+ assert (H := tau_approx).
+ assert (H2 := tau2_approx).
+ field_simplify; try lra. rewrite alphamod2, tau4, tau3.
+ field_simplify; try lra. apply Rcomplements.Rlt_div_l; try lra.
+ field_simplify; try lra. rewrite tau3. field_simplify; try lra.
+ assert (LT : Cmod alpha * (-4*tau^2 + 8*tau -2) < 151 * tau^2 - 104*tau + 2).
+ { apply Rlt_pow2_inv; try lra.
+   rewrite Rpow_mult_distr. rewrite alphamod2. ring_simplify.
+   rewrite tau5, tau4, tau3. ring_simplify; lra. }
+ ring_simplify in LT. lra.
 Qed.
 
 (* Print Assumptions diff0_lt_1. *)
@@ -1443,7 +1473,7 @@ destruct (Rle_or_lt 0 (tau*n-h n)).
     apply nat_part_carac. rewrite minus_INR by lia. simpl. lra.
 Qed.
 
-(* NB: both side are reached, e.g. left for n=0 and right for n=1.
+(* NB: both sides are reached, e.g. left for n=0 and right for n=1.
    I've found no easy way to predict on which side will be some (h n). *)
 
 Lemma h_natpart_bound (n:nat) :
@@ -1481,11 +1511,212 @@ Qed.
 
 (* Print Assumptions h_quasiadd. *)
 
-End K_2.
+(** Now, same study for [diff2 n], giving the frequency of letter 2,
+    and the limit of [h^^2]. Less interesting, the bound is in [1..2]. *)
 
-(* TODO : Finish stating bounds for diff2 and hence the frequency of
-   letter 2 and the distance between [h^^2] and [n*tau^2].
-   Less interesting, no bound below 1. *)
+Lemma Diff2_app u v : Diff2 (u++v) = Diff2 u + Diff2 v.
+Proof.
+ unfold Diff2.
+ rewrite List.app_length, nbocc_app, !plus_INR. lra.
+Qed.
+
+Lemma Diff2_concat l : Diff2 (List.concat l) = Rlistsum (List.map Diff2 l).
+Proof.
+ induction l; simpl; auto.
+ - unfold Diff2. simpl. lra.
+ - rewrite Diff2_app. lra.
+Qed.
+
+Lemma diff2_decomp_eqn n :
+  diff2 n =
+   Rlistsum (List.map (fun n => 2*Re(coefa2 * alpha^n)%C) (decomp 2 n)).
+Proof.
+ unfold diff2.
+ rewrite decomp_prefix_kseq.
+ rewrite Diff2_concat, List.map_map, List.map_rev, Rlistsum_rev.
+ f_equal.
+ apply List.map_ext; intros.
+ rewrite <- kseq_take_A. apply diff_A.
+Qed.
+
+Lemma diff2_decomp_eqn' n :
+  diff2 n =
+   2*Re (coefa2 * Clistsum (List.map (Cpow alpha) (decomp 2 n))).
+Proof.
+ rewrite diff2_decomp_eqn.
+ induction decomp; cbn -[Re].
+ - rewrite Cmult_0_r. cconst.
+ - rewrite Cmult_plus_distr_l, re_plus, Rmult_plus_distr_l.
+   f_equal. apply IHl.
+Qed.
+
+(** With the previous expression of [diff2 n], we will progressively bound it
+    by some constant independent from [n]. *)
+
+Lemma diff2_decomp_le n :
+ Rabs (diff2 n) <=
+  2 * Cmod coefa2 * Rlistsum (List.map (pow (Cmod alpha)) (decomp 2 n)).
+Proof.
+ rewrite diff2_decomp_eqn.
+ induction decomp.
+ - simpl. rewrite Rabs_R0. lra.
+ - cbn -[Re].
+   eapply Rle_trans. apply Rabs_triang.
+   rewrite Rmult_plus_distr_l.
+   apply Rplus_le_compat; [|apply IHl].
+   rewrite Rabs_mult. rewrite Rabs_right by lra.
+   rewrite Rmult_assoc.
+   apply Rmult_le_compat_l; try lra.
+   rewrite <- Cmod_pow, <-Cmod_mult.
+   apply re_le_Cmod.
+Qed.
+
+Lemma diff2_indep_bound n :
+ Rabs (diff2 n) <= 2 * Cmod coefa2 / (1 - Cmod alpha^3).
+Proof.
+ eapply Rle_trans. apply diff2_decomp_le.
+ unfold Rdiv.
+ apply Rmult_le_compat_l.
+ - generalize (Cmod_ge_0 coefa2). lra.
+ - apply sum_pow; try lia; try apply decomp_delta.
+   split; try apply Cmod_ge_0.
+   apply Rlt_pow2_inv; try lra.
+   rewrite alphamod2. generalize tau_approx. lra.
+Qed.
+
+Lemma diff2_lt_2 n : Rabs (diff2 n) < 2.
+Proof.
+ eapply Rle_lt_trans. apply diff2_indep_bound.
+ replace 2 with (2*1) at 2 by lra.
+ unfold Rdiv. rewrite Rmult_assoc. apply Rmult_lt_compat_l; try lra.
+ assert (H := tau_approx).
+ assert (H2 := tau2_approx).
+ assert (Cmod alpha^3 < 1).
+ { apply Rlt_pow2_inv; try lra. ring_simplify.
+   change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3. lra. }
+ apply Rcomplements.Rlt_div_l; try lra.
+ rewrite Rmult_1_l.
+ apply Rlt_pow2_inv; try lra. rewrite Cmod2_coefa2.
+ apply Rcomplements.Rlt_div_l; try lra.
+ ring_simplify.
+ change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3.
+ ring_simplify.
+ assert (LT : Cmod alpha^3 * (2*tau + 6) < 5 - tau^2).
+ { apply Rlt_pow2_inv; try lra.
+   rewrite Rpow_mult_distr. ring_simplify.
+   change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3.
+   ring_simplify. rewrite tau3, tau4. ring_simplify. lra. }
+ ring_simplify in LT. lra.
+Qed.
+
+
+(** Experimentally, this bound for diff2 is around 1.3462 and cannot be
+    improved significantly (unlike the first bound 1.112 for diff0 improved
+    to 0.996 later).
+    Anyway, having this finite bound is enough to prove that the frequency
+    of letter 2 is [tau^2] and that [(h^^2)(n) / n] converges towards [tau^2].
+*)
+
+Lemma lim_diff2_div_n : is_lim_seq (fun n => diff2 n / n) 0.
+Proof.
+ eapply is_lim_seq_bound. apply diff2_indep_bound.
+Qed.
+
+Lemma frequency_2 :
+ is_lim_seq (fun n => count (kseq 2) 2 n / n) (tau^2).
+Proof.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_ext with
+  (u := fun n => tau^2 - diff2 (S n) / INR (S n)).
+ - intros n.
+   unfold diff2, Diff2. rewrite take_length.
+   rewrite <- count_nbocc. field. apply RSnz.
+ - replace (Rbar.Finite (tau^2)) with (Rbar.Finite (tau^2 + -0))
+    by (f_equal; lra).
+   eapply is_lim_seq_plus'. apply is_lim_seq_const.
+   change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
+   apply -> is_lim_seq_opp.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
+   apply lim_diff2_div_n.
+Qed.
+
+Lemma frequency_1 :
+ is_lim_seq (fun n => count (kseq 2) 1 n / n) (tau^4).
+Proof.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_ext with
+  (u := fun n => tau^4 + diff0 (S n) / INR (S n) + diff2 (S n) / INR (S n)).
+ - intros n.
+   field_simplify; try apply RSnz. f_equal.
+   rewrite Rplus_assoc.
+   replace (diff0 (S n) + diff2 (S n)) with (-diff1 (S n))
+     by (generalize (diff012 (S n)); lra).
+   unfold diff1, Diff1. rewrite take_length.
+   rewrite <- count_nbocc. field.
+ - replace (Rbar.Finite (tau^4)) with (Rbar.Finite (tau^4 + 0 + 0))
+    by (f_equal; lra).
+   apply is_lim_seq_plus'. apply is_lim_seq_plus'. apply is_lim_seq_const.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
+   apply lim_diff0_div_n.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
+   apply lim_diff2_div_n.
+Qed.
+
+Lemma Lim_h2_div_n :
+ is_lim_seq (fun n => (h^^2) n / n) (tau^2).
+Proof.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_ext with
+  (u := fun n => tau^2 - diff2 (S n) / INR (S n)).
+ - intros n. rewrite diff2_alt. field. rewrite S_INR.
+   generalize (pos_INR n). lra.
+ - replace (Rbar.Finite (tau^2)) with (Rbar.Finite (tau^2 - 0))
+    by (f_equal; lra).
+   eapply is_lim_seq_plus'. apply is_lim_seq_const.
+   change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
+   apply -> is_lim_seq_opp.
+   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
+   apply lim_diff2_div_n.
+Qed.
+
+Lemma h2_alt n : INR ((h^^2) n) = tau^2 * n - diff2 n.
+Proof.
+ rewrite diff2_alt; lra.
+Qed.
+
+
+(** Distance between [h^^2] and [nat_part (tau^2 * n)].
+    This distance may be "+2", for instance for n=1235.
+    But the theoretical "-1" does not seem to occur in pratice
+    (TODO: how to prove it ?) *)
+
+Lemma h2_natpart_bound (n:nat) :
+ (nat_part (tau^2 * n) -1 <= (h^^2) n <= 2 + nat_part (tau^2 * n))%nat.
+Proof.
+ split.
+ - assert (nat_part (tau^2 * n) < 2 + (h^^2) n)%nat; try lia.
+   { apply nat_part_lt. split.
+     - apply Rmult_le_pos. generalize tau2_approx; lra. apply pos_INR.
+     - rewrite plus_INR. replace (INR 2) with 2 by auto.
+       assert (LT := diff2_lt_2 n). apply Rcomplements.Rabs_lt_between in LT.
+       generalize (diff2_alt n). lra. }
+ - assert ((h^^2) n - 2 <= nat_part (tau^2 * n))%nat; try lia.
+   { apply nat_part_le.
+     - apply Rmult_le_pos. generalize tau2_approx; lra. apply pos_INR.
+     - destruct (Nat.le_gt_cases 4 n) as [LE|LT].
+       + assert (LE' := fs_mono 2 2 LE).
+         rewrite minus_INR by trivial.
+         replace (INR 2) with 2 by auto.
+         assert (LT := diff2_lt_2 n). apply Rcomplements.Rabs_lt_between in LT.
+         generalize (diff2_alt n). lra.
+       + destruct n. simpl; lra.
+         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
+         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
+         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
+         lia. }
+Qed.
+
+End K_2.
 
 (* TODO: next cases and general case
 

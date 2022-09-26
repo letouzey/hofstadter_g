@@ -313,6 +313,11 @@ Proof.
  destruct c as (x,y). compute. lra.
 Qed.
 
+Lemma im_mult_Ci (c:C) : (Im (c*Ci) = Re c)%R.
+Proof.
+ destruct c as (x,y). compute. lra.
+Qed.
+
 Lemma re_le_Cmod (c:C) : Rabs (Re c) <= Cmod c.
 Proof.
  rewrite <- (Rabs_right (Cmod c)) by (apply Rle_ge; apply Cmod_ge_0).
