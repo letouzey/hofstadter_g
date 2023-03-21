@@ -311,9 +311,7 @@ Qed.
 
 Lemma fg_lt n : 1<n -> fg n < n.
 Proof.
-intros H.
-destruct (le_lt_or_eq _ _ (fg_le n)); trivial.
-rewrite fg_fix in *. lia.
+generalize (fg_le n) (fg_fix n); lia.
 Qed.
 
 Lemma fg_onto a : exists n, fg n = a.
@@ -1020,7 +1018,7 @@ Inductive FD : nat -> nat -> Prop :=
                    FD y z -> FD (S y) z -> FD n (S y)
  | FD_c n x y z t : 4<n -> FD (n-2) x -> FD (n-1) y -> x<>y ->
                      FD y z -> FD (S y) t -> z <> t -> FD n y.
-Hint Constructors FD : hof.
+#[global] Hint Constructors FD : hof.
 
 Lemma FD_le n k : FD n k -> k <= n.
 Proof.

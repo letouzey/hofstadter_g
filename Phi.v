@@ -213,7 +213,7 @@ destruct (eq_nat_dec n 0) as [Hn|Hn].
   rewrite E.
   assert (LE : (k <= n-1)%nat) by (rewrite <-E; apply g_le).
   clear E.
-  symmetry. apply plus_minus.
+  apply Nat.add_sub_eq_l.
   rewrite IH by lia.
   assert (Hd : d <> 0).
   { unfold d. contradict Hn.

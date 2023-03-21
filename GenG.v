@@ -35,7 +35,7 @@ with Fs : nat -> nat -> nat -> nat -> Prop :=
 | Fs0 k n : Fs 0 k n n
 | FsS p k a b c : Fs p k a b -> F k b c -> Fs (S p) k a c.
 
-Hint Constructors F Fs : hof.
+#[global] Hint Constructors F Fs : hof.
 
 (** The early behavior of [F] and [Fs] when [n<=3] doesn't depend on k *)
 
@@ -43,25 +43,25 @@ Lemma Fs_0 p k : Fs p k 0 0.
 Proof.
  induction p; eautoh.
 Qed.
-Hint Resolve Fs_0 : hof.
+#[global] Hint Resolve Fs_0 : hof.
 
 Lemma F_1 k : F k 1 1.
 Proof.
  induction k; eautoh.
 Qed.
-Hint Resolve F_1 : hof.
+#[global] Hint Resolve F_1 : hof.
 
 Lemma Fs_1 p k : Fs p k 1 1.
 Proof.
  induction p; eautoh.
 Qed.
-Hint Resolve Fs_1 : hof.
+#[global] Hint Resolve Fs_1 : hof.
 
 Lemma F_2 k : F k 2 1.
 Proof.
  induction k; eautoh.
 Qed.
-Hint Resolve F_2 : hof.
+#[global] Hint Resolve F_2 : hof.
 
 Lemma Fs_2 p k : Fs p k 2 (1+(1-p)).
 Proof.
@@ -69,20 +69,20 @@ Proof.
  simpl.
  eapply FsS. apply IHp. destruct p; simpl; autoh.
 Qed.
-Hint Resolve Fs_2 : hof.
+#[global] Hint Resolve Fs_2 : hof.
 
 Lemma F_3 k : F k 3 2.
 Proof.
  induction k; eautoh.
 Qed.
-Hint Resolve F_3 : hof.
+#[global] Hint Resolve F_3 : hof.
 
 Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
 Proof.
  induction p; eautoh.
  eapply FsS; eauto. destruct p as [|[|p]]; simpl; autoh.
 Qed.
-Hint Resolve Fs_3 : hof.
+#[global] Hint Resolve Fs_3 : hof.
 
 (** [F] and [Fs] aren't above the identity line *)
 
@@ -90,14 +90,14 @@ Lemma F_le k n a : F k n a -> a <= n.
 Proof.
  induction 1; lia.
 Qed.
-Hint Resolve F_le : hof.
+#[global] Hint Resolve F_le : hof.
 
 Lemma Fs_le p k n a : Fs p k n a -> a <= n.
 Proof.
  induction 1; trivial.
  transitivity b; eautoh.
 Qed.
-Hint Resolve Fs_le : hof.
+#[global] Hint Resolve Fs_le : hof.
 
 (** [F] and [Fs] are functional relations : unique output *)
 
@@ -174,7 +174,7 @@ Lemma f_sound k n : F k n (f k n).
 Proof.
  now apply recf_sound.
 Qed.
-Hint Resolve f_sound : hof.
+#[global] Hint Resolve f_sound : hof.
 
 Lemma f_complete k n a : F k n a <-> f k n = a.
 Proof.
@@ -319,7 +319,7 @@ induction n as [[|n] IH] using lt_wf_ind.
     - now simpl.
     - intros. simpl.
       rewrite IHp; auto. apply IH.
-      rewrite Nat.lt_succ_r. apply le_trans with m; auto.
+      rewrite Nat.lt_succ_r. apply Nat.le_trans with m; auto.
       eapply Fs_le. eapply Fs_iter_f. }
   rewrite f_S, <- H; auto. specialize (h_S n). lia.
 Qed.
@@ -339,7 +339,7 @@ Proof.
        destruct (IHp m H) as [-> | ->].
        + now left.
        + apply IH.
-         rewrite Nat.lt_succ_r. apply le_trans with m; auto.
+         rewrite Nat.lt_succ_r. apply Nat.le_trans with m; auto.
          eapply Fs_le. eapply Fs_iter_f. }
    specialize (H (S k) n). lia.
 Qed.
@@ -447,11 +447,9 @@ Qed.
 
 Lemma f_lt k n : 1<n -> f k n < n.
 Proof.
-intros H.
-destruct (le_lt_or_eq _ _ (f_le k n)); trivial.
-rewrite f_fix in *. lia.
+ generalize (f_le k n) (f_fix k n); lia.
 Qed.
-Hint Resolve f_lt : hof.
+#[global] Hint Resolve f_lt : hof.
 
 (** Two special formulations for [f_step] *)
 
@@ -1790,7 +1788,7 @@ Proof.
  - lia.
  - lia.
  - intros _. rewrite depth_SS.
-   simpl. rewrite <- minus_n_O.
+   simpl. rewrite Nat.sub_0_r.
    set (n' := S (S n)) in *.
    destruct (Nat.eq_dec (f k n') 1) as [->|NE].
    + simpl. unfold n'; lia.
@@ -1830,7 +1828,7 @@ Qed.
 Lemma depth_SA k p : depth k (S (A k p)) = S p.
 Proof.
  induction p as [|p IH].
- - simpl. unfold depth. simpl. rewrite f_init; auto with arith.
+ - simpl. unfold depth. simpl. rewrite f_init; simpl; lia.
  - rewrite depth_eqn.
    + rewrite f_SA, S_sub_1. f_equal. apply IH.
      auto with arith.

@@ -21,13 +21,13 @@ Set Implicit Arguments.
 Inductive G : nat -> nat -> Prop :=
 | G0 : G 0 0
 | GS n a b c : G n a -> G a b -> S n = c+b -> G (S n) c.
-Hint Constructors G : hof.
+#[global] Hint Constructors G : hof.
 
 Lemma G1 : G 1 1.
 Proof.
 eautoh.
 Qed.
-Hint Resolve G1 : hof.
+#[global] Hint Resolve G1 : hof.
 
 Lemma GS_inv n a : G (S n) a ->
  exists b c, G n b /\ G b c /\ S n = a + c.
@@ -45,7 +45,7 @@ revert a.
 induction n using lt_wf_rec.
 destruct n; inversion_clear 1; lia.
 Qed.
-Hint Resolve G_le : hof.
+#[global] Hint Resolve G_le : hof.
 
 Lemma G_rec (P:nat->Set) :
 P 0 ->
@@ -105,7 +105,7 @@ Lemma g_correct n : G n (g n).
 Proof.
 unfold g; now destruct (g_spec n).
 Qed.
-Hint Resolve g_correct : hof.
+#[global] Hint Resolve g_correct : hof.
 
 Lemma g_complete n p : G n p <-> p = g n.
 Proof.
@@ -232,11 +232,9 @@ Qed.
 
 Lemma g_lt n : 1<n -> g n < n.
 Proof.
-intros H.
-destruct (le_lt_or_eq _ _ (g_le n)); trivial.
-rewrite g_fix in *. lia.
+generalize (g_le n) (g_fix n); lia.
 Qed.
-Hint Resolve g_lt : hof.
+#[global] Hint Resolve g_lt : hof.
 
 (** Two special formulations for [g_step] *)
 
@@ -728,8 +726,7 @@ Proof.
      * generalize (@g_max_two_antecedents (g n) (n-1) (S n)). lia.
      * intros. replace (g n - 1) with (g (n-1)) by lia. lia.
    + (* n is rightmost child *)
-     generalize (g_eqn n). rewrite H. simpl. rewrite <- minus_n_O.
-     lia.
+     generalize (g_eqn n). rewrite H. simpl. rewrite Nat.sub_0_r. lia.
 Qed.
 
 
@@ -802,7 +799,7 @@ Proof.
  - lia.
  - lia.
  - intros _. rewrite depth_SS.
-   simpl. rewrite <- minus_n_O.
+   simpl. rewrite Nat.sub_0_r.
    set (n' := S (S n)) in *.
    destruct (eq_nat_dec (g n') 1) as [->|NE].
    + simpl. unfold n'; lia.
@@ -1395,7 +1392,7 @@ Inductive GD : nat -> nat -> Prop :=
                   GD x z -> GD (S x) z -> GD (2+n) (S y)
  | GD_b' n x y z t : GD n x -> GD (S n) y -> x <> y ->
                      GD x z -> GD (S x) t -> z <> t -> GD (2+n) y.
-Hint Constructors GD : hof.
+#[global] Hint Constructors GD : hof.
 
 (** There is only one implementation of [GD] *)
 

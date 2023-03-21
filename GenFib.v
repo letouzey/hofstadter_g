@@ -529,7 +529,7 @@ Proof.
    apply (A_lt_inv k).
    rewrite A_S in H'. lia.
 Qed.
-Hint Resolve decomp_sum decomp_delta : hof.
+#[global] Hint Resolve decomp_sum decomp_delta : hof.
 
 Lemma decomp_exists k n :
   { l | sumA k l = n /\ Delta (S k) l }.
@@ -551,7 +551,7 @@ Proof.
    inversion 1; subst. simpl sumA.
    rewrite A_S.
    apply Nat.add_lt_mono_l.
-   apply lt_le_trans with (A k (S a)).
+   apply Nat.lt_le_trans with (A k (S a)).
    + apply IHl; auto.
    + apply A_mono; lia.
 Qed.
@@ -591,11 +591,11 @@ Proof.
  - intros DR DR' EQ.
    assert (n < S n').
    { apply (A_lt_inv k). simpl in EQ.
-     apply le_lt_trans with (A k n' + sumA k l'); [lia|].
+     apply Nat.le_lt_trans with (A k n' + sumA k l'); [lia|].
      now apply decomp_max. }
    assert (n' < S n).
    { apply (A_lt_inv k). simpl in EQ.
-     apply le_lt_trans with (A k n + sumA k l); [lia|].
+     apply Nat.le_lt_trans with (A k n + sumA k l); [lia|].
      now apply decomp_max. }
    replace n' with n in * by lia. clear H H0.
    simpl in EQ.
@@ -622,7 +622,7 @@ Proof.
  intros D Eq. apply (@decomp_unique k); autoh.
  now rewrite decomp_sum.
 Qed.
-Hint Resolve decomp_carac : hof.
+#[global] Hint Resolve decomp_carac : hof.
 
 Lemma decomp_sum' k l :
  Delta (S k) l -> decomp k (sumA k l) = l.
@@ -711,7 +711,7 @@ Lemma renorm_length k l : length (renorm k l) <= length l.
 Proof.
  unfold renorm. now apply renorm_loop_length.
 Qed.
-Hint Resolve renorm_length : hof.
+#[global] Hint Resolve renorm_length : hof.
 
 Lemma renorm_loop_sum k l n :
   length l <= n -> sumA k (renorm_loop k l n) = sumA k l.
@@ -732,7 +732,7 @@ Lemma renorm_sum k l : sumA k (renorm k l) = sumA k l.
 Proof.
  unfold renorm. now apply renorm_loop_sum.
 Qed.
-Hint Resolve renorm_sum : hof.
+#[global] Hint Resolve renorm_sum : hof.
 
 Definition HeadStep k l l' := match l, l' with
 | [], [] => True
@@ -788,7 +788,7 @@ Lemma renorm_delta k l : Delta k l -> Delta (S k) (renorm k l).
 Proof.
  unfold renorm. now apply renorm_loop_delta.
 Qed.
-Hint Resolve renorm_delta : hof.
+#[global] Hint Resolve renorm_delta : hof.
 
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.

@@ -364,9 +364,7 @@ Qed.
 
 Lemma ff_lt k n : 1<n -> ff k n < n.
 Proof.
-intros H.
-destruct (le_lt_or_eq _ _ (ff_le k n)); trivial.
-rewrite ff_fix in *. lia.
+ generalize (ff_le k n) (ff_fix k n); lia.
 Qed.
 
 Lemma ff_onto k a : exists n, ff k n = a.

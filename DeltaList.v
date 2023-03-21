@@ -16,7 +16,7 @@ Inductive Delta (p:nat) : list nat -> Prop :=
   | Dnil : Delta p []
   | Done n : Delta p [n]
   | Dcons n m l : m+p <= n -> Delta p (n::l) -> Delta p (m::n::l).
-Hint Constructors Delta : hof.
+#[global] Hint Constructors Delta : hof.
 
 (** In particular:
     - [Delta 0 l] means that [l] is increasing
@@ -64,7 +64,7 @@ Proof.
  intros H H' [X|X]. autoh.
  apply Delta_alt in H'. apply H' in X. autoh.
 Qed.
-Hint Resolve Delta_S Delta_inv Delta_nz : hof.
+#[global] Hint Resolve Delta_S Delta_inv Delta_nz : hof.
 
 Lemma Delta_nz' p k l : 0<p -> Delta p (k::l) -> ~In 0 l.
 Proof.
@@ -87,7 +87,7 @@ Proof.
   apply Delta_more with (S k); auto.
   intros y Hy. apply D' in Hy. autoh.
 Qed.
-Hint Resolve Delta_S_cons : hof.
+#[global] Hint Resolve Delta_S_cons : hof.
 
 Lemma Delta_map p p' f l :
   (forall x y, x+p <= y -> f x + p' <= f y) ->
@@ -101,20 +101,6 @@ Lemma Delta_pred p l :
 Proof.
  induction 2; simpl in *; constructor; intuition; autoh.
 Qed.
-
-(* begin hide *)
-(* In stdlib's List.v since 8.5: *)
-Lemma in_seq len start n :
-  In n (seq start len) <-> start <= n < start+len.
-Proof.
-  revert start. induction len; simpl; intros.
-  - rewrite <- plus_n_O. split;[easy|].
-    intros (H,H'). apply (Lt.lt_irrefl _ (Lt.le_lt_trans _ _ _ H H')).
-  - rewrite IHlen, <- plus_n_Sm; simpl; split.
-    * intros [H|H]; subst; intuition auto with arith.
-    * intros (H,H'). destruct (Lt.le_lt_or_eq _ _ H); intuition.
-Qed.
-(* end hide *)
 
 Lemma Delta_seq n k : Delta 1 (seq n k).
 Proof.
@@ -209,7 +195,7 @@ Inductive DeltaRev (p:nat) : list nat -> Prop :=
   | DRnil : DeltaRev p []
   | DRone n : DeltaRev p [n]
   | DRcons n m l : n+p <= m -> DeltaRev p (n::l) -> DeltaRev p (m::n::l).
-Hint Constructors DeltaRev : hof.
+#[global] Hint Constructors DeltaRev : hof.
 
 Lemma DeltaRev_alt p x l :
  DeltaRev p (x::l) <-> DeltaRev p l /\ (forall y, In y l -> y+p <= x).

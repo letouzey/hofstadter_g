@@ -201,7 +201,7 @@ Proof.
  - intros k Hk.
    inversion 1; subst. simpl sumfib.
    rewrite fib_eqn' by lia. apply Nat.add_lt_mono_l.
-   apply lt_le_trans with (fib (S a)).
+   apply Nat.lt_le_trans with (fib (S a)).
    + apply IHl; auto. simpl in Hk. simpl; intuition.
    + apply fib_mono; lia.
 Qed.
@@ -246,11 +246,11 @@ Proof.
  - intros N0 N1 DR N0' N1' DR' EQ.
    assert (n < S n').
    { apply fib_lt_inv. simpl in EQ.
-     apply le_lt_trans with (fib n' + sumfib l'); [lia|].
+     apply Nat.le_lt_trans with (fib n' + sumfib l'); [lia|].
      now apply decomp_max. }
    assert (n' < S n).
    { apply fib_lt_inv. simpl in EQ.
-     apply le_lt_trans with (fib n + sumfib l); [lia|].
+     apply Nat.le_lt_trans with (fib n + sumfib l); [lia|].
      now apply decomp_max. }
    replace n' with n in * by lia. clear H H0.
    simpl in EQ.
@@ -616,7 +616,7 @@ Lemma ThreeOdd_Three p n : ThreeOdd p n -> Three p n.
 Proof.
  firstorder.
 Qed.
-Hint Resolve ThreeOdd_Three ThreeEven_Three : hof.
+#[global] Hint Resolve ThreeOdd_Three ThreeEven_Three : hof.
 
 Lemma Three_split p n : 2<n -> Three p n -> ThreeEven p n \/ ThreeOdd p n.
 Proof.
@@ -723,8 +723,9 @@ Proof.
  - now apply High_not_ThreeOdd.
 Qed.
 
-Hint Resolve Two_not_ThreeOdd ThreeEven_not_ThreeOdd High_not_ThreeOdd : hof.
-Hint Resolve Two_not_ThreeOdd' ThreeEven_not_ThreeOdd' High_not_ThreeOdd' : hof.
+#[global] Hint Resolve
+ Two_not_ThreeOdd ThreeEven_not_ThreeOdd High_not_ThreeOdd
+ Two_not_ThreeOdd' ThreeEven_not_ThreeOdd' High_not_ThreeOdd' : hof.
 
 (** Properties of Even and Odd *)
 
@@ -775,7 +776,7 @@ Proof.
  eapply Even_xor_Odd; eauto.
  now apply Three_Odd, ThreeOdd_Three.
 Qed.
-Hint Resolve Three_Odd Two_Even Even_not_ThreeOdd : hof.
+#[global] Hint Resolve Three_Odd Two_Even Even_not_ThreeOdd : hof.
 
 (** ** Decomposition of the predecessor of a Fibonacci number
 

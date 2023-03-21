@@ -1,12 +1,15 @@
 
 From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
 From Coquelicot Require Import Complex Lim_seq.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Phi MoreComplex.
+Require Import DeltaList FunG GenFib GenG GenAdd Words Phi.
 
 Open Scope Z.
 Open Scope R.
 
 Local Coercion INR : nat >-> R.
+
+(* A tactic solving (dis)equalities between C constants *)
+Ltac cconst := compute; injection || f_equal ; lra.
 
 (* Tactic negapply : With f : C->D ; turn a goal ~C into a subgoal ~D *)
 Ltac negapply f :=
@@ -142,8 +145,7 @@ Definition tau k : R := (*1*) / mu k.
 
 Lemma tau_inv k : mu k = (*1*) / tau k.
 Proof.
- unfold tau. rewrite Rinv_involutive; auto.
- generalize (mu_itvl k); lra.
+ unfold tau. now rewrite Rinv_inv.
 Qed.
 
 Lemma tau_itvl k : 1/2 <= tau k < 1.
@@ -160,7 +162,7 @@ Lemma tau_carac k : (tau k)^(S k) + tau k = 1.
 Proof.
  unfold tau.
  assert (MU:=mu_itvl k).
- rewrite <- Rinv_pow by lra.
+ rewrite pow_inv.
  assert ((mu k)^(S k)<>0). { apply pow_nonzero. lra. }
  apply Rmult_eq_reg_l with ((mu k)^(S k)); auto.
  rewrite Rmult_1_r, Rmult_plus_distr_l, Rinv_r; auto.
@@ -663,7 +665,7 @@ Proof.
  rewrite Cmod_div by (negapply RtoC_inj; lra).
  rewrite Cmod_R, Rabs_right by lra.
  unfold Rdiv. rewrite Rpow_mult_distr. rewrite alphamod2.
- unfold mu. rewrite tau_inv, Rinv_involutive; fold tau; try lra.
+ unfold mu. rewrite tau_inv, Rinv_inv; fold tau; try lra.
  ring_simplify. rewrite tau3. lra.
 Qed.
 
@@ -1034,7 +1036,7 @@ Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_abs with (fun n => K / S n).
  - intros n. specialize (H (S n)). unfold Rdiv.
-   rewrite Rabs_mult, Rabs_Rinv by apply RSnz.
+   rewrite Rabs_mult, Rabs_inv by apply RSnz.
    rewrite (Rabs_right (S n)) by (generalize (RSpos n); lra).
    apply Rmult_le_compat_r; trivial.
    rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos, RSpos; try lra.
@@ -1413,9 +1415,7 @@ Proof.
  rewrite !Cmod_R, Rabs_right by lra.
  rewrite Cmod_Ci, Rmult_1_r.
  simpl Im.
- rewrite <- Rinv_pow, Rpow_mult_distr.
- 2:{ apply Rmult_integral_contrapositive. split; try lra.
-     apply Rabs_no_R0, im_alpha_nz. }
+ rewrite pow_inv, Rpow_mult_distr.
  rewrite pow2_abs. rewrite im_alpha_2. field. generalize tau_approx; lra.
 Qed.
 

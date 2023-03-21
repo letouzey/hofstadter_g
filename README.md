@@ -18,8 +18,8 @@ Use "make" to compile the Coq files.
 Use "make gallinahtml" to generate the short html documentation.
 Use "pdflatex report" to generate the pdf of the technical report.
 
-Recent files `MoreComplex.v` and `Lim.v` depends on external library
-Coquelicot. I advise to fetch it via opam :
+Recent file `Lim.v` depends on Coq 8.16 and external library Coquelicot >= 3.3.0.
+I advise to fetch it via opam :
 
 ```
 opam install coq
