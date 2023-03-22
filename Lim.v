@@ -220,6 +220,24 @@ Proof.
  - apply (Ptau_incr k) in GT; lra.
 Qed.
 
+Lemma mu_unique k x : 0 <= x -> x^(S k)=x^k+1 -> x = mu k.
+Proof.
+ intros Hx H.
+ assert (x <> 0).
+ { destruct k. simpl in *. lra.
+   intros ->. rewrite !pow_i in H; lra || lia. }
+ assert (E : 1/x = tau k).
+ { apply tau_unique.
+   - apply Rle_mult_inv_pos; lra.
+   - unfold Ptau. unfold Rdiv. rewrite Rmult_1_l, pow_inv.
+     assert (0 < x ^ S k) by (apply pow_lt; lra).
+     apply Rmult_eq_reg_l with (x^(S k)); try lra.
+     field_simplify; try lra.
+     rewrite Rdiv_plus_distr. simpl. field_simplify; try lra.
+     now rewrite <- H. }
+ rewrite tau_inv. rewrite <- E. unfold Rdiv. now rewrite Rmult_1_l, Rinv_inv.
+Qed.
+
 Lemma Ptau_lower k x : 0 <= x -> Ptau k x < 1 -> x < tau k.
 Proof.
  intros H H'.
@@ -815,7 +833,7 @@ Proof.
  destruct (nbocc_ksubst2 w) as (_ & _ & ->).
  rewrite !plus_INR.
  replace (nbocc 1 w + nbocc 2 w) with (length w - nbocc 0 w).
- 2:{ apply len_alt in H. rewrite H. rewrite !plus_INR. lra. }
+ 2:{ apply len_nbocc_012 in H. rewrite H. rewrite !plus_INR. lra. }
  ring_simplify.
  replace (tau^4) with (1-tau^2-tau^3) by (generalize tau234; lra).
  unfold letter in *. lra.

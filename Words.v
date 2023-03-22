@@ -843,7 +843,7 @@ Proof.
      destruct (rank k n); simpl in *; case Nat.leb_spec; lia.
 Qed.
 
-(* Particular case : p=k *)
+(** Particular case : p=k *)
 
 Lemma count_above_kseq_k k n :
   count_above (kseq k) k n = count (kseq k) k n.
@@ -859,71 +859,8 @@ Proof.
  apply count_above_kseq_k.
 Qed.
 
-(* From a Prefix of napply of a word to a prefix of napply of a letter *)
 
-Lemma napply_prefix s n u v :
-  NoErase s -> v<>[] ->
-  Prefix u (napply s n v) ->
-  exists w t a,
-    Prefix (w++[a]) v /\ u = napply s n w ++ t /\ Prefix t (napply s n [a]).
-Proof.
- intros NE. revert u.
- induction v; try easy.
- - intros u _. rewrite napply_cons. intros Pr.
-   apply Prefix_app in Pr. destruct Pr as [Pr|(u' & E & Pr)].
-   + exists [], u, a. rewrite napply_nil. simpl. split; auto. now exists v.
-   + destruct (list_eq_dec Nat.eq_dec v []) as [->|NE'].
-     * rewrite napply_nil in Pr. apply Prefix_nil in Pr. subst u'.
-       rewrite app_nil_r in E.
-       exists [], u, a. rewrite napply_nil.
-       repeat split; subst; auto using Prefix_id.
-     * destruct (IHv u' NE' Pr) as (w & t & b & Hv & E' & Ht).
-       exists (a::w), t, b. repeat split; auto.
-       { simpl. now apply Prefix_cons. }
-       { now rewrite napply_cons, app_ass, <- E', <- E. }
-Qed.
-
-(* Saari's Lemma 4 : decomposition of a prefix of s^n(a) *)
-
-Definition Bound s n N := forall a:letter, length (napply s n [a]) <= N.
-
-Lemma Saari_lemma4 s a n w G M1 MG : G<>0 -> n<>0 ->
- Bound s 1 M1 -> Bound s G MG ->
- NoErase s ->
- Prefix w (napply s n [a]) ->
- exists l : list (nat * word), exists z,
-  w = concat (map (fun '(ni,ui) => napply s ni ui) l) ++ z
-  /\ Forall (fun '(ni,ui) => length ui <= M1 /\ G <= ni < n) l
-  /\ DeltaRev 1 (map fst l)
-  /\ length z <= MG.
-Proof.
- intros HG. revert a w.
- induction n as [n IH] using lt_wf_ind.
- intros a w Hn B1 BG NE Pr.
- destruct (Nat.le_gt_cases n G).
- - exists []. exists w. simpl. repeat split; auto. constructor.
-   apply Prefix_len in Pr.
-   etransitivity; [apply Pr|]. red in BG.
-   rewrite <- (BG a). now apply napply_mono.
- - destruct n as [|n]; try easy.
-   simpl in Pr. rewrite app_nil_r in Pr.
-   destruct (napply_prefix s n w (s a) NE (NE a) Pr)
-     as (w1 & w2 & b & H1 & H2 & H3).
-   destruct (IH n (Nat.lt_succ_diag_r n) b w2)
-     as (l & z & EQ & F & D & LE); auto; try lia.
-   exists ((n,w1)::l), z; repeat split; auto.
-   + simpl. now rewrite app_ass, <-EQ.
-   + constructor; try split; auto; try lia.
-     * rewrite <- (B1 a). simpl. rewrite app_nil_r.
-       apply Prefix_len in H1. rewrite app_length in H1. simpl in H1. lia.
-     * clear -F. rewrite Forall_forall in *.
-       intros (m,u) IN. apply F in IN. lia.
-   + simpl. apply DeltaRev_alt. split; auto.
-     intros y. rewrite in_map_iff. intros ((m,y') & <- & IN). simpl.
-     rewrite Forall_forall in F. apply F in IN. lia.
-Qed.
-
-(* Full decomposition of any prefix of kword, then kseq *)
+(** Full decomposition of any prefix of kword, then kseq (used in Lim) *)
 
 Lemma decomp_prefix_kword k w n l :
  Prefix w (kword k n) ->
@@ -980,6 +917,119 @@ Proof.
  now rewrite map_map, map_rev, listsum_rev.
 Qed.
 
+(** Occurrences of letters when applying ksubst *)
+
+Lemma nbocc_ksubst k : k<>0 ->
+ let s := apply (ksubst k) in
+ forall w,
+ nbocc 0 (s w) = nbocc k w /\
+ nbocc k (s w) = nbocc (k-1) w + nbocc k w /\
+ forall p, p<k-1 -> nbocc (S p) (s w) = nbocc p w.
+Proof.
+ induction w; simpl.
+ - repeat split; lia.
+ - unfold s in *. simpl. rewrite !nbocc_app.
+   destruct IHw as (IHw0 & IHwk & IHw).
+   rewrite IHw0, IHwk. repeat split.
+   + unfold ksubst. case Nat.eqb_spec; simpl; try lia.
+     case Nat.eqb_spec; simpl; try lia.
+   + unfold ksubst. case Nat.eqb_spec; try lia.
+     * intros ->. cbn -[Nat.eqb]. rewrite Nat.eqb_refl.
+       do 2 (case Nat.eqb_spec; try lia).
+     * intros N. case Nat.eqb_spec; try lia.
+       { intros ->. replace (S (k-1)) with k by lia. simpl.
+         rewrite Nat.eqb_refl. lia. }
+       { intros N'. cbn -[Nat.eqb]. case Nat.eqb_spec; try lia. }
+   + intros p Hp. rewrite nbocc_app. rewrite (IHw p Hp).
+     unfold ksubst. case Nat.eqb_spec; try lia.
+     * intros ->. cbn -[Nat.eqb].
+       do 3 (case Nat.eqb_spec; try lia).
+     * intros N. simpl. lia.
+Qed.
+
+(* In [napply] of [ksubst], the initial letter doesn't matter much :
+   low letters become [k] after some rounds of [ksubst], while
+   unexpected letters stay large. *)
+
+Lemma napply_ksubst_shift k p n : p+n <= k \/ k < p ->
+ napply (ksubst k) n [p] = [p+n].
+Proof.
+ revert p.
+ induction n; simpl; intros.
+ - f_equal. lia.
+ - rewrite app_nil_r. unfold ksubst at 2.
+   case Nat.eqb_spec; try lia. intros. rewrite IHn. f_equal; lia. lia.
+Qed.
+
+Lemma napply_ksubst_is_kword k p n : p <= k -> k <= n+p ->
+ napply (ksubst k) n [p] = kword k (n+p-k).
+Proof.
+ intros. replace n with ((n+p-k)+(k-p)) by lia.
+ rewrite napply_add, napply_ksubst_shift by lia.
+ unfold kword; f_equal. lia. f_equal; lia.
+Qed.
+
+(** We hence have an easy bound on lengths of n-iterates of ksubst on
+   single letters. *)
+
+Definition NapplySizeBound s n N :=
+  forall a:letter, length (napply s n [a]) <= N.
+
+Lemma Bound_A k n : NapplySizeBound (ksubst k) n (A k n).
+Proof.
+ unfold NapplySizeBound. intros.
+ destruct (Nat.le_gt_cases a k).
+ - destruct (Nat.le_gt_cases k (n+a)).
+   + rewrite napply_ksubst_is_kword by lia. rewrite kword_len.
+     apply A_mono. lia.
+   + rewrite napply_ksubst_shift by lia. simpl. apply A_nz.
+ - rewrite napply_ksubst_shift by lia. simpl. apply A_nz.
+Qed.
+
+(** Counting occurrences of [k] and [0] in [kword] *)
+
+Lemma nbocc_notin x l : ~In x l -> nbocc x l = 0.
+Proof.
+ induction l; simpl; trivial.
+ intros H. apply Decidable.not_or in H.
+ case Nat.eqb_spec; try lia. intros. now rewrite IHl.
+Qed.
+
+Lemma nbocc_k_kword k n : nbocc k (kword k n) = A k (n-k).
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n k).
+ - rewrite kword_low by lia. simpl.
+   rewrite Nat.eqb_refl, nbocc_notin.
+   2:{ rewrite in_seq; lia. }
+   now replace (n-k) with 0 by lia.
+ - destruct n; try lia.
+   rewrite kword_alt, nbocc_app by lia.
+   rewrite IH by lia.
+   rewrite IH by lia.
+   now replace (S n - k) with (S (n-k)) by lia.
+Qed.
+
+Lemma nbocc_0_kword k n : k<>0 -> nbocc 0 (kword k (S n)) = A k (n-k).
+Proof.
+ intros Hk.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases (S n) k).
+ - rewrite kword_low by lia. simpl.
+   rewrite nbocc_notin by (rewrite in_seq; lia).
+   case Nat.eqb_spec; try lia.
+   now replace (n-k) with 0 by lia.
+ - destruct n; try lia.
+   rewrite kword_alt, nbocc_app by lia.
+   rewrite IH by lia.
+   destruct (Nat.le_gt_cases (S n) k).
+   + replace (S n - k) with 0 by lia. replace (n-k) with 0 by lia. simpl.
+     case Nat.eqb_spec; try lia.
+   + replace (S n - k) with (S (n-k)) by lia.
+     rewrite IH by lia. now simpl.
+Qed.
+
+
 (* Special case k=2
 
  0 -> 1
@@ -1000,10 +1050,9 @@ Lemma nbocc_ksubst2 w :
  nbocc 1 (s w) = nbocc 0 w /\
  nbocc 2 (s w) = nbocc 1 w + nbocc 2 w.
 Proof.
- induction w; simpl; auto.
- rewrite !nbocc_app.
- destruct IHw as (-> & -> & ->).
- destruct a as [|[|[|n]]]; simpl; lia.
+ assert (H:2<>0) by lia.
+ destruct (nbocc_ksubst 2 H w) as (H0 & H1 & Hp). repeat split; trivial.
+ apply Hp; lia.
 Qed.
 
 Definition tripleocc w := (nbocc 0 w, nbocc 1 w, nbocc 2 w).
@@ -1017,7 +1066,7 @@ Proof.
  now destruct (nbocc_ksubst2 w) as (-> & -> & ->).
 Qed.
 
-Lemma len_alt w :
+Lemma len_nbocc_012 w :
   Forall (fun a => a <= 2) w ->
   length w = nbocc 0 w + nbocc 1 w + nbocc 2 w.
 Proof.
@@ -1031,4 +1080,189 @@ Proof.
  rewrite app_length, IHw.
  unfold ksubst at 1.
  case Nat.eqb_spec; simpl; lia.
+Qed.
+
+(* From a Prefix of napply of a word to a prefix of napply of a letter *)
+
+Lemma napply_prefix s n u v :
+  NoErase s -> v<>[] ->
+  Prefix u (napply s n v) ->
+  exists w t a,
+    Prefix (w++[a]) v /\ u = napply s n w ++ t /\ Prefix t (napply s n [a]).
+Proof.
+ intros NE. revert u.
+ induction v; try easy.
+ - intros u _. rewrite napply_cons. intros Pr.
+   apply Prefix_app in Pr. destruct Pr as [Pr|(u' & E & Pr)].
+   + exists [], u, a. rewrite napply_nil. simpl. split; auto. now exists v.
+   + destruct (list_eq_dec Nat.eq_dec v []) as [->|NE'].
+     * rewrite napply_nil in Pr. apply Prefix_nil in Pr. subst u'.
+       rewrite app_nil_r in E.
+       exists [], u, a. rewrite napply_nil.
+       repeat split; subst; auto using Prefix_id.
+     * destruct (IHv u' NE' Pr) as (w & t & b & Hv & E' & Ht).
+       exists (a::w), t, b. repeat split; auto.
+       { simpl. now apply Prefix_cons. }
+       { now rewrite napply_cons, app_ass, <- E', <- E. }
+Qed.
+
+(** Saari's Lemma 4 : decomposition of a prefix of s^n(a),
+    leaving alone a final part whose size is below a certain threshold *)
+
+Lemma Saari_lemma4 s a n w G M1 MG : G<>0 -> n<>0 ->
+ NapplySizeBound s 1 M1 -> NapplySizeBound s G MG ->
+ NoErase s ->
+ Prefix w (napply s n [a]) ->
+ exists l : list (nat * word), exists z,
+  w = concat (map (fun '(ni,ui) => napply s ni ui) l) ++ z
+  /\ Forall (fun '(ni,ui) => length ui <= M1 /\ G <= ni < n) l
+  /\ DeltaRev 1 (map fst l)
+  /\ length z <= MG.
+Proof.
+ intros HG. revert a w.
+ induction n as [n IH] using lt_wf_ind.
+ intros a w Hn B1 BG NE Pr.
+ destruct (Nat.le_gt_cases n G).
+ - exists []. exists w. simpl. repeat split; auto. constructor.
+   apply Prefix_len in Pr.
+   etransitivity; [apply Pr|]. red in BG.
+   rewrite <- (BG a). now apply napply_mono.
+ - destruct n as [|n]; try easy.
+   simpl in Pr. rewrite app_nil_r in Pr.
+   destruct (napply_prefix s n w (s a) NE (NE a) Pr)
+     as (w1 & w2 & b & H1 & H2 & H3).
+   destruct (IH n (Nat.lt_succ_diag_r n) b w2)
+     as (l & z & EQ & F & D & LE); auto; try lia.
+   exists ((n,w1)::l), z; repeat split; auto.
+   + simpl. now rewrite app_ass, <-EQ.
+   + constructor; try split; auto; try lia.
+     * rewrite <- (B1 a). simpl. rewrite app_nil_r.
+       apply Prefix_len in H1. rewrite app_length in H1. simpl in H1. lia.
+     * clear -F. rewrite Forall_forall in *.
+       intros (m,u) IN. apply F in IN. lia.
+   + simpl. apply DeltaRev_alt. split; auto.
+     intros y. rewrite in_map_iff. intros ((m,y') & <- & IN). simpl.
+     rewrite Forall_forall in F. apply F in IN. lia.
+Qed.
+
+(* Same idea in a simpler version (decompose in letters instead of words).
+   Should be enough for ksubst *)
+
+Definition Reachable s a b := exists n, In b (napply s n [a]).
+
+Lemma Reachable_trans s a b c :
+  Reachable s a b -> Reachable s b c -> Reachable s a c.
+Proof.
+ intros (n,Hb) (m,Hc). exists (m+n). rewrite napply_add.
+ destruct (in_split _ _ Hb) as (u & v & ->).
+ rewrite napply_app, napply_cons, !in_app_iff. intuition.
+Qed.
+
+Lemma Saari_lemma4_bis s a n w G MG : G<>0 -> n<>0 ->
+ NapplySizeBound s G MG ->
+ NoErase s ->
+ Prefix w (napply s n [a]) ->
+ exists l : list (nat * letter), exists z,
+  w = concat (map (fun '(ni,ui) => napply s ni [ui]) l) ++ z
+  /\ Forall (fun '(ni,ui) => G <= ni /\ Reachable s a ui) l
+  /\ length z <= MG.
+Proof.
+ intros HG. revert a w.
+ induction n as [n IH] using lt_wf_ind.
+ intros a w Hn BG NE Pr.
+ destruct (Nat.le_gt_cases n G).
+ - exists []. exists w. simpl. repeat split; auto.
+   apply Prefix_len in Pr.
+   etransitivity; [apply Pr|]. red in BG.
+   rewrite <- (BG a). now apply napply_mono.
+ - destruct n as [|n]; try easy.
+   simpl in Pr. rewrite app_nil_r in Pr.
+   destruct (napply_prefix s n w (s a) NE (NE a) Pr)
+     as (w1 & w2 & b & H1 & H2 & H3).
+   destruct (IH n (Nat.lt_succ_diag_r n) b w2)
+     as (l & z & EQ & F & LE); auto; try lia. clear IH.
+   exists (map (fun u => (n,u)) w1 ++ l), z; repeat split; auto.
+   + simpl. rewrite H2, EQ. rewrite <- app_ass. f_equal.
+     now rewrite map_app, map_map, napply_concat, concat_app.
+   + apply Forall_app; split.
+     * rewrite Forall_forall. intros (p,c).
+       rewrite in_map_iff. intros (x & [= <- <-] & IN). split. lia.
+       exists 1. simpl. rewrite app_nil_r. destruct H1 as (w3 & <-).
+       rewrite !in_app_iff; intuition.
+     * rewrite Forall_forall in *. intros (p,c) IN.
+       destruct (F (p,c) IN). split; trivial. eapply Reachable_trans; eauto.
+       exists 1. simpl. rewrite app_nil_r. destruct H1 as (w3 & <-).
+       rewrite !in_app_iff; intuition.
+Qed.
+
+Lemma Reachable_ksubst k p :
+  p <= k -> forall q, Reachable (ksubst k) p q <-> q <= k.
+Proof.
+ intros Hp q. split.
+ - intros (n,H).
+   assert (F : Forall (fun a => a <= k) [p]) by repeat (constructor; try lia).
+   apply (napply_ksubst_letters _ n) in F.
+   rewrite Forall_forall in F. now apply F.
+ - intros Hq.
+   apply Reachable_trans with k.
+   + exists (k-p). rewrite napply_ksubst_shift by lia.
+     replace (p+(k-p)) with k; simpl; lia.
+   + apply Reachable_trans with 0.
+     * exists 1. simpl. unfold ksubst. rewrite Nat.eqb_refl. simpl; intuition.
+     * exists q. rewrite napply_ksubst_shift by lia. simpl. lia.
+Qed.
+
+Lemma Saari_lemma4_ksubst k n w G : G<>0 -> n<>0 ->
+ Prefix w (kword k n) ->
+ exists l : list nat, exists z,
+  w = concat (map (kword k) l) ++ z
+  /\ Forall (Nat.le G) l
+  /\ length z <= A k (k+G).
+Proof.
+ intros HG Hn Pref.
+ destruct (Saari_lemma4_bis (ksubst k) k n w (k+G) (A k (k+G))) as
+  (l & z & E & F & LE); trivial; try lia.
+ - apply Bound_A.
+ - apply ksubst_noerase.
+ - exists (map (fun '(ni,ui) => ni+ui-k) l); exists z; repeat split; trivial.
+   + rewrite E. f_equal. f_equal.
+     rewrite map_map. simpl. apply map_ext_in.
+     intros (ni,ui) IN.
+     rewrite Forall_forall in F. destruct (F _ IN) as (U,V).
+     rewrite Reachable_ksubst in V; try lia.
+     rewrite napply_ksubst_is_kword; trivial; try lia.
+   + rewrite Forall_map.
+     rewrite Forall_forall in *. intros (p,c) IN.
+     destruct (F _ IN) as (U,V).
+     rewrite Reachable_ksubst in V; try lia.
+Qed.
+
+Lemma firstn_Prefix n l : Prefix (firstn n l) l.
+Proof.
+ exists (skipn n l). apply firstn_skipn.
+Qed.
+
+Lemma nth_firstn {A} n m (l:list A) a :
+ m < n -> nth m (firstn n l) a = nth m l a.
+Proof.
+ revert l n.
+ induction m; destruct n, l; simpl; trivial; try lia.
+ intros. apply IHm. lia.
+Qed.
+
+Lemma kseq_take k n p : n <= A k p -> take n (kseq k) = firstn n (kword k p).
+Proof.
+ intros LE.
+ apply take_carac.
+ - rewrite firstn_length, kword_len. lia.
+ - intros m a LT.
+   rewrite nth_firstn by lia. symmetry. apply kseq_alt. lia.
+Qed.
+
+Lemma count_kseq k n p :
+  n <= A k p ->
+  count (kseq k) 0 n = nbocc 0 (firstn n (kword k p)).
+Proof.
+ intros LE.
+ rewrite count_nbocc. f_equal. now apply kseq_take.
 Qed.
