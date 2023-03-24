@@ -323,7 +323,7 @@ Proof.
  - now apply Lim_fk_div_n_nz.
 Qed.
 
-Lemma Rdist_half (a b : R) : R_dist a b < b/2 -> 0 < a.
+Lemma Rdist_impl_pos (a b : R) : R_dist a b < b -> 0 < a.
 Proof.
  unfold R_dist. intros H.
  destruct (Rle_or_lt b a).
@@ -339,13 +339,13 @@ Proof.
                         (tau (S k) - tau k)).
  { apply is_lim_seq_minus'; apply Lim_fk_div_n. }
  rewrite is_lim_seq_Reals in H. red in H.
- set (eps := (tau (S k) - tau k)/2).
+ set (eps := tau (S k) - tau k).
  assert (Heps : eps > 0).
  { unfold eps. generalize (tau_incr k). lra. }
  destruct (H eps Heps) as (N & HN). clear H. exists (S N).
  intros n Hn. apply INR_lt.
  assert (Hn' : (n >= N)%nat) by lia.
- specialize (HN n Hn'). apply Rdist_half in HN.
+ specialize (HN n Hn'). apply Rdist_impl_pos in HN.
  apply Rmult_lt_reg_r with (/n); try lra.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
