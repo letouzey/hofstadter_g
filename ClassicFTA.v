@@ -1,11 +1,23 @@
 From Coq Require Import Reals Lra Permutation Lia.
 From CoRN Require Import FTA Rreals Rreals_iso CRing_Homomorphisms R_morphism.
 From Coquelicot Require Import Complex.
-Require Import Lim.
 
-Add Search Blacklist "RefLemma" "TaylorLemma" "RefSeparated" "_lemma".
+Local Open Scope R.
 
-(* Coquelicot Complex C seen as a CoRN CField. *)
+(** * Revisiting CoRN FTA theorem for Coquelicot complex C *)
+
+(* TODO move elsewhere *)
+Lemma Cmult_integral (c1 c2 : C) :
+ (c1 * c2 = 0 <-> c1 = 0 \/ c2 = 0)%C.
+Proof.
+ split.
+ - destruct (Ceq_dec c1 0) as [->|H1]. now left.
+   destruct (Ceq_dec c2 0) as [->|H2]. now right.
+   intros H. now destruct (Cmult_neq_0 c1 c2).
+ - intros [-> | ->]; ring.
+Qed.
+
+(** First, Coquelicot Complex C seen as a CoRN CField. *)
 
 Lemma C_is_CSetoid : is_CSetoid C eq (fun x y : C => x <> y).
 Proof.
@@ -125,7 +137,7 @@ Definition C_fd : CField :=
  Build_CField _ _ C_is_Field C_is_Field2.
 Canonical Structure C_fd.
 
-(* Isomorphism between C and CC. First C_CC is an Ring Homomorphism : *)
+(** Isomorphism between C and CC. First C_CC is an Ring Homomorphism : *)
 
 Definition CasCC : C -> CC :=
   fun (c:C) => Build_CC_set (RasIR (Re c)) (RasIR (Im c)).
@@ -194,7 +206,7 @@ Definition CasCC_funoid : CSetoid_fun C CC :=
 Definition CasCC_Hom : RingHom C_fd CC :=
  Build_RingHom _ _ CasCC_funoid CasCC_plus CasCC_mult CasCC_1.
 
-(* Now CCasC is also a Ring Homomorphism *)
+(** Now CCasC is also a Ring Homomorphism *)
 
 Lemma CCasC_strext : fun_strext CCasC.
 Proof.
@@ -225,11 +237,11 @@ Definition CCasC_funoid : CSetoid_fun CC C_fd :=
 Definition CCasC_Hom : RingHom CC C_fd :=
  Build_RingHom _ _ CCasC_funoid CCasC_plus CCasC_mult CCasC_1.
 
-(* Possible extensions : things like fun_pres_Lim, and preservations
+(* TODO: Possible extensions : things like fun_pres_Lim, and preservations
    of Re Im norm conjugate etc *)
 
-(* Following R_morphism.Isomomorphism but on C, and without explicit
-   structure *)
+(** Following R_morphism.Isomomorphism but on C, and without any explicit
+    structure *)
 
 Definition ringmap_is_id (R : CRing)(f : R -> R) := forall x : R, f x[=]x.
 
@@ -245,7 +257,7 @@ Proof.
  exact CCasCasCC.
 Qed.
 
-(* Polynomials with respect to ring homomorphisms *)
+(** Polynomials with respect to ring homomorphisms *)
 
 Lemma cpoly_map_id [R:CRing](h:RingHom R R) :
  ringmap_is_id _ h -> forall f : cpoly_cring R, cpoly_map h f [=] f.
@@ -286,10 +298,12 @@ Proof.
  rewrite <- cpoly_map_compose. symmetry. now apply cpoly_map_id.
 Qed.
 
-(* Finally, FTA theorem for Coquelicot C structure (based on Coq reals R) *)
+(** Polynomials C[X] *)
+Definition CX := cpoly_cring C_fd.
 
-Theorem Coq_FTA : forall f : cpoly_cring C_fd,
-       nonConst C_fd f -> {z : C_fd & f ! z [=] [0]}.
+(** FTA theorem for Coquelicot C structure (based on Coq reals R) *)
+
+Theorem Coq_FTA : forall f : CX, nonConst C_fd f -> {z : C & f ! z [=] [0]}.
 Proof.
  intros f Hf.
  destruct (FTA (cpoly_map CasCC_Hom f)) as (z,Hz).
@@ -299,57 +313,36 @@ Proof.
    rewrite <- CasCC_0 in Hz. now apply CasCC_inj.
 Qed.
 
-(* TODO : Factorisation d'un polynôme par (X-root) ...
-   et repetition tant que degré non-nul
+(** Some complements on polynomials (monic, apply, monom, ...) *)
 
-   TODO : passer par FTA_1 ?
-   f = f1*f2 avec f1 de degré <= 1 et f2 de degré moins que f *)
+Lemma c_opp [R : CRing] (a : R) : _C_ ([--] a) [=] [--] (_C_ a).
+Proof.
+ easy.
+Qed.
 
-(* Example : *)
+Lemma c_minus [R : CRing] (a b : R) : _C_ (a [-] b) [=] _C_ a [-] _C_ b.
+Proof.
+ unfold "[-]". now rewrite c_plus, c_opp.
+Qed.
 
-Definition CX := cpoly_cring C_fd.
+(* Unused for now.
+   TODO : rename k into n in this lemma, and algebra won't work ?! *)
 
-Definition ThePoly (k:nat) : CX := monom [1] (k+1) [-] monom [1] k [-] [1].
+Lemma monom_add_coeff [R:CRing](a b:R)(k:nat) :
+ monom a k [+] monom b k [=] monom (a[+]b) k.
+Proof.
+ induction k; rewrite ?monom_S, <- ?IHk; algebra.
+Qed.
 
 Lemma monom_apply (a c:C)(n:nat) : (monom a n) ! c = (a*c^n)%C.
 Proof.
  induction n; simpl in *; rewrite ?IHn; ring.
 Qed.
 
-Lemma mu_is_root (k:nat) : (ThePoly k) ! (RtoC (mu k)) = RtoC 0.
-Proof.
- unfold ThePoly. rewrite !minus_apply, !monom_apply. simpl.
- unfold "[-]". simpl.
- rewrite Nat.add_1_r. ring_simplify.
- rewrite <- RtoC_pow, mu_carac. rewrite RtoC_plus, RtoC_pow. ring.
-Qed.
-
 Lemma monom_degree_eq (a:C)(n:nat) : a<>0%R -> degree n (monom a n).
 Proof.
  intros Ha. split. rewrite monom_coeff. apply Ha.
  apply monom_degree.
-Qed.
-
-Lemma ThePoly_deg (k:nat) : degree (S k) (ThePoly k).
-Proof.
- unfold ThePoly.
- apply degree_minus_lft with O; auto with *.
- - red. simpl. destruct m. inversion 1. trivial.
- - apply degree_minus_lft with k; auto with *.
-   apply monom_degree.
-   rewrite Nat.add_1_r.
-   apply monom_degree_eq. apply C1_nz.
-Qed.
-
-Lemma ThePoly_monic (k:nat) : monic (S k) (ThePoly k).
-Proof.
- unfold ThePoly. apply monic_minus with O; auto with *.
- - red. simpl. destruct m. inversion 1. trivial.
- - apply monic_minus with k; auto with *.
-   apply monom_degree.
-   rewrite Nat.add_1_r. split.
-   now rewrite monom_coeff.
-   apply monom_degree.
 Qed.
 
 Lemma monic_nonConst [R : CRing] (f : cpoly_cring R)(n:nat) :
@@ -364,15 +357,22 @@ Proof.
  intros (A,B). split; trivial. stepl ([1]:R); algebra.
 Qed.
 
-Lemma ThePoly_nonConst (k:nat) : nonConst _ (ThePoly k).
+Lemma degree_le_map [R S](h:RingHom R S)(f : cpoly_cring R) k :
+ degree_le k f -> degree_le k (cpoly_map h f).
 Proof.
- apply monic_nonConst with k. apply ThePoly_monic.
+ unfold degree_le; intros H m Hm. rewrite coeff_map, H. algebra. trivial.
 Qed.
 
-Lemma c_opp [R : CRing] (a : R) : _C_ ([--] a) [=] [--] (_C_ a).
+Lemma monic_map [R S](h:RingHom R S)(f : cpoly_cring R) k :
+ monic k f -> monic k (cpoly_map h f).
 Proof.
- easy.
+ intros (A,B). split.
+ rewrite coeff_map, A. algebra.
+ now apply degree_le_map.
 Qed.
+
+(** [linprod] : from a list of roots [r1]..[rn] to
+    polynomial [(X-r1)...(X-rn)] *)
 
 Fixpoint linprod [R:CRing](l: list R) : cpoly_cring R :=
  match l with
@@ -386,8 +386,8 @@ Proof.
  induction l.
  - simpl. algebra.
  - cbn [linprod List.map]. rewrite <- IHl.
-   rewrite rh2. apply mult_wdl. clear IHl.
-   unfold "[-]". rewrite rh1, <- !c_opp, cpoly_map_X, cpoly_map_C. algebra.
+   rewrite rh_pres_mult. apply mult_wdl. clear IHl. unfold "[-]".
+   rewrite rh_pres_plus, <- !c_opp, cpoly_map_X, cpoly_map_C. algebra.
 Qed.
 
 Lemma linprod_app [R:CRing](l1 l2 : list R) :
@@ -398,7 +398,9 @@ Proof.
  - now rewrite IHl1, mult_assoc.
 Qed.
 
-Lemma linprod_perm (l l' : list C) :
+(** In [linprod] we can permute freely the roots *)
+
+Lemma linprod_perm [R:CRing](l l' : list R) :
  Permutation l l' -> linprod l [=] linprod l'.
 Proof.
  induction 1; cbn [linprod].
@@ -408,21 +410,21 @@ Proof.
  - now rewrite IHPermutation1, IHPermutation2.
 Qed.
 
-(* TODO move elsewhere *)
-Lemma Cmult_integral (c1 c2 : C) :
- (c1 * c2 = 0 <-> c1 = 0 \/ c2 = 0)%C.
+(** The roots of [linprod l] are exactly the elements of [l]. *)
+
+Definition CXRoot (c:C) (f:CX) := f ! c = RtoC 0.
+
+Lemma CXRoot_wd c f f' : f [=] f' -> CXRoot c f -> CXRoot c f'.
 Proof.
- split.
- - destruct (Ceq_dec c1 0) as [->|H1]. now left.
-   destruct (Ceq_dec c2 0) as [->|H2]. now right.
-   intros H. now destruct (Cmult_neq_0 c1 c2).
- - intros [-> | ->]; ring.
+ unfold CXRoot. now intros <-.
 Qed.
 
-Lemma linprod_roots (l : list C) :
- forall c, In c l <-> (linprod l) ! c = RtoC 0.
+Global Instance: Proper (eq ==> @st_eq _ ==> iff) CXRoot.
+Proof. intros c c' <- f f'. split; now apply CXRoot_wd. Qed.
+
+Lemma linprod_roots (l : list C) c : In c l <-> CXRoot c (linprod l).
 Proof.
- induction l; cbn [linprod In].
+ revert c. induction l; unfold CXRoot; cbn [linprod In].
  - intros c. simpl. rewrite Cmult_0_r, Cplus_0_r. split. easy. apply C1_nz.
  - intros c. rewrite IHl, mult_apply, Cmult_integral. clear IHl.
    split; destruct 1 as [A|B]; (now right) || left.
@@ -430,6 +432,11 @@ Proof.
    + simpl in A. ring_simplify in A. rewrite Cplus_comm in A.
      symmetry. apply Ceq_minus. now ring_simplify.
 Qed.
+
+(** Repeating FTA for splitting a polynomial into basic factors.
+    Version for CCX, the polynomials on CoRN C.
+    The list of roots isn't sorted, and may contains the roots several times
+    (the number of occurrences is the multiplicity). *)
 
 Lemma split_CCX k (f:CCX) :
  monic k f -> { l:list CC | length l = k /\ f [=] linprod l }.
@@ -484,19 +491,7 @@ Proof.
    now rewrite ring_distr2.
 Qed.
 
-Lemma degree_le_map [R S](h:RingHom R S)(f : cpoly_cring R) k :
- degree_le k f -> degree_le k (cpoly_map h f).
-Proof.
- unfold degree_le; intros H m Hm. rewrite coeff_map, H. algebra. trivial.
-Qed.
-
-Lemma monic_map [R S](h:RingHom R S)(f : cpoly_cring R) k :
- monic k f -> monic k (cpoly_map h f).
-Proof.
- intros (A,B). split.
- rewrite coeff_map, A. algebra.
- now apply degree_le_map.
-Qed.
+(** Same result, but for CX (polynomials on Coquelicot C). *)
 
 Lemma split_CX k (f:CX) :
  monic k f -> { l:list C | length l = k /\ f [=] linprod l }.
@@ -512,6 +507,7 @@ Proof.
        apply cpoly_map_id, inversity_lft.
 Qed.
 
+(* TODO: move elsewhere *)
 Lemma count_occ_repeat [A](decA : forall x y : A, {x = y} + {x <> y})
   x n y :
   count_occ decA (repeat x n) y = if decA x y then n else O.
@@ -519,6 +515,7 @@ Proof.
  induction n; simpl; destruct decA; simpl; congruence.
 Qed.
 
+(* TODO: move elsewhere *)
 Lemma count_occ_remove [A](decA : forall x y : A, {x = y} + {x <> y})
   l x y :
   count_occ decA (remove decA x l) y =
@@ -527,14 +524,20 @@ Proof.
  induction l; repeat (simpl; destruct decA); congruence.
 Qed.
 
-Lemma permfront [A](decA : forall x y : A, {x = y} + {x <> y})
- (l:list A)(x:A)(n := count_occ decA l x) :
- Permutation l (repeat x n ++ remove decA x l).
+(** In a list, moving all the occurrences of a value at front. *)
+
+Definition movefront [A](decA : forall x y : A, {x = y} + {x <> y}) x l :=
+ repeat x (count_occ decA l x) ++ remove decA x l.
+
+Lemma movefront_perm [A](decA : forall x y : A, {x = y} + {x <> y}) x l :
+ Permutation l (movefront decA x l).
 Proof.
- rewrite (Permutation_count_occ decA). intros y.
+ rewrite (Permutation_count_occ decA). intros y. unfold movefront.
  rewrite count_occ_app, count_occ_remove, count_occ_repeat.
- unfold n. destruct decA; subst; lia.
+ destruct decA; subst; lia.
 Qed.
+
+(** Complements on [_D_] (derivative of a polynomial) *)
 
 Lemma diff_opp [R](f : cpoly_cring R) :
  _D_ ([--] f) [=] [--] (_D_ f).
@@ -570,44 +573,6 @@ Proof.
    rewrite !S_INR, !RtoC_plus, !c_plus. algebra.
 Qed.
 
-Lemma multiple_root (l : list C) c :
-  (1 < count_occ Ceq_dec l c)%nat -> (_D_ (linprod l)) ! c = RtoC 0.
-Proof.
- intros Hc.
- set (n := count_occ Ceq_dec l c) in *.
- rewrite (linprod_perm _ _ (permfront Ceq_dec l c)).
- fold n.
- set (l' := remove Ceq_dec c l). clearbody l'.
- rewrite linprod_app, diff_mult, plus_apply, !mult_apply.
- assert (E : forall m, (0<m)%nat -> (linprod (repeat c m)) ! c = RtoC 0).
- { intros. rewrite <- linprod_roots. destruct m. lia. now left. }
- rewrite E by lia.
- assert (E' : (_D_ (linprod (repeat c n))) ! c = RtoC 0).
- { destruct n as [|n]; try lia.
-   rewrite diff_linprod_repeat, mult_apply, E by lia. apply Cmult_0_r. }
- now rewrite E', !Cmult_0_l, Cplus_0_l.
-Qed.
-
-Lemma separated_roots (l : list C) :
- (forall c, In c l -> (_D_ (linprod l)) ! c <> RtoC 0) -> NoDup l.
-Proof.
- intros.
- apply (NoDup_count_occ' Ceq_dec).
- intros c Hc.
- assert (Hc' := Hc). rewrite (count_occ_In Ceq_dec) in Hc'.
- destruct (Nat.eq_dec (count_occ Ceq_dec l c) 1). trivial.
- specialize (H c Hc). rewrite multiple_root in H by lia. easy.
-Qed.
-
-Lemma monom_add [R:CRing](a b:R)(k:nat) :
- monom a k [+] monom b k [=] monom (a[+]b) k.
-Proof.
- induction k.
- - algebra.
- - rewrite !monom_S, <- IHk. algebra.
-Qed.
-
-
 Lemma diff_monom [R:CRing](a:R)(k:nat) :
  _D_ (monom a k) [=] (nring k) [*] monom a (pred k).
 Proof.
@@ -622,6 +587,40 @@ Proof.
    + cbn [pred nring]. rewrite <- ring_distl_unfolded. algebra.
 Qed.
 
+(** A multiple root of a polynomial is also a root of its derivative. *)
+
+Lemma multiple_root_diff (l : list C) c :
+  (1 < count_occ Ceq_dec l c)%nat -> CXRoot c (_D_ (linprod l)).
+Proof.
+ intros Hc. unfold CXRoot.
+ set (n := count_occ Ceq_dec l c) in *.
+ rewrite (linprod_perm _ _ (movefront_perm Ceq_dec c l)).
+ unfold movefront. fold n. set (l' := remove Ceq_dec c l). clearbody l'.
+ rewrite linprod_app, diff_mult, plus_apply, !mult_apply.
+ assert (E : forall m, (0<m)%nat -> CXRoot c (linprod (repeat c m))).
+ { intros. rewrite <- linprod_roots. destruct m. lia. now left. }
+ rewrite E by lia.
+ assert (E' : CXRoot c (_D_ (linprod (repeat c n)))).
+ { destruct n as [|n]; try lia. unfold CXRoot.
+   rewrite diff_linprod_repeat, mult_apply, E by lia. apply Cmult_0_r. }
+ now rewrite E', !Cmult_0_l, Cplus_0_l.
+Qed.
+
+(** A polynomial without common roots with its derivative has only
+    simple roots. First, version for [linprod] polynomials. *)
+
+Lemma linprod_separated_roots (l : list C) :
+ (forall c, CXRoot c (linprod l) -> ~CXRoot c (_D_ (linprod l))) -> NoDup l.
+Proof.
+ intros.
+ apply (NoDup_count_occ' Ceq_dec).
+ intros c Hc.
+ assert (Hc' := Hc). rewrite (count_occ_In Ceq_dec) in Hc'.
+ destruct (Nat.eq_dec (count_occ Ceq_dec l c) 1). trivial.
+ apply linprod_roots in Hc. specialize (H c Hc).
+ destruct H. apply multiple_root_diff. lia.
+Qed.
+
 Lemma nring_C n : @nring C_fd n = RtoC (INR n).
 Proof.
  induction n; cbn [nring] in *; trivial.
@@ -634,64 +633,24 @@ Proof.
  rewrite IHn, S_INR, RtoC_plus. algebra.
 Qed.
 
-Lemma ThePoly_separated_roots k :
-  { l | length l = S k /\ NoDup l /\ ThePoly k [=] linprod l }.
+(** A polynomial without common roots with its derivative has only
+    simple roots. Version for monic polynomial. *)
+
+Lemma separated_roots k (f:CX) :
+ monic k f ->
+ (forall c, CXRoot c f -> ~CXRoot c (_D_ f)) ->
+ { l | length l = k /\ NoDup l /\ f [=] linprod l }.
 Proof.
- destruct (split_CX (S k) (ThePoly k)) as (l & Hl & E).
- - apply ThePoly_monic.
- - exists l; repeat split; trivial.
-   apply separated_roots. intros c Hc.
-   rewrite <- E. unfold ThePoly.
-   rewrite !diff_minus, diff_one, !diff_monom.
-   rewrite Nat.add_1_r. simpl pred.
-   rewrite cg_inv_zero, minus_apply, !mult_apply, !monom_apply.
-   rewrite !nring_CX, !c_apply.
-   change [1] with (RtoC 1). rewrite !Cmult_1_l.
-   change (INR (S k) * (c^k) - INR k * (c ^ pred k) <> 0)%C.
-   destruct (Nat.eq_dec k 0) as [->|Hk].
-   + simpl. intro H. ring_simplify in H. now apply C1_nz.
-   + replace k with (S (pred k)) at 2 by lia.
-     intro H. ring_simplify in H.
-     rewrite Cpow_S, Cmult_assoc in H.
-     rewrite <- Cmult_plus_distr_r in H.
-     rewrite Cmult_integral in H. destruct H as [H|H].
-     * replace (-1 * INR k)%C with (-INR k)%C in H by ring.
-       change (INR (S k) * c - INR k = 0)%C in H.
-       rewrite <- Ceq_minus in H.
-       assert (Hc' : c = (INR k / INR (S k))%C).
-       { rewrite <- H. field. intros H'. apply RtoC_inj in H'.
-         generalize (RSpos k). lra. }
-       rewrite <- RtoC_div in Hc'. 2:generalize (RSpos k); lra.
-       revert Hc.
-       rewrite linprod_roots, <- E. unfold ThePoly.
-       rewrite !minus_apply, one_apply, !monom_apply.
-       change [1] with (RtoC 1). rewrite !Cmult_1_l.
-       rewrite Nat.add_1_r.
-       change (c^S k - c^k - 1 <> 0)%C.
-       replace (c^S k - c^k - 1)%C with (c^S k - (c^k + 1))%C by ring.
-       apply Cminus_eq_contra. intro Hc.
-       set (r := Rdiv _ _) in *.
-       assert (r <= 1).
-       { unfold r. apply Rcomplements.Rle_div_l.
-         generalize (RSpos k); lra. rewrite S_INR; lra. }
-       subst c. rewrite <- !RtoC_pow, <- RtoC_plus in Hc.
-       apply RtoC_inj in Hc.
-       apply mu_unique in Hc. generalize (mu_itvl k); lra.
-       apply Rcomplements.Rdiv_le_0_compat. apply pos_INR. apply RSpos.
-     * revert H. apply Cpow_nz.
-       contradict Hc. subst c. rewrite linprod_roots, <- E.
-       unfold ThePoly.
-       rewrite !minus_apply, one_apply, !monom_apply.
-       destruct k; try lia.
-       simpl. rewrite !Cmult_0_l, !Cmult_0_r.
-       apply Cminus_eq_contra.
-       change (0-0 <> 1)%C. unfold Cminus. rewrite Cplus_opp_r.
-       intro H. symmetry in H. now apply C1_nz.
+ intros Hf Df.
+ destruct (split_CX k f Hf) as (l & Hl & E).
+ exists l; repeat split; trivial.
+ apply linprod_separated_roots. intros c. rewrite <- E. apply Df.
 Qed.
 
-(* Derivées et racines simples : Au moins dans le cas particulier ThePoly *)
+(* TODO: full treatment of multiplicity *)
 
-(* Les racines complexes non réelles d'un poly à coeffs réels vont par deux
+(* TODO:
+   Les racines complexes non réelles d'un poly à coeffs réels vont par deux
 
 Lemma apply_conj (f:CX)(c:C) : (* Todo : dire que f a des coeffs reels *)
  Cconj (f ! c) = f ! (Cconj c).

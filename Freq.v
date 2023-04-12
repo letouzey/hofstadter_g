@@ -2,8 +2,8 @@ From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
 From Coquelicot Require Import Complex Lim_seq.
 Require Import DeltaList FunG GenFib GenG GenAdd Words Phi Lim.
 
-Open Scope Z.
-Open Scope R.
+Local Open Scope Z.
+Local Open Scope R.
 
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
