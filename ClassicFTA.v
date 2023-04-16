@@ -17,6 +17,54 @@ Proof.
  - intros [-> | ->]; ring.
 Qed.
 
+(** Complements on the isomorphisms between R as CauchySeq.IR *)
+(** TODO : move elsewhere *)
+Lemma IR_eq_as_R (x y : CauchySeq.IR) : x [=] y -> IRasR x = IRasR y.
+Proof.
+ intros H. destruct (Req_dec (IRasR x) (IRasR y)) as [E|NE]. exact E.
+ exfalso.
+ apply Rdichotomy in NE. destruct NE as [LT|GT].
+ - apply IR_lt_as_R_back in LT.
+   generalize (less_wdl _ _ _ _ LT H). apply less_irreflexive.
+ - apply IR_lt_as_R_back in GT.
+   generalize (less_wdr _ _ _ _ GT H). apply less_irreflexive.
+Qed.
+
+Global Instance : Proper (@st_eq _ ==> eq) IRasR.
+Proof. exact IR_eq_as_R. Qed.
+
+Lemma IR_eq_as_R_back (x y : CauchySeq.IR) : IRasR x = IRasR y -> x [=] y.
+Proof.
+ intros H. now rewrite <- (IRasRasIR_id x), <- (IRasRasIR_id y), H.
+Qed.
+
+Lemma R_le_as_IR_back (x y : CauchySeq.IR) : x [<=] y -> IRasR x <= IRasR y.
+Proof.
+ rewrite <- (IRasRasIR_id x) at 1. rewrite <- (IRasRasIR_id y) at 1.
+ apply R_le_as_IR.
+Qed.
+
+Lemma IR_recip_as_R (r : CauchySeq.IR) (Hr : r [#] [0]) :
+  IRasR ([1] [/] r [//] Hr) = / IRasR r.
+Proof.
+ apply R_eq_as_IR_back. rewrite IRasRasIR_id.
+ rewrite <- (Rmult_1_l (/ (IRasR r))).
+ change (1 * / _) with (1 / IRasR r).
+ assert (Hr' : RasIR (IRasR r) [#] [0]).
+ { stepl r; trivial. now rewrite IRasRasIR_id. }
+ rewrite (R_recip_as_IR _ Hr'). eapply div_wd; try easy.
+ now rewrite IRasRasIR_id.
+Qed.
+
+Lemma IR_div_as_R (x y : CauchySeq.IR) (Hy : y [#] [0]) :
+  IRasR (x [/] y [//] Hy) = IRasR x / IRasR y.
+Proof.
+ unfold cf_div, Rdiv. rewrite IR_mult_as_R.
+ generalize (IR_recip_as_R y Hy). unfold cf_div. rewrite one_mult.
+ now intros ->.
+Qed.
+(* /TODO *)
+
 (** First, Coquelicot Complex C seen as a CoRN CField. *)
 
 Lemma C_is_CSetoid : is_CSetoid C eq (fun x y : C => x <> y).
@@ -159,7 +207,43 @@ Qed.
 Lemma CasCC_inj (c c':C) : CasCC c [=] CasCC c' -> c=c'.
 Proof.
  destruct c as (x,y), c' as (x',y'). intros (H,H'). simpl in *.
- apply R_eq_as_IR_back in H,H'. congruence.
+ f_equal; now apply R_eq_as_IR_back.
+Qed.
+
+Lemma CCasC_inj (c c':CC) : CCasC c = CCasC c' -> c[=]c'.
+Proof.
+ destruct c as (x,y), c' as (x',y'). unfold CCasC. simpl.
+ intros [= H H']; unfold cc_eq. simpl. split; now apply IR_eq_as_R_back.
+Qed.
+
+Lemma CasCC_ap (c c':C) : CasCC c [#] CasCC c' -> c <> c'.
+Proof.
+ intros H H'. rewrite H' in H. revert H. apply ap_irreflexive.
+Qed.
+
+Lemma CasCC_ap_back (c c':C) : c <> c' -> CasCC c [#] CasCC c'.
+Proof.
+ destruct c as (x,y), c' as (x',y'). unfold CasCC. simpl.
+ unfold cc_ap. simpl. intros NE.
+ destruct (Req_EM_T x x') as [->|Hx].
+ - right.
+   destruct (Req_EM_T y y') as [->|Hy].
+   + now destruct NE.
+   + now apply R_ap_as_IR_back.
+ - left. now apply R_ap_as_IR_back.
+Qed.
+
+Lemma CCasC_ap (c c':CC) : CCasC c <> CCasC c' -> c[#]c'.
+Proof.
+ intros H. apply CasCC_ap_back in H.
+ stepl (CasCC (CCasC c)). stepr (CasCC (CCasC c')). trivial.
+ now rewrite CCasCasCC.
+ now rewrite CCasCasCC.
+Qed.
+
+Lemma CCasC_ap_back (c c':CC) : c[#]c' -> CCasC c <> CCasC c'.
+Proof.
+ intros H. apply ap_imp_neq in H. red in H. contradict H. now apply CCasC_inj.
 Qed.
 
 Lemma CasCC_0 : CasCC 0%R [=] [0].
@@ -168,6 +252,11 @@ Proof.
 Qed.
 
 Lemma CasCC_1 : CasCC 1%R [=] [1].
+Proof.
+ red; simpl. unfold cc_eq. simpl. now rewrite R_Zero_as_IR, R_One_as_IR.
+Qed.
+
+Lemma CasCC_i : CasCC Ci [=] cc_i.
 Proof.
  red; simpl. unfold cc_eq. simpl. now rewrite R_Zero_as_IR, R_One_as_IR.
 Qed.
@@ -182,11 +271,9 @@ Proof.
  unfold CCasC. simpl. now rewrite IR_One_as_R, IR_Zero_as_R.
 Qed.
 
-Lemma CasCC_strext : fun_strext CasCC.
+Lemma CCasC_i : CCasC cc_i = Ci.
 Proof.
- red. unfold C_oid. simpl. unfold cc_ap. simpl.
- intros (x1,x2) (y1,y2). simpl.
- intros [H|H]; apply R_ap_as_IR in H; congruence.
+ unfold CCasC, cc_i, Ci; simpl. now rewrite IR_One_as_R, IR_Zero_as_R.
 Qed.
 
 Lemma CasCC_plus (c c' : C) : CasCC (c+c') [=] CasCC c [+] CasCC c'.
@@ -201,23 +288,12 @@ Lemma CasCC_mult (c c' : C) : CasCC (c*c') [=] CasCC c [*] CasCC c'.
 Qed.
 
 Definition CasCC_funoid : CSetoid_fun C CC :=
- Build_CSetoid_fun _ _ CasCC CasCC_strext.
+ Build_CSetoid_fun _ _ CasCC CasCC_ap.
 
 Definition CasCC_Hom : RingHom C_fd CC :=
  Build_RingHom _ _ CasCC_funoid CasCC_plus CasCC_mult CasCC_1.
 
 (** Now CCasC is also a Ring Homomorphism *)
-
-Lemma CCasC_strext : fun_strext CCasC.
-Proof.
- red. unfold CC. simpl. unfold cc_ap.
- intros (x1,x2) (y1,y2) N. simpl in *. unfold CCasC in *; simpl in *.
- destruct (Req_EM_T (IRasR x1) (IRasR y1)) as [E1|N1].
- - destruct (Req_EM_T (IRasR x2) (IRasR y2)) as [E2|N2].
-   + destruct N. now f_equal.
-   + right. apply (map_strext _ _ (iso_map_rht _ _ RIR_iso)). exact N2.
- - left. apply (map_strext _ _ (iso_map_rht _ _ RIR_iso)). exact N1.
-Qed.
 
 Lemma CCasC_plus (c c' : CC) : CCasC (c [+] c') = (CCasC c + CCasC c')%C.
 Proof.
@@ -232,13 +308,126 @@ Proof.
 Qed.
 
 Definition CCasC_funoid : CSetoid_fun CC C_fd :=
- Build_CSetoid_fun _ _ CCasC CCasC_strext.
+ Build_CSetoid_fun _ _ CCasC CCasC_ap.
 
 Definition CCasC_Hom : RingHom CC C_fd :=
  Build_RingHom _ _ CCasC_funoid CCasC_plus CCasC_mult CCasC_1.
 
-(* TODO: Possible extensions : things like fun_pres_Lim, and preservations
-   of Re Im norm conjugate etc *)
+(** Other preservations *)
+
+Lemma CCasC_opp (c : CC) : CCasC ([--] c) = (- CCasC c)%C.
+Proof.
+ destruct c as (x,y). unfold CCasC, cc_inv, Copp. simpl.
+ now rewrite !IR_opp_as_R.
+Qed.
+
+Lemma CasCC_opp (c : C) : CasCC (- c) [=] [--] (CasCC c).
+Proof.
+ apply CCasC_inj. now rewrite CCasC_opp, !CasCCasC.
+Qed.
+
+Lemma CCasC_minus (c c' : CC) : CCasC (c [-] c') = (CCasC c - CCasC c')%C.
+Proof.
+ unfold "[-]". now rewrite CCasC_plus, CCasC_opp.
+Qed.
+
+Lemma CasCC_minus (c c' : C) : CasCC (c - c') [=] CasCC c [-] CasCC c'.
+Proof.
+ unfold Cminus. now rewrite CasCC_plus, CasCC_opp.
+Qed.
+
+Lemma CCasC_recip (c : CC) (Hc : c [#] [0]) :
+  CCasC (cc_recip c Hc) = (/ CCasC c)%C.
+Proof.
+ destruct c as (x,y). unfold cc_recip, CCasC, Cinv. simpl.
+ f_equal.
+ - rewrite IR_div_as_R. f_equal. rewrite !one_mult, !Rmult_1_r.
+   now rewrite IR_plus_as_R, !IR_mult_as_R.
+ - rewrite IR_div_as_R, IR_opp_as_R. f_equal. rewrite !one_mult, !Rmult_1_r.
+   now rewrite IR_plus_as_R, !IR_mult_as_R.
+Qed.
+
+Lemma CasCC_ap0_back (c : C) : (c <> 0)%C -> CasCC c [#] [0].
+Proof.
+ intros H. stepr (CasCC 0). now apply CasCC_ap_back. apply CasCC_0.
+Qed.
+
+Lemma CasCC_recip (c : C) (Hc : c <> 0%C) :
+  CasCC (/ c) [=] cc_recip (CasCC c) (CasCC_ap0_back _ Hc).
+Proof.
+ apply CCasC_inj. now rewrite CCasC_recip, !CasCCasC.
+Qed.
+
+Lemma CasCC_div (c c' : C)(Hc' : c' <> 0%C) :
+ CasCC (c / c') [=] (CasCC c [/] CasCC c' [//] CasCC_ap0_back _ Hc').
+Proof.
+ unfold cf_div, Cdiv. rewrite <- (CasCC_recip c' Hc').
+ now rewrite CasCC_mult.
+Qed.
+
+Lemma IRasR_RtoC (r : CauchySeq.IR) : RtoC (IRasR r) = CCasC (cc_IR r).
+Proof.
+ unfold RtoC, CCasC, cc_IR. simpl. now rewrite IR_Zero_as_R.
+Qed.
+
+Lemma RasIR_RtoC (r : R) : cc_IR (RasIR r) [=] CasCC (RtoC r).
+Proof.
+ simpl. unfold RtoC, CasCC, cc_IR, cc_eq. simpl. now rewrite R_Zero_as_IR.
+Qed.
+
+Lemma CCasC_re (c : CC) : Re (CCasC c) = IRasR (CComplex.Re c).
+Proof.
+ now destruct c as (x,y).
+Qed.
+
+Lemma CCasC_im (c : CC) : Im (CCasC c) = IRasR (CComplex.Im c).
+Proof.
+ now destruct c as (x,y).
+Qed.
+
+Lemma CasCC_re (c : C) : CComplex.Re (CasCC c) [=] RasIR (Re c).
+Proof.
+ now destruct c as (x,y).
+Qed.
+
+Lemma CasCC_im (c : C) : CComplex.Im (CasCC c) [=] RasIR (Im c).
+Proof.
+ now destruct c as (x,y).
+Qed.
+
+Lemma CCasC_conj (c : CC) : CCasC (CC_conj c) = Cconj (CCasC c).
+Proof.
+ destruct c as (x,y). simpl. unfold CCasC, Cconj. simpl.
+ now rewrite IR_opp_as_R.
+Qed.
+
+Lemma CasCC_conj (c : C) : CasCC (Cconj c) [=] CC_conj (CasCC c).
+Proof.
+ apply CCasC_inj. now rewrite CCasC_conj, !CasCCasC.
+Qed.
+
+Lemma IRasR_sqrt (r : CauchySeq.IR)(Hr : [0] [<=] r) :
+ IRasR (NRootIR.sqrt r Hr) = sqrt (IRasR r).
+Proof.
+ symmetry. apply sqrt_lem_1.
+ - rewrite <- IR_Zero_as_R. now apply R_le_as_IR_back.
+ - rewrite <- IR_Zero_as_R. apply R_le_as_IR_back, sqrt_nonneg.
+ - rewrite <- IR_mult_as_R. apply IR_eq_as_R.
+   now rewrite <- nexp_two, sqrt_sqr.
+Qed.
+
+Lemma CCasC_abs (c : CC) : IRasR (AbsCC c) = Cmod (CCasC c).
+Proof.
+ destruct c as (x,y). unfold CCasC, AbsCC, Cmod. simpl.
+ rewrite IRasR_sqrt. f_equal. rewrite IR_plus_as_R, !IR_mult_as_R.
+ rewrite IR_One_as_R. ring.
+Qed.
+
+Lemma CasCC_abs (c : C) : RasIR (Cmod c) [=] AbsCC (CasCC c).
+Proof.
+ apply IR_eq_as_R_back. now rewrite CCasC_abs, RasIRasR_id, CasCCasC.
+Qed.
+
 
 (** Following R_morphism.Isomomorphism but on C, and without any explicit
     structure *)
@@ -263,6 +452,12 @@ Lemma cpoly_map_id [R:CRing](h:RingHom R R) :
  ringmap_is_id _ h -> forall f : cpoly_cring R, cpoly_map h f [=] f.
 Proof.
  now induction f.
+Qed.
+
+Lemma cpoly_map_ext [R S : CRing](h g : RingHom R S)(f : cpoly_cring R) :
+ (forall r, h r [=] g r) -> cpoly_map h f [=] cpoly_map g f.
+Proof.
+ intros. now induction f.
 Qed.
 
 Lemma coeff_map [R S:CRing](h:RingHom R S)(f : cpoly_cring R) n :
@@ -649,19 +844,89 @@ Qed.
 
 (* TODO: full treatment of multiplicity *)
 
-(* TODO:
-   Les racines complexes non réelles d'un poly à coeffs réels vont par deux
+(** From R polynomial to C polynomial *)
 
-Lemma apply_conj (f:CX)(c:C) : (* Todo : dire que f a des coeffs reels *)
- Cconj (f ! c) = f ! (Cconj c).
+Lemma RtoC_strext : fun_strext RtoC.
 Proof.
- induction f; simpl.
- - compute; f_equal; lra.
- - rewrite Cplus_conj, Cmult_conj.
-*)
+ red. intros x y. unfold RtoC. simpl. intros H ->. now apply H.
+Qed.
 
-(* liens : https://github.com/coq-community/awesome-coq
+Definition RtoC_funoid : CSetoid_fun R C :=
+ Build_CSetoid_fun _ _ RtoC RtoC_strext.
 
-   https://valentinblot.org/pro/M1_report.pdf : Cayley-Hamilton, Liouville,
-   etc
-*)
+Definition RtoC_Hom : RingHom RReals C_fd :=
+ Build_RingHom _ _ RtoC_funoid RtoC_plus RtoC_mult eq_refl.
+
+Definition RX := cpoly_cring RReals.
+Definition RXtoCX : RX -> CX := cpoly_map RtoC_Hom.
+Definition RXRoot (r:R) (f:RX) := f ! r = 0.
+
+Lemma RXtoCX_apply (f : RX) (r : R) : (RXtoCX f) ! (RtoC r) = RtoC (f ! r).
+Proof.
+ unfold RXtoCX. now rewrite <- cpoly_map_apply.
+Qed.
+
+Lemma RXtoCX_root (f : RX) (r : R) : RXRoot r f <-> CXRoot r (RXtoCX f).
+Proof.
+ unfold RXRoot, CXRoot. rewrite RXtoCX_apply.
+ split. now intros ->. apply RtoC_inj.
+Qed.
+
+(** Roots and complex conjugate.
+    First, Cconj is a ring homomorphism. *)
+
+Lemma Cconj_strext : fun_strext Cconj.
+Proof.
+ red. intros (x,y) (x',y'). compute. intros H [= -> ->]. now apply H.
+Qed.
+
+Definition Cconj_funoid : CSetoid_fun C C :=
+ Build_CSetoid_fun _ _ Cconj Cconj_strext.
+
+(* TODO : move elsewhere *)
+Lemma RtoC_conj (r : R) : Cconj r = r.
+Proof.
+ compute. f_equal. ring.
+Qed.
+
+Definition Cconj_Hom : RingHom C_fd C_fd :=
+ Build_RingHom _ _ Cconj_funoid Cplus_conj Cmult_conj (RtoC_conj 1).
+
+Definition CXconj : CX -> CX := cpoly_map Cconj_Hom.
+
+Lemma CXconj_involutive (f : CX) : CXconj (CXconj f) [=] f.
+Proof.
+ unfold CXconj.
+ rewrite <- cpoly_map_compose.
+ apply cpoly_map_id.
+ exact Cconj_conj.
+Qed.
+
+Lemma CXconj_apply (f : CX) (c : C) :
+ (CXconj f) ! (Cconj c) = Cconj (f ! c).
+Proof.
+ unfold CXconj. now rewrite <- cpoly_map_apply.
+Qed.
+
+Lemma CXconj_CXRoot (f : CX) (c : C) :
+ CXRoot c f <-> CXRoot (Cconj c) (CXconj f).
+Proof.
+ unfold CXRoot. rewrite CXconj_apply.
+ split. intros ->. apply RtoC_conj.
+ intros H. rewrite <- (Cconj_conj (f!c)). rewrite H. apply RtoC_conj.
+Qed.
+
+Lemma RXtoCX_conj (f : RX) : CXconj (RXtoCX f) [=] RXtoCX f.
+Proof.
+ unfold CXconj, RXtoCX.
+ rewrite <- cpoly_map_compose. apply cpoly_map_ext.
+ exact RtoC_conj.
+Qed.
+
+(** The conjugate of a complex root of a R polynomial is also a root. *)
+
+Lemma RX_root_conj (f : RX) (c : C) :
+ CXRoot c (RXtoCX f) <-> CXRoot (Cconj c) (RXtoCX f).
+Proof.
+ rewrite <- RXtoCX_conj at 2. apply CXconj_CXRoot.
+Qed.

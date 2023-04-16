@@ -114,3 +114,11 @@ Proof.
  apply (separated_roots (S k) (ThePoly k) (ThePoly_monic k)).
  apply ThePoly_no_common_root_with_diff.
 Qed.
+
+
+
+(* liens : https://github.com/coq-community/awesome-coq
+
+   https://valentinblot.org/pro/M1_report.pdf : Cayley-Hamilton, Liouville,
+   etc
+*)
