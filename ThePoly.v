@@ -115,6 +115,15 @@ Proof.
  apply ThePoly_no_common_root_with_diff.
 Qed.
 
+(* NB: R et C (classiques) sont des eqType à la ssreflect *)
+
+Definition Ceqb : C -> C -> bool :=
+ fun c c' => if Ceq_dec c c' then true else false.
+
+Lemma Ceqb_spec c c' : reflect (c = c') (Ceqb c c').
+Proof.
+ unfold Ceqb. destruct Ceq_dec; now constructor.
+Qed.
 
 
 (* liens : https://github.com/coq-community/awesome-coq
