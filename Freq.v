@@ -14,13 +14,87 @@ Proof.
   apply (le_INR 1). apply A_nz.
 Qed.
 
-(* For now, we assume that the ratio of Fibonacci-like numbers [A k]
-   does have a limit. TODO prove it someday. *)
-Axiom A_ratio_ex : forall k, ex_lim_seq (fun n => A k (S n) / A k n).
+(* Via some matrix manipulation, one can prove that the Fibonacci-like
+   numbers [A k n] are a C linear combination  [Σ α_i * r_i ^n] where
+   the [r_i] are the (complex) roots of [X^(S k)-X^k-1].
+   In particular, for k=1, this gives a variant of the Binet formula.
+   The roots are (mu k) and k other roots of strictly lower modulus.
+   Hence [A k n / mu k ^ n] has a finite limit, and this limit can be
+   proved to be a real number. *)
 
-(* Now let's prove this limit to be [mu k], the positive root of
-   [X^(S k)-X^k-1] *)
+(* For now, we assume that this finite limit exists.
+   TODO prove it someday. *)
 
+Axiom A_div_pow_mu_axiom :
+ forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim.
+
+(* Let's now prove this limit to be >= 1 *)
+
+Lemma mu_ineq k n : (n <= k)%nat -> mu k ^ n * (mu k - 1) <= 1.
+Proof.
+ intros H.
+ apply Rmult_le_reg_l with (mu k ^ (k-n)).
+ { apply pow_lt. generalize (mu_itvl k). lra. }
+ rewrite <- Rmult_assoc, <- pow_add.
+ replace (k-n+n)%nat with k by lia.
+ ring_simplify. rewrite Rmult_comm, tech_pow_Rmult, mu_carac.
+ ring_simplify. apply pow_R1_Rle. generalize (mu_itvl k). lra.
+Qed.
+
+Lemma A_gt_mu_pow k n : mu k ^ n <= A k n.
+Proof.
+ induction n as [[|n] IH] using lt_wf_ind; simpl; try lra.
+ destruct (Nat.le_gt_cases n k).
+ - (* n <= k *)
+   replace (n-k)%nat with O by lia. simpl.
+   apply Rle_trans with (mu k ^ n + 1).
+   + rewrite tech_pow_Rmult.
+     rewrite Rplus_comm; apply Rcomplements.Rle_minus_l.
+     simpl. eapply Rle_trans; [|apply (mu_ineq k n H); trivial].
+     ring_simplify. lra.
+   + rewrite Nat.add_1_r, S_INR. generalize (IH n (Nat.le_refl _)). lra.
+ - (* k < n *)
+   change (mu k * mu k ^ n) with (mu k ^S n).
+   replace (S n) with (n-k + S k)%nat by lia.
+   rewrite pow_add, mu_carac, Rmult_plus_distr_l, Rmult_1_r, <- pow_add.
+   replace (n-k+k)%nat with n by lia.
+   rewrite plus_INR. apply Rplus_le_compat; apply IH; lia.
+Qed.
+
+Lemma A_div_pow_mu_gt1 :
+ forall k, exists lim:R,
+  1 <= lim /\ is_lim_seq (fun n => A k n / mu k ^n) lim.
+Proof.
+ intros k. destruct (A_div_pow_mu_axiom k) as (lim,Hlim).
+ exists lim; split; trivial.
+ change (Rbar.Rbar_le 1 lim).
+ apply is_lim_seq_le with (u:=fun _ => 1) (v:=fun n => A k n/mu k^n);
+  trivial; try apply is_lim_seq_const.
+ intros. apply Rcomplements.Rle_div_r.
+ - apply pow_lt. generalize (mu_itvl k). lra.
+ - rewrite Rmult_1_l. apply A_gt_mu_pow.
+Qed.
+
+(* Now let's prove that [A k (S n)/A k n] tends to [mu k] *)
+
+Lemma A_ratio k : is_lim_seq (fun n => A k (S n) / A k n) (mu k).
+Proof.
+ destruct (A_div_pow_mu_gt1 k) as (lim & GT & Hlim).
+ apply is_lim_seq_ext with
+  (fun n => mu k * ((A k (S n) / mu k^(S n)) / (A k n / mu k^n))).
+ { intros n. simpl pow. field; repeat split.
+   - generalize (A_pos k n). lra.
+   - generalize (pow_lt (mu k) n) (mu_itvl k). lra.
+   - generalize (mu_itvl k). lra. }
+ replace (mu k) with (mu k * (lim / lim)) at 1 by (field; lra).
+ change (Rbar.Finite (mu k * (lim / lim))) with
+  (Rbar.Rbar_mult (mu k) (lim/lim)).
+ apply is_lim_seq_scal_l.
+ apply is_lim_seq_div'; trivial; try lra.
+ now apply is_lim_seq_incr_1 in Hlim.
+Qed.
+
+(* Unused currently (TODO) *)
 Lemma A_bound k n : 1 < A k (S n) / A k n <= 2.
 Proof.
  assert (NZ := A_pos k n).
@@ -30,11 +104,6 @@ Proof.
  - apply Rmult_le_reg_l with (A k n); try lra. field_simplify; try lra.
    change 2 with (INR 2). rewrite <- mult_INR. apply le_INR.
    simpl. generalize (@A_mono k (n-k)%nat n). lia.
-Qed.
-
-Lemma lim_unique f (r r':R) : is_lim_seq f r -> is_lim_seq f r' -> r = r'.
-Proof.
- intros H H'. apply is_lim_seq_unique in H,H'. congruence.
 Qed.
 
 Lemma ratio_iter f (r:R) :
@@ -55,34 +124,6 @@ Proof.
      generalize (Hf n); lra. generalize (Hf (n+p)%nat); lra.
    + apply is_lim_seq_mult'; trivial.
      apply (is_lim_seq_incr_n (fun n => f (S n)/f n) p); trivial.
-Qed.
-
-Lemma A_ratio k : is_lim_seq (fun n => A k (S n) / A k n) (mu k).
-Proof.
- set (f := fun n => A k (S n) / A k n).
- set (l := Lim_seq f).
- assert (LI : is_lim_seq f l) by apply Lim_seq_correct, A_ratio_ex.
- assert (LO : Rbar.Rbar_le 1 l).
- { apply is_lim_seq_le with (u := fun n =>  1) (v := f); trivial.
-   - intros. destruct (A_bound k n). unfold f. lra.
-   - apply is_lim_seq_const. }
- assert (HI : Rbar.Rbar_le l 2).
- { apply is_lim_seq_le with (u := f) (v := fun n => 2); trivial.
-   - intros. destruct (A_bound k n). unfold f. lra.
-   - apply is_lim_seq_const. }
- (* The limit is finite, and in [1..2] *)
- destruct l as [r| | ] eqn:E; try easy. simpl in LO, HI. unfold l in E.
- (* And it satisfies X^(S k)-X^k-1=0 *)
- replace (mu k) with r; trivial.
- apply mu_unique; try lra.
- assert (PO : forall p, is_lim_seq (fun n => A k (n+p) / A k n) (r ^ p)).
- { apply (ratio_iter (A k)); trivial. intros x. generalize (A_pos k x); lra. }
- apply (lim_unique _ _ _ (PO (S k))).
- apply is_lim_seq_ext with (fun n => A k (n+k)/A k n + 1).
- { intros n. rewrite Nat.add_succ_r. rewrite A_S.
-   replace (n+k-k)%nat with n by lia. rewrite plus_INR. field.
-   generalize (A_pos k n); lra. }
- apply is_lim_seq_plus'. apply PO. apply is_lim_seq_const.
 Qed.
 
 Lemma A_ratio_k k p : is_lim_seq (fun n => A k (n+p)/A k n) (mu k^p).
