@@ -813,6 +813,40 @@ Proof.
  apply linfactors_separated_roots. intros c. rewrite <- E. apply Df.
 Qed.
 
+(** Vandermonde matrix and its determinant *)
+
+Definition Vandermonde n (l : list C) : Square n :=
+  fun i j => if (i <? n) && (j <? n) then (nth j l C0)^i else C0.
+
+Lemma WF_Vandermonde n (l : list C) : WF_Matrix (Vandermonde n l).
+Proof.
+ intros x y [Hx|Hy]; unfold Vandermonde;
+ do 2 case Nat.ltb_spec; trivial; lia.
+Qed.
+
+Fixpoint multdiffs (l : list C) :=
+ match l with
+ | [] => C1
+ | x::l => G_big_mult (map (Cminus x) l) * multdiffs l
+ end.
+
+(*
+Lemma Vandermonde_det n (l : list C) :
+ length l = n -> Determinant (Vandermonde n l) = multdiffs l.
+Proof.
+
+1   1   1   1
+x   y   z   t
+x^2 y^2 z^2 t^2
+x^3 y^3 z^3 t^3
+
+          1   1         1         1
+L2-xL1    0   y-x       z-x       t-x
+L3-xL2    0   y(y-x)    z(z-x)    t(t-x)
+L4-xL3    0   y^2(y-x)  z^2(z-x)  t^2(t-x)
+
+*)
+
 (** Diagonalization *)
 
 Definition Diag n l : Square n :=
