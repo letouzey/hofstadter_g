@@ -1,7 +1,9 @@
 
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
-From QuantumLib
- Require Import Complex Polynomial Matrix VecSet Eigenvectors FTA.
+From QuantumLib Require Import Complex Permutations Polynomial Matrix VecSet.
+From QuantumLib Require Import Eigenvectors FTA.
+
+
 
 Local Open Scope C.
 Local Open Scope poly_scope.
@@ -813,10 +815,20 @@ Proof.
  apply linfactors_separated_roots. intros c. rewrite <- E. apply Df.
 Qed.
 
+(** Extensions about permutation and determinant *)
+
+(* TODO: sign of a permutation *)
+
+(* TODO: alt formulation of a determinant *)
+
+(* TODO: determinant of transpose *)
+
+
+
 (** Vandermonde matrix and its determinant *)
 
 Definition Vandermonde n (l : list C) : Square n :=
-  fun i j => if (i <? n) && (j <? n) then (nth j l C0)^i else C0.
+  fun i j => if (i <? n) && (j <? n) then (nth i l C0)^j else C0.
 
 Lemma WF_Vandermonde n (l : list C) : WF_Matrix (Vandermonde n l).
 Proof.
@@ -824,17 +836,41 @@ Proof.
  do 2 case Nat.ltb_spec; trivial; lia.
 Qed.
 
+(* MANQUE Determinant_transpose
+Lemma Determinant_row_add {n} (A : Square n) (i j : nat) (c : C) :
+  (i < n)%nat -> (j < n)%nat -> i <> j ->
+  Determinant (row_add A i j c) = Determinant A.
+Proof.
+*)
+
 Fixpoint multdiffs (l : list C) :=
  match l with
  | [] => C1
  | x::l => G_big_mult (map (Cminus x) l) * multdiffs l
  end.
 
-(*
 Lemma Vandermonde_det n (l : list C) :
  length l = n -> Determinant (Vandermonde n l) = multdiffs l.
 Proof.
+ revert l.
+ induction n as [|[|n] IH]; intros l Hn.
+ - simpl. now destruct l.
+ - simpl. unfold Vandermonde. simpl. destruct l as [|x [|y l] ]; try easy.
+   simpl. ring.
+ - set (n' := S n) in *.
+   set (V := Vandermonde (S n') l).
+   destruct l as [|x l]; try easy. simpl in Hn. injection Hn as Hn.
+   set (addcols := nat_rect (fun _ => Square (S n')) V
+                       (fun i M => col_add M (S i) i (Copp x))).
+   assert (H1 : forall k, (k<=n')%nat ->
+                 Determinant (addcols k) = Determinant V).
+   { induction k. now simpl.
+     intros Hk. simpl addcols. rewrite Determinant_col_add; try lia.
+     apply IHk; lia. }
+   rewrite <- (H1 n') by lia.
+Admitted.
 
+(*
 1   1   1   1
 x   y   z   t
 x^2 y^2 z^2 t^2
@@ -844,6 +880,8 @@ x^3 y^3 z^3 t^3
 L2-xL1    0   y-x       z-x       t-x
 L3-xL2    0   y(y-x)    z(z-x)    t(t-x)
 L4-xL3    0   y^2(y-x)  z^2(z-x)  t^2(t-x)
+
+row_add V i (i-1) (-1)
 
 *)
 
