@@ -5,6 +5,12 @@ Import Basics.
 
 Module QPerm := QuantumLib.Permutations.
 
+(** Full and bounded equality between functions *)
+
+Definition fEq (f g : nat->nat) := forall x, f x = g x.
+
+Definition bEq n (f f':nat->nat) := forall x, x < n -> f x = f' x.
+
 (** More on permutations *)
 
 Lemma Permutation_sym_iff {A} (l:list A) l' :
@@ -31,21 +37,29 @@ Proof.
    destruct Hf3 as (g & Hg & H). exists g; firstorder.
 Qed.
 
+Lemma qpermutation_id n : qpermutation n id.
+Proof.
+ exists id. intros x Hx. unfold id; firstorder.
+Qed.
+
 (** Interaction between QuantumLib's permutation
     and Coq's Permutation predicate on lists *)
 
 Definition perm2list n (f:nat->nat) := map f (seq 0 n).
 
+Lemma perm2list_ext n f g : bEq n f g -> perm2list n f = perm2list n g.
+Proof.
+ intros E. apply map_ext_in. intros a. rewrite in_seq. intro IN. now apply E.
+Qed.
+
 Lemma q_l_permutation n f :
  qpermutation n f -> lpermutation n (perm2list n f).
 Proof.
- intros Hf. unfold lpermutation, perm2list.
+ intros Hf. unfold lpermutation.
  destruct (proj1 (q_f_permutation n f) Hf) as (Hf1,Hf2).
  set (f' := fun k => if k <? n then f k else k).
- cbn.
- rewrite map_ext_in with (g:=f').
- 2:{ intros a Ha. rewrite in_seq in Ha. unfold f'.
-     case Nat.ltb_spec; lia. }
+ rewrite perm2list_ext with (g:=f').
+ 2:{ intros a Ha. unfold f'. apply Nat.ltb_lt in Ha. now rewrite Ha. }
  apply nat_bijection_Permutation.
  - intros x Hx. unfold f'. specialize (Hf1 x Hx). case Nat.ltb_spec; lia.
  - intros x y. unfold f'. do 2 case Nat.ltb_spec; intros Hy Hx; trivial.
@@ -102,31 +116,108 @@ Proof.
  intros H. case Nat.eqb_spec; intuition.
 Qed.
 
-
-Definition lperm_qinv (l:list nat) := fun k => index k l.
-
-Definition lperm_inv n (l:list nat) := perm2list n (lperm_qinv l).
-Definition qperm_inv n (f:nat->nat) := lperm_qinv (perm2list n f).
+Definition lqinv (l:list nat) : nat -> nat := fun k => index k l.
+Definition linv n (l:list nat) : list nat := perm2list n (lqinv l).
+Definition qinv n (f:nat->nat) : nat -> nat := lqinv (perm2list n f).
 
 Lemma l_q_permutation n l : lpermutation n l -> qpermutation n (perm2fun l).
 Proof.
  intros Hl. unfold lpermutation, perm2fun in *.
  assert (Hn : length l = n).
  { rewrite <- (seq_length n 0). now apply Permutation_length. }
- exists (lperm_qinv l).
+ exists (lqinv l).
  intros x Hx.
  assert (IN : In x l).
  { apply Permutation_in with (l:=seq 0 n); auto with *.
    apply in_seq; lia. }
- assert (IN' : In (nth x l O) l) by (apply nth_In; lia).
  repeat split.
- - apply Permutation_in with (l':=seq 0 n) in IN'; trivial.
+ - assert (IN' : In (nth x l O) l) by (apply nth_In; lia).
+   apply Permutation_in with (l':=seq 0 n) in IN'; trivial.
    apply in_seq in IN'. lia.
  - rewrite <- Hn. now apply index_lt_len.
  - apply index_nth; try lia.
    apply Permutation_NoDup with (l:=seq 0 n); auto with *. apply seq_NoDup.
  - now apply nth_index.
 Qed.
+
+Lemma qinv_bfun n f : qpermutation n f -> bFun n (qinv n f).
+Proof.
+ intros Hf x Hx.
+ unfold qinv, lqinv, perm2list.
+ set (l := map f (seq 0 n)).
+ replace n with (length l).
+ 2:{ unfold l. now rewrite map_length, seq_length. }
+ apply index_lt_len.
+ { apply Permutation_in with (l:=seq 0 n).
+   apply Permutation_sym. now apply q_l_permutation.
+   apply in_seq; lia. }
+Qed.
+
+Lemma qinv_left_inverse n f :
+  qpermutation n f -> forall x, x<n -> qinv n f (f x) = x.
+Proof.
+ intros Hf x Hx.
+ unfold qinv, lqinv, perm2list.
+ set (l := map f (seq 0 n)).
+ assert (length l = n).
+ { unfold l. now rewrite map_length, seq_length. }
+ replace (f x) with (nth x l 0).
+ 2:{ rewrite nth_indep with (d' := f 0) by lia.
+     unfold l. rewrite map_nth, seq_nth; simpl; lia. }
+ rewrite index_nth; try lia.
+ apply Permutation_NoDup with (l:=seq 0 n); auto using seq_NoDup.
+ apply Permutation_sym. now apply q_l_permutation.
+Qed.
+
+Lemma qinv_right_inverse n f :
+  qpermutation n f -> forall x, x<n -> f (qinv n f x) = x.
+Proof.
+ intros Hf x Hx.
+ unfold qinv, lqinv, perm2list.
+ set (l := map f (seq 0 n)).
+ assert (Hl : length l = n).
+ { unfold l. now rewrite map_length, seq_length. }
+ assert (IN : In x l).
+ { apply Permutation_in with (l:=seq 0 n).
+   apply Permutation_sym. now apply q_l_permutation.
+   apply in_seq; lia. }
+ replace (f (index x l)) with (nth (index x l) l 0).
+ 2:{ set (y := index x l).
+     assert (y < n). { unfold y. rewrite <- Hl. now apply index_lt_len. }
+     rewrite nth_indep with (d' := f 0).
+     unfold l. rewrite map_nth, seq_nth; simpl; trivial. lia. }
+ now apply nth_index.
+Qed.
+
+Lemma qinv_permutation n f :
+  qpermutation n f -> qpermutation n (qinv n f).
+Proof.
+ intros Hf. exists f. intros x Hx; repeat split.
+ - now apply qinv_bfun.
+ - destruct Hf as (q,Hq). now apply Hq.
+ - now apply qinv_right_inverse.
+ - now apply qinv_left_inverse.
+Qed.
+
+Lemma qinv_unique_left_inverse n f g :
+  qpermutation n f -> (forall x, x<n -> g (f x) = x) -> bEq n g (qinv n f).
+Proof.
+ intros Hf Hg x Hx.
+ rewrite <- (qinv_right_inverse n f Hf x Hx) at 1. rewrite Hg; trivial.
+ now apply qinv_bfun.
+Qed.
+
+Lemma qinv_unique_right_inverse n f g :
+  qpermutation n f -> bFun n g -> (forall x, x<n -> f (g x) = x) ->
+  bEq n g (qinv n f).
+Proof.
+ intros Hf Hg Hg' x Hx.
+ assert (Hf' := Hf). apply q_f_permutation in Hf'. apply Hf'.
+ - now apply Hg.
+ - now apply qinv_bfun.
+ - rewrite Hg', qinv_right_inverse; auto.
+Qed.
+
 
 (** Enumeration of all permutations of [seq 0 n] (in the form of lists) *)
 
@@ -204,8 +295,6 @@ Proof.
  unfold qperms. rewrite in_map_iff.
  intros (l & <- & IN). now apply l_q_permutation, lperms_ok.
 Qed.
-
-Definition bEq n (f f':nat->nat) := forall x, x < n -> f x = f' x.
 
 Lemma qperms_ok2 n f :
  qpermutation n f -> exists f', In f' (qperms n) /\ bEq n f f'.
@@ -331,9 +420,401 @@ Proof.
  unfold qperms. now rewrite map_length, lperms_length.
 Qed.
 
-(* Permutations and transpositions *)
 
-Definition fEq (f g : nat->nat) := forall x, f x = g x.
+(* Sign of a permutation *)
+
+Fixpoint inversions l :=
+ match l with
+ | [] => 0
+ | x::l => length (filter (fun y => y <? x) l) + inversions l
+ end.
+
+Definition lsign l := Nat.even (inversions l).
+
+Definition qsign n f := lsign (perm2list n f).
+
+Lemma qsign_ext n f g : bEq n f g -> qsign n f = qsign n g.
+Proof.
+ intros E. unfold qsign. f_equal. now apply perm2list_ext.
+Qed.
+
+(* Another definition, via iterated xor *)
+
+Fixpoint bigxor {A} (f:A->bool) l :=
+ match l with
+ | [] => false
+ | x::l => xorb (f x) (bigxor f l)
+ end.
+
+Lemma bigxor_app {A} (f:A->bool) l1 l2 :
+ bigxor f (l1++l2) = xorb (bigxor f l1) (bigxor f l2).
+Proof.
+ induction l1; simpl; trivial.
+ - now destruct bigxor.
+ - now rewrite IHl1, xorb_assoc.
+Qed.
+
+Lemma bigxor_map {A B} (h:A->B)(f:B->bool) l :
+ bigxor f (map h l) = bigxor (compose f h) l.
+Proof.
+ induction l; simpl; trivial. rewrite IHl. f_equal.
+Qed.
+
+Fixpoint lsign' l :=
+ match l with
+ | [] => true
+ | x::l => xorb (bigxor (fun y => y <? x) l) (lsign' l)
+ end.
+
+Lemma lsign'_alt x l :
+  lsign' (l++[x]) = xorb (lsign' l) (bigxor (fun y => x <? y) l).
+Proof.
+ induction l; simpl; trivial. rewrite bigxor_app, IHl. simpl.
+ rewrite xorb_false_r.
+ rewrite !xorb_assoc. f_equal.
+ rewrite <- !xorb_assoc. f_equal. apply xorb_comm.
+Qed.
+
+Lemma eqb_xorb b b' : eqb b b' = negb (xorb b b').
+Proof.
+ now destruct b, b'.
+Qed.
+
+Lemma eqb_xorb' b b' : eqb b b' = xorb (negb b) b'.
+Proof.
+ now destruct b, b'.
+Qed.
+
+Lemma lsign_equiv l : lsign l = lsign' l.
+Proof.
+ unfold lsign.
+ induction l; simpl; auto.
+ rewrite Nat.even_add, IHl.
+ rewrite eqb_xorb'. f_equal.
+ rewrite Nat.negb_even. clear IHl.
+ induction l; simpl; trivial.
+ case Nat.ltb_spec; intros; simpl.
+ - rewrite Nat.odd_succ, <- Nat.negb_odd, IHl. now destruct bigxor.
+ - rewrite IHl. now destruct bigxor.
+Qed.
+
+Lemma nil_carac {A} (l:list A) : l = [] <-> forall x, ~In x l.
+Proof.
+ split.
+ - now intros ->.
+ - destruct l; trivial. simpl. intros H. specialize (H a); intuition.
+Qed.
+
+(* Signature of the identity permutation *)
+
+Lemma inversions_id i n : inversions (seq i n) = 0.
+Proof.
+ revert i.
+ induction n; simpl; intros i; auto.
+ rewrite IHn.
+ rewrite Nat.add_0_r.
+ apply length_zero_iff_nil, nil_carac. intros x.
+ rewrite filter_In, in_seq. intros (H,H').
+ apply Nat.ltb_lt in H'. lia.
+Qed.
+
+Lemma lsign_id n : lsign (seq 0 n) = true.
+Proof.
+ unfold lsign. now rewrite inversions_id.
+Qed.
+
+Lemma qsign_id n : qsign n id = true.
+Proof.
+ unfold qsign, perm2list. rewrite map_id. apply lsign_id.
+Qed.
+
+(* incrpairs : all pairs (i,j) with 0<=i<j<n *)
+
+Fixpoint incrpairs n :=
+  match n with
+  | O => []
+  | S n => incrpairs n ++ map (fun k => (k,n)) (seq 0 n)
+  end.
+
+(* Finally unused, a "symmetric" version of incrpairs :
+Definition decrpairs n := map (fun '(i,j) => (j,i)) (incrpairs n).
+Definition diffpairs n := incrpairs n ++ decrpairs n.
+Lemma diffpairs_countocc n i j :
+ count_occ natnatdec (diffpairs n) (i,j) =
+  if (j <? n) && (i <? n) && negb (i =? j) then 1 else 0.
+Lemma permut_diffpairs n f :
+  qpermutation n f ->
+  Permutation (diffpairs n) (map (couple f) (diffpairs n)).
+*)
+
+Definition natnatdec (p q : nat*nat) : { p = q }+{ p<> q }.
+Proof.
+ decide equality; apply Nat.eq_dec.
+Defined.
+
+Lemma mapincr_countocc n m i j :
+  count_occ natnatdec (map (fun k : nat => (k, m)) (seq 0 n)) (i, j) =
+  if (i <? n) && (j =? m) then 1 else 0.
+Proof.
+ revert m i j.
+ induction n; intros.
+ - simpl count_occ.
+   case Nat.ltb_spec; simpl; auto. inversion 1.
+ - rewrite seq_S, map_app, count_occ_app.
+   cbn -[natnatdec]. rewrite IHn.
+   destruct natnatdec as [[= -> ->]|NE].
+   + now rewrite Nat.eqb_refl, Nat.ltb_irrefl, Nat.leb_refl.
+   + case Nat.ltb_spec; case Nat.eqb_spec; case Nat.leb_spec; intros;
+       simpl; auto. lia. subst. replace i with n in NE by lia. easy.
+Qed.
+
+Lemma incrpairs_countocc n i j :
+  count_occ natnatdec (incrpairs n) (i,j) =
+  if (i <? j) && (j <? n) then 1 else 0.
+Proof.
+ revert i j.
+ induction n; simpl; intros.
+ - do 2 case Nat.ltb_spec; intros; simpl; auto; lia.
+ - rewrite count_occ_app, IHn.
+   rewrite mapincr_countocc.
+   repeat (case Nat.ltb_spec; intros; simpl; auto; try lia);
+    case Nat.eqb_spec; intros; simpl; auto; try lia.
+Qed.
+
+Lemma incrpairs_in n i j :
+  In (i,j) (incrpairs n) <-> i < j < n.
+Proof.
+ rewrite count_occ_In with (eq_dec:=natnatdec).
+ rewrite incrpairs_countocc.
+ repeat (case Nat.ltb_spec; simpl; try lia).
+Qed.
+
+Definition couple (g:nat->nat) '(i,j) := (g i, g j).
+Definition sortpair '(i,j) := if i <? j then (i,j) else (j,i).
+Definition sortedcouple g p := sortpair (couple g p).
+
+Lemma permut_incrpairs_sorted n f :
+ qpermutation n f ->
+ Permutation (map (sortedcouple f) (incrpairs n)) (incrpairs n).
+Proof.
+ intros Q.
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis.
+ - rewrite NoDup_count_occ with (decA := natnatdec). intros (i,j).
+   rewrite incrpairs_countocc.
+   repeat (case Nat.ltb_spec; simpl; trivial); lia.
+ - now rewrite map_length.
+ - intros (i,j). rewrite incrpairs_in. intros H.
+   destruct Q as (g & Hg).
+   generalize (Hg i) (Hg j); intros.
+   rewrite in_map_iff. exists (sortedcouple g (i,j)). split.
+   + unfold sortedcouple, sortpair, couple.
+     do 2 case Nat.ltb_spec; intros; f_equal; try lia.
+   + unfold sortedcouple, sortpair, couple.
+     case Nat.ltb_spec; intros; rewrite incrpairs_in; split; try lia.
+     assert (g i <> g j); try lia.
+     intros E. replace i with (f (g i)) in H by lia.
+     replace j with (f (g j)) in H by lia. rewrite E in H. lia.
+Qed.
+
+(* Product in Z of the map of a list *)
+
+Local Open Scope Z.
+
+Fixpoint zPi {A} (f:A->Z) l :=
+  match l with
+   | [] => 1
+   | x::l => f x * zPi f l
+  end.
+
+Lemma zPi_app {A} (f:A->Z) l1 l2 :
+  (zPi f (l1++l2) = zPi f l1 * zPi f l2)%Z.
+Proof.
+ induction l1; simpl zPi; rewrite ?IHl1; lia.
+Qed.
+
+Lemma zPi_map {A B} (f:B->Z) (h:A->B) l :
+ zPi f (map h l) = zPi (compose f h) l.
+Proof.
+ induction l; simpl; auto. now rewrite IHl.
+Qed.
+
+Lemma zPi_permut {A} (f:A->Z) l l' :
+  Permutation l l' -> zPi f l = zPi f l'.
+Proof.
+ induction 1; simpl; auto; try lia.
+Qed.
+
+Lemma zPi_ext {A} (f g : A -> Z) l :
+ (forall x, In x l -> f x = g x) -> zPi f l = zPi g l.
+Proof.
+ induction l; simpl; auto. intros H. rewrite IHl by firstorder. f_equal.
+ apply H; now left.
+Qed.
+
+Lemma zPi_mult {A} (f g : A -> Z) l :
+ zPi (fun x => f x * g x) l = zPi f l * zPi g l.
+Proof.
+ induction l; simpl; auto. rewrite IHl. lia.
+Qed.
+
+Lemma zPi_pos {A} (f:A->Z) l :
+  (forall x, In x l -> 0 < f x) -> 0 < zPi f l.
+Proof.
+ induction l; simpl; auto; try lia.
+ intros H. apply Z.mul_pos_pos. apply H; now left. apply IHl; firstorder.
+Qed.
+
+Lemma zPi_bigxor {A}(f:A->Z)(g:A->bool) l :
+ (forall x, In x l -> f x = if g x then -1 else 1) ->
+  zPi f l = if bigxor g l then -1 else 1.
+Proof.
+ intros H.
+ induction l; simpl; auto.
+ rewrite (H a) by (now left). rewrite IHl by (simpl in *; firstorder).
+ destruct (g a), (bigxor g l); simpl; try lia.
+Qed.
+
+(* Signature expressed as (-1) or 1, hence in Z *)
+
+Local Coercion Z.of_nat : nat >-> Z.
+
+Definition zsign n (f:nat->nat) : Z :=
+  zPi (fun '(i,j) => Z.sgn (f j - f i)) (incrpairs n).
+
+Lemma zsign_ok n f : bInjective n f ->
+ zsign n f = if qsign n f then 1 else -1.
+Proof.
+ unfold zsign, qsign, perm2list. rewrite lsign_equiv. revert f.
+ induction n as [|n IH]; intros f Hf; trivial.
+ rewrite seq_S, map_app. cbn. rewrite zPi_app. rewrite IH by firstorder.
+ rewrite lsign'_alt. rewrite bigxor_map, zPi_map. unfold compose.
+ rewrite zPi_bigxor with (g := fun x : nat => (f n <? f x)%nat).
+ destruct lsign', bigxor; simpl; try lia.
+ intros x. clear IH. rewrite in_seq. intros Hx.
+ case Nat.ltb_spec. lia. specialize (Hf x n); lia.
+Qed.
+
+Lemma zsign_id n : zsign n id = 1.
+Proof.
+ rewrite zsign_ok, qsign_id; firstorder.
+Qed.
+
+Lemma zsign_ext n f f' : bEq n f f' -> zsign n f = zsign n f'.
+Proof.
+ intros E. unfold zsign. apply zPi_ext. intros (i,j).
+ rewrite incrpairs_in. intros H.
+ rewrite <- (E i), <- (E j); lia.
+Qed.
+
+Lemma zPi_reindex_comm n (F : nat*nat -> Z) g :
+ qpermutation n g -> (forall i j, F (j,i) = F (i,j)) ->
+ zPi (compose F (couple g)) (incrpairs n) = zPi F (incrpairs n).
+Proof.
+ intros Hg HF.
+ rewrite zPi_ext with (g := compose F (sortedcouple g)).
+ 2:{ intros (i,j) IN. rewrite incrpairs_in in IN.
+     unfold compose, sortedcouple, couple, sortpair.
+     case Nat.ltb_spec; intros; trivial. }
+ rewrite <- zPi_map. apply zPi_permut. now apply permut_incrpairs_sorted.
+Qed.
+
+Lemma sign_move (a b c : Z) : b=1\/b=-1 -> a*b = c -> a = b*c.
+Proof.
+ lia.
+Qed.
+
+Lemma zPi_reindex_anticomm n (F : nat*nat -> Z) g :
+ qpermutation n g -> (forall i j, F (j,i) = - F (i,j)) ->
+ zPi (compose F (couple g)) (incrpairs n) = zsign n g * zPi F (incrpairs n).
+Proof.
+ intros Hg HF. apply sign_move.
+ { rewrite zsign_ok.
+   destruct qsign; lia. apply q_f_permutation in Hg. apply Hg. }
+ unfold zsign.
+ rewrite <- zPi_mult.
+ rewrite zPi_ext with (g := compose F (sortedcouple g)).
+ 2:{ intros (i,j) IN. rewrite incrpairs_in in IN.
+     unfold compose, sortedcouple, couple, sortpair.
+     case Nat.ltb_spec; intros. lia.
+     assert (g j <> g i).
+     { intros E. apply q_f_permutation in Hg. apply Hg in E; lia. }
+     rewrite HF. lia. }
+ rewrite <- zPi_map. apply zPi_permut. now apply permut_incrpairs_sorted.
+Qed.
+
+Definition subpair : nat*nat -> Z := fun '(i,j) =>  j - i.
+
+Lemma zsign_eqn n f : qpermutation n f ->
+ zsign n f * zPi subpair (incrpairs n) =
+  zPi (fun '(i,j) => f j - f i) (incrpairs n).
+Proof.
+ intros Hf.
+ set (F := fun '(i, j) => Z.abs (Z.of_nat j - Z.of_nat i)).
+ rewrite zPi_ext with (g:=F).
+ 2:{ intros (i,j). rewrite incrpairs_in. unfold subpair, F. lia. }
+ rewrite <- zPi_reindex_comm  with (g:=f); trivial.
+ 2:{ intros i j. unfold F. lia. }
+ unfold zsign. rewrite <- zPi_mult. apply zPi_ext.
+ { intros (i,j) _. unfold compose; simpl; lia. }
+Qed.
+
+Lemma zsign_altdef n f : qpermutation n f ->
+ zsign n f =
+  zPi (fun '(i,j) => f j - f i) (incrpairs n) / zPi subpair (incrpairs n).
+Proof.
+ intros.
+ rewrite <- zsign_eqn by trivial. symmetry. apply Z.div_mul.
+ assert (0 < zPi subpair (incrpairs n))%Z; try lia.
+ { apply zPi_pos. intros (i,j). rewrite incrpairs_in. unfold subpair. lia. }
+Qed.
+
+Lemma zsign_compose n f g :
+ qpermutation n f -> qpermutation n g ->
+ zsign n (compose f g) = zsign n f * zsign n g.
+Proof.
+ intros Hf Hg.
+ assert (Hfg : qpermutation n (compose f g))
+   by now apply QPerm.permutation_compose.
+ assert (E := zsign_eqn _ _ Hfg).
+ unfold compose at 2 3 in E. symmetry in E.
+ set (F := fun '(i,j) => f j - f i).
+ rewrite zPi_ext with (g:=compose F (couple g)) in E.
+ 2:{ intros (i,j) _. unfold compose; simpl; lia. }
+ rewrite zPi_reindex_anticomm in E; trivial.
+ 2:{ intros i j. unfold F. lia. }
+ unfold F in E. rewrite <- zsign_eqn in E by trivial.
+ rewrite Z.mul_assoc in E. apply Z.mul_reg_r in E; try lia.
+ assert (0 < zPi subpair (incrpairs n))%Z; try lia.
+ { apply zPi_pos. intros (i,j). rewrite incrpairs_in. unfold subpair. lia. }
+Qed.
+
+Lemma zsign_qinv n f : qpermutation n f -> zsign n (qinv n f) = zsign n f.
+Proof.
+ intros Hf.
+ assert (E := zsign_compose n f (qinv n f) Hf (qinv_permutation n f Hf)).
+ rewrite zsign_ext with (f':=id) in E.
+ rewrite zsign_id in E. symmetry in E; rewrite Z.mul_comm in E.
+ apply sign_move in E; try lia.
+ rewrite zsign_ok. destruct qsign; lia. apply q_f_permutation in Hf. apply Hf.
+ intros x Hx. now apply qinv_right_inverse.
+Qed.
+
+Local Close Scope Z.
+
+(* TODO: Hum, souci avec la page wikipedia fr
+   https://fr.wikipedia.org/wiki/Signature_d%27une_permutation
+   Avec l'ensemble P, s'il s'agit vraiment de paires ensemblistes, alors
+   \Pi_P est mal défini. Et pas besoin de \sqrt dans la première preuve...
+
+Lemma zsign_eqn' n f :
+ (zsign n f * zPi (fun '(i,j) => Z.of_nat j - Z.of_nat i) (diffpairs n) =
+ zPi (fun '(i,j) => Z.of_nat (f j) - Z.of_nat (f i)) (diffpairs n))%Z.
+Proof.
+Admitted.
+*)
+
+(* Permutations and transpositions *)
 
 Definition transpose '(i,j) := fun n =>
   if n =? i then j else if n =? j then i else n.
@@ -348,12 +829,25 @@ Proof.
    repeat (case Nat.eqb_spec; try lia).
 Qed.
 
+Lemma transpose_qperm n i j :
+  i < n -> j < n -> qpermutation n (transpose (i,j)).
+Proof.
+ intros. now apply q_f_permutation, transpose_fperm.
+Qed.
+
 Lemma transpose_invo i j :
   fEq (compose (transpose (i,j)) (transpose (i,j))) id.
 Proof.
  intros x.
  unfold transpose, compose, id.
  repeat (case Nat.eqb_spec; simpl); lia.
+Qed.
+
+Lemma transpose_comm i j :
+ fEq (transpose (j,i)) (transpose (i,j)).
+Proof.
+ intros x. unfold transpose.
+ do 2 case Nat.eqb_spec; lia.
 Qed.
 
 Lemma transpose_l i j : transpose (i,j) i = j.
@@ -389,6 +883,15 @@ Lemma ltranspose_app l1 l2 :
 Proof.
  intros x; unfold compose.
  induction l1; simpl; trivial. unfold compose. now rewrite IHl1.
+Qed.
+
+Lemma ltranspose_qperm n l :
+ Forall (fun '(i,j) => i < j < n) l -> qpermutation n (ltranspose l).
+Proof.
+ induction 1; simpl.
+ - apply qpermutation_id.
+ - destruct x as (i,j).
+   apply QPerm.permutation_compose; auto. apply transpose_qperm; lia.
 Qed.
 
 Fixpoint transposify n f :=
@@ -491,436 +994,148 @@ Proof.
  - unfold f'. intros x Hx. case Nat.ltb_spec; lia.
 Qed.
 
-(* Lien entre signature (comme parité du nombre d'inversion)
-   et parité du nb de transpo dans la decomp de cette permut ?
-
-   application à la signature d'une composition puis d'un inverse.
-
-*)
-
-
-(* Sign of a permutation *)
-
-Fixpoint inversions l :=
- match l with
- | [] => 0
- | x::l => length (filter (fun y => y <? x) l) + inversions l
- end.
-
-Definition lsign l := Nat.even (inversions l).
-
-Definition qsign n f := lsign (perm2list n f).
-
-Fixpoint bigxor {A} (f:A->bool) l :=
- match l with
- | [] => false
- | x::l => xorb (f x) (bigxor f l)
- end.
-
-Lemma bigxor_app {A} (f:A->bool) l1 l2 :
- bigxor f (l1++l2) = xorb (bigxor f l1) (bigxor f l2).
+Lemma transpose_simplify i j :
+ 0<i<j -> fEq (transpose (i,j)) (ltranspose [(0,i);(0,j);(0,i)]).
 Proof.
- induction l1; simpl; trivial.
- - now destruct bigxor.
- - now rewrite IHl1, xorb_assoc.
+ intros H x. unfold ltranspose, transpose, compose.
+ repeat (case Nat.eqb_spec; simpl; try lia).
 Qed.
 
-Lemma bigxor_map {A B} (h:A->B)(f:B->bool) l :
- bigxor f (map h l) = bigxor (compose f h) l.
-Proof.
- induction l; simpl; trivial. rewrite IHl. f_equal.
-Qed.
-
-Fixpoint lsign' l :=
- match l with
- | [] => true
- | x::l => xorb (bigxor (fun y => y <? x) l) (lsign' l)
- end.
-
-Lemma lsign'_alt x l :
-  lsign' (l++[x]) = xorb (lsign' l) (bigxor (fun y => x <? y) l).
-Proof.
- induction l; simpl; trivial. rewrite bigxor_app, IHl. simpl.
- rewrite xorb_false_r.
- rewrite !xorb_assoc. f_equal.
- rewrite <- !xorb_assoc. f_equal. apply xorb_comm.
-Qed.
-
-Lemma eqb_xorb b b' : eqb b b' = negb (xorb b b').
-Proof.
- now destruct b, b'.
-Qed.
-
-Lemma eqb_xorb' b b' : eqb b b' = xorb (negb b) b'.
-Proof.
- now destruct b, b'.
-Qed.
-
-Lemma lsign_equiv l : lsign l = lsign' l.
-Proof.
- unfold lsign.
- induction l; simpl; auto.
- rewrite Nat.even_add, IHl.
- rewrite eqb_xorb'. f_equal.
- rewrite Nat.negb_even. clear IHl.
- induction l; simpl; trivial.
- case Nat.ltb_spec; intros; simpl.
- - rewrite Nat.odd_succ, <- Nat.negb_odd, IHl. now destruct bigxor.
- - rewrite IHl. now destruct bigxor.
-Qed.
-
-Lemma nil_carac {A} (l:list A) : l = [] <-> forall x, ~In x l.
-Proof.
- split.
- - now intros ->.
- - destruct l; trivial. simpl. intros H. specialize (H a); intuition.
-Qed.
-
-Lemma inversions_id i n : inversions (seq i n) = 0.
-Proof.
- revert i.
- induction n; simpl; intros i; auto.
- rewrite IHn.
- rewrite Nat.add_0_r.
- apply length_zero_iff_nil, nil_carac. intros x.
- rewrite filter_In, in_seq. intros (H,H').
- apply Nat.ltb_lt in H'. lia.
-Qed.
-
-Lemma lsign_id n : lsign (seq 0 n) = true.
-Proof.
- unfold lsign. now rewrite inversions_id.
-Qed.
-
-Lemma qsign_id n : qsign n (fun k => k) = true.
-Proof.
- unfold qsign, perm2list. rewrite map_id. apply lsign_id.
-Qed.
-
-Fixpoint incrpairs n :=
-  match n with
-  | O => []
-  | S n => incrpairs n ++ map (fun k => (k,n)) (seq 0 n)
-  end.
-
-Definition decrpairs n := map (fun '(i,j) => (j,i)) (incrpairs n).
-
-Definition diffpairs n := incrpairs n ++ decrpairs n.
-
-Definition natnatdec (p q : nat*nat) : { p = q }+{ p<> q }.
-Proof.
- decide equality; apply Nat.eq_dec.
-Defined.
-
-Lemma mapincr_countocc n m i j :
-  count_occ natnatdec (map (fun k : nat => (k, m)) (seq 0 n)) (i, j) =
-  if (i <? n) && (j =? m) then 1 else 0.
-Proof.
- revert m i j.
- induction n; intros.
- - simpl count_occ.
-   case Nat.ltb_spec; simpl; auto. inversion 1.
- - rewrite seq_S, map_app, count_occ_app.
-   cbn -[natnatdec]. rewrite IHn.
-   destruct natnatdec as [[= -> ->]|NE].
-   + now rewrite Nat.eqb_refl, Nat.ltb_irrefl, Nat.leb_refl.
-   + case Nat.ltb_spec; case Nat.eqb_spec; case Nat.leb_spec; intros;
-       simpl; auto. lia. subst. replace i with n in NE by lia. easy.
-Qed.
-
-Lemma incrpairs_countocc n i j :
-  count_occ natnatdec (incrpairs n) (i,j) =
-  if (i <? j) && (j <? n) then 1 else 0.
-Proof.
- revert i j.
- induction n; simpl; intros.
- - do 2 case Nat.ltb_spec; intros; simpl; auto; lia.
- - rewrite count_occ_app, IHn.
-   rewrite mapincr_countocc.
-   repeat (case Nat.ltb_spec; intros; simpl; auto; try lia);
-    case Nat.eqb_spec; intros; simpl; auto; try lia.
-Qed.
-
-Lemma incrpairs_in n i j :
-  In (i,j) (incrpairs n) <-> i < j < n.
-Proof.
- rewrite count_occ_In with (eq_dec:=natnatdec).
- rewrite incrpairs_countocc.
- repeat (case Nat.ltb_spec; simpl; try lia).
-Qed.
-
-Lemma decrpairs_countocc n i j :
-  count_occ natnatdec (decrpairs n) (i,j) =
-  if (j <? i) && (i <? n) then 1 else 0.
-Proof.
- unfold decrpairs.
- change (i,j) with ((fun '(i0, j0) => (j0, i0)) (j,i)).
- erewrite <- count_occ_map with (decA := natnatdec).
- apply incrpairs_countocc.
- intros (x,y) (x',y'). congruence.
-Qed.
-
-Lemma diffpairs_countocc n i j :
- count_occ natnatdec (diffpairs n) (i,j) =
-  if (j <? n) && (i <? n) && negb (i =? j) then 1 else 0.
-Proof.
- unfold diffpairs.
- rewrite count_occ_app, incrpairs_countocc, decrpairs_countocc.
- repeat (case Nat.ltb_spec; intros; simpl; auto; try lia);
-   case Nat.eqb_spec; intros; simpl; auto; try lia.
-Qed.
-
-Lemma diffpairs_in n i j :
-  In (i,j) (diffpairs n) <-> i < n /\ j < n /\ i<>j.
-Proof.
- rewrite count_occ_In with (eq_dec:=natnatdec).
- rewrite diffpairs_countocc.
- repeat (case Nat.ltb_spec; simpl; try lia).
- case Nat.eqb_spec; simpl; try lia.
-Qed.
-
-Fixpoint zPi {A} (f:A->Z) l :=
-  match l with
-   | [] => 1
-   | x::l => f x * zPi f l
-  end%Z.
-
-Lemma zPi_app {A} (f:A->Z) l1 l2 :
-  (zPi f (l1++l2) = zPi f l1 * zPi f l2)%Z.
-Proof.
- induction l1; simpl zPi; rewrite ?IHl1; lia.
-Qed.
-
-Lemma zPi_map {A B} (f:B->Z) (h:A->B) l :
- zPi f (map h l) = zPi (compose f h) l.
-Proof.
- induction l; simpl; auto. now rewrite IHl.
-Qed.
-
-Lemma zPi_permut {A} (f:A->Z) l l' :
-  Permutation l l' -> zPi f l = zPi f l'.
-Proof.
- induction 1; simpl; auto; try lia.
-Qed.
-
-Lemma zPi_ext {A} (f g : A -> Z) l :
- (forall x, In x l -> f x = g x) -> zPi f l = zPi g l.
-Proof.
- induction l; simpl; auto. intros H. rewrite IHl by firstorder. f_equal.
- apply H; now left.
-Qed.
-
-Lemma zPi_mult {A} (f g : A -> Z) l :
- (zPi (fun x => f x * g x) l = zPi f l * zPi g l)%Z.
-Proof.
- induction l; simpl; auto. rewrite IHl. lia.
-Qed.
-
-Local Coercion Z.of_nat : nat >-> Z.
-
-Definition zsign n (f:nat->nat) : Z :=
-  zPi (fun '(i,j) => Z.sgn (f j - f i)) (incrpairs n).
-
-Lemma zPi_bigxor {A}(f:A->Z)(g:A->bool) l :
- ((forall x, In x l -> f x = if g x then -1 else 1) ->
-  zPi f l = if bigxor g l then -1 else 1)%Z.
+Lemma perm2list_transpose0 n j :
+ 0<j<n ->
+ perm2list n (transpose (0,j)) =
+  [j] ++ seq 1 (j-1) ++ [0] ++ seq (S j) (n-j-1).
 Proof.
  intros H.
- induction l; simpl; auto.
- rewrite (H a) by (now left). rewrite IHl by (simpl in *; firstorder).
- destruct (g a), (bigxor g l); simpl; try lia.
+ unfold perm2list.
+ replace n with (j+(n-j)) at 1 by lia.
+ rewrite seq_app, map_app.
+ replace j with (S (j-1)) at 2 by lia.
+ replace (n-j) with (S (n-j-1)) at 1 by lia.
+ simpl seq. cbn -[transpose].
+ rewrite transpose_l. f_equal. f_equal.
+ rewrite map_ext_in with (g := id). now rewrite map_id.
+ intros a. rewrite in_seq. intros Ha. rewrite transpose_else; auto; lia.
+ rewrite transpose_r. f_equal.
+ rewrite map_ext_in with (g := id). now rewrite map_id.
+ intros a. rewrite in_seq. intros Ha. rewrite transpose_else; auto; lia.
 Qed.
 
-Lemma zsign_ok n f : bInjective n f ->
- (zsign n f = if qsign n f then 1 else -1)%Z.
+Lemma filter_nop {A} (f:A->bool) l :
+ (forall x, In x l -> f x = false) -> filter f l = [].
 Proof.
- unfold zsign, qsign, perm2list. rewrite lsign_equiv. revert f.
- induction n as [|n IH]; intros f Hf; trivial.
- rewrite seq_S, map_app. cbn. rewrite zPi_app. rewrite IH by firstorder.
- rewrite lsign'_alt. rewrite bigxor_map, zPi_map. unfold compose.
- rewrite zPi_bigxor with (g := fun x : nat => f n <? f x).
- destruct lsign', bigxor; simpl; try lia.
- intros x. clear IH. rewrite in_seq. intros Hx.
- case Nat.ltb_spec. lia. specialize (Hf x n); lia.
+ induction l; simpl; intros H; auto.
+ rewrite H; firstorder.
 Qed.
 
-Definition couple (g:nat->nat) '(i,j) := (g i, g j).
-
-Definition sortpair '(i,j) := if i <? j then (i,j) else (j,i).
-
-Definition sortedcouple g p := sortpair (couple g p).
-
-Lemma permut_diffpairs n f :
-  qpermutation n f ->
-  Permutation (diffpairs n) (map (couple f) (diffpairs n)).
+Lemma filter_all {A} (f:A->bool) l :
+ (forall x, In x l -> f x = true) -> filter f l = l.
 Proof.
- intros Q.
- apply NoDup_Permutation_bis.
- - rewrite NoDup_count_occ with (decA := natnatdec). intros (i,j).
-   rewrite diffpairs_countocc. destruct andb; lia.
- - now rewrite map_length.
- - intros (i,j). rewrite diffpairs_in. intros (Hi & Hj & D).
-   destruct Q as (g & Hg).
-   rewrite in_map_iff. exists (g i, g j). simpl. split.
-   + generalize (Hg i) (Hg j). intros. f_equal; lia.
-   + rewrite diffpairs_in.
-     generalize (Hg i) (Hg j). intros. repeat split; try lia.
-     intros E. replace i with (f (g i)) in D by lia.
-     replace j with (f (g j)) in D by lia. rewrite E in D. lia.
+ induction l; simpl; intros H; auto.
+ rewrite H; firstorder. f_equal. firstorder.
 Qed.
 
-Lemma permut_incrpairs_sorted n f :
+Lemma inversions_app_adhoc x u v :
+ (forall y z, In y u -> In z v -> y < z) ->
+ inversions (u++x::v) =
+ inversions u + inversions (x::v) + length (filter (fun y => x <? y) u).
+Proof.
+ induction u; intros H.
+ - simpl; lia.
+ - simpl. rewrite IHu by firstorder.
+   rewrite filter_app, app_length. simpl. rewrite <- !Nat.add_assoc.
+   f_equal.
+   rewrite filter_nop.
+   2:{ intros z IN. apply Nat.ltb_ge. generalize (H a z). simpl.
+       firstorder. lia. }
+   case Nat.ltb_spec; simpl; lia.
+Qed.
+
+Lemma qsign_transpose0 n j : 0<j<n -> qsign n (transpose (0,j)) = false.
+Proof.
+ intros H. unfold qsign, lsign.
+ rewrite perm2list_transpose0; trivial. cbn -[Nat.ltb].
+ rewrite filter_app. cbn -[Nat.ltb].
+ replace (0<?j) with true by (symmetry; apply Nat.ltb_lt; lia).
+ rewrite app_length. cbn -[Nat.ltb].
+ rewrite filter_all.
+ 2:{ intros x. rewrite in_seq. intros Hx. apply Nat.ltb_lt. lia. }
+ rewrite seq_length.
+ rewrite filter_nop.
+ 2:{ intros x. rewrite in_seq. intros Hx. apply Nat.ltb_ge. lia. }
+ simpl.
+ rewrite inversions_app_adhoc.
+ 2:{ intros y z. rewrite !in_seq. lia. }
+ rewrite filter_all.
+ 2:{ intros x. rewrite in_seq, Nat.ltb_lt. lia. }
+ rewrite seq_length.
+ simpl. rewrite !inversions_id.
+ rewrite filter_nop.
+ 2:{ intros x. rewrite in_seq, Nat.ltb_ge. lia. }
+ simpl.
+ replace (j-1+1+(j-1)) with (1+2*(j-1)) by lia.
+ now rewrite Nat.even_add_mul_2.
+Qed.
+
+Lemma zsign_transpose0 n j : 0<j<n -> zsign n (transpose (0,j)) = (-1)%Z.
+Proof.
+ intros H. rewrite zsign_ok, qsign_transpose0; auto.
+ apply (transpose_fperm n 0 j); lia.
+Qed.
+
+Lemma zsign_transpose n i j : i<j<n -> zsign n (transpose (i,j)) = (-1)%Z.
+Proof.
+ intros H. destruct (Nat.eq_dec i 0) as [->|N].
+ - now apply zsign_transpose0.
+ - rewrite zsign_ext with (f' := ltranspose [(0,i);(0,j);(0,i)]).
+   2:{ intros x Hx. rewrite transpose_simplify; auto. lia. }
+   cbn -[transpose].
+   assert (Qi : qpermutation n (transpose (0,i)))
+     by (apply transpose_qperm; lia).
+   assert (Qj : qpermutation n (transpose (0,j)))
+     by (apply transpose_qperm; lia).
+   rewrite !zsign_compose; auto.
+   + rewrite !zsign_transpose0, zsign_id; lia.
+   + apply qpermutation_id.
+   + apply QPerm.permutation_compose; auto.
+Qed.
+
+Lemma qsign_transpose n i j : i<j<n -> qsign n (transpose (i,j)) = false.
+Proof.
+ intros H. generalize (zsign_transpose n i j H). rewrite zsign_ok.
+ destruct qsign; auto. congruence.
+ apply transpose_fperm; lia.
+Qed.
+
+Lemma zsign_ltranspose n l :
+ Forall (fun '(i,j) => i < j < n) l ->
+ zsign n (ltranspose l) = if Nat.even (length l) then 1%Z else (-1)%Z.
+Proof.
+ induction 1; cbn -[Nat.even].
+ - apply zsign_id.
+ - destruct x as (i,j).
+   rewrite zsign_compose, zsign_transpose, IHForall; try lia.
+   2:{ apply transpose_qperm; lia. }
+   2:{ apply ltranspose_qperm; auto. }
+   rewrite Nat.even_succ, <- Nat.negb_even. now destruct Nat.even.
+Qed.
+
+Lemma qsign_ltranspose n l :
+ Forall (fun '(i,j) => i < j < n) l ->
+ qsign n (ltranspose l) = Nat.even (length l).
+Proof.
+ intros H. generalize (zsign_ltranspose n l H). rewrite zsign_ok.
+ destruct qsign, Nat.even; auto; congruence.
+ assert (F : fpermutation n (ltranspose l)).
+ { now apply q_f_permutation, ltranspose_qperm. }
+ apply F.
+Qed.
+
+Lemma qsign_transposify n f :
  qpermutation n f ->
- Permutation (map (sortedcouple f) (incrpairs n)) (incrpairs n).
+ qsign n f = Nat.even (length (transposify n f)).
 Proof.
- intros Q.
- apply Permutation_sym.
- apply NoDup_Permutation_bis.
- - rewrite NoDup_count_occ with (decA := natnatdec). intros (i,j).
-   rewrite incrpairs_countocc.
-   repeat (case Nat.ltb_spec; simpl; trivial); lia.
- - now rewrite map_length.
- - intros (i,j). rewrite incrpairs_in. intros H.
-   destruct Q as (g & Hg).
-   generalize (Hg i) (Hg j); intros.
-   rewrite in_map_iff. exists (sortedcouple g (i,j)). split.
-   + unfold sortedcouple, sortpair, couple.
-     do 2 case Nat.ltb_spec; intros; f_equal; try lia.
-   + unfold sortedcouple, sortpair, couple.
-     case Nat.ltb_spec; intros; rewrite incrpairs_in; split; try lia.
-     assert (g i <> g j); try lia.
-     intros E. replace i with (f (g i)) in H by lia.
-     replace j with (f (g j)) in H by lia. rewrite E in H. lia.
+ intros H. rewrite qsign_ext with (g:= ltranspose (transposify n f)).
+ - now apply qsign_ltranspose, transposify_ok, q_f_permutation.
+ - now apply transposify_beq, q_f_permutation.
 Qed.
-
-
-Lemma zPi_reindex_gen n (g:nat->nat->Z) f : qpermutation n f ->
- zPi (fun '(i,j) =>  g (f j) (f i)) (diffpairs n)
- = zPi (fun '(i,j) => g j i) (diffpairs n).
-Proof.
- intros Q. symmetry. rewrite (zPi_permut _ _ _ (permut_diffpairs n f Q)).
- rewrite zPi_map. apply zPi_ext. now intros (i,j).
-Qed.
-
-Lemma zPi_reindex n f : qpermutation n f ->
- zPi (fun '(i,j) =>  Z.abs (f j - f i)) (diffpairs n)
- = zPi (A:=nat*nat) (fun '(i,j) => Z.abs (j - i)) (diffpairs n).
-Proof.
- apply zPi_reindex_gen with (g := fun x y => Z.abs (x - y)).
-Qed.
-
-Lemma zPi_diffpairs_incrpairs_square n (f : nat * nat -> Z) :
- (forall i j, In (i,j) (incrpairs n) -> f (j,i) = f (i,j)) ->
- (zPi f (diffpairs n) = (zPi f (incrpairs n))^2)%Z.
-Proof.
- intros H.
- unfold diffpairs. rewrite zPi_app, Z.pow_2_r. f_equal.
- unfold decrpairs. rewrite zPi_map. apply zPi_ext.
- intros (i,j). unfold compose. now apply H.
-Qed.
-
-Lemma zPi_pos {A} (f:A->Z) l :
-  (forall x, In x l -> 0 < f x)%Z -> (0 < zPi f l)%Z.
-Proof.
- induction l; simpl; auto; try lia.
- intros H. apply Z.mul_pos_pos. apply H; now left. apply IHl; firstorder.
-Qed.
-
-Lemma zPi_nonneg {A} (f:A->Z) l :
-  (forall x, In x l -> 0 <= f x)%Z -> (0 <= zPi f l)%Z.
-Proof.
- induction l; simpl; auto; try lia.
- intros H. apply Z.mul_nonneg_nonneg. apply H; now left. apply IHl; firstorder.
-Qed.
-
-Lemma zPi_reindex_incr_gen n (g:nat->nat->Z) f : qpermutation n f ->
- (forall i j, g j i = g i j)%Z -> (forall i j, 0 <= g i j)%Z ->
- zPi (fun '(i,j) => g (f j) (f i)) (incrpairs n)
- = zPi (fun '(i,j) => g j i) (incrpairs n).
-Proof.
- intros Q G1 G2.
- rewrite <- (Z.sqrt_square
-               (zPi (fun '(i, j) => g (f j) (f i)) (incrpairs n))).
- 2:{ apply zPi_nonneg. intros (i,j) _. apply G2. }
- rewrite <- Z.pow_2_r, <- zPi_diffpairs_incrpairs_square by intuition.
- rewrite zPi_reindex_gen; trivial.
- rewrite zPi_diffpairs_incrpairs_square, Z.pow_2_r by intuition.
- rewrite Z.sqrt_square; trivial.
- apply zPi_nonneg. intros (i,j) _. apply G2.
-Qed.
-
-Lemma zsign_eqn n f : qpermutation n f ->
- (zsign n f * zPi (A:=nat*nat) (fun '(i,j) => j - i) (incrpairs n) =
- zPi (fun '(i,j) => f j - f i) (incrpairs n))%Z.
-Proof.
- unfold zsign.
- intros Q.
- transitivity
-   ((zPi (fun '(i, j) => Z.sgn (f j - f i)) (incrpairs n) *
-     zPi (fun '(i, j) => Z.abs (f j - f i)) (incrpairs n))%Z).
- 2:{ rewrite <- zPi_mult. apply zPi_ext. intros (i,j) IN.
-     now rewrite Z.mul_comm, Z.abs_sgn. }
- f_equal.
- rewrite zPi_reindex_incr_gen with (g := fun i j => Z.abs(i-j));
-  auto; try lia.
- apply zPi_ext.
- intros (i,j) IN. rewrite incrpairs_in in IN. lia.
-Qed.
-
-Lemma zPi_reindex_again n (F : nat*nat -> Z)(g:nat->nat) :
- qpermutation n g ->
- (forall i j, F (j,i) = - F (i,j))%Z ->
- (zPi (compose F (couple g)) (incrpairs n) * zsign n g =
-   zPi F (incrpairs n))%Z.
-Proof.
- intros Hg HF.
- unfold zsign.
- rewrite <- zPi_mult.
- rewrite zPi_ext with (g := compose F (sortedcouple g)).
- 2:{ intros (i,j) IN. rewrite incrpairs_in in IN.
-     unfold compose, sortedcouple, couple, sortpair.
-     case Nat.ltb_spec; intros. lia.
-     assert (g j <> g i).
-     { intros E. apply q_f_permutation in Hg. apply Hg in E; lia. }
-     rewrite HF. lia. }
- rewrite <- zPi_map. apply zPi_permut. now apply permut_incrpairs_sorted.
-Qed.
-
-Lemma zsign_compose n f g :
- qpermutation n f -> qpermutation n g ->
- (zsign n (compose f g) = zsign n f * zsign n g)%Z.
-Proof.
- intros Hf Hg.
- assert (Hfg : qpermutation n (compose f g))
-   by now apply QPerm.permutation_compose.
- assert (E1 := zsign_eqn _ _ Hfg).
- unfold compose at 2 3 in E1.
- assert (E2 := zsign_eqn _ _ Hf).
- rewrite <- (zPi_reindex_again n (fun '(i,j) => f j - f i)%Z g Hg) in E2
-  by lia.
- unfold compose in E2. symmetry in E2.
- rewrite zPi_ext with (g := fun '(i, j) => (f (g j) - f (g i))%Z) in E2.
- 2:{ now intros (i,j). }
- rewrite <- E1 in E2. clear E1.
- set (A := zPi _ _) in *.
- rewrite <- Z.mul_assoc, (Z.mul_comm A), Z.mul_assoc in E2.
- apply Z.mul_reg_r in E2.
- 2:{ clear E2. assert (0 < A)%Z; try lia.
-     apply zPi_pos. intros (i,j). rewrite incrpairs_in. lia. }
- rewrite <- E2. rewrite (zsign_ok n g). destruct qsign; lia.
- apply q_f_permutation in Hg. apply Hg.
-Qed.
-
-
-(*
-Lemma zsign_eqn' n f :
- (zsign n f * zPi (fun '(i,j) => Z.of_nat j - Z.of_nat i) (diffpairs n) =
- zPi (fun '(i,j) => Z.of_nat (f j) - Z.of_nat (f i)) (diffpairs n))%Z.
-Proof.
-Admitted.
-(* Hum, souci avec la page wikipedia *)
-*)
-
-
-(* composition and sign, inverse and sign ?
-   transpositions ? decomp in cycles ? *)
