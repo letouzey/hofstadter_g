@@ -1,9 +1,8 @@
 
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
-From QuantumLib Require Import Complex Permutations Polynomial Matrix VecSet.
+From QuantumLib Require Import Complex Polynomial Matrix VecSet.
 From QuantumLib Require Import Eigenvectors FTA.
-
-
+Require Import MorePermut.
 
 Local Open Scope C.
 Local Open Scope poly_scope.
@@ -817,9 +816,42 @@ Qed.
 
 (** Extensions about permutation and determinant *)
 
-(* TODO: sign of a permutation *)
+Fixpoint Csum (l: list C) : C :=
+  match l with [] => 0 | c::l' => c + Csum l' end%C.
 
-(* TODO: alt formulation of a determinant *)
+Definition sum_perms n (f : (nat -> nat) -> C) : C :=
+  G_big_plus (List.map f (qperms n)).
+
+Definition Π (f : nat -> C) n :=
+  G_big_mult (List.map f (seq 0 n)).
+
+Local Coercion IZR : Z >-> R.
+
+Lemma zsign_0 (f:nat->nat) : zsign 0 f = 1%Z.
+Proof.
+ unfold zsign. now simpl.
+Qed.
+
+Lemma zsign_1 (f:nat->nat) : zsign 1 f = 1%Z.
+Proof.
+ unfold zsign. now simpl.
+Qed.
+
+Lemma LeibnizFormula n (A:Square n) :
+ Determinant A =
+  sum_perms n (fun f => zsign n f * Π (fun i => A i (f i)) n).
+Proof.
+ revert A. induction n as [|[|n] IH]; intros A.
+ - simpl. unfold sum_perms, qperms, Π. simpl.
+   rewrite zsign_0. ring.
+ - simpl. unfold sum_perms, qperms, Π. simpl.
+   rewrite zsign_1. unfold perm2fun. simpl. ring.
+ - rewrite Det_simplify.
+   remember (S n) as m.
+(* TODO : quelque chose comme :
+sum_perms (S n) F = Σ (sum_perms n (fun f => F (compose ... f)))
+*)
+Admitted.
 
 (* TODO: determinant of transpose *)
 
