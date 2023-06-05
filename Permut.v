@@ -802,18 +802,6 @@ Qed.
 
 Local Close Scope Z.
 
-(* TODO: Hum, souci avec la page wikipedia fr
-   https://fr.wikipedia.org/wiki/Signature_d%27une_permutation
-   Avec l'ensemble P, s'il s'agit vraiment de paires ensemblistes, alors
-   \Pi_P est mal défini. Et pas besoin de \sqrt dans la première preuve...
-
-Lemma zsign_eqn' n f :
- (zsign n f * zPi (fun '(i,j) => Z.of_nat j - Z.of_nat i) (diffpairs n) =
- zPi (fun '(i,j) => Z.of_nat (f j) - Z.of_nat (f i)) (diffpairs n))%Z.
-Proof.
-Admitted.
-*)
-
 (* Permutations and transpositions *)
 
 Definition transpose '(i,j) := fun n =>
