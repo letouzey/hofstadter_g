@@ -837,6 +837,85 @@ Proof.
  unfold zsign. now simpl.
 Qed.
 
+Definition extend_perm i f :=
+ fun x =>
+  match x with
+  | O => i
+  | S x => let j := f x in if i <=? j then S j else j
+  end.
+
+Definition reduce_perm f :=
+ fun x => let j := f (S x) in if f O <? j then pred j else j.
+
+Lemma reduce_extend_perm i f :
+ fEq (reduce_perm (extend_perm i f)) f.
+Proof.
+ intros x. unfold extend_perm, reduce_perm.
+ case (Nat.leb_spec i (f x)); case Nat.ltb_spec; try lia.
+Qed.
+
+Lemma extend_reduce_perm n f : qpermutation (S n) f ->
+ bEq (S n) (extend_perm (f O) (reduce_perm f)) f.
+Proof.
+ intros H [|x] Hx; trivial.
+ unfold extend_perm, reduce_perm.
+ case (Nat.ltb_spec (f O) (f (S x))); case Nat.leb_spec; try lia.
+ intros.
+ assert (E : f O = f (S x)) by lia.
+ apply q_f_permutation in H. apply H in E; lia.
+Qed.
+
+Lemma extend_perm_is_perm n i f :
+ qpermutation n f -> (i <= n)%nat -> qpermutation (S n) (extend_perm i f).
+Proof.
+ rewrite !q_f_permutation. intros (B,J) Hi. split.
+ - intros [|x] Hx; simpl; try lia.
+   specialize (B x). case Nat.leb_spec; lia.
+ - intros [|x] [|y] Hx Hy; simpl in *; auto.
+   + case Nat.leb_spec; intros; subst i; lia.
+   + case Nat.leb_spec; intros; subst i; lia.
+   + do 2 case Nat.leb_spec; intros ? ? E; f_equal; try injection E as E;
+     try lia; apply J; lia.
+Qed.
+
+Lemma reduce_perm_is_perm n f :
+ qpermutation (S n) f -> qpermutation n (reduce_perm f).
+Proof.
+ rewrite !q_f_permutation. intros (B,J). split.
+ - intros x Hx. unfold reduce_perm.
+   assert (B' := B (S x)).
+   case Nat.ltb_spec; try lia. intros.
+   assert (f (S x) < f O)%nat. { specialize (J O (S x)); lia. }
+   generalize (B O). lia.
+ - intros x y Hx Hy. unfold reduce_perm.
+   do 2 case Nat.ltb_spec; intros ? ? E.
+   + assert (E' : f (S x) = f (S y)) by lia. apply J in E'; lia.
+   + assert (E' : f O = f (S y)) by lia. apply J in E'; lia.
+   + assert (E' : f O = f (S x)) by lia. apply J in E'; lia.
+   + apply J in E; lia.
+Qed.
+
+Definition reorder_perms n :=
+  flat_map (fun i => map (extend_perm i) (qperms n)) (seq 0 (S n)).
+
+Lemma reorder_perms_ok n :
+ Permutation (reorder_perms n) (qperms (S n)).
+Proof.
+Admitted.
+
+Lemma zsign_extend n i f :
+  zsign (S n) (extend_perm i f) =
+   (zsign n f * if Nat.even i then 1 else -1)%Z.
+Proof.
+Admitted.
+
+Lemma sum_perms_reorder F n :
+ sum_perms (S n) F =
+ Σ (fun i => sum_perms n (fun f => F (extend_perm i f))) (S n).
+Proof.
+Admitted.
+
+
 Lemma LeibnizFormula n (A:Square n) :
  Determinant A =
   sum_perms n (fun f => zsign n f * Π (fun i => A i (f i)) n).
