@@ -822,6 +822,154 @@ Fixpoint Csum (l: list C) : C :=
 Definition sum_perms n (f : (nat -> nat) -> C) : C :=
   G_big_plus (List.map f (qperms n)).
 
+Lemma sum_perms_alt n (f : (nat -> nat) -> C) :
+  sum_perms n f = G_big_plus (List.map (compose f perm2fun) (lperms n)).
+Proof.
+ unfold sum_perms, qperms. f_equal. apply map_map.
+Qed.
+
+Definition extend_lperm i l :=
+  i :: map (fun j => if i <=? j then S j else j) l.
+
+Definition reduce_lperm l :=
+ match l with
+ | [] => []
+ | i :: l => map (fun j => if i <=? j then pred j else j) l
+ end.
+
+Lemma reduce_extend_lperm i l :
+ reduce_lperm (extend_lperm i l) = l.
+Proof.
+ destruct l; simpl; auto. rewrite map_map; f_equal.
+ - do 2 case Nat.leb_spec; simpl; lia.
+ - erewrite map_ext. apply map_id.
+   intros j; do 2 case Nat.leb_spec; simpl; lia.
+Qed.
+
+Lemma extend_reduce_lperm i l : ~In i l ->
+ extend_lperm i (reduce_lperm (i::l)) = i::l.
+Proof.
+ intros NI.
+ simpl; unfold extend_lperm; f_equal.
+ rewrite map_map. erewrite map_ext_in. apply map_id.
+ intros j IN'. simpl.
+ assert (i <> j) by now intros ->.
+ do 2 case Nat.leb_spec; simpl; lia.
+Qed.
+
+Lemma lperm_head_not_in n i l : lpermutation n (i::l) -> ~In i l.
+Proof.
+ intros L. apply Permutation_sym in L.
+ apply Permutation_NoDup in L; auto using seq_NoDup.
+ now apply NoDup_cons_iff in L.
+Qed.
+
+Lemma extend_lperm_in i l x :
+ In x (extend_lperm i l) <->
+ (x=i \/ (x < i /\ In x l) \/ (i < x /\ In (pred x) l))%nat.
+Proof.
+ unfold extend_lperm. simpl. rewrite in_map_iff.
+ split; [intros [-> | (j & Hj & IN)] | intros [-> | [(A,B) | (A,B)] ] ];
+  try lia.
+ - revert Hj. case Nat.leb_spec; intros; subst; simpl.
+   + right; right; split; auto; lia.
+   + right; left; auto.
+ - right. exists x; split; auto. case Nat.leb_spec; lia.
+ - right. exists (pred x); split; auto. case Nat.leb_spec; lia.
+Qed.
+
+Lemma extend_lperm_is_lperm n i l :
+ lpermutation n l -> (i <= n)%nat -> lpermutation (S n) (extend_lperm i l).
+Proof.
+ unfold lpermutation. intros L LE.
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis; auto using seq_NoDup.
+ - apply Permutation_length in L.
+   rewrite !seq_length in *.
+   unfold extend_lperm. simpl. rewrite map_length. lia.
+ - intros x Hx. rewrite in_seq in Hx. rewrite extend_lperm_in.
+   case (Nat.compare_spec x i); intros C; try lia.
+   + right; left; split; auto.
+     apply Permutation_sym in L.
+     eapply Permutation_in in L; eauto. apply in_seq; lia.
+   + right; right; split; auto.
+     apply Permutation_sym in L.
+     eapply Permutation_in in L; eauto. apply in_seq; lia.
+Qed.
+
+Lemma reduce_lperm_in i l x : ~In i l ->
+ In x (reduce_lperm (i::l)) <->
+ ((x < i /\ In x l) \/ (i <= x /\ In (S x) l))%nat.
+Proof.
+ intros NI.
+ simpl. rewrite in_map_iff.
+ split; [intros (j & Hj & IN) | intros [(A,B) | (A,B)] ];
+  try lia.
+ - revert Hj.
+   assert (i <> j) by now intros ->.
+   case Nat.leb_spec; intros; subst; simpl.
+   + right; split; auto; try lia. now replace (S (pred j)) with j by lia.
+   + left; split; auto.
+ - exists x; split; auto. case Nat.leb_spec; lia.
+ - exists (S x); split; auto. case Nat.leb_spec; lia.
+Qed.
+
+Lemma reduce_lperm_is_lperm n l :
+ lpermutation (S n) l -> lpermutation n (reduce_lperm l).
+Proof.
+ unfold lpermutation. intros L.
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis; auto using seq_NoDup.
+ - apply Permutation_length in L.
+   rewrite !seq_length in *.
+   unfold reduce_lperm. destruct l; simpl in *; try lia.
+   rewrite map_length. lia.
+ - intros x Hx. rewrite in_seq in Hx. destruct l as [|i l].
+   + apply Permutation_length in L. now rewrite seq_length in L.
+   + assert (N : NoDup (i::l)).
+     { apply Permutation_sym in L.
+       eapply Permutation_NoDup; eauto using seq_NoDup. }
+     inversion N; subst.
+     rewrite reduce_lperm_in; auto.
+     case (Nat.ltb_spec x i); [left|right]; split; auto.
+     * apply Permutation_sym in L.
+       eapply Permutation_in with (x:=x) in L; eauto.
+       { simpl in L. destruct L; trivial; lia. }
+       { apply in_seq. lia. }
+     * apply Permutation_sym in L.
+       eapply Permutation_in with (x:=S x) in L; eauto.
+       { simpl in L. destruct L; trivial; lia. }
+       { apply in_seq. lia. }
+Qed.
+
+Definition reorder_lperms n :=
+  flat_map (fun i => map (extend_lperm i) (lperms n)) (seq 0 (S n)).
+
+Lemma reorder_perms_ok n :
+ Permutation (reorder_lperms n) (lperms (S n)).
+Proof.
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis.
+ - apply lperms_nodup.
+ - rewrite lperms_length. unfold reorder_lperms.
+   rewrite flat_map_length with (k := fact n).
+   + rewrite seq_length. simpl; lia.
+   + intros a _. now rewrite map_length, lperms_length.
+ - intros p Hp. rewrite lperms_ok in Hp.
+   destruct p as [|i p].
+   + apply Permutation_length in Hp. now rewrite seq_length in Hp.
+   + unfold reorder_lperms. rewrite in_flat_map_Exists.
+     apply Exists_exists. exists i; split.
+     * eapply Permutation_in in Hp. 2:now left. trivial.
+     * rewrite in_map_iff. exists (reduce_lperm (i::p)); split.
+       { apply extend_reduce_lperm.
+         apply Permutation_sym in Hp.
+         apply Permutation_NoDup in Hp; auto using seq_NoDup.
+         now inversion Hp. }
+       { rewrite lperms_ok. now apply reduce_lperm_is_lperm. }
+Qed.
+
+
 Definition Π (f : nat -> C) n :=
   G_big_mult (List.map f (seq 0 n)).
 
@@ -837,6 +985,7 @@ Proof.
  unfold zsign. now simpl.
 Qed.
 
+(*
 Definition extend_perm i f :=
  fun x =>
   match x with
@@ -914,7 +1063,7 @@ Lemma sum_perms_reorder F n :
  Σ (fun i => sum_perms n (fun f => F (extend_perm i f))) (S n).
 Proof.
 Admitted.
-
+*)
 
 Lemma LeibnizFormula n (A:Square n) :
  Determinant A =
