@@ -819,13 +819,16 @@ Qed.
 Fixpoint Csum (l: list C) : C :=
   match l with [] => 0 | c::l' => c + Csum l' end%C.
 
-Definition sum_perms n (f : (nat -> nat) -> C) : C :=
-  G_big_plus (List.map f (qperms n)).
+Definition sum_perms n (F : (nat -> nat) -> C) : C :=
+  G_big_plus (List.map F (qperms n)).
 
-Lemma sum_perms_alt n (f : (nat -> nat) -> C) :
-  sum_perms n f = G_big_plus (List.map (compose f perm2fun) (lperms n)).
+Definition sum_lperms n (F : list nat -> C) : C :=
+  G_big_plus (List.map F (lperms n)).
+
+Lemma sum_perms_alt n (F : (nat -> nat) -> C) :
+  sum_perms n F = sum_lperms n (compose F perm2fun).
 Proof.
- unfold sum_perms, qperms. f_equal. apply map_map.
+ unfold sum_perms, sum_lperms, qperms. f_equal. apply map_map.
 Qed.
 
 Definition extend_lperm i l :=
@@ -969,6 +972,51 @@ Proof.
        { rewrite lperms_ok. now apply reduce_lperm_is_lperm. }
 Qed.
 
+Lemma Gbigplus_permut (l l' : list C) :
+  Permutation l l' -> G_big_plus l = G_big_plus l'.
+Proof.
+ induction 1; simpl; auto; try lca; try congruence.
+Qed.
+
+Lemma Gbigplus_factor c (l : list C) :
+ G_big_plus (map (Cmult c) l) = c * G_big_plus l.
+Proof.
+ induction l; simpl; try rewrite IHl; lca.
+Qed.
+
+Lemma map_flatmap {A B C} (f:B->C)(g:A -> list B) l :
+ map f (flat_map g l) = flat_map (fun x => map f (g x)) l.
+Proof.
+ induction l; simpl; auto. rewrite map_app. now f_equal.
+Qed.
+
+Lemma Gbigplus_flatmap_seq (F : nat -> list C) n :
+  G_big_plus (flat_map F (seq 0 n)) =
+  Σ (fun i : nat => G_big_plus (F i)) n.
+Proof.
+ induction n; trivial.
+ rewrite seq_S, flat_map_app. simpl. rewrite app_nil_r, <- IHn.
+ now rewrite <- big_plus_app.
+Qed.
+
+Lemma bigsum_ext {G} {H : Monoid G} (f g : nat -> G) n :
+ (forall x, (x < n)%nat -> f x = g x) -> big_sum f n = big_sum g n.
+Proof.
+ induction n; simpl; intros; f_equal; auto.
+Qed.
+
+Lemma sum_lperms_reorder (F : list nat -> C) n :
+ sum_lperms (S n) F =
+ Σ (fun i => sum_lperms n (compose F (extend_lperm i))) (S n).
+Proof.
+unfold sum_lperms at 1.
+assert (P := reorder_perms_ok n).
+apply Permutation_sym in P.
+apply Permutation_map with (f:=F) in P.
+erewrite Gbigplus_permut; eauto.
+unfold reorder_lperms. rewrite map_flatmap, Gbigplus_flatmap_seq.
+apply bigsum_ext. intros x _. unfold sum_lperms. now rewrite map_map.
+Qed.
 
 Definition Π (f : nat -> C) n :=
   G_big_mult (List.map f (seq 0 n)).
@@ -1065,6 +1113,111 @@ Proof.
 Admitted.
 *)
 
+Lemma perm2list_perm2fun n l : length l = n -> perm2list n (perm2fun l) = l.
+Proof.
+ revert n.
+ induction l.
+ - simpl. intros n <-. now unfold perm2list, perm2fun.
+ - simpl. intros n <-. unfold perm2list, perm2fun. simpl. f_equal.
+   rewrite <- seq_shift. rewrite map_map. now apply IHl.
+Qed.
+
+Lemma parity_even n : parity n = if Nat.even n then 1 else -1.
+Proof.
+ induction n as [ [| [|n] ] IH] using lt_wf_ind; simpl; try lca.
+ apply IH; lia.
+Qed.
+
+Lemma Permutation_filter {A} (f: A -> bool) l l' :
+ Permutation l l' -> Permutation (filter f l) (filter f l').
+Proof.
+ induction 1; simpl; try constructor.
+ - destruct (f x); auto.
+ - destruct (f x), (f y); auto. constructor.
+ - econstructor; eauto.
+Qed.
+
+Lemma map_filter {A B} (f:A->B)(h:B->bool) l :
+ filter h (map f l) = map f (filter (compose h f) l).
+Proof.
+ induction l; simpl; auto. unfold compose.
+ destruct (h (f a)); simpl; f_equal; auto.
+Qed.
+
+Lemma inversions_map_mono (f : nat -> nat) :
+ (forall x y, x < y -> f x < f y)%nat ->
+ forall l, inversions (map f l) = inversions l.
+Proof.
+ intros Hf.
+ induction l; simpl; auto.
+ rewrite IHl. f_equal. rewrite map_filter, map_length. unfold compose.
+ f_equal. apply filter_ext. intros x.
+ do 2 case Nat.ltb_spec; intros; auto.
+ - destruct (Nat.eq_dec a x); subst; try lia. specialize (Hf a x); lia.
+ - destruct (Nat.eq_dec a x); subst; try lia. specialize (Hf x a); lia.
+Qed.
+
+Lemma inversions_extend n l x : lpermutation n l -> (x <= n)%nat ->
+ (inversions (extend_lperm x l) = x + inversions l)%nat.
+Proof.
+ intros Hl Hx.
+ unfold extend_lperm. simpl.
+ rewrite inversions_map_mono.
+ 2:{ intros a b LT. do 2 case Nat.leb_spec; lia. }
+ f_equal.
+ rewrite map_filter, map_length.
+ unfold compose. set (f := fun x => _).
+ apply Permutation_filter with (f:=f) in Hl.
+ apply Permutation_length in Hl. rewrite Hl.
+ rewrite <- (seq_length x 0). f_equal.
+ unfold f; clear f l Hl.
+ revert x Hx.
+ induction n; intros x Hx.
+ - now inversion Hx.
+ - rewrite seq_S, filter_app. simpl.
+   case Nat.leb_spec; case Nat.ltb_spec; intros; try lia.
+   + rewrite app_nil_r. now apply IHn.
+   + replace x with (S n) by lia. rewrite seq_S. f_equal.
+     apply filter_all. intros y Hy. rewrite in_seq in Hy.
+     case Nat.leb_spec; intros; try lia. now apply Nat.ltb_lt.
+Qed.
+
+Lemma zsign_extend n l x : lpermutation n l -> (x <= n)%nat ->
+  parity x * zsign n (perm2fun l) =
+  zsign (S n) (perm2fun (extend_lperm x l)).
+Proof.
+ intros Hl Hx.
+ rewrite !zsign_ok.
+ 2:{ apply q_f_permutation, l_q_permutation.
+     now apply extend_lperm_is_lperm. }
+ 2:{ now apply q_f_permutation, l_q_permutation. }
+ unfold qsign. rewrite !perm2list_perm2fun.
+ 2:{ eapply extend_lperm_is_lperm in Hl; eauto.
+     apply Permutation_length in Hl. now rewrite seq_length in Hl. }
+ 2:{ apply Permutation_length in Hl. now rewrite seq_length in Hl. }
+ rewrite parity_even. unfold lsign.
+ rewrite inversions_extend with (n:=n); auto.
+ rewrite Nat.even_add. do 2 destruct Nat.even; simpl; lca.
+Qed.
+
+(*
+Lemma reduce_extend n l x (A:Square (S n)) :
+ lpermutation n l -> (x <= n)%nat ->
+ A x O * Π (fun i => reduce A x 0 i (perm2fun l i)) n =
+ Π (fun i => A i (perm2fun (extend_lperm x l) i)) (S n).
+Proof.
+ intros Hl Hx.
+ unfold reduce.
+
+KO:
+
+(x,0) (0,1+l[0]) ...(x-1,1+l[x-1])   (x+1,1+l[x])...(n,1+l[n-1])
+
+vs:
+
+(0,x) (1,l[0] ou l[0]+1) ..... (n,l[n-1] ou l[n-1]+1)
+*)
+
 Lemma LeibnizFormula n (A:Square n) :
  Determinant A =
   sum_perms n (fun f => zsign n f * Π (fun i => A i (f i)) n).
@@ -1076,9 +1229,14 @@ Proof.
    rewrite zsign_1. unfold perm2fun. simpl. ring.
  - rewrite Det_simplify.
    remember (S n) as m.
-(* TODO : quelque chose comme :
-sum_perms (S n) F = Σ (sum_perms n (fun f => F (compose ... f)))
-*)
+   rewrite sum_perms_alt, sum_lperms_reorder.
+   apply bigsum_ext. intros x Hx.
+   rewrite IH, sum_perms_alt.
+   unfold sum_lperms. rewrite <- Gbigplus_factor. f_equal.
+   rewrite map_map. apply map_ext_in. intros l Hl.
+   rewrite lperms_ok in Hl. unfold compose.
+
+
 Admitted.
 
 (* TODO: determinant of transpose *)
