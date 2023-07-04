@@ -18,13 +18,13 @@ Use "make" to compile the Coq files.
 Use "make gallinahtml" to generate the short html documentation.
 Use "pdflatex report" to generate the pdf of the technical report.
 
-Recent file `Lim.v` depends on Coq 8.16 and external library Coquelicot >= 3.3.0.
-I advise to fetch it via opam :
+Some recent files depend on Coq 8.16 and external libraries Coquelicot >= 3.3.0
+and QuantumLib. I advise to fetch them via opam :
 
 ```
 opam install coq
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam install coq-coquelicot
+opam install coq-coquelicot coq-quantumlib
 ```
 
 Summary of files:
@@ -36,6 +36,8 @@ Summary of files:
 - FunG_prog: Alternative definition of Hofstadter's G function
 - Phi: Hofstadter G function and the golden ratio
 - FlipG: Hofstadter's flipped G tree
+
+TODO: update this summary
 
 References:
 ----------
