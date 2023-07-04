@@ -1,88 +1,135 @@
 From Coq Require Import Reals Lra Lia.
-From CoRN Require Import FTA Rreals Rreals_iso CRings.
-From Coquelicot Require Import Complex.
-Require Import Lim ClassicFTA.
+From QuantumLib Require Import Complex Polynomial.
+Require Import Lim MorePolynomial.
+Local Open Scope C.
+Local Coercion INR : nat >-> R.
 
-Local Open Scope R.
+Definition ThePoly (k:nat) : Polynomial :=
+ monom C1 (k+1) +, monom (-C1) k +, [-C1].
 
-Add Search Blacklist "RefLemma" "TaylorLemma" "RefSeparated" "_lemma".
-
-Definition ThePoly (k:nat) : CX := monom [1] (k+1) [-] monom [1] k [-] [1].
-
-Lemma mu_is_root (k:nat) : CXRoot (mu k) (ThePoly k).
+Lemma mu_is_root k : Root (mu k) (ThePoly k).
 Proof.
- unfold ThePoly, CXRoot. rewrite !minus_apply, !monom_apply. simpl.
- unfold "[-]". simpl.
- rewrite Nat.add_1_r. ring_simplify.
- rewrite <- RtoC_pow, mu_carac. rewrite RtoC_plus, RtoC_pow. ring.
+ unfold ThePoly, Root. rewrite !Pplus_eval, !monom_eval. cbn.
+ rewrite Nat.add_1_r, !RtoC_pow, mu_carac, !RtoC_plus. lca.
 Qed.
 
-Lemma ThePoly_deg (k:nat) : degree (S k) (ThePoly k).
+Lemma ThePoly_subdeg k : (degree (monom (-C1) k +, [-C1]) <= k)%nat.
+Proof.
+ etransitivity; [apply Pplus_degree1| ].
+ rewrite monom_degree. 2:apply Copp_neq_0_compat, C1_neq_C0.
+ generalize (degree_length [-C1]). simpl. lia.
+Qed.
+
+Lemma ThePoly_deg k : degree (ThePoly k) = S k.
 Proof.
  unfold ThePoly.
- apply degree_minus_lft with O; auto with *.
- - red. simpl. destruct m. inversion 1. trivial.
- - apply degree_minus_lft with k; auto with *.
-   apply monom_degree.
-   rewrite Nat.add_1_r.
-   apply monom_degree_eq. apply C1_nz.
+ rewrite Pplus_assoc, Pplus_comm.
+ rewrite Pplus_degree2.
+ rewrite monom_degree. lia. apply C1_neq_C0.
+ rewrite monom_degree. 2:apply C1_neq_C0.
+ generalize (ThePoly_subdeg k). lia.
 Qed.
 
-Lemma ThePoly_monic (k:nat) : monic (S k) (ThePoly k).
+Lemma topcoef_monom c k : topcoef (monom c k) = c.
 Proof.
- unfold ThePoly. apply monic_minus with O; auto with *.
- - red. simpl. destruct m. inversion 1. trivial.
- - apply monic_minus with k; auto with *.
-   apply monom_degree.
-   rewrite Nat.add_1_r. split.
-   now rewrite monom_coeff.
-   apply monom_degree.
+ destruct (Ceq_dec c 0); subst.
+ - unfold monom, topcoef.
+   rewrite app_C0_compactify_reduce_1.
+   change (repeat C0 k) with ([]++repeat C0 k).
+   now rewrite app_C0_compactify_reduce.
+ - unfold topcoef. rewrite compactify_monom; auto.
+   unfold monom. apply last_last.
 Qed.
 
-Lemma ThePoly_nonConst (k:nat) : nonConst _ (ThePoly k).
+Lemma ThePoly_monic (k:nat) : monic (ThePoly k).
 Proof.
- apply monic_nonConst with k. apply ThePoly_monic.
+ unfold ThePoly. rewrite Pplus_assoc, Pplus_comm. unfold monic.
+ rewrite topcoef_plus_ltdeg. apply topcoef_monom.
+ rewrite monom_degree. 2:apply C1_neq_C0.
+ generalize (ThePoly_subdeg k). lia.
+Qed.
+
+Lemma map_repeat {A B}(f : A -> B) a n :
+ map f (repeat a n) = repeat (f a) n.
+Proof.
+ induction n; simpl; f_equal; auto.
+Qed.
+
+Lemma monom_scale c k : monom c k ≅ [c] *, monom C1 k.
+Proof.
+ unfold monom. rewrite Pscale_alt, map_app. simpl.
+ apply Peq_iff. f_equal. f_equal.
+ now rewrite map_repeat, Cmult_0_r.
+ f_equal. lca.
+Qed.
+
+Definition _X_ := [C0;C1].
+
+Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ C0::p.
+Proof.
+ simpl.
+ rewrite <- Pscale_alt.
+ rewrite Pzero_alt. simpl. rewrite Pplus_0_r.
+ rewrite <- Pscale_alt.
+ now rewrite Pmult_1_l.
 Qed.
 
 Lemma ThePoly_diff k : k<>O ->
- _D_ (ThePoly k) [=]
- (nring (S k) [*] _X_ [-] nring k) [*] monom [1] (pred k).
+ Pdiff (ThePoly k) ≅ [-k; k+1] *, monom C1 (k-1).
 Proof.
  intros Hk.
  unfold ThePoly.
- rewrite !diff_minus, diff_one, !diff_monom.
- rewrite Nat.add_1_r. simpl pred.
- rewrite cg_inv_zero.
- replace k with (S (pred k)) at 2 by lia.
- rewrite monom_S. rewrite mult_assoc. algebra.
+ rewrite !Pdiff_plus, !diff_monom.
+ replace (pred (k+1)) with (S (k-1)) by lia.
+ replace (pred k) with (k-1)%nat by lia.
+ simpl Pdiff. rewrite Pzero_alt, Pplus_0_r.
+ rewrite monom_S.
+ rewrite (monom_scale (-C1)), <- Pmult_assoc.
+ replace ([RtoC k] *, [-C1]) with [-RtoC k].
+ 2: simpl; f_equal; lca.
+ rewrite <- Pmult_X. rewrite <- Pmult_assoc.
+ rewrite (Pmult_comm _ _X_), Pmult_X.
+ rewrite <- Pmult_plus_distr_r. simpl Pplus.
+ apply Peq_iff. f_equal. f_equal. f_equal. lca.
+ f_equal. rewrite plus_INR, RtoC_plus. lca.
 Qed.
 
-Lemma ThePoly_diff_0 : _D_ (ThePoly 0) [=] [1].
+Lemma ThePoly_diff_0 : Pdiff (ThePoly 0) ≅ [C1].
 Proof.
- unfold ThePoly. simpl. repeat split; trivial. now ring_simplify.
+ unfold ThePoly. simpl. apply Peq_iff.
+ rewrite Cplus_0_r. apply (app_C0_compactify_reduce_1 [C1]).
+Qed.
+
+(* TODO: QuantumLib.Complex.Cpow_nonzero is buggy (only on reals) *)
+Lemma Cpow_nz (c : C) n : c <> 0 -> c ^ n <> 0.
+Proof.
+ induction n; simpl; intro H.
+ - injection. apply R1_neq_R0.
+ - apply Cmult_neq_0; auto.
 Qed.
 
 Lemma ThePoly_no_common_root_with_diff k c :
-  CXRoot c (ThePoly k) -> ~ CXRoot c (_D_ (ThePoly k)).
+  Root c (ThePoly k) -> ~ Root c (Pdiff (ThePoly k)).
 Proof.
  intros Hc.
  destruct (Nat.eq_dec k 0) as [->|Hk].
- - rewrite ThePoly_diff_0. unfold CXRoot. rewrite one_apply. apply C1_nz.
+ - rewrite ThePoly_diff_0. unfold Root. cbn. rewrite Cmult_1_l, Cplus_0_l.
+   apply C1_neq_C0.
  - rewrite ThePoly_diff by trivial.
-   unfold CXRoot.
-   rewrite mult_apply, !monom_apply, minus_apply, mult_apply, x_apply.
-   rewrite !nring_CX, !c_apply.
-   apply Cmult_neq_0.
-   + change (INR (S k) * c - INR k <> 0)%C.
-     apply Cminus_eq_contra. intros H.
+   unfold Root.
+   rewrite Pmult_eval, monom_eval. cbn.
+   rewrite !Cmult_1_r, Cmult_1_l, Cplus_0_l. intro E.
+   apply Cmult_integral in E. destruct E as [E|E].
+   + rewrite Cplus_comm in E. apply Cminus_eq in E.
      assert (Hc' : c = (INR k / INR (S k))%C).
-     { rewrite <- H. field. intros H'. apply RtoC_inj in H'.
-       generalize (RSpos k). lra. }
+     { rewrite <- E. rewrite <- RtoC_plus, <- S_INR. field.
+       intros H'. apply RtoC_inj in H'. generalize (RSpos k). lra. }
      rewrite <- RtoC_div in Hc'. 2:generalize (RSpos k); lra.
      revert Hc.
-     unfold ThePoly, CXRoot.
-     rewrite !minus_apply, one_apply, !monom_apply.
-     change [1] with (RtoC 1). rewrite !Cmult_1_l.
+     unfold ThePoly, Root.
+     rewrite !Pplus_eval, !monom_eval. cbn.
+     rewrite <- !Copp_mult_distr_l.
+     rewrite !Cmult_1_l, Cplus_0_l.
      rewrite Nat.add_1_r.
      change (c^S k - c^k - 1 <> 0)%C.
      replace (c^S k - c^k - 1)%C with (c^S k - (c^k + 1))%C by ring.
@@ -91,43 +138,26 @@ Proof.
      assert (r <= 1).
      { unfold r. apply Rcomplements.Rle_div_l.
        generalize (RSpos k); lra. rewrite S_INR; lra. }
-     subst c. rewrite <- !RtoC_pow, <- RtoC_plus in Hc.
+     subst c. rewrite !RtoC_pow, <- RtoC_plus in Hc.
      apply RtoC_inj in Hc.
      apply mu_unique in Hc. generalize (mu_itvl k); lra.
      apply Rcomplements.Rdiv_le_0_compat. apply pos_INR. apply RSpos.
-   + change (1 * c ^ pred k <> 0)%C.
-     rewrite Cmult_1_l.
+   + revert E.
      apply Cpow_nz.
      contradict Hc. subst c.
-     unfold ThePoly, CXRoot.
-     rewrite !minus_apply, one_apply, !monom_apply.
-     destruct k; try lia.
-     simpl. rewrite !Cmult_0_l, !Cmult_0_r.
-     apply Cminus_eq_contra.
-     change (0-0 <> 1)%C. unfold Cminus. rewrite Cplus_opp_r.
-     intro H. symmetry in H. now apply C1_nz.
+     unfold ThePoly, Root.
+     rewrite !Pplus_eval, !monom_eval. cbn.
+     destruct k; try lia. simpl.
+     rewrite !Cmult_0_l, !Cmult_0_r, !Cplus_0_l, Cmult_1_r.
+     apply Copp_neq_0_compat, C1_neq_C0.
 Qed.
 
 Lemma ThePoly_separated_roots k :
-  { l | length l = S k /\ NoDup l /\ ThePoly k [=] linprod l }.
+  exists l, length l = S k /\ NoDup l /\ ThePoly k ≅ linfactors l.
 Proof.
- apply (separated_roots (S k) (ThePoly k) (ThePoly_monic k)).
- apply ThePoly_no_common_root_with_diff.
+ destruct (separated_roots (ThePoly k)) as (l & D & E).
+ - apply ThePoly_monic.
+ - apply ThePoly_no_common_root_with_diff.
+ - exists l; repeat split; auto.
+   rewrite <- linfactors_degree. now rewrite <- E, ThePoly_deg.
 Qed.
-
-(* NB: R et C (classiques) sont des eqType à la ssreflect *)
-
-Definition Ceqb : C -> C -> bool :=
- fun c c' => if Ceq_dec c c' then true else false.
-
-Lemma Ceqb_spec c c' : reflect (c = c') (Ceqb c c').
-Proof.
- unfold Ceqb. destruct Ceq_dec; now constructor.
-Qed.
-
-
-(* liens : https://github.com/coq-community/awesome-coq
-
-   https://valentinblot.org/pro/M1_report.pdf : Cayley-Hamilton, Liouville,
-   etc
-*)
