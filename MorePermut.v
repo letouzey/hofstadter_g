@@ -1,7 +1,7 @@
 From Coq Require Import Bool Arith Lia Permutation FinFun List ZArith.
 From QuantumLib Require Permutations.
-Import ListNotations.
-Import Basics.
+Require Import MoreList.
+Import Basics ListNotations.
 
 Module QPerm := QuantumLib.Permutations.
 
@@ -11,13 +11,38 @@ Definition fEq (f g : nat->nat) := forall x, f x = g x.
 
 Definition bEq n (f f':nat->nat) := forall x, x < n -> f x = f' x.
 
-(** More on permutations *)
+(** Convert between permutation as list and permutation as functions *)
 
-Lemma Permutation_sym_iff {A} (l:list A) l' :
- Permutation l l' <-> Permutation l' l.
+Definition perm2list n (f:nat->nat) := map f (seq 0 n).
+
+Definition perm2fun (l:list nat) := fun k => nth k l O.
+
+Lemma perm2list_ext n f g : bEq n f g -> perm2list n f = perm2list n g.
 Proof.
- split; apply Permutation_sym.
+ intros E. apply map_ext_in. intros a. rewrite in_seq. intro IN. now apply E.
 Qed.
+
+Lemma perm2list_perm2fun n l : length l = n -> perm2list n (perm2fun l) = l.
+Proof.
+ revert n.
+ induction l.
+ - simpl. intros n <-. now unfold perm2list, perm2fun.
+ - simpl. intros n <-. unfold perm2list, perm2fun. simpl. f_equal.
+   rewrite <- seq_shift. rewrite map_map. now apply IHl.
+Qed.
+
+Lemma perm2fun_perm2list n f : bEq n (perm2fun (perm2list n f)) f.
+Proof.
+ intros x Hx.
+ unfold perm2fun, perm2list.
+ rewrite nth_indep with (d' := f O).
+ 2:{ now rewrite map_length, seq_length. }
+ rewrite map_nth. f_equal. now apply seq_nth.
+Qed.
+
+(** Three possible definition of n-permutations :
+    [lpermutation] on lists or [fpermutation on functions (the Coq way) or
+    [qpermutation] on functions (QuantumLib's way). *)
 
 Definition lpermutation n l := Permutation l (seq 0 n).
 
@@ -45,13 +70,6 @@ Qed.
 (** Interaction between QuantumLib's permutation
     and Coq's Permutation predicate on lists *)
 
-Definition perm2list n (f:nat->nat) := map f (seq 0 n).
-
-Lemma perm2list_ext n f g : bEq n f g -> perm2list n f = perm2list n g.
-Proof.
- intros E. apply map_ext_in. intros a. rewrite in_seq. intro IN. now apply E.
-Qed.
-
 Lemma q_l_permutation n f :
  qpermutation n f -> lpermutation n (perm2list n f).
 Proof.
@@ -70,51 +88,6 @@ Qed.
 
 (** Conversely, from lpermutation to qpermutation : let's build the inverse
     function. *)
-
-Definition perm2fun (l:list nat) := fun k => nth k l O.
-
-Fixpoint index x (l:list nat) :=
- match l with
- | [] => O
- | y::l' => if x =? y then O else S (index x l')
- end.
-
-Lemma nth_index x l : In x l -> nth (index x l) l O = x.
-Proof.
- induction l.
- - inversion 1.
- - simpl. intros [->|IN].
-   + now rewrite Nat.eqb_refl.
-   + case Nat.eqb_spec; auto.
-Qed.
-
-Lemma index_nth n l :
-  NoDup l -> n < length l -> index (nth n l O) l = n.
-Proof.
- revert n.
- induction l.
- - inversion 2.
- - destruct n; simpl.
-   + now rewrite Nat.eqb_refl.
-   + inversion_clear 1. intros H. rewrite IHl by (trivial;lia).
-     case Nat.eqb_spec; trivial.
-     intros E. destruct H0. rewrite <- E. apply nth_In. lia.
-Qed.
-
-Lemma index_lt_len x l : In x l -> index x l < length l.
-Proof.
- induction l.
- - inversion 1.
- - simpl. intros [->|IN].
-   + rewrite Nat.eqb_refl. lia.
-   + case Nat.eqb_spec; intros. lia. auto with *.
-Qed.
-
-Lemma index_notin x l : ~In x l -> index x l = length l.
-Proof.
- induction l; simpl; try easy.
- intros H. case Nat.eqb_spec; intuition.
-Qed.
 
 Definition lqinv (l:list nat) : nat -> nat := fun k => index k l.
 Definition linv n (l:list nat) : list nat := perm2list n (lqinv l).
@@ -218,22 +191,54 @@ Proof.
  - rewrite Hg', qinv_right_inverse; auto.
 Qed.
 
+Lemma linv_qinv n l :
+ length l = n ->
+ bEq n (perm2fun (linv n l)) (qinv n (perm2fun l)).
+Proof.
+ intros L.
+ unfold linv, qinv.
+ rewrite perm2list_perm2fun; auto.
+ intros x Hx. rewrite perm2fun_perm2list; auto.
+Qed.
+
+Lemma linv_lperm n l : lpermutation n l -> lpermutation n (linv n l).
+Proof.
+ intros Hl.
+ rewrite <- (perm2list_perm2fun n l).
+ 2:{ apply Permutation_length in Hl. now rewrite seq_length in Hl. }
+ now apply q_l_permutation, qinv_permutation, l_q_permutation.
+Qed.
+
+Lemma linv_invo n l :
+ lpermutation n l -> linv n (linv n l) = l.
+Proof.
+ intros Hl. unfold linv. symmetry.
+ rewrite <- (perm2list_perm2fun n l).
+ 2:{ apply Permutation_length in Hl. now rewrite seq_length in Hl. }
+ apply perm2list_ext.
+ apply l_q_permutation in Hl.
+ set (f := perm2fun l) in *.
+ change (bEq n f (qinv n (qinv n f))).
+ apply qinv_unique_left_inverse.
+ - now apply qinv_permutation.
+ - now apply qinv_right_inverse.
+Qed.
 
 (** Enumeration of all permutations of [seq 0 n] (in the form of lists) *)
 
-Fixpoint inserts {A} (x:A) l :=
+Fixpoint allinserts {A} (x:A) l :=
  match l with
  | [] => [[x]]
- | y::l' => (x::l)::(map (cons y) (inserts x l'))
+ | y::l' => (x::l)::(map (cons y) (allinserts x l'))
  end.
 
-Fixpoint perms {A} (l:list A) :=
+Fixpoint allperms {A} (l:list A) :=
  match l with
  | [] => [[]]
- | x::l => flat_map (inserts x) (perms l)
+ | x::l => flat_map (allinserts x) (allperms l)
  end.
 
-Definition lperms n := perms (seq 0 n).
+Definition lperms n := allperms (seq 0 n).
 
 Definition qperms n := map perm2fun (lperms n).
 
@@ -242,8 +247,8 @@ Definition qperms n := map perm2fun (lperms n).
 Definition Insert {A} (x:A) l l' :=
  exists l1 l2, l=l1++l2 /\ l'=l1++x::l2.
 
-Lemma inserts_spec {A} (x:A) l l' :
- In l' (inserts x l) <-> Insert x l l'.
+Lemma allinserts_spec {A} (x:A) l l' :
+ In l' (allinserts x l) <-> Insert x l l'.
 Proof.
  revert l'.
  induction l as [|y l IH]; intros l'; simpl; split.
@@ -263,14 +268,15 @@ Proof.
      exists (l1++x::l2). split; auto. rewrite IH. now exists l1, l2.
 Qed.
 
-Lemma perms_spec {A} (l:list A) l' : In l' (perms l) <-> Permutation l l'.
+Lemma allperms_spec {A} (l:list A) l' :
+  In l' (allperms l) <-> Permutation l l'.
 Proof.
  revert l'.
  induction l as [|x l IH]; intros l'; simpl; split.
  - intros [<-|[]]; auto.
  - intros H. apply Permutation_nil in H. now left.
  - rewrite in_flat_map. intros (r & IN & IN').
-   rewrite IH in IN. rewrite inserts_spec in IN'.
+   rewrite IH in IN. rewrite allinserts_spec in IN'.
    destruct IN' as (l1 & l2 & -> & ->).
    now apply Permutation_cons_app.
  - intros H.
@@ -280,13 +286,13 @@ Proof.
    apply Permutation_cons_app_inv in H.
    apply IH in H.
    rewrite in_flat_map. exists (l1++l2); split; auto.
-   rewrite inserts_spec. now exists l1, l2.
+   rewrite allinserts_spec. now exists l1, l2.
 Qed.
 
 Lemma lperms_ok n l :
  In l (lperms n) <-> lpermutation n l.
 Proof.
- unfold lperms. rewrite perms_spec. now rewrite Permutation_sym_iff.
+ unfold lperms. rewrite allperms_spec. now rewrite Permutation_sym_iff.
 Qed.
 
 Lemma qperms_ok1 n f :
@@ -306,37 +312,9 @@ Proof.
    rewrite map_nth, seq_nth; auto with *.
 Qed.
 
+(** [allinserts], [allperms], [lperms] produce lists without duplicates *)
 
-(** [inserts], [perms], [lperms] produce lists without duplicates *)
-
-Definition EmptyInter {A} (u v : list A) := forall a, ~(In a u /\ In a v).
-
-Lemma app_nodup {A} (l l':list A) :
-  NoDup l -> NoDup l' -> EmptyInter l l' -> NoDup (l++l').
-Proof.
- revert l'.
- induction l as [|x l IH]; simpl; trivial.
- intros l'. inversion_clear 1. intros Hl' EI. constructor.
- - specialize (EI x). simpl in EI. rewrite in_app_iff. intuition.
- - apply IH; auto. intros y. specialize (EI y). simpl in EI. intuition.
-Qed.
-
-Lemma flat_map_nodup {A B} (f:A -> list B) l :
- (forall a, In a l -> NoDup (f a)) ->
- (forall a a', In a l -> In a' l -> a<>a' -> EmptyInter (f a) (f a')) ->
- NoDup l ->
- NoDup (flat_map f l).
-Proof.
- induction l as [|x l IH]; simpl; intros H1 H2 H3.
- - constructor.
- - inversion_clear H3.
-   apply app_nodup; auto.
-   intros y (Hy1,Hy2). rewrite in_flat_map in Hy2.
-   destruct Hy2 as (x' & IN & IN').
-   refine (H2 x x' _ _ _ y _); auto; congruence.
-Qed.
-
-Lemma inserts_nodup {A} (x:A) l : ~In x l -> NoDup (inserts x l).
+Lemma allinserts_nodup {A} (x:A) l : ~In x l -> NoDup (allinserts x l).
 Proof.
  induction l as [|y l IH]; simpl.
  - intros _. constructor; auto. constructor.
@@ -345,30 +323,18 @@ Proof.
    + apply Injective_map_NoDup; auto. congruence.
 Qed.
 
-Lemma split_inv {A} (x:A) u u' v v' :
- ~In x u -> ~In x u' -> u++x::v = u'++x::v' -> u=u' /\ v=v'.
-Proof.
- revert u' v v'.
- induction u as [|y u IH]; intros [|y' u'] v v'.
- - intros _ _. simpl. split; auto. congruence.
- - intros _ NI. simpl in *. intros [= <- _]. destruct NI. now left.
- - intros NI _. simpl in *. intros [= -> _]. destruct NI. now left.
- - intros NI NI'. simpl in *. intros [= <- E]. apply IH in E; try tauto.
-   split; now f_equal.
-Qed.
-
-Lemma perms_nodup {A} (l:list A) : NoDup l -> NoDup (perms l).
+Lemma allperms_nodup {A} (l:list A) : NoDup l -> NoDup (allperms l).
 Proof.
  induction l as [|x l IH]; simpl.
  - intros _. constructor; auto. constructor.
  - inversion_clear 1.
    apply flat_map_nodup; auto.
-   + intros a Ha. apply inserts_nodup.
-     rewrite perms_spec in Ha. apply Permutation_sym in Ha.
+   + intros a Ha. apply allinserts_nodup.
+     rewrite allperms_spec in Ha. apply Permutation_sym in Ha.
      contradict H0. eapply Permutation_in; eauto.
    + intros a a' IN IN' NE b (IN1,IN2).
-     rewrite perms_spec in IN, IN'.
-     rewrite inserts_spec in IN1,IN2.
+     rewrite allperms_spec in IN, IN'.
+     rewrite allinserts_spec in IN1,IN2.
      destruct IN1 as (l1 & l2 & E1 & E2).
      destruct IN2 as (l1' & l2' & -> & ->). subst a.
      apply NE. apply split_inv in E2.
@@ -381,38 +347,29 @@ Qed.
 
 Lemma lperms_nodup n : NoDup (lperms n).
 Proof.
- apply perms_nodup, seq_NoDup.
+ apply allperms_nodup, seq_NoDup.
 Qed.
 
-(** lengths of [inserts], [perms], [allpermutations] *)
+(** lengths of [allinserts], [allperms], [lperms] *)
 
-Lemma inserts_length {A} (x:A) l : length (inserts x l) = S (length l).
+Lemma allinserts_length {A} (x:A) l : length (allinserts x l) = S (length l).
 Proof.
  induction l as [|y l IH]; simpl; trivial.
  f_equal. now rewrite map_length.
 Qed.
 
-Lemma flat_map_length {A B} (f:A->list B) l k :
- (forall a, In a l -> length (f a) = k) ->
- length (flat_map f l) = k * length l.
-Proof.
- intros H.
- induction l as [|x l IH]; simpl. lia.
- rewrite app_length, IH. rewrite H; simpl; auto. lia. simpl in *. auto.
-Qed.
-
-Lemma perms_length {A} (l:list A) : length (perms l) = fact (length l).
+Lemma allperms_length {A} (l:list A) : length (allperms l) = fact (length l).
 Proof.
  induction l as [|x l IH]; simpl; trivial.
  rewrite flat_map_length with (k := S (length l)).
  rewrite IH. lia.
- intros a Ha. rewrite inserts_length. f_equal.
- now apply Permutation_length, Permutation_sym, perms_spec.
+ intros a Ha. rewrite allinserts_length. f_equal.
+ now apply Permutation_length, Permutation_sym, allperms_spec.
 Qed.
 
 Lemma lperms_length n : length (lperms n) = fact n.
 Proof.
- unfold lperms. now rewrite perms_length, seq_length.
+ unfold lperms. now rewrite allperms_length, seq_length.
 Qed.
 
 Lemma qperms_length n : length (qperms n) = fact n.
@@ -420,8 +377,20 @@ Proof.
  unfold qperms. now rewrite map_length, lperms_length.
 Qed.
 
+(** The inverse permutations also enumerate all permutations *)
 
-(* Sign of a permutation *)
+Lemma lperms_inv_permut n :
+  Permutation (lperms n) (map (linv n) (lperms n)).
+Proof.
+ apply NoDup_Permutation_bis; auto using lperms_nodup.
+ - rewrite map_length; lia.
+ - intros l Hl. rewrite lperms_ok in Hl.
+   apply in_map_iff. exists (linv n l); split; auto using linv_invo.
+   now apply lperms_ok, linv_lperm.
+Qed.
+
+
+(** Sign of a permutation *)
 
 Fixpoint inversions l :=
  match l with
@@ -438,7 +407,7 @@ Proof.
  intros E. unfold qsign. f_equal. now apply perm2list_ext.
 Qed.
 
-(* Another definition, via iterated xor *)
+(** Another definition, via iterated xor *)
 
 Fixpoint bigxor {A} (f:A->bool) l :=
  match l with
@@ -498,14 +467,7 @@ Proof.
  - rewrite IHl. now destruct bigxor.
 Qed.
 
-Lemma nil_carac {A} (l:list A) : l = [] <-> forall x, ~In x l.
-Proof.
- split.
- - now intros ->.
- - destruct l; trivial. simpl. intros H. specialize (H a); intuition.
-Qed.
-
-(* Signature of the identity permutation *)
+(** Signature of the identity permutation *)
 
 Lemma inversions_id i n : inversions (seq i n) = 0.
 Proof.
@@ -528,7 +490,7 @@ Proof.
  unfold qsign, perm2list. rewrite map_id. apply lsign_id.
 Qed.
 
-(* incrpairs : all pairs (i,j) with 0<=i<j<n *)
+(** incrpairs : all pairs [(i,j)] with [0<=i<j<n] *)
 
 Fixpoint incrpairs n :=
   match n with
@@ -617,7 +579,7 @@ Proof.
      replace j with (f (g j)) in H by lia. rewrite E in H. lia.
 Qed.
 
-(* Product in Z of the map of a list *)
+(** Product in Z of the map of a list *)
 
 Local Open Scope Z.
 
@@ -628,7 +590,7 @@ Fixpoint zPi {A} (f:A->Z) l :=
   end.
 
 Lemma zPi_app {A} (f:A->Z) l1 l2 :
-  (zPi f (l1++l2) = zPi f l1 * zPi f l2)%Z.
+  zPi f (l1++l2) = zPi f l1 * zPi f l2.
 Proof.
  induction l1; simpl zPi; rewrite ?IHl1; lia.
 Qed.
@@ -675,7 +637,7 @@ Proof.
  destruct (g a), (bigxor g l); simpl; try lia.
 Qed.
 
-(* Signature expressed as (-1) or 1, hence in Z *)
+(** Signature expressed as (-1) or 1, hence in Z *)
 
 Local Coercion Z.of_nat : nat >-> Z.
 
@@ -693,6 +655,16 @@ Proof.
  destruct lsign', bigxor; simpl; try lia.
  intros x. clear IH. rewrite in_seq. intros Hx.
  case Nat.ltb_spec. lia. specialize (Hf x n); lia.
+Qed.
+
+Lemma zsign_0 (f:nat->nat) : zsign 0 f = 1.
+Proof.
+ unfold zsign. now simpl.
+Qed.
+
+Lemma zsign_1 (f:nat->nat) : zsign 1 f = 1.
+Proof.
+ unfold zsign. now simpl.
 Qed.
 
 Lemma zsign_id n : zsign n id = 1.
@@ -765,7 +737,7 @@ Lemma zsign_altdef n f : qpermutation n f ->
 Proof.
  intros.
  rewrite <- zsign_eqn by trivial. symmetry. apply Z.div_mul.
- assert (0 < zPi subpair (incrpairs n))%Z; try lia.
+ assert (0 < zPi subpair (incrpairs n)); try lia.
  { apply zPi_pos. intros (i,j). rewrite incrpairs_in. unfold subpair. lia. }
 Qed.
 
@@ -785,7 +757,7 @@ Proof.
  2:{ intros i j. unfold F. lia. }
  unfold F in E. rewrite <- zsign_eqn in E by trivial.
  rewrite Z.mul_assoc in E. apply Z.mul_reg_r in E; try lia.
- assert (0 < zPi subpair (incrpairs n))%Z; try lia.
+ assert (0 < zPi subpair (incrpairs n)); try lia.
  { apply zPi_pos. intros (i,j). rewrite incrpairs_in. unfold subpair. lia. }
 Qed.
 
@@ -802,84 +774,84 @@ Qed.
 
 Local Close Scope Z.
 
-(* Permutations and transpositions *)
+(** Permutations and transpositions *)
 
-Definition transpose '(i,j) := fun n =>
+Definition transpo '(i,j) := fun n =>
   if n =? i then j else if n =? j then i else n.
 
-Lemma transpose_fperm n i j :
-  i < n -> j < n -> fpermutation n (transpose (i,j)).
+Lemma transpo_fperm n i j :
+  i < n -> j < n -> fpermutation n (transpo (i,j)).
 Proof.
  intros Hi Hj. split.
- - intros x Hx. unfold transpose.
+ - intros x Hx. unfold transpo.
    repeat (case Nat.eqb_spec; try lia).
- - intros x y Hx Hy. unfold transpose.
+ - intros x y Hx Hy. unfold transpo.
    repeat (case Nat.eqb_spec; try lia).
 Qed.
 
-Lemma transpose_qperm n i j :
-  i < n -> j < n -> qpermutation n (transpose (i,j)).
+Lemma transpo_qperm n i j :
+  i < n -> j < n -> qpermutation n (transpo (i,j)).
 Proof.
- intros. now apply q_f_permutation, transpose_fperm.
+ intros. now apply q_f_permutation, transpo_fperm.
 Qed.
 
-Lemma transpose_invo i j :
-  fEq (compose (transpose (i,j)) (transpose (i,j))) id.
+Lemma transpo_invo i j :
+  fEq (compose (transpo (i,j)) (transpo (i,j))) id.
 Proof.
  intros x.
- unfold transpose, compose, id.
+ unfold transpo, compose, id.
  repeat (case Nat.eqb_spec; simpl); lia.
 Qed.
 
-Lemma transpose_comm i j :
- fEq (transpose (j,i)) (transpose (i,j)).
+Lemma transpo_comm i j :
+ fEq (transpo (j,i)) (transpo (i,j)).
 Proof.
- intros x. unfold transpose.
+ intros x. unfold transpo.
  do 2 case Nat.eqb_spec; lia.
 Qed.
 
-Lemma transpose_l i j : transpose (i,j) i = j.
+Lemma transpo_l i j : transpo (i,j) i = j.
 Proof.
- unfold transpose. now rewrite Nat.eqb_refl.
+ unfold transpo. now rewrite Nat.eqb_refl.
 Qed.
 
-Lemma transpose_r i j : transpose (i,j) j = i.
+Lemma transpo_r i j : transpo (i,j) j = i.
 Proof.
- unfold transpose. case Nat.eqb_spec; try lia. now rewrite Nat.eqb_refl.
+ unfold transpo. case Nat.eqb_spec; try lia. now rewrite Nat.eqb_refl.
 Qed.
 
-Lemma transpose_else i j x : x<>i -> x<>j -> transpose (i,j) x = x.
+Lemma transpo_else i j x : x<>i -> x<>j -> transpo (i,j) x = x.
 Proof.
- unfold transpose. intros Hi Hj.
+ unfold transpo. intros Hi Hj.
  case Nat.eqb_spec; intros; try lia.
  case Nat.eqb_spec; intros; try lia.
 Qed.
 
-Fixpoint ltranspose (l : list (nat*nat)) :=
+Fixpoint ltranspo (l : list (nat*nat)) :=
   match l with
   | [] => fun x => x
-  | ij::l => compose (transpose ij) (ltranspose l)
+  | ij::l => compose (transpo ij) (ltranspo l)
   end.
 
-Lemma ltranspose_one i j : fEq (ltranspose [(i,j)]) (transpose (i,j)).
+Lemma ltranspo_one i j : fEq (ltranspo [(i,j)]) (transpo (i,j)).
 Proof.
- intros x. cbn -[transpose]. now unfold compose.
+ intros x. cbn -[transpo]. now unfold compose.
 Qed.
 
-Lemma ltranspose_app l1 l2 :
- fEq (ltranspose (l1++l2)) (compose (ltranspose l1) (ltranspose l2)).
+Lemma ltranspo_app l1 l2 :
+ fEq (ltranspo (l1++l2)) (compose (ltranspo l1) (ltranspo l2)).
 Proof.
  intros x; unfold compose.
  induction l1; simpl; trivial. unfold compose. now rewrite IHl1.
 Qed.
 
-Lemma ltranspose_qperm n l :
- Forall (fun '(i,j) => i < j < n) l -> qpermutation n (ltranspose l).
+Lemma ltranspo_qperm n l :
+ Forall (fun '(i,j) => i < j < n) l -> qpermutation n (ltranspo l).
 Proof.
  induction 1; simpl.
  - apply qpermutation_id.
  - destruct x as (i,j).
-   apply QPerm.permutation_compose; auto. apply transpose_qperm; lia.
+   apply QPerm.permutation_compose; auto. apply transpo_qperm; lia.
 Qed.
 
 Fixpoint transposify n f :=
@@ -887,7 +859,7 @@ Fixpoint transposify n f :=
  | 0 => []
  | S n =>
    if f n =? n then transposify n f
-   else (f n, n)::transposify n (compose (transpose (f n, n)) f)
+   else (f n, n)::transposify n (compose (transpo (f n, n)) f)
  end.
 
 Lemma subpermut_1 n f :
@@ -901,18 +873,18 @@ Proof.
 Qed.
 
 Lemma subpermut_2 n f :
- fpermutation (S n) f -> fpermutation n (compose (transpose (f n, n)) f).
+ fpermutation (S n) f -> fpermutation n (compose (transpo (f n, n)) f).
 Proof.
  intros (Hf1,Hf2). split.
  - intros x Hx.
    assert (f x < S n) by (specialize (Hf1 x); lia).
-   unfold compose, transpose.
+   unfold compose, transpo.
    case Nat.eqb_spec; intros E.
    + apply Hf2 in E; try lia.
    + case Nat.eqb_spec; intros E'; try lia.
      specialize (Hf1 n); lia.
  - intros x y Hx Hy. unfold compose. intros E.
-   apply (transpose_fperm (S n) (f n) n) in E; try apply Hf1; try lia.
+   apply (transpo_fperm (S n) (f n) n) in E; try apply Hf1; try lia.
    apply Hf2; lia.
 Qed.
 
@@ -922,7 +894,7 @@ Proof.
  revert f.
  induction n; intros f Hf.
  - constructor.
- - cbn -[transpose]. case Nat.eqb_spec; intros E.
+ - cbn -[transpo]. case Nat.eqb_spec; intros E.
    + generalize (IHn f (subpermut_1 n f Hf E)).
      apply Forall_impl. intros (i,j); lia.
    + constructor.
@@ -935,21 +907,21 @@ Qed.
 
 Lemma transposify_eq n f :
   fpermutation n f -> (forall x, n<=x -> f x = x) ->
-  fEq f (ltranspose (transposify n f)).
+  fEq f (ltranspo (transposify n f)).
 Proof.
  revert f.
  induction n; intros f Hf Hf'.
  - simpl. firstorder lia.
- - cbn -[transpose]. case Nat.eqb_spec; intros E.
+ - cbn -[transpo]. case Nat.eqb_spec; intros E.
    + apply IHn. now apply subpermut_1.
      intros x Hx. destruct Hx; [ lia | apply Hf'; lia ].
-   + cbn -[transpose].
+   + cbn -[transpo].
      intro x. unfold compose. rewrite <- IHn.
-     * now generalize (transpose_invo (f n) n (f x)).
+     * now generalize (transpo_invo (f n) n (f x)).
      * now apply subpermut_2.
      * clear x. intros x Hx. destruct Hx.
        { simpl. now rewrite Nat.eqb_refl. }
-       { rewrite (Hf' (S m)) by lia. apply transpose_else; try lia.
+       { rewrite (Hf' (S m)) by lia. apply transpo_else; try lia.
          assert (f n < S n) by (apply Hf; lia). lia. }
 Qed.
 
@@ -957,7 +929,7 @@ Lemma transposify_ext n f f' :
  bEq n f f' -> transposify n f = transposify n f'.
 Proof.
  revert f f'.
- induction n; intros f f' B; cbn -[transpose]; auto.
+ induction n; intros f f' B; cbn -[transpo]; auto.
  rewrite <- (B n) by lia. case Nat.eqb_spec; intros.
  - apply IHn. firstorder.
  - f_equal. apply IHn. intros x Hx. unfold compose.
@@ -965,7 +937,7 @@ Proof.
 Qed.
 
 Lemma transposify_beq n f :
-  fpermutation n f -> bEq n f (ltranspose (transposify n f)).
+  fpermutation n f -> bEq n f (ltranspo (transposify n f)).
 Proof.
  intros Hf.
  set (f' := fun k => if k <? n then f k else k).
@@ -982,16 +954,16 @@ Proof.
  - unfold f'. intros x Hx. case Nat.ltb_spec; lia.
 Qed.
 
-Lemma transpose_simplify i j :
- 0<i<j -> fEq (transpose (i,j)) (ltranspose [(0,i);(0,j);(0,i)]).
+Lemma transpo_simplify i j :
+ 0<i<j -> fEq (transpo (i,j)) (ltranspo [(0,i);(0,j);(0,i)]).
 Proof.
- intros H x. unfold ltranspose, transpose, compose.
+ intros H x. unfold ltranspo, transpo, compose.
  repeat (case Nat.eqb_spec; simpl; try lia).
 Qed.
 
-Lemma perm2list_transpose0 n j :
+Lemma perm2list_transpo0 n j :
  0<j<n ->
- perm2list n (transpose (0,j)) =
+ perm2list n (transpo (0,j)) =
   [j] ++ seq 1 (j-1) ++ [0] ++ seq (S j) (n-j-1).
 Proof.
  intros H.
@@ -1000,27 +972,13 @@ Proof.
  rewrite seq_app, map_app.
  replace j with (S (j-1)) at 2 by lia.
  replace (n-j) with (S (n-j-1)) at 1 by lia.
- simpl seq. cbn -[transpose].
- rewrite transpose_l. f_equal. f_equal.
+ simpl seq. cbn -[transpo].
+ rewrite transpo_l. f_equal. f_equal.
  rewrite map_ext_in with (g := id). now rewrite map_id.
- intros a. rewrite in_seq. intros Ha. rewrite transpose_else; auto; lia.
- rewrite transpose_r. f_equal.
+ intros a. rewrite in_seq. intros Ha. rewrite transpo_else; auto; lia.
+ rewrite transpo_r. f_equal.
  rewrite map_ext_in with (g := id). now rewrite map_id.
- intros a. rewrite in_seq. intros Ha. rewrite transpose_else; auto; lia.
-Qed.
-
-Lemma filter_nop {A} (f:A->bool) l :
- (forall x, In x l -> f x = false) -> filter f l = [].
-Proof.
- induction l; simpl; intros H; auto.
- rewrite H; firstorder.
-Qed.
-
-Lemma filter_all {A} (f:A->bool) l :
- (forall x, In x l -> f x = true) -> filter f l = l.
-Proof.
- induction l; simpl; intros H; auto.
- rewrite H; firstorder. f_equal. firstorder.
+ intros a. rewrite in_seq. intros Ha. rewrite transpo_else; auto; lia.
 Qed.
 
 Lemma inversions_app_adhoc x u v :
@@ -1039,10 +997,10 @@ Proof.
    case Nat.ltb_spec; simpl; lia.
 Qed.
 
-Lemma qsign_transpose0 n j : 0<j<n -> qsign n (transpose (0,j)) = false.
+Lemma qsign_transpo0 n j : 0<j<n -> qsign n (transpo (0,j)) = false.
 Proof.
  intros H. unfold qsign, lsign.
- rewrite perm2list_transpose0; trivial. cbn -[Nat.ltb].
+ rewrite perm2list_transpo0; trivial. cbn -[Nat.ltb].
  rewrite filter_app. cbn -[Nat.ltb].
  replace (0<?j) with true by (symmetry; apply Nat.ltb_lt; lia).
  rewrite app_length. cbn -[Nat.ltb].
@@ -1065,57 +1023,60 @@ Proof.
  now rewrite Nat.even_add_mul_2.
 Qed.
 
-Lemma zsign_transpose0 n j : 0<j<n -> zsign n (transpose (0,j)) = (-1)%Z.
+Lemma zsign_transpo0 n j : 0<j<n -> zsign n (transpo (0,j)) = (-1)%Z.
 Proof.
- intros H. rewrite zsign_ok, qsign_transpose0; auto.
- apply (transpose_fperm n 0 j); lia.
+ intros H. rewrite zsign_ok, qsign_transpo0; auto.
+ apply (transpo_fperm n 0 j); lia.
 Qed.
 
-Lemma zsign_transpose n i j : i<j<n -> zsign n (transpose (i,j)) = (-1)%Z.
+Lemma zsign_transpo n i j : i<j<n -> zsign n (transpo (i,j)) = (-1)%Z.
 Proof.
  intros H. destruct (Nat.eq_dec i 0) as [->|N].
- - now apply zsign_transpose0.
- - rewrite zsign_ext with (f' := ltranspose [(0,i);(0,j);(0,i)]).
-   2:{ intros x Hx. rewrite transpose_simplify; auto. lia. }
-   cbn -[transpose].
-   assert (Qi : qpermutation n (transpose (0,i)))
-     by (apply transpose_qperm; lia).
-   assert (Qj : qpermutation n (transpose (0,j)))
-     by (apply transpose_qperm; lia).
+ - now apply zsign_transpo0.
+ - rewrite zsign_ext with (f' := ltranspo [(0,i);(0,j);(0,i)]).
+   2:{ intros x Hx. rewrite transpo_simplify; auto. lia. }
+   cbn -[transpo].
+   assert (Qi : qpermutation n (transpo (0,i)))
+     by (apply transpo_qperm; lia).
+   assert (Qj : qpermutation n (transpo (0,j)))
+     by (apply transpo_qperm; lia).
    rewrite !zsign_compose; auto.
-   + rewrite !zsign_transpose0, zsign_id; lia.
+   + rewrite !zsign_transpo0, zsign_id; lia.
    + apply qpermutation_id.
    + apply QPerm.permutation_compose; auto.
 Qed.
 
-Lemma qsign_transpose n i j : i<j<n -> qsign n (transpose (i,j)) = false.
+Lemma qsign_transpo n i j : i<j<n -> qsign n (transpo (i,j)) = false.
 Proof.
- intros H. generalize (zsign_transpose n i j H). rewrite zsign_ok.
+ intros H. generalize (zsign_transpo n i j H). rewrite zsign_ok.
  destruct qsign; auto. congruence.
- apply transpose_fperm; lia.
+ apply transpo_fperm; lia.
 Qed.
 
-Lemma zsign_ltranspose n l :
+Definition zparity n := if Nat.even n then 1%Z else (-1)%Z.
+
+Lemma zsign_ltranspo n l :
  Forall (fun '(i,j) => i < j < n) l ->
- zsign n (ltranspose l) = if Nat.even (length l) then 1%Z else (-1)%Z.
+ zsign n (ltranspo l) = zparity (length l).
 Proof.
  induction 1; cbn -[Nat.even].
  - apply zsign_id.
  - destruct x as (i,j).
-   rewrite zsign_compose, zsign_transpose, IHForall; try lia.
-   2:{ apply transpose_qperm; lia. }
-   2:{ apply ltranspose_qperm; auto. }
+   rewrite zsign_compose, zsign_transpo, IHForall; try lia.
+   2:{ apply transpo_qperm; lia. }
+   2:{ apply ltranspo_qperm; auto. }
+   unfold zparity.
    rewrite Nat.even_succ, <- Nat.negb_even. now destruct Nat.even.
 Qed.
 
-Lemma qsign_ltranspose n l :
+Lemma qsign_ltranspo n l :
  Forall (fun '(i,j) => i < j < n) l ->
- qsign n (ltranspose l) = Nat.even (length l).
+ qsign n (ltranspo l) = Nat.even (length l).
 Proof.
- intros H. generalize (zsign_ltranspose n l H). rewrite zsign_ok.
- destruct qsign, Nat.even; auto; congruence.
- assert (F : fpermutation n (ltranspose l)).
- { now apply q_f_permutation, ltranspose_qperm. }
+ intros H. generalize (zsign_ltranspo n l H). rewrite zsign_ok.
+ unfold zparity. destruct qsign, Nat.even; auto; congruence.
+ assert (F : fpermutation n (ltranspo l)).
+ { now apply q_f_permutation, ltranspo_qperm. }
  apply F.
 Qed.
 
@@ -1123,7 +1084,161 @@ Lemma qsign_transposify n f :
  qpermutation n f ->
  qsign n f = Nat.even (length (transposify n f)).
 Proof.
- intros H. rewrite qsign_ext with (g:= ltranspose (transposify n f)).
- - now apply qsign_ltranspose, transposify_ok, q_f_permutation.
+ intros H. rewrite qsign_ext with (g:= ltranspo (transposify n f)).
+ - now apply qsign_ltranspo, transposify_ok, q_f_permutation.
  - now apply transposify_beq, q_f_permutation.
+Qed.
+
+(** Extending / Reducing a permutation.
+
+    Here we insert or remove a 0 somewhere and shift the rest.
+    This will be used for proving the Leibniz formula about
+    the determinant of matrices. *)
+
+Definition extend_lperm i l := insert_at i O (map S l).
+
+Definition reduce_lperm l := map pred (remove Nat.eq_dec O l).
+
+Lemma reduce_extend_lperm i l :
+ reduce_lperm (extend_lperm i l) = l.
+Proof.
+ unfold reduce_lperm, extend_lperm.
+ rewrite remove_insert.
+ - rewrite map_map. simpl. apply map_id.
+ - rewrite in_map_iff. intros (x & [= ] & _).
+Qed.
+
+Lemma extend_reduce_lperm l : count_occ Nat.eq_dec l 0 = 1 ->
+ extend_lperm (index O l) (reduce_lperm l) = l.
+Proof.
+ unfold reduce_lperm, extend_lperm. intros C.
+ rewrite map_map.
+ rewrite map_ext_in with (g:=fun n:nat => n).
+ 2:{ intros a Ha. assert (a <> O); try lia.
+     intros ->. revert Ha. apply remove_In. }
+ rewrite map_id.
+ induction l; simpl in *; try lia.
+ destruct Nat.eq_dec; subst; simpl.
+ - f_equal. apply notin_remove. injection C as C.
+   now apply count_occ_not_In in C.
+ - destruct a as [|a]; simpl; try lia. f_equal.
+   now apply IHl.
+Qed.
+
+Lemma lperm_head_count n x l :
+ lpermutation n l ->
+ count_occ Nat.eq_dec l x = if x <? n then 1 else 0.
+Proof.
+ intros L. rewrite <- count_occ_seq. now apply Permutation_count_occ.
+Qed.
+
+Lemma extend_lperm_is_lperm n i l :
+ lpermutation n l -> lpermutation (S n) (extend_lperm i l).
+Proof.
+ unfold extend_lperm, lpermutation. simpl. intros L.
+ apply perm_trans with (O :: map S l); auto using insert_permut.
+ constructor. rewrite <- seq_shift. now apply Permutation_map.
+Qed.
+
+Lemma reduce_lperm_is_lperm n l :
+ lpermutation (S n) l -> lpermutation n (reduce_lperm l).
+Proof.
+ unfold reduce_lperm, lpermutation. intros L.
+ assert (IN : In O l).
+ { apply Permutation_sym in L. eapply Permutation_in; eauto.
+   apply in_seq; lia. }
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis; auto using seq_NoDup.
+ - apply Permutation_length in L.
+   rewrite !seq_length in *.
+   unfold reduce_lperm. rewrite map_length.
+   apply remove_length_lt with (eq_dec:=Nat.eq_dec) in IN. lia.
+ - intros x Hx. rewrite in_seq in Hx.
+   unfold reduce_lperm.
+   rewrite in_map_iff. exists (S x); split; trivial.
+   apply in_in_remove; try lia.
+   apply Permutation_sym in L. eapply Permutation_in; eauto.
+   apply in_seq; lia.
+Qed.
+
+(** Another way of listing all permutations *)
+
+Definition reorder_lperms n :=
+  flat_map (fun i => map (extend_lperm i) (lperms n)) (seq 0 (S n)).
+
+Lemma reorder_perms_ok n :
+ Permutation (reorder_lperms n) (lperms (S n)).
+Proof.
+ apply Permutation_sym.
+ apply NoDup_Permutation_bis.
+ - apply lperms_nodup.
+ - rewrite lperms_length. unfold reorder_lperms.
+   rewrite flat_map_length with (k := fact n).
+   + rewrite seq_length. simpl; lia.
+   + intros a _. now rewrite map_length, lperms_length.
+ - intros p Hp. rewrite lperms_ok in Hp.
+   rewrite <- (extend_reduce_lperm p).
+   2:{ rewrite (lperm_head_count (S n) 0 p); auto. }
+   unfold reorder_lperms.
+   apply in_flat_map_Exists, Exists_exists. exists (index 0 p). split.
+   + apply in_seq. split; try lia. simpl. replace (S n) with (length p).
+     apply index_lt_len.
+     * apply Permutation_sym in Hp. eapply Permutation_in; eauto.
+       apply in_seq; lia.
+     * apply Permutation_length in Hp. now rewrite seq_length in Hp.
+   + rewrite in_map_iff. exists (reduce_lperm p); split; trivial.
+     apply lperms_ok. now apply reduce_lperm_is_lperm.
+Qed.
+
+(** Signature of extended permutation *)
+
+Lemma inversions_map_mono (f : nat -> nat) :
+ (forall x y, x < y -> f x < f y) ->
+ forall l, inversions (map f l) = inversions l.
+Proof.
+ intros Hf.
+ induction l; simpl; auto.
+ rewrite IHl. f_equal. rewrite map_filter, map_length. unfold compose.
+ f_equal. apply filter_ext. intros x.
+ do 2 case Nat.ltb_spec; intros; auto.
+ - destruct (Nat.eq_dec a x); subst; try lia. specialize (Hf a x); lia.
+ - destruct (Nat.eq_dec a x); subst; try lia. specialize (Hf x a); lia.
+Qed.
+
+Lemma inversions_extend l x : x <= length l ->
+ inversions (extend_lperm x l) = x + inversions l.
+Proof.
+ unfold extend_lperm. revert l.
+ induction x; intros l Hx; simpl.
+ - rewrite filter_nop.
+   2:{ intros y. rewrite in_map_iff. now intros (z & <- & IN). }
+   apply inversions_map_mono; lia.
+ - destruct l; simpl in *; try lia.
+   rewrite IHx by lia.
+   assert (P := insert_permut x O (map S l)).
+   set (fS := fun y => _).
+   set (f := fun y => _).
+   apply Permutation_filter with (f:=fS) in P.
+   apply Permutation_length in P. rewrite P. simpl.
+   rewrite map_filter, map_length.
+   rewrite filter_ext with (g:=f); try easy; lia.
+Qed.
+
+Lemma zsign_extend n l x : lpermutation n l -> x <= n ->
+   zsign (S n) (perm2fun (extend_lperm x l)) =
+   (zparity x * zsign n (perm2fun l))%Z.
+Proof.
+ intros Hl Hx.
+ rewrite !zsign_ok.
+ 2:{ now apply q_f_permutation, l_q_permutation. }
+ 2:{ apply q_f_permutation, l_q_permutation.
+     now apply extend_lperm_is_lperm. }
+ unfold qsign.
+ assert (length l = n).
+ { apply Permutation_length in Hl. now rewrite seq_length in Hl. }
+ rewrite !perm2list_perm2fun; trivial.
+ 2:{ unfold extend_lperm. rewrite insert_length, map_length; lia. }
+ unfold lsign.
+ rewrite inversions_extend by lia.
+ rewrite Nat.even_add. unfold zparity. now do 2 destruct Nat.even.
 Qed.
