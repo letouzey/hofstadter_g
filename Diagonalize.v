@@ -1301,18 +1301,6 @@ Proof.
  apply Permutation_sym in Hl. eapply Permutation_NoDup; eauto using seq_NoDup.
 Qed.
 
-
-(** Vandermonde matrix and its determinant *)
-
-Definition Vandermonde n (l : list C) : Square n :=
-  fun i j => if (i <? n) && (j <? n) then (nth i l C0)^j else C0.
-
-Lemma WF_Vandermonde n (l : list C) : WF_Matrix (Vandermonde n l).
-Proof.
- intros x y [Hx|Hy]; unfold Vandermonde;
- do 2 case Nat.ltb_spec; trivial; lia.
-Qed.
-
 Lemma Determinant_row_add {n} (A : Square n) (i j : nat) (c : C) :
   (i < n)%nat -> (j < n)%nat -> i <> j ->
   Determinant (row_add A i j c) = Determinant A.
@@ -1324,11 +1312,177 @@ Proof.
  apply Determinant_transpose.
 Qed.
 
+(** Auxiliary matrix manipulations : addrows and cols_scale *)
+
+(** addrows changes the row [M_i] into [M_i - c*M_{i-1}] *)
+
+Fixpoint addrowsaux {n} c (M : Square n) k :=
+ match k with
+ | 0 => M
+ | S k => addrowsaux c (row_add M (S k) k (Copp c)) k
+ end.
+
+Definition addrows {n} c (M : Square (S n)) := addrowsaux c M n.
+
+Lemma det_addrowsaux k n c (M : Square n) : (k < n)%nat ->
+  Determinant (addrowsaux c M k) = Determinant M.
+Proof.
+ revert M.
+ induction k; intros M Hk; simpl; try easy.
+ rewrite IHk, Determinant_row_add; trivial; lia.
+Qed.
+
+Lemma det_addrows n c (M : Square (S n)) :
+  Determinant (addrows c M) = Determinant M.
+Proof.
+ apply det_addrowsaux; lia.
+Qed.
+
+Lemma addrowsaux_spec0 k n c (M:Square n) p :
+ (addrowsaux c M k) O p = M O p.
+Proof.
+ revert M.
+ induction k; simpl; auto.
+ intros M. rewrite IHk. now unfold row_add.
+Qed.
+
+Lemma addrows_spec0 n c (M : Square (S n)) p :
+ addrows c M O p = M O p.
+Proof.
+ apply addrowsaux_spec0.
+Qed.
+
+Lemma addrowsaux_specS k n c (M:Square n) p q :
+ (k < n)%nat ->
+ (addrowsaux c M k) (S p) q =
+ if p <? k then M (S p) q - c * M p q else M (S p) q.
+Proof.
+ revert p M.
+ induction k; simpl; auto.
+ intros p M Hk.
+ unfold row_add.
+ rewrite IHk by lia.
+ simpl.
+ case Nat.ltb_spec; try lia; case Nat.eqb_spec; try lia; intros.
+ - case Nat.eqb_spec; try lia; intros.
+   case Nat.ltb_spec; try lia; intros. lca.
+ - subst. case Nat.ltb_spec; try lia; intros. lca.
+ - case Nat.ltb_spec; try lia; intros. lca.
+Qed.
+
+Lemma addrows_specS n c (M:Square (S n)) p q :
+ (p < n)%nat ->
+ addrows c M (S p) q = M (S p) q - c * M p q.
+Proof.
+ unfold addrows. intros Hp. rewrite addrowsaux_specS by lia.
+ apply Nat.ltb_lt in Hp. now rewrite Hp.
+Qed.
+
+(** cols_scale scales the j-th columns by the j-th element of a list *)
+
+Fixpoint cols_scale {n} p l (M : Square n) :=
+ match l with
+ | [] => M
+ | c::l => cols_scale (S p) l (col_scale M p c)
+ end.
+
+Lemma cols_scale_altgen n p l (M : Square n) :
+ cols_scale p l M ==
+  fun i j => (if p <=? j then nth (j-p) l C1 else C1) * M i j.
+Proof.
+ revert p M.
+ induction l; simpl; intros p M i j Hi Hj.
+ - case Nat.leb_spec; intros; try lca. destruct (j-p)%nat; lca.
+ - rewrite IHl by trivial. unfold col_scale.
+   do 2 case Nat.leb_spec; intros; try lia;
+    case Nat.eqb_spec; intros; try lia; trivial.
+   + destruct (j-p)%nat as [|k] eqn:E; intros; try lia.
+     f_equal. f_equal. lia.
+   + subst. rewrite Nat.sub_diag. lca.
+Qed.
+
+Lemma cols_scale_alt n l (M : Square n) :
+ cols_scale 0 l M == fun i j => nth j l C1 * M i j.
+Proof.
+ intros i j Hi Hj. rewrite cols_scale_altgen; simpl; trivial.
+ now rewrite Nat.sub_0_r.
+Qed.
+
+Lemma cols_scale_det n p l (M : Square n) :
+ (p + length l <= n)%nat ->
+ Determinant (cols_scale p l M) = G_big_mult l * Determinant M.
+Proof.
+ revert p M.
+ induction l; simpl; intros; try lca.
+ rewrite IHl by lia. rewrite Determinant_scale by lia. lca.
+Qed.
+
+(** Determinant and matrix equality *)
+
+Lemma reduce_compat {n} (A B : Square (S n)) : A == B ->
+ forall x y, reduce A x y == reduce B x y.
+Proof.
+ intros E x y i j Hi Hj. unfold reduce.
+ do 2 (case Nat.ltb_spec; intros); apply E; lia.
+Qed.
+
+Lemma Determinant_compat {n} (A B : Square n) : A == B ->
+ Determinant A = Determinant B.
+Proof.
+ revert A B. induction n as [|[|] IH]; intros A B E; try easy.
+ - simpl. apply E; lia.
+ - rewrite !Det_simplify.
+   apply big_sum_eq_bounded; intros x Hx.
+   f_equal.
+   + f_equal. apply E; lia.
+   + apply IH. now apply reduce_compat.
+Qed.
+
+Global Instance : forall n, Proper (@mat_equiv n n ==> eq) Determinant.
+Proof.
+ exact @Determinant_compat.
+Qed.
+
+(** Vandermonde matrix and its determinant *)
+
+Definition Vandermonde n (l : list C) : Square n :=
+  fun i j => if (i <? n) && (j <? n) then (nth j l C0)^i else C0.
+
+Lemma WF_Vandermonde n (l : list C) : WF_Matrix (Vandermonde n l).
+Proof.
+ intros x y [Hx|Hy]; unfold Vandermonde;
+ do 2 case Nat.ltb_spec; trivial; lia.
+Qed.
+
 Fixpoint multdiffs (l : list C) :=
  match l with
  | [] => C1
- | x::l => G_big_mult (map (Cminus x) l) * multdiffs l
+ | x::l => G_big_mult (map (fun y => y-x) l) * multdiffs l
  end.
+
+(** Determinant of the Vandermonde matrix.
+
+For example, with n=4 and l=[x;y;z;t], the Vandermonde matrix is
+
+[[1;  1;  1;  1];
+ [x;  y;  z;  t];
+ [x^2;y^2;z^2;t^2];
+ [x^3;y^3;z^3;t^3]]
+
+and its determinant is [(y-x)*(z-x)*(t-x)*(z-y)*(t-y)*(t-z)].
+
+For proving that, we substract each row by x times the previous one,
+leading to:
+
+[[1; 1;        1;        1];
+ [0; y-x;      z-x;      t-x];
+ [0; y*(y-x);  z*(z-x);  t(t-x)];
+ [0; y^2*(y-x);z^2*(z-x);t^2*(t-x)]]
+
+After removing the first row and column, the columns can be factorised
+by [y-x] or [z-x] or [t-x], and that leaves us with a Vandermonde of
+dimension 3.
+*)
 
 Lemma Vandermonde_det n (l : list C) :
  length l = n -> Determinant (Vandermonde n l) = multdiffs l.
@@ -1337,34 +1491,38 @@ Proof.
  induction n as [|[|n] IH]; intros l Hn.
  - simpl. now destruct l.
  - simpl. unfold Vandermonde. simpl. destruct l as [|x [|y l] ]; try easy.
-   simpl. ring.
+   lca.
  - set (n' := S n) in *.
    set (V := Vandermonde (S n') l).
    destruct l as [|x l]; try easy. simpl in Hn. injection Hn as Hn.
-   set (addcols := nat_rect (fun _ => Square (S n')) V
-                       (fun i M => col_add M (S i) i (Copp x))).
-   assert (H1 : forall k, (k<=n')%nat ->
-                 Determinant (addcols k) = Determinant V).
-   { induction k. now simpl.
-     intros Hk. simpl addcols. rewrite Determinant_col_add; try lia.
-     apply IHk; lia. }
-   rewrite <- (H1 n') by lia.
-Admitted.
-
-(*
-1   1   1   1
-x   y   z   t
-x^2 y^2 z^2 t^2
-x^3 y^3 z^3 t^3
-
-          1   1         1         1
-L2-xL1    0   y-x       z-x       t-x
-L3-xL2    0   y(y-x)    z(z-x)    t(t-x)
-L4-xL3    0   y^2(y-x)  z^2(z-x)  t^2(t-x)
-
-row_add V i (i-1) (-1)
-
-*)
+   set (W := addrows x V).
+   rewrite <- (det_addrows n' x V) by lia. fold W.
+   unfold n'. rewrite Det_simplify. fold n'.
+   rewrite big_sum_shift.
+   rewrite big_sum_eq_bounded with (g := fun _ => C0).
+   2:{ intros i Hi. unfold W. rewrite addrows_specS by lia.
+       unfold V at 1 2; unfold Vandermonde.
+       repeat (case Nat.ltb_spec; try lia; intros _). simpl. lca. }
+   rewrite big_sum_0; auto.
+   replace (W O O) with C1.
+   2:{ symmetry. unfold W. rewrite addrows_spec0.
+       unfold V, Vandermonde; lca. }
+   simpl parity.
+   simpl multdiffs.
+   assert (reduce W 0 0 ==
+           cols_scale 0 (map (fun y => y-x) l) (Vandermonde n' l)).
+   { intros i j Hi Hj.
+     rewrite cols_scale_alt by trivial.
+     unfold W, reduce. simpl. rewrite addrows_specS by trivial.
+     unfold V, Vandermonde. simpl.
+     repeat (case Nat.ltb_spec; intros; try lia). simpl.
+     set (subx := fun y => _).
+     rewrite nth_indep with (d:=C1) (d':=subx 0) by (rewrite map_length; lia).
+     rewrite map_nth. unfold subx. lca. }
+   rewrite H.
+   rewrite cols_scale_det by (rewrite map_length; lia).
+   rewrite IH by trivial. lca.
+Qed.
 
 (** Diagonalization *)
 
@@ -1426,30 +1584,6 @@ Proof.
  - simpl parity. rewrite DetP_simplify.
 ...
 *)
-
-Lemma reduce_compat {n} (A B : Square (S n)) : A == B ->
- forall x y, reduce A x y == reduce B x y.
-Proof.
- intros E x y i j Hi Hj. unfold reduce.
- do 2 (case Nat.ltb_spec; intros); apply E; lia.
-Qed.
-
-Lemma Determinant_compat {n} (A B : Square n) : A == B ->
- Determinant A = Determinant B.
-Proof.
- revert A B. induction n as [|[|] IH]; intros A B E; try easy.
- - simpl. apply E; lia.
- - rewrite !Det_simplify.
-   apply big_sum_eq_bounded; intros x Hx.
-   f_equal.
-   + f_equal. apply E; lia.
-   + apply IH. now apply reduce_compat.
-Qed.
-
-Global Instance : forall n, Proper (@mat_equiv n n ==> eq) Determinant.
-Proof.
- exact @Determinant_compat.
-Qed.
 
 Lemma reduce_scale {n} (A:Square (S n)) x y c :
  reduce (c.*A) x y == c.*(reduce A x y).
