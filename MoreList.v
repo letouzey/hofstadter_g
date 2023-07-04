@@ -22,6 +22,13 @@ Proof.
    split; now f_equal.
 Qed.
 
+Lemma last_nth {A}(l : list A) d :
+ last l d = nth (length l - 1) l d.
+Proof.
+ induction l as [|x [|y l] IH]; simpl; auto.
+ destruct l; simpl; auto.
+Qed.
+
 (** More on count_occ *)
 
 Lemma count_occ_seq n x :

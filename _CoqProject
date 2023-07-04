@@ -18,4 +18,6 @@ Freq.v
 ClassicFTA.v
 MoreList.v
 MorePermut.v
+MorePolynomial.v
+MoreMatrix.v
 Diagonalize.v
