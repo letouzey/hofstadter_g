@@ -22,12 +22,27 @@ Proof.
    split; now f_equal.
 Qed.
 
+(** More on count_occ *)
+
 Lemma count_occ_seq n x :
  count_occ Nat.eq_dec (seq 0 n) x = if x <? n then 1 else 0.
 Proof.
  induction n; auto.
  rewrite seq_S, count_occ_app, IHn; simpl.
  do 2 case Nat.ltb_spec; destruct Nat.eq_dec; lia.
+Qed.
+
+Lemma count_occ_repeat [A](dec: forall x y : A, {x = y} + {x <> y}) x n y :
+  count_occ dec (repeat x n) y = if dec x y then n else 0.
+Proof.
+ induction n; simpl; destruct dec; simpl; congruence.
+Qed.
+
+Lemma count_occ_remove [A](dec: forall x y : A, {x = y} + {x <> y}) l x y :
+  count_occ dec (remove dec x l) y =
+   if dec x y then 0 else count_occ dec l y.
+Proof.
+ induction l; repeat (simpl; destruct dec); congruence.
 Qed.
 
 (** More on filter *)
@@ -226,4 +241,17 @@ Proof.
    intros y (Hy1,Hy2). rewrite in_flat_map in Hy2.
    destruct Hy2 as (x' & IN & IN').
    refine (H2 x x' _ _ _ y _); auto; congruence.
+Qed.
+
+(** In a list, moving all the occurrences of a value at front. *)
+
+Definition movefront [A](dec : forall x y : A, {x = y} + {x <> y}) x l :=
+ repeat x (count_occ dec l x) ++ remove dec x l.
+
+Lemma movefront_perm [A](dec : forall x y : A, {x = y} + {x <> y}) x l :
+ Permutation l (movefront dec x l).
+Proof.
+ rewrite (Permutation_count_occ dec). intros y. unfold movefront.
+ rewrite count_occ_app, count_occ_remove, count_occ_repeat.
+ destruct dec; subst; lia.
 Qed.

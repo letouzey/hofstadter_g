@@ -626,35 +626,6 @@ Proof.
    + left. symmetry. apply Cminus_eq. now rewrite Cplus_comm in B.
 Qed.
 
-(* TODO: move elsewhere *)
-Lemma count_occ_repeat [A](decA : forall x y : A, {x = y} + {x <> y})
-  x n y :
-  count_occ decA (repeat x n) y = if decA x y then n else O.
-Proof.
- induction n; simpl; destruct decA; simpl; congruence.
-Qed.
-Lemma count_occ_remove [A](decA : forall x y : A, {x = y} + {x <> y})
-  l x y :
-  count_occ decA (remove decA x l) y =
-   if decA x y then O else count_occ decA l y.
-Proof.
- induction l; repeat (simpl; destruct decA); congruence.
-Qed.
-
-(** In a list, moving all the occurrences of a value at front. *)
-
-Definition movefront [A](decA : forall x y : A, {x = y} + {x <> y}) x l :=
- repeat x (count_occ decA l x) ++ remove decA x l.
-
-Lemma movefront_perm [A](decA : forall x y : A, {x = y} + {x <> y}) x l :
- Permutation l (movefront decA x l).
-Proof.
- rewrite (Permutation_count_occ decA). intros y. unfold movefront.
- rewrite count_occ_app, count_occ_remove, count_occ_repeat.
- destruct decA; subst; lia.
-Qed.
-
-
 (** derivative of a polynomial *)
 
 Fixpoint Pdiff p :=
