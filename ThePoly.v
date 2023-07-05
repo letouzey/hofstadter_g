@@ -1,7 +1,7 @@
-From Coq Require Import Reals Lra Lia Permutation.
-From Coquelicot Require Import Lim_seq.
+From Coq Require Import Lia Reals Lra Permutation.
+From Coquelicot Require Complex.
 From QuantumLib Require Import Complex Matrix Eigenvectors VecSet Polynomial.
-Require Import GenFib Lim MoreList MorePolynomial MoreMatrix.
+Require Import MoreList MoreReals MoreLim MorePoly MoreMatrix GenFib Mu.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -457,7 +457,7 @@ Proof.
  - clear E. rewrite <- (Rplus_0_r (Re _)) at 1.
    apply is_lim_seq_plus'; [apply is_lim_seq_const|].
    apply is_lim_seq_Σ_0. intros i Hi.
-   apply K_2.is_lim_seq_abs with
+   apply is_lim_seq_0_abs with
      (fun n => Cmod (coefs (S i) O) * (Cmod (nth (S i) allroots 0) / mu k)^n)%R.
    + intros n. unfold rest. clear rest. set (r := nth _ _ _).
      unfold Rdiv. rewrite <- re_scal_r.

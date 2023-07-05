@@ -1,6 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From QuantumLib Require Import Complex Polynomial Matrix VecSet Eigenvectors.
-Require Import MoreList MorePermut MorePolynomial MoreMatrix.
+Require Import MoreList MorePermut MorePoly MoreMatrix.
 Local Open Scope C.
 
 (** * Some diagonalization theory *)

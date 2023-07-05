@@ -129,6 +129,34 @@ Proof.
  - econstructor; eauto.
 Qed.
 
+(** Sum of a [nat list] *)
+
+Definition listsum l := List.fold_right Nat.add 0 l.
+
+Lemma listsum_cons x l : listsum (x::l) = x + listsum l.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma listsum_app l l' : listsum (l++l') = listsum l + listsum l'.
+Proof.
+ induction l; simpl; rewrite ?IHl; lia.
+Qed.
+
+Lemma listsum_rev l : listsum (rev l) = listsum l.
+Proof.
+ induction l; simpl; auto.
+ rewrite listsum_app, IHl. simpl; lia.
+Qed.
+
+Lemma length_concat {A} (l:list (list A)) :
+ length (concat l) = listsum (map (@length _) l).
+Proof.
+ induction l; simpl; trivial.
+ rewrite app_length. now f_equal.
+Qed.
+
+
 (** index : first position of a value in a list.
     Returns the length of the list if the element is not in the list. *)
 

@@ -1,12 +1,18 @@
-
-From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
-From Coquelicot Require Import Complex Lim_seq.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Phi.
-
+From Coq Require Import Arith Lia Reals Lra.
+From Coquelicot Require Import Complex.
+Require Import MoreReals MoreLim DeltaList FunG GenFib GenG GenAdd Words Mu.
 Local Open Scope Z.
 Local Open Scope R.
-
 Local Coercion INR : nat >-> R.
+Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
+
+(** * Studying case k=2
+
+   We focus here on the case k=2, compute the complex roots of [X^3-X^2-1],
+   and express (A 2 n) in term of combinations of powers of these roots.
+   Application to frequencies in [Words.kseq 2], and to behaviour of
+   function [h] (i.e. [f 2]).
+*)
 
 (* A tactic solving (dis)equalities between C constants *)
 Ltac cconst := compute; injection || f_equal ; lra.
@@ -16,349 +22,9 @@ Ltac negapply f :=
  let H := fresh in intro H; apply f in H;
  let c := type of H in revert H; change (not c).
 
-(* Some extra lemmas on Reals. TODO move elsewhere someday *)
-Lemma Rle_pow_low r n m : 0<=r<1 -> (n<=m)%nat -> r^m <= r^n.
-Proof.
- induction 2; try lra.
- simpl. apply Rle_trans with (1 * r^m); try lra.
- apply Rmult_le_compat_r; try lra. apply pow_le; lra.
-Qed.
-
-Lemma Rlt_pow2_inv x y : 0 <= y -> x^2 < y^2 -> x < y.
-Proof.
- intros Hy LT.
- destruct (Rle_or_lt 0 x) as [Hx|Hx]; try lra.
- rewrite <- (Rabs_right x), <- (Rabs_right y) by lra.
- apply Rsqr_lt_abs_0. now rewrite !Rsqr_pow2.
-Qed.
-
-Lemma Rle_pow2_inv x y : 0 <= y -> x^2 <= y^2 -> x <= y.
-Proof.
- intros Hy LT.
- destruct (Rle_or_lt 0 x) as [Hx|Hx]; try lra.
- rewrite <- (Rabs_right x), <- (Rabs_right y) by lra.
- apply Rsqr_le_abs_0. now rewrite !Rsqr_pow2.
-Qed.
-
-Lemma RSpos n : 0 < S n.
-Proof.
- rewrite S_INR. generalize (pos_INR n). lra.
-Qed.
-
-Lemma RSnz n : INR (S n) <> 0.
-Proof.
- generalize (RSpos n). lra.
-Qed.
-
-Lemma nat_part_le n r : 0<=r -> INR n <= r <-> (n <= nat_part r)%nat.
-Proof.
- intros Hr.
- rewrite INR_IZR_INZ.
- rewrite int_part_le.
- unfold nat_part.
- rewrite Nat2Z.inj_le.
- rewrite Z2Nat.id; try reflexivity.
- now rewrite <- int_part_le.
-Qed.
-
-Lemma nat_part_lt n r : 0 <= r < INR n -> (nat_part r < n)%nat.
-Proof.
- intros (Hr,H).
- apply Nat.lt_nge. rewrite <- nat_part_le; lra.
-Qed.
-
-Lemma Int_part_mono a b : a <= b -> (Int_part a <= Int_part b)%Z.
-Proof.
- intros H.
- apply int_part_le. apply Rle_trans with a; trivial.
- rewrite (int_frac a) at 2. generalize (base_fp a). lra.
-Qed.
-
-Lemma nat_part_mono a b : a <= b -> (nat_part a <= nat_part b)%nat.
-Proof.
- intros H. unfold nat_part.
- destruct (Z.le_gt_cases 0 (Int_part b)) as [LE|LT].
- - destruct (Z.le_gt_cases 0 (Int_part a)).
-   + apply Z2Nat.inj_le; trivial. now apply Int_part_mono.
-   + destruct (Int_part a); simpl; try lia.
- - assert (b < 0).
-   { rewrite Z.lt_nge in LT. rewrite <- int_part_le in LT. lra. }
-   assert (LT' : a < 0) by lra.
-   apply Rlt_not_le in LT'. rewrite int_part_le in LT'. lia.
-Qed.
-
-(** * Studying some limits *)
-
-(** ** Real roots of polynom [X^(k+1)-X^k-1] *)
-
-(** Study of [X^(k+1)=X^k+1] : one unique positive root mu(k), in ]1..2].
-    For instance :
-
-     - mu(0) = 2
-     - mu(1) = 1.618033988749895 (Golden ratio)
-     - mu(2) = 1.465571231876768
-     - mu(3) = 1.380277569097614
-     - mu(4) = 1.324717957244746 (plastic number, root of X^3=X+1)
-     - mu(5) = 1.285199033245349
-
-    Dual : positive root tau(k) of X^(k+1)+X-1, in [0.5..1[
-    i.e. tau(k) = 1/mu(k)
-
-     - tau(0) = 0.5
-     - tau(1) = 0.6180339887498948
-     - tau(2) = 0.6823278038280193
-     - tau(3) = 0.7244919590005157
-     - tau(4) = 0.7548776662466925
-     - tau(5) = 0.778089598678601
-*)
-
-Definition mu_spec k : { x : R | 1<=x<=2 /\ x^(S k)-x^k-1=0 }.
-Proof.
- set (P := fun x => x^(S k)-x^k-1).
- destruct k.
- - exists 2. lra.
- - apply (IVT_interv P 1 2).
-   + intros a Ha. apply derivable_continuous_pt.
-     repeat apply derivable_pt_minus.
-     * apply derivable_pt_pow.
-     * apply derivable_pt_pow.
-     * apply derivable_pt_const.
-   + lra.
-   + unfold P. simpl. lra.
-   + unfold P. simpl. generalize (pow_R1_Rle 2 k). lra.
-Qed.
-
-Definition mu k : R := proj1_sig (mu_spec k).
-
-Lemma mu_itvl k : 1 < mu k <= 2.
-Proof.
- unfold mu. destruct (mu_spec k) as (x & H & E). simpl.
- destruct (Req_dec x 1); try lra. subst. simpl in *. lra.
-Qed.
-
-Lemma mu_carac k : (mu k)^(S k) = (mu k)^k+1.
-Proof.
- unfold mu. destruct (mu_spec k) as (x & H & E). simpl in *. lra.
-Qed.
-
-Definition tau k : R := (*1*) / mu k.
-
-Lemma tau_inv k : mu k = (*1*) / tau k.
-Proof.
- unfold tau. now rewrite Rinv_inv.
-Qed.
-
-Lemma tau_itvl k : 1/2 <= tau k < 1.
-Proof.
- unfold tau. generalize (mu_itvl k). intros.
- replace (1/2) with (/2) by lra.
- split.
- - apply Rinv_le_contravar; lra.
- - replace 1 with (/1) by lra.
-   apply Rinv_1_lt_contravar; lra.
-Qed.
-
-Lemma tau_carac k : (tau k)^(S k) + tau k = 1.
-Proof.
- unfold tau.
- assert (MU:=mu_itvl k).
- rewrite pow_inv.
- assert ((mu k)^(S k)<>0). { apply pow_nonzero. lra. }
- apply Rmult_eq_reg_l with ((mu k)^(S k)); auto.
- rewrite Rmult_1_r, Rmult_plus_distr_l, Rinv_r; auto.
- rewrite mu_carac at 2. simpl. rewrite Rinv_r_simpl_m; lra.
-Qed.
-
-Lemma tau_incr k : tau k < tau (S k).
-Proof.
- destruct (Rlt_or_le (tau k) (tau (S k))); auto. exfalso.
- assert (E := tau_carac k).
- assert (E' := tau_carac (S k)).
- assert (tau (S k) ^ (S (S k)) < tau k ^(S k)); try lra.
- { apply Rle_lt_trans with (tau k ^(S (S k))).
-   - apply pow_incr. generalize (tau_itvl (S k)); lra.
-   - remember (S k) as k'. simpl.
-     rewrite <- (Rmult_1_l (tau k ^k')) at 2.
-     apply Rmult_lt_compat_r.
-     * apply pow_lt. generalize (tau_itvl k); lra.
-     * generalize (tau_itvl k); lra. }
-Qed.
-
-Lemma mu_decr k : mu (S k) < mu k.
-Proof.
- rewrite !tau_inv. apply Rinv_lt_contravar. 2:apply tau_incr.
- apply Rmult_lt_0_compat; generalize (tau_itvl k)(tau_itvl (S k)); lra.
-Qed.
-
-Definition Ptau k x := x^(S k) + x.
-
-Lemma Ptau_incr k x y :
- 0<=x<=1 -> 0<=y<=1 -> x<y -> Ptau k x < Ptau k y.
-Proof.
- set (P' := fun x => (S k)*x^k+1).
- assert (D : forall x, derivable_pt_lim (Ptau k) x (P' x)).
- { clear. intros x. apply derivable_pt_lim_plus.
-   apply derivable_pt_lim_pow.
-   apply derivable_pt_lim_id. }
- set (DP := fun x => exist _ (P' x) (D x) : derivable_pt (Ptau k) x).
- apply derive_increasing_interv with DP. lra.
- intros t Ht. simpl. unfold P'.
- apply Rplus_le_lt_0_compat. 2:lra.
- apply Rmult_le_pos. apply pos_INR. apply pow_le; lra.
-Qed.
-
-Lemma tau_unique k x : 0 <= x -> Ptau k x = 1 -> x = tau k.
-Proof.
- intros Hx H.
- assert (x < 1).
- { destruct (Rlt_or_le x 1); auto. exfalso.
-   generalize (pow_R1_Rle x (S k)). unfold Ptau in H. lra. }
- assert (I := tau_itvl k).
- assert (E := tau_carac k). change (Ptau k (tau k) = 1) in E.
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - apply (Ptau_incr k) in LT; lra.
- - apply (Ptau_incr k) in GT; lra.
-Qed.
-
-Lemma mu_unique k x : 0 <= x -> x^(S k)=x^k+1 -> x = mu k.
-Proof.
- intros Hx H.
- assert (x <> 0).
- { destruct k. simpl in *. lra.
-   intros ->. rewrite !pow_i in H; lra || lia. }
- assert (E : 1/x = tau k).
- { apply tau_unique.
-   - apply Rle_mult_inv_pos; lra.
-   - unfold Ptau. unfold Rdiv. rewrite Rmult_1_l, pow_inv.
-     assert (0 < x ^ S k) by (apply pow_lt; lra).
-     apply Rmult_eq_reg_l with (x^(S k)); try lra.
-     field_simplify; try lra.
-     rewrite Rdiv_plus_distr. simpl. field_simplify; try lra.
-     now rewrite <- H. }
- rewrite tau_inv. rewrite <- E. unfold Rdiv. now rewrite Rmult_1_l, Rinv_inv.
-Qed.
-
-Lemma Ptau_lower k x : 0 <= x -> Ptau k x < 1 -> x < tau k.
-Proof.
- intros H H'.
- assert (x < 1).
- { destruct (Rlt_or_le x 1); auto. exfalso.
-   generalize (pow_R1_Rle x (S k)). unfold Ptau in H'. lra. }
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - subst x. unfold Ptau in H'. rewrite tau_carac in H'. lra.
- - apply (Ptau_incr k) in GT; try lra.
-   unfold Ptau in GT at 1. rewrite tau_carac in GT. lra.
-   generalize (tau_itvl k); lra.
-Qed.
-
-Lemma Ptau_upper k x : 0 <= x -> 1 < Ptau k x -> tau k < x.
-Proof.
- intros H H'.
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - apply (Ptau_incr k) in LT; try (generalize (tau_itvl k); lra).
-   unfold Ptau in LT at 2. rewrite tau_carac in LT. lra.
- - subst x. unfold Ptau in H'. rewrite tau_carac in H'. lra.
-Qed.
-
-Lemma tau_0 : tau 0 = 1/2.
-Proof.
- symmetry. apply tau_unique. lra. unfold Ptau. simpl. lra.
-Qed.
-
-Lemma tau_1 : tau 1 = (sqrt 5 - 1)/2.
-Proof.
- symmetry. apply tau_unique.
- - apply Rle_mult_inv_pos; try lra.
-   generalize (sqrt_le_1_alt 1 5). rewrite sqrt_1. lra.
- - unfold Ptau.
-   simpl. rewrite Rmult_1_r.
-   generalize (Rsqr_sqrt 5). unfold Rsqr. lra.
-Qed.
-
-Lemma tau_2 : 0.682327 < tau 2 < 0.682328.
-Proof.
- split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
-Qed.
-
-Lemma tau_3 : 0.7244 < tau 3 < 0.7245.
-Proof.
- split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
-Qed.
-
-Lemma tau_4 : 0.7548 < tau 4 < 0.7549.
-Proof.
- split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
-Qed.
-
-Lemma tau_5 : 0.7780 < tau 5 < 0.7781.
-Proof.
- split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
-Qed.
-
-Lemma mu_0 : mu 0 = 2.
-Proof.
- rewrite tau_inv. rewrite tau_0. lra.
-Qed.
-
-Lemma mu_1 : mu 1 = (1+sqrt 5)/2.
-Proof.
- rewrite tau_inv.
- assert (H := tau_itvl 1).
- apply Rmult_eq_reg_l with (tau 1); try lra.
- rewrite Rinv_r by lra.
- rewrite tau_1.
- generalize (Rsqr_sqrt 5). unfold Rsqr. lra.
-Qed.
-
-Lemma mu_2 : 1.465 < mu 2 < 1.466.
-Proof.
- rewrite tau_inv.
- assert (H := tau_2).
- destruct tau_2 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
-Qed.
-
-Lemma mu_3 : 1.380 < mu 3 < 1.381.
-Proof.
- rewrite tau_inv.
- assert (H := tau_3).
- destruct tau_3 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
-Qed.
-
-Lemma mu_4 : 1.324 < mu 4 < 1.325.
-Proof.
- rewrite tau_inv.
- assert (H := tau_4).
- destruct tau_4 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
-Qed.
-
-Lemma mu_5 : 1.285 < mu 5 < 1.286.
-Proof.
- rewrite tau_inv.
- assert (H := tau_5).
- destruct tau_5 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
-Qed.
-
-(* Sums of (list R) and (list C). *)
-
-Definition Rlistsum l := List.fold_right Rplus 0 l.
+(* Sums of (list C). *)
 
 Definition Clistsum l := List.fold_right Cplus 0%C l.
-
-Lemma Rlistsum_cons x l : Rlistsum (x::l) = x + Rlistsum l.
-Proof.
- reflexivity.
-Qed.
-
-Lemma Rlistsum_app l l' : Rlistsum (l++l') = Rlistsum l + Rlistsum l'.
-Proof.
- induction l; simpl; rewrite ?IHl; lra.
-Qed.
-
-Lemma Rlistsum_rev l : Rlistsum (List.rev l) = Rlistsum l.
-Proof.
- induction l; simpl; auto.
- rewrite Rlistsum_app, IHl. simpl; lra.
-Qed.
 
 Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
 Proof.
@@ -369,13 +35,6 @@ Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
 Proof.
  induction l; simpl; rewrite ?IHl; ring.
 Qed.
-
-(** ** Case k=2
-
-   We now focus on the case k=2, compute the other complex roots,
-   and express (A 2 n) in term of combinations of root powers. *)
-
-Module K_2.
 
 Definition mu := mu 2.
 Definition tau := tau 2.
@@ -553,7 +212,7 @@ Proof.
  rewrite Rcomplements.Rlt_div_l by lra.
  rewrite <- Rcomplements.Rlt_div_r by lra.
  assert (E : tau ^ 2 * mu  = tau).
- { unfold mu, tau, Lim.tau. field. fold mu. lra. }
+ { unfold mu, tau, Mu.tau. field. fold mu. lra. }
  split; apply Rminus_gt_0_lt; ring_simplify; lra.
 Qed.
 
@@ -687,18 +346,6 @@ Proof.
  ring_simplify. rewrite tau3. lra.
 Qed.
 
-Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
-
-Lemma is_lim_seq_abs u v :
- (forall n, Rabs (u n) <= v n) -> is_lim_seq v 0 -> is_lim_seq u 0.
-Proof.
- intros H Hv.
- apply is_lim_seq_le_le with (u := fun n => -v n) (w := v); trivial.
- - intros n. now apply Rcomplements.Rabs_le_between.
- - rewrite is_lim_seq_opp in Hv. simpl in Hv.
-   replace (-0) with 0 in Hv by lra. trivial.
-Qed.
-
 Lemma Lim_A2_div_mu_n :
  is_lim_seq (fun n => A 2 n / mu ^ n) coef_mu.
 Proof.
@@ -708,7 +355,7 @@ Proof.
  replace (Rbar.Finite coef_mu) with (Rbar.Finite (coef_mu + 0))
    by (f_equal; lra).
  apply is_lim_seq_plus'; [apply is_lim_seq_const|].
- apply is_lim_seq_abs with
+ apply is_lim_seq_0_abs with
   (v := fun n => 2 * Cmod coef_alpha * (Cmod (alpha/mu))^n).
  - intros n.
    rewrite Rabs_mult. rewrite (Rabs_right 2) by lra.
@@ -1046,23 +693,6 @@ Qed.
     Having this finite bound is enough to prove that the frequency
     of letter 0 is [tau^3] and that [h n / n] converges towards tau.
 *)
-
-Lemma is_lim_seq_bound u K :
- (forall n, Rabs (u n) <= K) -> is_lim_seq (fun n => u n / n) 0.
-Proof.
- intros H.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_abs with (fun n => K / S n).
- - intros n. specialize (H (S n)). unfold Rdiv.
-   rewrite Rabs_mult, Rabs_inv by apply RSnz.
-   rewrite (Rabs_right (S n)) by (generalize (RSpos n); lra).
-   apply Rmult_le_compat_r; trivial.
-   rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos, RSpos; try lra.
- - apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
-   + apply is_lim_seq_const.
-   + rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
-   + red. red. simpl. now rewrite Rmult_0_r.
-Qed.
 
 Lemma lim_diff0_div_n : is_lim_seq (fun n => diff0 n / n) 0.
 Proof.
@@ -1734,9 +1364,7 @@ Proof.
          lia. }
 Qed.
 
-End K_2.
-
-(* TODO: next cases and general case
+(* TODO: next cases
 
 For k=3, an extra negative real root. The complex roots can be expressed
  in function of the real roots. Similar convergence and results than for k=2,
@@ -1749,13 +1377,4 @@ For k=4, four complex roots : j and (Cconj j) of modulus 1, and
 
 Afterwards, always some complex root of modulus > 1 (but < mu k).
 And (f k n - tau k * n) seems to diverge.
-
-To prove in general :
-
-  A k n / mu^n ---> Cst for some Cst<>0 (Cf. Saari, non-negative matrices, etc)
-
-  A k (S n) / A k n ---> mu k  (easy consequence of the previous)
-
-  f k n / n ---> tau k    (Cf. Saari, one of the last theorem, simplifiable)
-
 *)

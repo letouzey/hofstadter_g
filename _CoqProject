@@ -6,6 +6,8 @@ Fib.v
 FunG.v
 FunG_prog.v
 FlipG.v
+MoreList.v
+MoreReals.v
 Phi.v
 GenFib.v
 GenG.v
@@ -13,11 +15,12 @@ GenAdd.v
 GenFlip.v
 Shift.v
 Words.v
-Lim.v
-MoreList.v
+Mu.v
+MoreLim.v
 MorePermut.v
-MorePolynomial.v
+MorePoly.v
 MoreMatrix.v
 Diagonalize.v
 ThePoly.v
 Freq.v
+LimCase2.v

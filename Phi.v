@@ -1,10 +1,10 @@
 (** * Phi : Hofstadter G function and the golden ratio *)
 
 From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Znumtheory.
-Require Import Fib FunG.
+Require Import MoreReals Fib FunG.
 
-Open Scope Z.
-Open Scope R.
+Local Open Scope Z.
+Local Open Scope R.
 
 (** We consider again the function [g] defined by
     [g 0 = 0] and [g (S n) = S n - g (g n)],
@@ -29,8 +29,6 @@ Open Scope R.
 
 Local Coercion IZR : Z >-> R.
 Local Coercion INR : nat >-> R.
-
-Definition nat_part r := Z.to_nat (Int_part r).
 
 (** * Phi and tau *)
 
@@ -138,59 +136,6 @@ Proof.
  rewrite plus_IZR, mult_IZR. simpl (IZR 2).
  rewrite <- Eq. field.
 Qed.
-
-(** * Some complements about integer part and fractional part *)
-
-Lemma int_part_le (r:R)(k:Z) : k <= r <-> (k <= Int_part r)%Z.
-Proof.
- split.
- - intros LE.
-   destruct (base_Int_part r) as (U,V).
-   assert (E : k - 1 < Int_part r) by lra.
-   change 1 with (IZR 1) in E.
-   rewrite <- minus_IZR in E.
-   apply lt_IZR in E. lia.
- - destruct (base_Int_part r).
-   intros LE. apply IZR_le in LE. lra.
-Qed.
-
-Lemma int_part_iff (r:R)(k:Z) :
- 0 <= r-k < 1 <-> Int_part r = k.
-Proof.
- split.
- - unfold Int_part.
-   intros (H1,H2).
-   assert (k+1 = up r)%Z; [|lia].
-   apply tech_up; rewrite plus_IZR; simpl; lra.
- - intros <-. destruct (base_Int_part r). split; lra.
-Qed.
-
-Lemma int_part_carac (r:R)(k:Z) :
- 0 <= r-k < 1 -> Int_part r = k.
-Proof.
- apply int_part_iff.
-Qed.
-
-Lemma int_frac r : r = Int_part r + frac_part r.
-Proof.
- unfold frac_part. ring.
-Qed.
-
-Lemma nat_part_carac (r:R)(k:nat) :
- 0 <= r-k < 1 -> nat_part r = k.
-Proof.
- unfold nat_part. intros H.
- rewrite <- (Nat2Z.id k). f_equal. apply int_part_iff.
- now rewrite <- INR_IZR_INZ.
-Qed.
-
-Lemma nat_frac r : 0 <= r -> r = nat_part r + frac_part r.
-Proof.
- unfold frac_part, nat_part. intros H.
- rewrite INR_IZR_INZ. rewrite Z2Nat.id. ring.
- rewrite <- int_part_le. auto.
-Qed.
-
 
 (** * The main theorem *)
 

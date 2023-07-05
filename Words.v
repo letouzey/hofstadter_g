@@ -1,4 +1,4 @@
-Require Import DeltaList FunG GenFib GenG.
+Require Import DeltaList FunG GenFib GenG MoreList.
 Import ListNotations.
 
 (** * Morphic words
@@ -762,24 +762,6 @@ Lemma nbocc_total_le u k :
 Proof.
  intros H. apply nbocc_total_lt. eapply Forall_impl; eauto.
  simpl; intros; lia.
-Qed.
-
-Definition listsum l := List.fold_right Nat.add 0 l.
-
-Lemma listsum_cons x l : listsum (x::l) = x + listsum l.
-Proof.
- reflexivity.
-Qed.
-
-Lemma listsum_app l l' : listsum (l++l') = listsum l + listsum l'.
-Proof.
- induction l; simpl; rewrite ?IHl; lia.
-Qed.
-
-Lemma listsum_rev l : listsum (rev l) = listsum l.
-Proof.
- induction l; simpl; auto.
- rewrite listsum_app, IHl. simpl; lia.
 Qed.
 
 Lemma nbocc_concat a l :

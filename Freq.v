@@ -1,20 +1,20 @@
-From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
-From Coquelicot Require Import Complex Lim_seq.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Phi Lim ThePoly.
-
+From Coq Require Import List Arith Lia Reals Lra.
+Require Import MoreList MoreReals MoreLim GenFib GenG Words Mu ThePoly.
 Local Open Scope Z.
 Local Open Scope R.
-
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
+(** Frequency of letter [0] in the infinite words [kseq].
+    Consequences: [f k n / n] tends to [tau k],
+    hence [f (k+1)] is eventually strictly above [f k]. *)
 
 Lemma A_pos k n : 1 <= A k n.
 Proof.
   apply (le_INR 1). apply A_nz.
 Qed.
 
-(* Via some matrix manipulations, we proved that the Fibonacci-like
+(** Via some matrix manipulations, we proved that the Fibonacci-like
    numbers [A k n] are a C linear combination [Σ α_i * r_i ^n] where
    the [r_i] are the (complex) roots of [X^(S k)-X^k-1].
    In particular, for k=1, this gives a variant of the Binet formula.
@@ -164,92 +164,9 @@ Proof.
  simpl in *; rewrite E in *; lra.
 Qed.
 
-Lemma length_concat {A} (l:list (list A)) :
- length (concat l) = listsum (map (@length _) l).
-Proof.
- induction l; simpl; trivial.
- rewrite app_length. now f_equal.
-Qed.
-
 Lemma nbocc_all k l : (nbocc k l <= length l)%nat.
 Proof.
  induction l; simpl; try lia. case Nat.eqb; lia.
-Qed.
-
-Lemma Rdist_pos_pos a b : 0<=a -> 0<=b -> R_dist a b <= Rmax a b.
-Proof.
-unfold R_dist. intros Ha Hb.
-destruct (Rlt_le_dec a b).
-- rewrite Rmax_right, Rabs_left; lra.
-- rewrite Rmax_left, Rabs_right; lra.
-Qed.
-
-Lemma max_INR a b : INR (Nat.max a b) = Rmax a b.
-Proof.
- apply Nat.max_case_strong; intros; symmetry.
- - apply Rmax_left. now apply le_INR.
- - apply Rmax_right. now apply le_INR.
-Qed.
-
-Lemma nat_part_INR x : 0 <= x -> x <= nat_part x + 1.
-Proof.
- intros Hx.
- rewrite (nat_frac x Hx) at 1. generalize (base_fp x). lra.
-Qed.
-
-Definition Rlistsum (l: list R) := fold_right Rplus 0 l.
-
-Lemma listsum_INR (l:list nat) : INR (listsum l) = Rlistsum (map INR l).
-Proof.
- induction l; simpl; trivial. rewrite plus_INR. now f_equal.
-Qed.
-
-Lemma Rlistsum_distr l r : Rlistsum l * r = Rlistsum (map (fun x => x*r) l).
-Proof.
- induction l; simpl; lra.
-Qed.
-
-Lemma Rdist_listsum {A}(f g:A->R) l :
- R_dist (Rlistsum (map f l)) (Rlistsum (map g l)) <=
- Rlistsum (map (fun x => R_dist (f x) (g x)) l).
-Proof.
- induction l; simpl.
- - rewrite R_dist_eq; lra.
- - eapply Rle_trans. apply R_dist_plus.
-   apply Rplus_le_compat_l. apply IHl.
-Qed.
-
-Lemma Rlistsum_le {A}(f g:A->R) l :
- (forall a, In a l -> f a <= g a) ->
- Rlistsum (map f l) <= Rlistsum (map g l).
-Proof.
- induction l; simpl. lra.
- intros H. apply Rplus_le_compat. apply H; intuition.
- apply IHl; intuition.
-Qed.
-
-Lemma Lim_f0_div_n : is_lim_seq (fun n => f 0 n / n) (1/2).
-Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_le_le with (u := fun n => 1/2)
-                             (w := fun n => (1+/(S n))/2).
- - intros. set (n' := S n).
-   rewrite f_0_div2.
-   assert (0 < INR n') by apply RSpos.
-   split; apply Rmult_le_reg_l with (2 * INR n'); trivial;
-    field_simplify; try lra;
-     change 2 with (INR 2); rewrite <- mult_INR;
-     try (change 1 with (INR 1); rewrite <- plus_INR); apply le_INR;
-     generalize (Nat.div2_odd (S n')); rewrite Nat.div2_div;
-     destruct Nat.odd; simpl Nat.b2n; intros Hn; lia.
- - apply is_lim_seq_const.
- - replace (1/2) with ((1+0)*(/2)) by lra.
-   change (Rbar.Finite ((1+0)*(/2))) with (Rbar.Rbar_mult (1+0) (/2)).
-   apply is_lim_seq_scal_r.
-   apply is_lim_seq_plus'. apply is_lim_seq_const.
-   change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
-   apply is_lim_seq_inv; try easy.
-   rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
 Qed.
 
 Lemma freq_kseq_0 k :
@@ -338,6 +255,8 @@ Proof.
      generalize (Rinv_0_lt_compat eps); lra.
 Qed.
 
+(** Consequence : [f k n / n] tends to [tau k] *)
+
 Lemma Lim_fk_div_n_nz k : k<>O -> is_lim_seq (fun n => f k n / n) (tau k).
 Proof.
  intros Hk.
@@ -355,6 +274,30 @@ Proof.
  now rewrite is_lim_seq_incr_1.
 Qed.
 
+Lemma Lim_f0_div_n : is_lim_seq (fun n => f 0 n / n) (1/2).
+Proof.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_le_le with (u := fun n => 1/2)
+                             (w := fun n => (1+/(S n))/2).
+ - intros. set (n' := S n).
+   rewrite f_0_div2.
+   assert (0 < INR n') by apply RSpos.
+   split; apply Rmult_le_reg_l with (2 * INR n'); trivial;
+    field_simplify; try lra;
+     change 2 with (INR 2); rewrite <- mult_INR;
+     try (change 1 with (INR 1); rewrite <- plus_INR); apply le_INR;
+     generalize (Nat.div2_odd (S n')); rewrite Nat.div2_div;
+     destruct Nat.odd; simpl Nat.b2n; intros Hn; lia.
+ - apply is_lim_seq_const.
+ - replace (1/2) with ((1+0)*(/2)) by lra.
+   change (Rbar.Finite ((1+0)*(/2))) with (Rbar.Rbar_mult (1+0) (/2)).
+   apply is_lim_seq_scal_r.
+   apply is_lim_seq_plus'. apply is_lim_seq_const.
+   change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
+   apply is_lim_seq_inv; try easy.
+   rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+Qed.
+
 Lemma Lim_fk_div_n k : is_lim_seq (fun n => f k n / n) (tau k).
 Proof.
  destruct (Nat.eq_dec k 0) as [->|Hk].
@@ -362,13 +305,7 @@ Proof.
  - now apply Lim_fk_div_n_nz.
 Qed.
 
-Lemma Rdist_impl_pos (a b : R) : R_dist a b < b -> 0 < a.
-Proof.
- unfold R_dist. intros H.
- destruct (Rle_or_lt b a).
- - rewrite Rabs_right in H; lra.
- - rewrite Rabs_left in H; lra.
-Qed.
+(** Consequence : [f (k+1)] is eventually strictly above [f k]. *)
 
 Lemma fk_lt_fSk_eventually :
  forall k, exists N, forall n, (N<=n -> f k n < f (S k) n)%nat.
