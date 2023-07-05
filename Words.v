@@ -91,33 +91,23 @@ Qed.
 
 (** Sequence a.k.a Infinite word : function from nat to letter *)
 
-Definition seq := nat -> letter.
+Definition sequence := nat -> letter.
 
-Fixpoint take n (f:seq) : word :=
-  match n with
-  | 0 => []
-  | S n => take n f ++ [f n]
-  end.
+Definition take n (f:sequence) : word := map f (seq 0 n).
+
+Lemma take_S n f : take (S n) f = take n f ++ [f n].
+Proof.
+ unfold take. now rewrite seq_S, map_app.
+Qed.
 
 Lemma take_length n f : length (take n f) = n.
 Proof.
- induction n; simpl; auto. rewrite app_length; simpl. lia.
+ unfold take. now rewrite map_length, seq_length.
 Qed.
 
 Lemma take_nth f n m a : m < n -> nth m (take n f) a = f m.
 Proof.
- revert m.
- induction n; simpl; intros m H.
- - inversion H.
- - inversion H; subst.
-   + rewrite app_nth2; rewrite take_length; auto.
-     replace (n-n) with 0 by lia. auto.
-   + rewrite app_nth1. apply IHn; auto. now rewrite take_length.
-Qed.
-
-Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
-Proof.
- intros. now rewrite <- (rev_involutive l), H.
+ apply nth_map_seq.
 Qed.
 
 Lemma take_carac n u f :
@@ -128,8 +118,7 @@ Proof.
  revert u f.
  induction n.
  - destruct u; simpl; easy.
- - intros u f Hu H.
-   simpl.
+ - intros u f Hu H. rewrite take_S.
    destruct (rev u) as [|a ru] eqn:E.
    + apply rev_switch in E. now subst u.
    + apply rev_switch in E. simpl in E. subst u.
@@ -273,7 +262,7 @@ Qed.
 (** Any nonerasing prolongeable substitution leads to a unique infinite
     sequence *)
 
-Definition SubstSeq (s:subst) (f:seq) a :=
+Definition SubstSeq (s:subst) (f:sequence) a :=
   forall n, PrefixSeq (napply s n [a]) f.
 
 Definition subst2seq s a :=
@@ -705,60 +694,69 @@ Fixpoint nbocc a w :=
  | b::w' => nbocc a w' + if b =? a then 1 else 0
  end.
 
+(** [nbocc] is similar to [count_occ Nat.eq_dec], but more convenient
+    (order of arguments, Nat.eqb instead of Nat.eq_dec) *)
+
+Lemma nbocc_alt a w : nbocc a w = count_occ Nat.eq_dec w a.
+Proof.
+ induction w; simpl; auto. rewrite IHw.
+ case Nat.eq_dec; case Nat.eqb_spec; lia.
+Qed.
+
 Lemma nbocc_app a u v : nbocc a (u++v) = nbocc a u + nbocc a v.
 Proof.
  induction u; simpl; auto; lia.
 Qed.
 
-Fixpoint natsum f n :=
+Fixpoint cumul f n :=
   match n with
   | 0 => 0
-  | S n => f n + natsum f n
+  | S n => f n + cumul f n
   end.
 
-Lemma natsum_ext f g n :
+Lemma cumul_ext f g n :
   (forall m, m < n -> f m = g m) ->
-  natsum f n = natsum g n.
+  cumul f n = cumul g n.
 Proof.
  revert f g. induction n; simpl; auto.
  intros f g E. f_equal; auto.
 Qed.
 
-Lemma natsum_0 n : natsum (fun _ => 0) n = 0.
+Lemma cumul_0 n : cumul (fun _ => 0) n = 0.
 Proof.
  induction n; simpl; auto.
 Qed.
 
-Lemma natsum_add f g n :
- natsum (fun m => f m + g m) n = natsum f n + natsum g n.
+Lemma cumul_add f g n :
+ cumul (fun m => f m + g m) n = cumul f n + cumul g n.
 Proof.
  induction n; simpl; auto. rewrite IHn; lia.
 Qed.
 
-Lemma natsum_test a n : a < n ->
- natsum (fun m : nat => if a =? m then 1 else 0) n = 1.
+Lemma cumul_test a n : a < n ->
+ cumul (fun m : nat => if a =? m then 1 else 0) n = 1.
 Proof.
  revert a. induction n; intros a Ha.
  - lia.
  - simpl. case Nat.eqb_spec.
-   + intros ->. simpl. f_equal. erewrite natsum_ext. apply natsum_0.
+   + intros ->. simpl. f_equal. erewrite cumul_ext. apply cumul_0.
      intros; simpl. case Nat.eqb_spec; lia.
    + intros. simpl. apply IHn; lia.
 Qed.
 
 Lemma nbocc_total_lt u k :
   Forall (fun n => n < k) u ->
-  length u = natsum (fun n => nbocc n u) k.
+  length u = cumul (fun n => nbocc n u) k.
 Proof.
  induction u; simpl; intros H.
- - now rewrite natsum_0.
- - inversion_clear H. rewrite natsum_add. rewrite IHu by trivial.
-   rewrite natsum_test; simpl; lia.
+ - now rewrite cumul_0.
+ - inversion_clear H. rewrite cumul_add. rewrite IHu by trivial.
+   rewrite cumul_test; simpl; lia.
 Qed.
 
 Lemma nbocc_total_le u k :
   Forall (fun n => n <= k) u ->
-  length u = natsum (fun n => nbocc n u) (S k).
+  length u = cumul (fun n => nbocc n u) (S k).
 Proof.
  intros H. apply nbocc_total_lt. eapply Forall_impl; eauto.
  simpl; intros; lia.
@@ -782,7 +780,7 @@ Fixpoint count f a n :=
 
 Lemma count_nbocc f a n : count f a n = nbocc a (take n f).
 Proof.
- induction n; simpl; auto.
+ induction n. simpl; auto. rewrite take_S.
  rewrite nbocc_app. simpl. now f_equal.
 Qed.
 

@@ -10,6 +10,11 @@ Proof.
  - destruct l; trivial. simpl. intros H. specialize (H a); intuition.
 Qed.
 
+Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
+Proof.
+ intros. now rewrite <- (rev_involutive l), H.
+Qed.
+
 Lemma split_inv {A} (x:A) u u' v v' :
  ~In x u -> ~In x u' -> u++x::v = u'++x::v' -> u=u' /\ v=v'.
 Proof.
