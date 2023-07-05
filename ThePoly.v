@@ -41,48 +41,12 @@ Proof.
  generalize (ThePoly_subdeg k). lia.
 Qed.
 
-Lemma topcoef_monom c k : topcoef (monom c k) = c.
-Proof.
- destruct (Ceq_dec c 0); subst.
- - unfold monom, topcoef.
-   rewrite app_C0_compactify_reduce_1.
-   change (repeat C0 k) with ([]++repeat C0 k).
-   now rewrite app_C0_compactify_reduce.
- - unfold topcoef. rewrite compactify_monom; auto.
-   unfold monom. apply last_last.
-Qed.
-
 Lemma ThePoly_monic (k:nat) : monic (ThePoly k).
 Proof.
  unfold ThePoly. rewrite Pplus_assoc, Pplus_comm. unfold monic.
  rewrite topcoef_plus_ltdeg. apply topcoef_monom.
  rewrite monom_degree. 2:apply C1_neq_C0.
  generalize (ThePoly_subdeg k). lia.
-Qed.
-
-Lemma map_repeat {A B}(f : A -> B) a n :
- map f (repeat a n) = repeat (f a) n.
-Proof.
- induction n; simpl; f_equal; auto.
-Qed.
-
-Lemma monom_scale c k : monom c k ≅ [c] *, monom C1 k.
-Proof.
- unfold monom. rewrite Pscale_alt, map_app. simpl.
- apply Peq_iff. f_equal. f_equal.
- now rewrite map_repeat, Cmult_0_r.
- f_equal. lca.
-Qed.
-
-Definition _X_ := [C0;C1].
-
-Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ C0::p.
-Proof.
- simpl.
- rewrite <- Pscale_alt.
- rewrite Pzero_alt. simpl. rewrite Pplus_0_r.
- rewrite <- Pscale_alt.
- now rewrite Pmult_1_l.
 Qed.
 
 Lemma ThePoly_diff k : k<>O ->
@@ -112,12 +76,8 @@ Proof.
 Qed.
 
 (* TODO: QuantumLib.Complex.Cpow_nonzero is buggy (only on reals) *)
-Lemma Cpow_nz (c : C) n : c <> 0 -> c ^ n <> 0.
-Proof.
- induction n; simpl; intro H.
- - injection. apply R1_neq_R0.
- - apply Cmult_neq_0; auto.
-Qed.
+Lemma Cpow_nz : forall (c : C) n, c <> 0 -> c ^ n <> 0.
+Proof. exact Coquelicot.Complex.Cpow_nz. Qed.
 
 Lemma ThePoly_no_common_root_with_diff k c :
   Root c (ThePoly k) -> ~ Root c (Pdiff (ThePoly k)).
@@ -186,14 +146,6 @@ Proof.
 Qed.
 
 Local Open Scope R.
-
-Lemma Rle_lt_mult_compat (a b c d:R) :
- 0 < a <= b -> 0 < c < d -> a*c < b*d.
-Proof.
- intros. apply Rle_lt_trans with (b*c).
- - apply Rmult_le_compat_r; lra.
- - apply Rmult_lt_compat_l; lra.
-Qed.
 
 Lemma roots_le_mu k (r:C) :
  Root r (ThePoly k) -> Cmod r <= mu k.

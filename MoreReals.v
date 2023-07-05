@@ -64,6 +64,14 @@ Proof.
  generalize (RSpos n). lra.
 Qed.
 
+Lemma Rle_lt_mult_compat (a b c d:R) :
+ 0 < a <= b -> 0 < c < d -> a*c < b*d.
+Proof.
+ intros. apply Rle_lt_trans with (b*c).
+ - apply Rmult_le_compat_r; lra.
+ - apply Rmult_lt_compat_l; lra.
+Qed.
+
 (** Integer part and fractional part *)
 
 Definition nat_part r := Z.to_nat (Int_part r).

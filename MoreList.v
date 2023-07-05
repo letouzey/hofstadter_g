@@ -49,6 +49,12 @@ Proof.
  f_equal. now apply seq_nth.
 Qed.
 
+Lemma map_repeat {A B}(f : A -> B) a n :
+ map f (repeat a n) = repeat (f a) n.
+Proof.
+ induction n; simpl; f_equal; auto.
+Qed.
+
 (** More on count_occ *)
 
 Lemma count_occ_seq n x :

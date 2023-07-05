@@ -39,6 +39,8 @@ Definition topcoef (p : Polynomial) := last (compactify p) C0.
 
 Definition monom (c:C) (k:nat) := repeat C0 k ++ [c].
 
+Definition _X_ := [C0;C1].
+
 Definition Root c p := p[[c]] = C0.
 
 Definition monic p := topcoef p = C1.
@@ -242,9 +244,37 @@ Proof.
  unfold monom. rewrite mul_by_x_to_n. cbn. ring.
 Qed.
 
+Lemma topcoef_monom c k : topcoef (monom c k) = c.
+Proof.
+ destruct (Ceq_dec c 0); subst.
+ - unfold monom, topcoef.
+   rewrite app_C0_compactify_reduce_1.
+   change (repeat C0 k) with ([]++repeat C0 k).
+   now rewrite app_C0_compactify_reduce.
+ - unfold topcoef. rewrite compactify_monom; auto.
+   unfold monom. apply last_last.
+Qed.
+
 Lemma Pscale_alt c p : [c] *, p ≅ List.map (Cmult c) p.
 Proof.
  apply cons_singleton_mult.
+Qed.
+
+Lemma monom_scale c k : monom c k ≅ [c] *, monom C1 k.
+Proof.
+ unfold monom. rewrite Pscale_alt, map_app. simpl.
+ apply Peq_iff. f_equal. f_equal.
+ now rewrite map_repeat, Cmult_0_r.
+ f_equal. lca.
+Qed.
+
+Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ C0::p.
+Proof.
+ simpl.
+ rewrite <- Pscale_alt.
+ rewrite Pzero_alt. simpl. rewrite Pplus_0_r.
+ rewrite <- Pscale_alt.
+ now rewrite Pmult_1_l.
 Qed.
 
 Lemma Pmult_repeat0_alt k p q :
