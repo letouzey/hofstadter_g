@@ -109,8 +109,7 @@ Proof.
    f_equal. unfold perm2fun. rewrite nth_insert.
    2: rewrite map_length; lia.
    case Nat.compare_spec; intros; try lia.
-   rewrite (nth_indep (map S l) O (S O)).
-   rewrite map_nth; lia. rewrite map_length; lia.
+   rewrite nth_map_indep with (d':=O); lia.
  - simpl. f_equal.
    + f_equal. unfold extend_lperm, perm2fun.
      rewrite nth_insert. now rewrite Nat.compare_refl.
@@ -124,8 +123,7 @@ Proof.
      2: rewrite map_length; lia.
      case Nat.compare_spec; intros; try lia.
      simpl. rewrite Nat.sub_0_r.
-     rewrite (nth_indep (map S l) O (S O)).
-     rewrite map_nth; lia. rewrite map_length; lia.
+     rewrite nth_map_indep with (d':=O); lia.
 Qed.
 
 Lemma LeibnizFormula n (A:Square n) :
@@ -398,9 +396,7 @@ Proof.
      unfold W, reduce. simpl. rewrite addrows_specS by trivial.
      unfold V, Vandermonde. simpl.
      repeat (case Nat.ltb_spec; intros; try lia). simpl.
-     set (subx := fun y => _).
-     rewrite nth_indep with (d:=C1) (d':=subx 0) by (rewrite map_length; lia).
-     rewrite map_nth. unfold subx. lca. }
+     rewrite nth_map_indep with (d':=C0); try lia. lca. }
    rewrite H.
    rewrite cols_scale_det by (rewrite map_length; lia).
    rewrite IH by trivial. lca.

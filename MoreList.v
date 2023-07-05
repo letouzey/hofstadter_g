@@ -29,6 +29,21 @@ Proof.
  destruct l; simpl; auto.
 Qed.
 
+Lemma nth_map_indep {A B}(f : A -> B) l n d d' :
+ n < length l -> nth n (map f l) d = f (nth n l d').
+Proof.
+ intros L. rewrite nth_indep with (d':=f d') by now rewrite map_length.
+ apply map_nth.
+Qed.
+
+(* Quite ad-hoc, but used several times *)
+Lemma nth_map_seq {A} (f:nat->A) k n d :
+ k < n -> nth k (map f (seq 0 n)) d = f k.
+Proof.
+ intros L. rewrite nth_map_indep with (d':=0) by now rewrite seq_length.
+ f_equal. now apply seq_nth.
+Qed.
+
 (** More on count_occ *)
 
 Lemma count_occ_seq n x :

@@ -33,11 +33,7 @@ Qed.
 
 Lemma perm2fun_perm2list n f : bEq n (perm2fun (perm2list n f)) f.
 Proof.
- intros x Hx.
- unfold perm2fun, perm2list.
- rewrite nth_indep with (d' := f O).
- 2:{ now rewrite map_length, seq_length. }
- rewrite map_nth. f_equal. now apply seq_nth.
+ intros x Hx. unfold perm2fun, perm2list. now apply nth_map_seq.
 Qed.
 
 (** Three possible definition of n-permutations :
@@ -134,9 +130,7 @@ Proof.
  set (l := map f (seq 0 n)).
  assert (length l = n).
  { unfold l. now rewrite map_length, seq_length. }
- replace (f x) with (nth x l 0).
- 2:{ rewrite nth_indep with (d' := f 0) by lia.
-     unfold l. rewrite map_nth, seq_nth; simpl; lia. }
+ replace (f x) with (nth x l 0) by now apply nth_map_seq.
  rewrite index_nth; try lia.
  apply Permutation_NoDup with (l:=seq 0 n); auto using seq_NoDup.
  apply Permutation_sym. now apply q_l_permutation.
@@ -155,10 +149,7 @@ Proof.
    apply Permutation_sym. now apply q_l_permutation.
    apply in_seq; lia. }
  replace (f (index x l)) with (nth (index x l) l 0).
- 2:{ set (y := index x l).
-     assert (y < n). { unfold y. rewrite <- Hl. now apply index_lt_len. }
-     rewrite nth_indep with (d' := f 0).
-     unfold l. rewrite map_nth, seq_nth; simpl; trivial. lia. }
+ 2:{ apply nth_map_seq. rewrite <- Hl. now apply index_lt_len. }
  now apply nth_index.
 Qed.
 
@@ -308,8 +299,7 @@ Proof.
  intros Hf. exists (perm2fun (perm2list n f)). split.
  - unfold qperms. now apply in_map, lperms_ok, q_l_permutation.
  - unfold bEq, perm2fun, perm2list. intros x Hx.
-   rewrite nth_indep with (d':=f 0) by now rewrite map_length, seq_length.
-   rewrite map_nth, seq_nth; auto with *.
+   symmetry. now apply nth_map_seq.
 Qed.
 
 (** [allinserts], [allperms], [lperms] produce lists without duplicates *)

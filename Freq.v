@@ -1,6 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia R_Ifp R_sqrt Ranalysis5.
 From Coquelicot Require Import Complex Lim_seq.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Phi Lim.
+Require Import DeltaList FunG GenFib GenG GenAdd Words Phi Lim ThePoly.
 
 Local Open Scope Z.
 Local Open Scope R.
@@ -14,19 +14,17 @@ Proof.
   apply (le_INR 1). apply A_nz.
 Qed.
 
-(* Via some matrix manipulation, one can prove that the Fibonacci-like
-   numbers [A k n] are a C linear combination  [Σ α_i * r_i ^n] where
+(* Via some matrix manipulations, we proved that the Fibonacci-like
+   numbers [A k n] are a C linear combination [Σ α_i * r_i ^n] where
    the [r_i] are the (complex) roots of [X^(S k)-X^k-1].
    In particular, for k=1, this gives a variant of the Binet formula.
    The roots are (mu k) and k other roots of strictly lower modulus.
    Hence [A k n / mu k ^ n] has a finite limit, and this limit can be
-   proved to be a real number. *)
+   proved to be a real number. More details in [ThePoly.v] *)
 
-(* For now, we assume that this finite limit exists.
-   TODO prove it someday. *)
-
-Axiom A_div_pow_mu_axiom :
- forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim.
+Definition A_div_pow_mu_limit :
+ forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim
+ := ThePoly.A_div_pow_mu_limit.
 
 (* Let's now prove this limit to be >= 1 *)
 
@@ -65,7 +63,7 @@ Lemma A_div_pow_mu_gt1 :
  forall k, exists lim:R,
   1 <= lim /\ is_lim_seq (fun n => A k n / mu k ^n) lim.
 Proof.
- intros k. destruct (A_div_pow_mu_axiom k) as (lim,Hlim).
+ intros k. destruct (A_div_pow_mu_limit k) as (lim,Hlim).
  exists lim; split; trivial.
  change (Rbar.Rbar_le 1 lim).
  apply is_lim_seq_le with (u:=fun _ => 1) (v:=fun n => A k n/mu k^n);
@@ -390,3 +388,5 @@ Proof.
  apply Rmult_lt_reg_r with (/n); try lra.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
+
+(* Print Assumptions fk_lt_fSk_eventually. *)

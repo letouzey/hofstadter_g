@@ -749,7 +749,7 @@ Proof.
 Qed.
 
 (** A polynomial without common roots with its derivative has only
-    simple roots. First, version for [linprod] polynomials. *)
+    simple roots. First, version for [linfactors] polynomials. *)
 
 Lemma linfactors_separated_roots (l : list C) :
  (forall c, Root c (linfactors l) -> ~Root c (Pdiff (linfactors l))) -> NoDup l.

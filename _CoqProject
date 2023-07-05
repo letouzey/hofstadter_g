@@ -14,9 +14,10 @@ GenFlip.v
 Shift.v
 Words.v
 Lim.v
-Freq.v
 MoreList.v
 MorePermut.v
 MorePolynomial.v
 MoreMatrix.v
 Diagonalize.v
+ThePoly.v
+Freq.v
