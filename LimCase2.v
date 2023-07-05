@@ -1,6 +1,7 @@
 From Coq Require Import Arith Lia Reals Lra.
-From Coquelicot Require Import Complex.
-Require Import MoreReals MoreLim DeltaList FunG GenFib GenG GenAdd Words Mu.
+From QuantumLib Require Import Complex.
+Require Import MoreReals MoreLim MoreComplex.
+Require Import DeltaList FunG GenFib GenG GenAdd Words Mu.
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
@@ -13,28 +14,6 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
    Application to frequencies in [Words.kseq 2], and to behaviour of
    function [h] (i.e. [f 2]).
 *)
-
-(* A tactic solving (dis)equalities between C constants *)
-Ltac cconst := compute; injection || f_equal ; lra.
-
-(* Tactic negapply : With f : C->D ; turn a goal ~C into a subgoal ~D *)
-Ltac negapply f :=
- let H := fresh in intro H; apply f in H;
- let c := type of H in revert H; change (not c).
-
-(* Sums of (list C). *)
-
-Definition Clistsum l := List.fold_right Cplus 0%C l.
-
-Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
-Proof.
- reflexivity.
-Qed.
-
-Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
-Proof.
- induction l; simpl; rewrite ?IHl; ring.
-Qed.
 
 Definition mu := mu 2.
 Definition tau := tau 2.
@@ -113,7 +92,7 @@ Qed.
 
 Lemma mu_is_Croot : (mu ^3 = mu ^2 + 1)%C.
 Proof.
- rewrite <- !RtoC_pow, <- RtoC_plus. unfold mu. now rewrite (mu_carac 2).
+ rewrite !RtoC_pow, <- RtoC_plus. unfold mu. now rewrite (mu_carac 2).
 Qed.
 
 Lemma alpha_is_root : (alpha^3 = alpha^2 + 1)%C.
@@ -131,7 +110,7 @@ Lemma alphabar_is_root : (alphabar^3 = alphabar^2 + 1)%C.
 Proof.
  change alphabar with (Cconj alpha).
  rewrite <- !Cpow_conj. rewrite alpha_is_root.
- rewrite Cplus_conj. f_equal. compute; f_equal; lra.
+ rewrite Cconj_plus_distr. f_equal. compute; f_equal; lra.
 Qed.
 
 Lemma re_alpha_nz : re_alpha <> 0.
@@ -252,7 +231,7 @@ Proof.
  rewrite im_scal_r, im_opp.
  rewrite EQ; clear EQ z.
  rewrite im_plus.
- rewrite <- RtoC_pow, <- RtoC_minus, im_RtoC.
+ rewrite RtoC_pow, <- RtoC_minus, im_RtoC.
  rewrite <- RtoC_minus, im_scal_r, im_plus, im_RtoC.
  rewrite im_conj. simpl Im.
  field. apply im_alpha_nz.
@@ -268,7 +247,7 @@ Proof.
  rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
  rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
  rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp, RtoC_pow. fold (Cminus (alpha^2) (mu^2))%C.
+ rewrite Cplus_comm, RtoC_opp, <- RtoC_pow. fold (Cminus (alpha^2) (mu^2))%C.
  unfold coef_alpha.
  change alphabar with (Cconj alpha); rewrite im_alt'.
  remember (Cplus _ _) as z eqn:EQ. simpl Im.
@@ -290,7 +269,7 @@ Proof.
  simpl (Re alpha).
  replace (im_alpha + 0) with im_alpha by ring.
  rewrite re_opp, im_opp, re_plus, im_plus.
- rewrite <- !RtoC_pow, <- !RtoC_minus, re_RtoC, im_RtoC.
+ rewrite !RtoC_pow, <- !RtoC_minus, re_RtoC, im_RtoC.
  rewrite re_scal_r, im_scal_r, re_plus, im_plus, re_RtoC, im_RtoC.
  rewrite re_conj, im_conj. simpl Re. simpl Im.
  field. apply im_alpha_nz.
@@ -329,8 +308,8 @@ Lemma A2_div_mu_n n :
 Proof.
  assert (mu <> 0). { unfold mu. generalize (mu_itvl 2). lra. }
  assert (mu^n <> 0). { now apply pow_nonzero. }
- unfold Cdiv. rewrite Cpow_mult_l, Cpow_inv by (negapply RtoC_inj; auto).
- rewrite Cmult_assoc, <- RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
+ unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by (negapply RtoC_inj; auto).
+ rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
  rewrite A2_eqn. field; trivial.
 Qed.
 
@@ -1040,7 +1019,7 @@ Qed.
 Lemma coefa2_inner_mod :
   Cmod (alpha * (tau ^ 2 - 1) - tau ^ 3)%C ^ 2 = tau*(1-tau).
 Proof.
- rewrite <- !RtoC_pow, <- RtoC_minus.
+ rewrite !RtoC_pow, <- RtoC_minus.
  rewrite Cmod2_alt. unfold Cminus.
  rewrite re_plus, im_plus, re_scal_r, im_scal_r.
  rewrite <- !RtoC_opp, re_RtoC, im_RtoC, Rplus_0_r. simpl Re; simpl Im.
@@ -1082,7 +1061,7 @@ Proof.
  replace (Cmod alpha^9) with (((Cmod alpha)^2)^4*Cmod alpha) by ring.
  rewrite alphamod2, tau4.
  unfold coefa0. rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
- change alphabar with (Cconj alpha). rewrite Cmod_conj, alphamod2.
+ change alphabar with (Cconj alpha). rewrite Cmod_Cconj, alphamod2.
  assert (H := tau_approx).
  assert (H2 := tau2_approx).
  field_simplify; try lra. rewrite alphamod2, tau4, tau3.

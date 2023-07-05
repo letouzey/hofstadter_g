@@ -1,7 +1,8 @@
 From Coq Require Import Lia Reals Lra Permutation.
 From Coquelicot Require Complex.
 From QuantumLib Require Import Complex Matrix Eigenvectors VecSet Polynomial.
-Require Import MoreList MoreReals MoreLim MorePoly MoreMatrix GenFib Mu.
+Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
+Require Import GenFib Mu.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -75,10 +76,6 @@ Proof.
  rewrite Cplus_0_r. apply (app_C0_compactify_reduce_1 [C1]).
 Qed.
 
-(* TODO: QuantumLib.Complex.Cpow_nonzero is buggy (only on reals) *)
-Lemma Cpow_nz : forall (c : C) n, c <> 0 -> c ^ n <> 0.
-Proof. exact Coquelicot.Complex.Cpow_nz. Qed.
-
 Lemma ThePoly_no_common_root_with_diff k c :
   Root c (ThePoly k) -> ~ Root c (Pdiff (ThePoly k)).
 Proof.
@@ -145,18 +142,16 @@ Proof.
  - apply linfactors_perm in P. now rewrite P.
 Qed.
 
-Local Open Scope R.
-
 Lemma roots_le_mu k (r:C) :
- Root r (ThePoly k) -> Cmod r <= mu k.
+ Root r (ThePoly k) -> (Cmod r <= mu k)%R.
 Proof.
  rewrite ThePoly_root_carac. intros E.
  apply Rnot_lt_le. intros L.
  assert (Iv := mu_itvl k).
  assert (H : mu k -1 < Cmod (r-1)).
- { apply Rlt_le_trans with (Cmod r -1); try lra.
+ { apply Rlt_le_trans with (Cmod r -1)%R; try lra.
    apply Rle_minus_l.
-   replace r with ((r-C1)+C1)%C at 1 by lca.
+   replace r with ((r-C1)+C1) at 1 by lca.
    eapply Rle_trans; [apply Cmod_triangle|]. rewrite Cmod_1. lra. }
  assert (H' : (mu k)^k <= Cmod (r^k)).
  { rewrite Cmod_pow. apply pow_incr; lra. }
@@ -170,62 +165,15 @@ Proof.
  replace (_ + _)%C with C1 by ring. rewrite Cmod_1; lra.
 Qed.
 
-(* TODO: retrieved from Coquelicot *)
-Lemma Cmod2_alt : forall c:C, Cmod c ^2 = Re c ^2 + Im c ^2.
-Proof. exact Coquelicot.Complex.Cmod2_alt. Qed.
-Lemma re_plus : forall c1 c2:C, Re (c1+c2) = (Re c1 + Re c2)%R.
-Proof. exact Coquelicot.Complex.re_plus. Qed.
-Lemma re_scal_r : forall (c : C)(r : R), Re (c * RtoC r) = Re c * r.
-Proof. exact Coquelicot.Complex.re_scal_r. Qed.
-Lemma re_le_Cmod : forall (c : C), Rabs (Re c) <= Cmod c.
-Proof. exact Coquelicot.Complex.re_le_Cmod. Qed.
-Lemma Cmod_R : forall x : R, Cmod (RtoC x) = Rabs x.
-Proof. exact Coquelicot.Complex.Cmod_R. Qed.
-(* exists in QuantumLib, but with a worse precondition *)
-Lemma Cpow_inv : forall (c:C) n, c <> C0 -> ((/c)^n = /(c^n))%C.
-Proof. exact Coquelicot.Complex.Cpow_inv. Qed.
-
-Lemma Re_RtoC (r:R) : Re (RtoC r) = r.
-Proof.
- now unfold RtoC.
-Qed.
-
-Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0.
-Proof.
- intros E.
- assert (E' : Cmod c ^2 = Re c ^2) by now rewrite E.
- rewrite Cmod2_alt in E'.
- apply Rsqr_eq_0. rewrite Rsqr_pow2. lra.
-Qed.
-
-Lemma Cmod_triangle_exact (c:C) :
-  Cmod (c - 1) = Cmod c - 1 -> c = Cmod c.
-Proof.
- intros E.
- assert (E' : Cmod (c-1)^2 = (Cmod c - 1)^2) by now rewrite E.
- clear E. rename E' into E.
- rewrite <- (Rsqr_pow2 (_ - _)) in E.
- unfold Rsqr in E. ring_simplify in E.
- rewrite !Cmod2_alt in E.
- replace (Re (c-1)) with (Re c - 1) in E.
- 2:{ destruct c as (x,y). simpl. lra. }
- replace (Im (c-1)) with (Im c) in E.
- 2:{ destruct c as (x,y). simpl. lra. }
- ring_simplify in E.
- assert (RE : Re c = Cmod c) by lra.
- assert (IM := Cmod_Re _ RE).
- rewrite <- RE. destruct c. simpl in *. now rewrite IM.
-Qed.
-
 Lemma other_roots_lt_mu k (r:C) :
- Root r (ThePoly k) -> r <> mu k -> Cmod r < mu k.
+ Root r (ThePoly k) -> r <> mu k -> (Cmod r < mu k)%R.
 Proof.
  intros R N.
  assert (LE := roots_le_mu k r R).
  apply Rle_lt_or_eq_dec in LE. destruct LE as [LT|E]; trivial.
  destruct N.
  apply ThePoly_root_carac in R.
- assert (E' : Cmod (r^k * (r - 1)) = mu k^k * (mu k -1)).
+ assert (E' : (Cmod (r^k * (r - 1)) = mu k^k * (mu k -1))%R).
  { unfold Rminus, Cminus. rewrite Rmult_plus_distr_l, Cmult_plus_distr_l.
    rewrite Rmult_comm, Cmult_comm. simpl in R. rewrite R.
    replace (_ + _)%C with C1 by ring. rewrite Cmod_1.
@@ -236,8 +184,6 @@ Proof.
  rewrite <- E in E'.
  apply Cmod_triangle_exact in E'. congruence.
 Qed.
-
-Local Close Scope R.
 
 Lemma G_big_mult_0 (l : list C) : G_big_mult l = 0 -> In C0 l.
 Proof.
@@ -395,7 +341,7 @@ Proof.
  apply is_lim_seq_ext with
    (u := (fun n => Re (coefs O O) + big_sum (rest n) k)%R).
  - intros n.
-   rewrite <- (Re_RtoC (A k n)). rewrite <- E. clear E.
+   rewrite <- (re_RtoC (A k n)). rewrite <- E. clear E.
    rewrite scalprod_alt, <- big_sum_extend_l.
    unfold mkvect at 1. simpl Cmult. rewrite re_plus.
    unfold pows at 1. rewrite nth_map_indep with (d':=C0) by lia.
