@@ -1314,7 +1314,7 @@ Qed.
 
 (** Distance between [h^^2] and [nat_part (tau^2 * n)].
     This distance may be "+2", for instance for n=1235.
-    But the theoretical "-1" does not seem to occur in pratice
+    But the theoretical "-1" does not seem to happen
     (TODO: how to prove it ?) *)
 
 Lemma h2_natpart_bound (n:nat) :
