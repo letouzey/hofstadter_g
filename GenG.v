@@ -1480,7 +1480,7 @@ Proof.
  unfold steps_opt. rewrite steploop_spec. f_equal. now unfold triangle.
 Qed.
 
-(* The numbers below [A k (2*k+3) = triangle(k-4)-2] (cf A_2kp3_tri)
+(* The numbers below [A k (2*k+3) = triangle(k+4)-2] (cf A_2kp3_tri)
    have a decomposition of size at most 2, and have rank 0 only when
    they are 1 or a successor of a [A] number. That's the key for describing
    the "triangular" zone of f. Graphical interpretation : the bottom
@@ -1621,7 +1621,49 @@ Proof.
    + rewrite f_triangle_diag_incr in E; lia.
 Qed.
 
-(* Some particular cases at the limit of the triangular zone *)
+Lemma f_last_triangle_1 k n :
+ n = triangle(k+4)-3 -> f k n = n - k - 3.
+Proof.
+ intros EQ.
+ destruct (Nat.eq_dec n 1) as [->|NE].
+ - exfalso. rewrite Nat.add_succ_r, triangle_succ in EQ.
+   generalize (triangle_aboveid (k+3)). lia.
+ - rewrite f_triangle by lia.
+   rewrite EQ at 2.
+   rewrite Nat.add_succ_r, triangle_succ.
+   replace (triangle _ + _ - _ - _ - _)
+     with (triangle (k+3) - 2) by lia.
+   rewrite steps_triangle_minus; lia.
+Qed.
+
+Lemma f_last_triangle_2 k n :
+ n = triangle(k+4)-3 -> f (S k) n = n - k - 3.
+Proof.
+ intros EQ.
+ destruct (Nat.eq_dec n 1) as [->|NE].
+ - exfalso. rewrite Nat.add_succ_r, triangle_succ in EQ.
+   generalize (triangle_aboveid (k+3)). lia.
+ - rewrite f_triangle; try lia.
+   2:{ simpl. rewrite triangle_succ. lia. }
+   rewrite EQ at 2.
+   rewrite Nat.add_succ_r, triangle_succ.
+   replace (triangle _ + _ - _ - _ - _)
+     with (triangle (k+3) - 3) by lia.
+   rewrite steps_triangle_minus; lia.
+Qed.
+
+(* Experimentally, this border of the triangle zone [n = triangle(k+4)-3]
+   seems to be the last point where [f k n = f (S k) n].
+   Conjecture : [forall m, triangle(k+4)-3 < m -> f k m < f (S k) m].
+   Proof: ?! (TODO) *)
+
+Lemma fk_fSk_last_equality k n :
+ n = triangle(k+4)-3 -> f k n = f (S k) n.
+Proof.
+  intros EQ. now rewrite f_last_triangle_1, f_last_triangle_2.
+Qed.
+
+(* Some particular cases after the limit of the triangular zone *)
 
 Lemma f_after_triangle_1 k n :
  n = triangle(k+4)-2 -> f k n = n - k - 4.
@@ -1667,7 +1709,6 @@ Proof.
  replace (_ + S (k+3) - 2 - k - 3) with (triangle (k+3) -1) by lia.
  rewrite steps_triangle_minus; lia.
 Qed.
-
 
 (** * Another equation about [f]
 

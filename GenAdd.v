@@ -935,20 +935,22 @@ Lemma g_below_h n : g n <= h n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 8).
-- do 8 (destruct n; [compute; auto|]). lia.
+- (* compute for all n < 8 or : *)
+  rewrite <- f_1_g. apply f_triangle_incrk. simpl. lia.
 - replace n with (8+(n-8)) by lia.
   transitivity (5 + g (n - 8)). apply g_add_8.
   transitivity (5 + h (n - 8)). 2:apply h_add_8.
   specialize (IH (n-8)). lia.
 Qed.
 
-(** h_add33 and f3_add_33 imply h <= f 3 *)
+(** h_add_33 and f3_add_33 imply h <= f 3 *)
 
 Lemma h_below_f3 n : h n <= f 3 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 33).
 - clear IH.
+  (* Alas f_triangle_incrk isn't enough : triangle(2+4)-3 = 18 < 33 *)
   unfold h. rewrite <- !fopt_spec.
   do 33 (destruct n; [vm_compute; auto|]). exfalso. lia.
 - replace n with (33+(n-33)) by lia.
