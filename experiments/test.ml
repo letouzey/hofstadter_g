@@ -1,80 +1,7 @@
 
-(** utils *)
+#use "defs.ml";;
 
-let float = float_of_int
-let int = int_of_float
-
-let round f = float (int (f *. 1e8)) /. 1e8
-
-let extrems tab =
-  let mi = ref tab.(0) and ma = ref tab.(0) in
-  Array.iter (fun x -> mi := min x !mi; ma := max x !ma) tab;
-  !mi, !ma
-
-let histo tab =
-  let t = Array.copy tab in
-  let () = Array.sort compare t in
-  let rec cumul a k i =
-    if i >= Array.length t then [(a,k)]
-    else if t.(i) = a then cumul a (k+1) (i+1)
-    else (a,k)::cumul t.(i) 1 (i+1)
-  in cumul t.(0) 1 1
-
-let output_gnuplot_file file tab =
-  let c = open_out file in
-  Array.iter (fun (a,b) -> Printf.fprintf c "%f %f\n" a b) tab;
-  close_out c
-
-let output_gnuplot_file3 file tab =
-  let c = open_out file in
-  Array.iter (fun (x,y,z) -> Printf.fprintf c "%f %f %f\n" x y z) tab;
-  close_out c
-
-(** the recursive functions *)
-
-let rec d n = if n = 0 then 0 else n - d(n-1)
-
-(* http://oeis.org/A005206 *)
-let rec g n = if n = 0 then 0 else n - g (g (n-1))
-
-(* http://oeis.org/A005374 *)
-let rec h n = if n = 0 then 0 else n - h (h (h (n-1)))
-
-
-(** Generalization : k+1 nested calls *)
-let rec iter f n = if n=0 then fun x -> x else fun x -> iter f (n-1) (f x)
-
-let rec f k n = if n = 0 then 0 else n - iter (f k) (k+1) (n-1)
-
-let f0 = f 0 (* d *)
-let f1 = f 1 (* g *)
-let f2 = f 2 (* h *)
-let f3 = f 3 (* http://oeis.org/A005375 *)
-
-let _ = Array.init 20 @@ fun n -> n,f0 n,d n
-let _ = Array.init 20 @@ fun n -> n,f1 n,g n
-let _ = Array.init 20 @@ fun n -> n,f2 n,h n
-
-(** Tabulate : Faster computation of [f k n] via an array
-    - First line (k=0) is function d (division by two)
-    - Second line (k=1) is function g
-    - Third line (k=2) is function h
-*)
-
-let tabulate k n =
-  let a = Array.make_matrix (k+1) (n+1) 0 in
-  for i = 0 to k do
-    for j = 1 to n do
-      let x = ref (j-1) in
-      for p = 0 to i do
-        x := a.(i).(!x)
-      done;
-      a.(i).(j) <- j - !x
-    done
-  done;
-  a
-
-let a = tabulate 10 10000000
+let a = tabulate_f 10 10_000_000
 let a0 = a.(0)
 let a1 = a.(1)
 let a2 = a.(2)
@@ -82,17 +9,7 @@ let a3 = a.(3)
 let a4 = a.(4)
 let a5 = a.(5)
 
-(* Check that all columns are increasing : f k n <= f (k+1) n *)
-
-let check k n =
-  let a = tabulate k n in
-  for i = 0 to k-1 do
-    for j = 0 to n do
-      if a.(i).(j) > a.(i+1).(j) then Printf.printf "(%d,%d)\n" i j
-    done
-  done
-
-let _ = check 1000 1000
+let _ = check_col_incr 1000 1000
 
 (* Potentially interesting upper-bound of g :
    - starts as g for the 8 first values, then shifts by +5 every 8 steps
@@ -475,45 +392,7 @@ let _ = Array.init 40 @@
 (* Up to [-7..9] for gfib 5 39 = 29548 *)
 
 
-
-(** LIMITS *)
-
-(* k = 1 (G) *)
-let phi = (1.+.sqrt(5.))/.2. (* root of X^2-X-1 *)
-let tau = phi-.1.  (* also 1/phi, root of X^2+X-1 *)
-
-(* k = 2 (H) *)
-let limh = 0.6823278038280194 (* root of X^3+X-1, cf maxima *)
-let expo = 1.465571231876768 (* 1/limh, also root of X^3-X^2-1 *)
-
-(* k = 3 *)
-let expo3 = 1.380277569097618
-
-
-(** Little equation solver (via Newton's method.
-   newton k find an approximation of the root of X^k+X-1
-   in [0;1]
-*)
-
-let newton k =
-  if k = 0 then 0. else
-  let fk = float k in
-  let rec loop n x =
-    let y = x -. (x** fk +. x -. 1.)/.(fk *.x ** (fk-.1.) +.1.) in
-    if x = y || n > 100 then x
-    else loop (n+1) y
-  in loop 0 1.
-
-(* Beware! for k=18 and 19, we get a two-cycle (issue with approx ?) *)
-
-(* Precision: around 10^-15 (note that epsilon_float = 2e-16 *)
-
-let lims = Array.init 20 (fun n -> newton (n+1))
-
-let _ = lims.(1)-.tau;;
-let _ = lims.(2)-.limh;;
-let _ = lims.(3)-.1./.expo3;;
-
+#use "roots.ml";; (* for lims *)
 
 (** FLOAT EXPRESSIONS OR APPROXIMATIONS *)
 

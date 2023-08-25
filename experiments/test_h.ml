@@ -1,4 +1,12 @@
-#include "test.ml"
+
+#use "defs.ml";;
+#use "roots.ml";;
+
+(** k=2 : Study of (f 2) a.k.a H, following Rauzy's paper *)
+
+let ff = memo_f 2 1_000_000
+
+(** applying and repeating substitution *)
 
 let dosubst f w =
   (* naive code : List.flatten (List.map f w) *)
@@ -9,13 +17,87 @@ let dosubst f w =
 
 let itersubst f n init = iter (dosubst f) n init
 
+(* subst on letters 1 2 3 *)
+let subst = function 1->[1;2] | 2->[3] | _->[1]
+
+let mot = Array.of_list (itersubst subst 25 [1])
+let _ = Array.length mot
+
+let cumul letter mot =
+  let n = Array.length mot in
+  let a = Array.make n 0 in
+  for i = 1 to n-1 do
+    a.(i) <- a.(i-1) + (if mot.(i-1)=letter then 1 else 0)
+  done;
+  a
+
+let r1 = cumul 1 mot
+let r2 = cumul 2 mot
+let r3 = cumul 3 mot
+
+let _ = for i = 0 to Array.length mot -1;
+        do assert (r1.(i)+r2.(i)+r3.(i) = i); done
+
+let hbis n = if n=0 then 0 else n - r2.(n)
+
+let _ = for i = 0 to Array.length mot -1; do assert (hbis i = ff.(i)); done
+
+let rauzy_delta1 n = limh*.limh*.float n -. float (r1.(n))
+let rauzy_delta2 n = (1.-.limh)*.float n -. float (r2.(n))
+
+let _ = output_gnuplot_file "/tmp/rauzy"
+          (Array.init 10000 @@ fun i -> rauzy_delta1 i, rauzy_delta2 i)
+
+let _ = output_gnuplot_file "/tmp/rauzy_my"
+          (Array.init 10000 @@ fun i -> rauzy_delta2 i,
+                                        -. rauzy_delta1 i -. limh *.rauzy_delta2 i)
+
+let b (x,y) = (-.limh*.limh*.x-.y, limh*.x)
+
+let vect_z = (limh*.limh-.1.,limh**3.)
+let vectBz = b vect_z
+let vectBBz = b vectBz
+
+let coins =
+  let a = 1.21 and b = 0.996 in
+  [|a,b;a,-.b;-.a,-.b;-.a,b;a,b|]
+
+let addpair (a,b) (c,d) = (a+.c,b+.d)
+
+let bcoins = Array.map b coins
+let b3coins_p_z = Array.map (fun p -> addpair vect_z (b (b (b p)))) coins
+
+let _ = output_gnuplot_file "/tmp/bcoins" bcoins
+let _ = output_gnuplot_file "/tmp/b3coins" b3coins_p_z
+
+let _ = output_gnuplot_file "/tmp/rauzyB"
+          (Array.init 10000 @@ fun i -> b (rauzy_delta1 i, rauzy_delta2 i))
+
+let _ = output_gnuplot_file "/tmp/rauzyB2"
+          (Array.init 10000 @@ fun i -> b (b (rauzy_delta1 i, rauzy_delta2 i)))
+
+let _ = output_gnuplot_file "/tmp/rauzyB3"
+          (Array.init 10000 @@ fun i -> b (b (b (rauzy_delta1 i, rauzy_delta2 i))))
+
+let _ = output_gnuplot_file "/tmp/rauzyB4"
+          (Array.init 10000 @@ fun i -> b (b (b (b (rauzy_delta1 i, rauzy_delta2 i)))))
+
+let _ = output_gnuplot_file "/tmp/rauzyB5"
+          (Array.init 10000 @@ fun i -> b (b (b (b (b (rauzy_delta1 i, rauzy_delta2 i))))))
+
+(* subst2 is subst with different letters : 1->2, 2->0, 3->1 *)
+
 let subst2 = function 2 -> [2;0] | n -> [n+1]
+
+(* subst2 is an alternative subst using 4 letters *)
+
 let subst2b = function 2|3 -> [3;0] | n -> [n+1]
 
 let mot2 = Array.of_list (itersubst subst2 36 [2])
 let mot2b = Array.of_list (itersubst subst2b 36 [3])
 let _ = Array.length mot2
 
+(* Alt definition for H *)
 let h' n =
   let r = ref 0 in
   for i = 0 to n-1 do
@@ -25,7 +107,7 @@ let h' n =
 
 let t = Array.init 100000 @@
           fun i ->
-          (mot2.(i), float a2.(i) -. float i *. lims.(2))
+          (mot2.(i), float ff.(i) -. float i *. lims.(2))
 
 
 let t0_delta_next =
@@ -118,8 +200,17 @@ let _ = extrems (Array.map snd t3bis_delta_next)
 let _ = output_gnuplot_file "/tmp/h_2b" t2bis_delta_next
 let _ = output_gnuplot_file "/tmp/h_3b" t3bis_delta_next
 
+(* Zeckendorf decomp for k=2 *)
 
-(*======================================================*)
+let a2 = memo_A 2 100
+
+let invA = invA_tab a2
+
+let rec decomp n =
+  if n = 0 then []
+  else
+    let x = invA n in
+    x::(decomp (n-a2.(x)))
 
 let rank2_max3 n =
   match List.rev (decomp n) with
@@ -128,7 +219,7 @@ let rank2_max3 n =
 
 let _ = Array.init 100 rank2_max3
 
-let prefix_max3 = Array.init 20 (fun i -> Array.init s2opt.(i) rank2_max3)
+let prefix_max3 = Array.init 20 (fun i -> Array.init a2.(i) rank2_max3)
 
 let _ =
   for i = 1 to 16 do
@@ -211,13 +302,13 @@ arriere de plus)
 
 
 
-let _ = s2opt
+let _ = a2
 
-let _ = s2opt.(30)
+let _ = a2.(30)
 
 let _ = Array.init 30 @@
-          fun i -> float s2opt.(i) -. float s2opt.(i+1) *. lims.(2)
-(* moins de 1/10 après s2opt.(7) *)
+          fun i -> float a2.(i) -. float a2.(i+1) *. lims.(2)
+(* moins de 1/10 après n=7 *)
 
 let _ = mot2
 
