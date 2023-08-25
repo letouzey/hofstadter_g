@@ -6,15 +6,6 @@ let extrems tab =
   Array.iter (fun x -> mi := min x !mi; ma := max x !ma) tab;
   !mi, !ma
 
-let histo tab =
-  let t = Array.copy tab in
-  let () = Array.sort compare t in
-  let rec cumul a k i =
-    if i >= Array.length t then [(a,k)]
-    else if t.(i) = a then cumul a (k+1) (i+1)
-    else (a,k)::cumul t.(i) 1 (i+1)
-  in cumul t.(0) 1 1
-
 (** the recursive function *)
 
 let rec iter f n = if n=0 then fun x -> x else fun x -> iter f (n-1) (f x)
@@ -30,12 +21,13 @@ let rec f k n = if n = 0 then 0 else n - iter (f k) (k+1) (n-1)
 let tabulate_f k n =
   let a = Array.make_matrix (k+1) (n+1) 0 in
   for i = 0 to k do
+    let ai = a.(i) in
     for j = 1 to n do
       let x = ref (j-1) in
       for p = 0 to i do
-        x := a.(i).(!x)
+        x := ai.(!x)
       done;
-      a.(i).(j) <- j - !x
+      ai.(j) <- j - !x
     done
   done;
   a
@@ -46,12 +38,14 @@ let tabulate_a k n =
   let a = Array.make_matrix (k+1) (n+1) 0 in
   for i = 0 to k do
     for j = 0 to n do
-      a.(i).(j) <- if j <= i+1 then j+1 else a.(i).(j-1)+a.(i).(j-i-1)
+      a.(i).(j) <- if j <= i+1 then j+1 else a.(i).(j-1)+a.(i).(j-i-1);
+      (* overflow detection *)
+      (if a.(i).(j) < 0 || (j>0 && a.(i).(j-1) < 0) then a.(i).(j) <- -1)
     done
   done;
   a
 
-let a = tabulate_a 100 60 (* attention aux overflows *)
+let a = tabulate_a 100 200 (* attention aux overflows *)
 
 let rec invA k n =
   if n = 0 then 0
@@ -61,7 +55,16 @@ let rec invA k n =
 
 let invA_up k n = 1+invA k (max 0 (n-2))
 
-let add_bound k p = a.(k).(invA_up k p + 3*k-1)
+(* Ou dichotomique ? *)
+let invA_up_opt k n =
+  let rec loop i =
+    if i >= Array.length a.(k)
+    then failwith ("invA_up : overflow " ^ string_of_int n)
+    else if n <= a.(k).(i) then i
+    else loop (i+1)
+  in loop 0
+
+let add_bound k p = a.(k).(invA_up_opt k p + 3*k-1)
 
 let all_diffs k p =
   extrems (Array.init (add_bound k p) @@ fun i -> ff.(k).(p+i)-ff.(k).(i))
@@ -88,6 +91,10 @@ let search k =
 - : int * (int * int) * (int * int) = (843, (666, 677), (677, 692))
 # let _ = search 7;;
 - : int * (int * int) * (int * int) = (1617, (1304, 1322), (1322, 1345))
+# let _ = search 8;;
+- : int * (int * int) * (int * int) = (2469, (2022, 2049), (2049, 2079))
+# let _ = search 9;;
+- : int * (int * int) * (int * int) = (5298, (4402, 4446), (4446, 4504))
 
 Double grosso modo à chaque fois
 *)
