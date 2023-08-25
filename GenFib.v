@@ -396,10 +396,10 @@ Qed.
 
 (** ** The [sumA] function
 
-   We represent a decomposition by the list of ranks
+   We represent a decomposition by the list of indexes
    of the Ak numbers in this decomposition.
    The sumA function is the sum of the Fibonacci numbers of
-   these ranks. For the first results below, the ranks may be
+   these indexes. For the first results below, the indexes may be
    arbitrary : redundant, in any order, ... *)
 
 Definition sumA k l := fold_right (fun n acc => A k n + acc) 0 l.
@@ -893,29 +893,76 @@ Proof.
  unfold renorm. intros. now apply renorm_loop_mapdecr'.
 Qed.
 
+(** Below, [renormS k a l] is a simplified version of [renorm k (S a :: l)].
+    Indeed, when a decomposition starts by one lax gap and is strict
+    afterwards, no need for the full renorm, a single
+    bottom-up pass is enough. This particular situation is used
+    in next_decomp below. *)
+
+Fixpoint renormS k a l :=
+  match l with
+  | [] => [S a]
+  | b::l' => if b =? S (a+k) then renormS k b l' else S a :: l
+  end.
+
+Lemma renormS_sum k a l : sumA k (renormS k a l) = sumA k (S a :: l).
+Proof.
+ revert a. induction l as [|b l IH]; intros a; simpl; auto.
+ case Nat.eqb_spec; simpl; intros H; auto.
+ rewrite IH. simpl. replace (b-k) with (S a); simpl; lia.
+Qed.
+
+Lemma renormS_delta k a l :
+  Delta (S k) (a::l) -> Delta (S k) (renormS k a l).
+Proof.
+ revert a. induction l as [|b l IH]; intros a; simpl; auto.
+ - intros. constructor.
+ - inversion 1; subst.
+   case Nat.eqb_spec; simpl; intros E; auto.
+   constructor; auto. lia.
+Qed.
+
+Lemma renormS_alt k a l : Delta (S k) (a::l) ->
+  renormS k a l = renorm k (S a :: l).
+Proof.
+ intros D. eapply decomp_unique; eauto using renormS_delta.
+ - apply renorm_delta; auto with hof.
+ - now rewrite renormS_sum, renorm_sum.
+Qed.
+
+Lemma renormS_head k a l : HeadStep k (S a :: l) (renormS k a l).
+Proof.
+ revert a. induction l as [|b l IH]; simpl.
+ - exists 0; lia.
+ - intros a. case Nat.eqb_spec; intros H.
+   + specialize (IH b). destruct renormS; simpl in *; trivial.
+     destruct IH as (m & ->). exists (S m). simpl; lia.
+   + exists 0; lia.
+Qed.
+
 (** ** Decomposition of the next number *)
 
 Definition next_decomp k l :=
   match l with
   | [] => [0]
-  | a :: l =>
+  | a :: l' =>
     if a <=? k then
-      renorm k (S a :: l)
+      renormS k a l'  (* same here as renorm k (S a :: l') *)
     else
-      0::a::l
+      0::l
   end.
 
 Lemma next_decomp_sum k l : sumA k (next_decomp k l) = S (sumA k l).
 Proof.
  destruct l; simpl; trivial.
- case Nat.leb_spec; intros; rewrite ?renorm_sum; simpl; trivial.
+ case Nat.leb_spec; intros; rewrite ?renormS_sum; simpl; trivial.
  replace (n-k) with 0; simpl; lia.
 Qed.
 
 Lemma next_decomp_delta k l : Delta (S k) l -> Delta (S k) (next_decomp k l).
 Proof.
  destruct l; simpl; autoh.
- case Nat.leb_spec; intros; auto using renorm_delta with hof.
+ case Nat.leb_spec; intros; auto using renormS_delta with hof.
 Qed.
 
 Lemma decomp_S k n : decomp k (S n) = next_decomp k (decomp k n).
@@ -925,7 +972,10 @@ Proof.
  - now rewrite next_decomp_sum, decomp_sum.
 Qed.
 
+
 (** ** Classification of decompositions *)
+
+(** The k-rank of a number is the least index in its k-decomposition. *)
 
 Definition rank k n :=
   match decomp k n with
@@ -979,8 +1029,8 @@ Proof.
  destruct decomp as [|r' l]; try discriminate.
  injection Hr as ->. simpl.
  rewrite <- Nat.leb_le. intros ->.
- assert (R := renorm_head k (S r::l)).
- destruct renorm as [|r' l']; simpl in *; intuition.
+ assert (R := renormS_head k r l).
+ destruct renormS as [|r' l']; simpl in *; intuition.
  destruct R as (m, Hm).
  exists m. now f_equal.
 Qed.
@@ -1003,8 +1053,8 @@ Proof.
  destruct decomp as [|r' l]; try discriminate.
  injection Hr as ->. simpl.
  case Nat.leb_spec; auto. intros LE.
- assert (R := renorm_head k (S r::l)).
- destruct renorm as [|r' l']; simpl in *; intuition.
+ assert (R := renormS_head k r l).
+ destruct renormS as [|r' l']; simpl in *; intuition.
  destruct R as (m, Hm).
  right. exists m. now f_equal.
 Qed.

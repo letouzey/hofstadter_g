@@ -825,7 +825,7 @@ Proof.
    + unfold fbis. rewrite decomp_S, <- Hl. simpl.
      case Nat.leb_spec; intros.
      * rewrite <- map_decr_1.
-       rewrite renorm_mapdecr'; simpl; auto with arith hof.
+       rewrite renormS_alt, renorm_mapdecr'; simpl; auto with arith hof.
        rewrite Nat.add_shuffle1.
        assert (~In 0 l).
        { apply (@Delta_nz' (S k) a); auto with arith. }
@@ -999,13 +999,14 @@ Proof.
  - simpl.
    case Nat.leb_spec; intros.
    + rewrite <- !map_decr_1.
-     rewrite renorm_mapdecr'.
+     rewrite renormS_alt, renorm_mapdecr'.
      * simpl.
        rewrite decr_0.
        rewrite !A_base by (auto; lia).
        split. intros; f_equal; lia. intros [= ->]; lia.
      * apply Delta_S_cons. rewrite <- E; autoh.
      * simpl. auto with arith.
+     * rewrite <- E. autoh.
    + simpl. split. intros; f_equal; lia. intros [= ->]; lia.
 Qed.
 
@@ -1101,20 +1102,14 @@ Proof.
  rewrite Nat.add_succ_r, <- Nat.add_succ_l in E.
  unfold rank in *.
  destruct (decomp k n) as [|r' l] eqn:E'; try easy. injection Hn as ->.
- assert (E2 : decomp k (n+2 + (r-S k)) = renorm k (S r :: l)).
+ assert (E2 : decomp k (n+2 + (r-S k)) = renormS k r l).
  { rewrite !Nat.add_succ_r, Nat.add_0_r, Nat.add_succ_l.
    rewrite decomp_S, E. simpl.
    case Nat.leb_spec; try lia. intros _.
-   apply (@decomp_unique k).
-   - apply renorm_delta. constructor. lia. rewrite <- E'; autoh.
-   - apply renorm_delta, Delta_S_cons. rewrite <- E'; autoh.
-   - rewrite !renorm_sum. simpl.
-     replace (r -S k -k) with 0 by lia.
-     rewrite (@A_base k (r-S k)) by lia.
-     rewrite (@A_base k (r-k)) by lia. simpl. lia. }
+   case Nat.eqb_spec; trivial; lia. }
  rewrite E2.
- assert (H := renorm_head k (S r::l)).
- red in H. destruct renorm; try easy.
+ assert (H := renormS_head k r l).
+ red in H. destruct renormS; try easy.
  destruct H as (q & ->). exists (S r + q*S k). split; auto. lia.
 Qed.
 
@@ -1229,8 +1224,8 @@ Proof.
  - simpl. intuition.
  - simpl.
    case Nat.leb_spec; intros.
-   + assert (Hd := renorm_head k (S a ::l)).
-     destruct renorm. intuition.
+   + assert (Hd := renormS_head k a l).
+     destruct renormS. intuition.
      destruct Hd as (m,Hd); simpl in Hd.
      split; auto with arith.
      intros _. injection 1 as ->. discriminate.
@@ -1250,7 +1245,8 @@ Proof.
    + simpl. intuition lia.
    + simpl.
      case Nat.leb_spec; intros.
-     * rewrite renorm_mapdecr by lia.
+     * rewrite renormS_alt by (rewrite <- E; autoh).
+       rewrite renorm_mapdecr by lia.
        rewrite map_cons, sumA_cons.
        unfold decr at 1 3.
        rewrite !A_base by (auto; lia).

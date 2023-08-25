@@ -101,7 +101,7 @@ Proof.
  destruct (decomp k n) as [|a l].
  - simpl; now right.
  - simpl map. case Nat.leb_spec; intros; [|simpl; now right].
-   rewrite renorm_mapS, renorm_sum.
+   rewrite !renormS_alt, renorm_mapS, renorm_sum by trivial.
    simpl map. rewrite !sumA_cons, <- !Nat.add_succ_l.
    destruct (Nat.eqb_spec a k).
    + right. f_equal. subst a.
