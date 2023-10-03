@@ -1,4 +1,3 @@
-From Coq Require Import Lia Reals Lra Ranalysis5.
 Require Import MoreReals.
 
 Local Open Scope R.
@@ -27,12 +26,13 @@ Local Coercion INR : nat >-> R.
      - tau(5) = 0.778089598678601..
 *)
 
-Definition mu_spec k : { x : R | 1<=x<=2 /\ x^(S k)-x^k-1=0 }.
+Definition P (k:nat) (x:R) : R := x^(S k)-x^k-1.
+
+Definition mu_spec k : { x : R | 1<=x<=2 /\ P k x = 0 }.
 Proof.
- set (P := fun x => x^(S k)-x^k-1).
  destruct k.
- - exists 2. lra.
- - apply (IVT_interv P 1 2).
+ - exists 2. unfold P. lra.
+ - apply (IVT_interv (P (S k)) 1 2).
    + intros a Ha. apply derivable_continuous_pt.
      repeat apply derivable_pt_minus.
      * apply derivable_pt_pow.
@@ -48,12 +48,17 @@ Definition mu k : R := proj1_sig (mu_spec k).
 Lemma mu_itvl k : 1 < mu k <= 2.
 Proof.
  unfold mu. destruct (mu_spec k) as (x & H & E). simpl.
- destruct (Req_dec x 1); try lra. subst. simpl in *. lra.
+ destruct (Req_dec x 1); try lra. subst. unfold P in *. simpl in *; lra.
+Qed.
+
+Lemma mu_root k : P k (mu k) = 0.
+Proof.
+ unfold mu. destruct (mu_spec k) as (x & H & E). simpl in *. lra.
 Qed.
 
 Lemma mu_carac k : (mu k)^(S k) = (mu k)^k+1.
 Proof.
- unfold mu. destruct (mu_spec k) as (x & H & E). simpl in *. lra.
+ generalize (mu_root k). unfold P. lra.
 Qed.
 
 Definition tau k : R := (*1*) / mu k.
@@ -259,38 +264,137 @@ Qed.
     nu(5) = -0.8812714616335695..
  *)
 
-Lemma minusOne_pow_even k : Nat.Even k -> (-1)^k = 1.
+Lemma minushalf_no_root k : P k (-0.5) < 0.
 Proof.
- intros (m & ->).
- rewrite pow_mult. replace ((-1)^2) with 1 by lra. apply pow1.
-Qed.
-
-Lemma minusOne_pow_odd k : Nat.Odd k -> (-1)^k = -1.
-Proof.
- intros (m & ->).
- rewrite pow_add, pow_mult. replace ((-1)^2) with 1 by lra. rewrite pow1. lra.
+ unfold P. replace (-0.5) with (-1*/2) by lra. simpl.
+ rewrite !Rpow_mult_distr.
+ destruct (Nat.Even_Odd_dec k) as [EV|OD].
+ - rewrite minusone_pow_even by trivial. field_simplify.
+   assert (0<(/2)^k) by ( apply pow_lt; lra). lra.
+ - rewrite minusone_pow_odd by trivial. apply Ropp_lt_cancel.
+   field_simplify. apply Rlt_mult_inv_pos; try lra.
+   assert ((/2)^k <= /2); try lra.
+   { rewrite pow_inv.
+     apply Rinv_le_contravar. lra.
+     destruct OD as (k' & ->). rewrite Nat.add_1_r. simpl.
+     generalize (pow_R1_Rle 2 (k'+(k'+0))). lra. }
 Qed.
 
 Definition nu_spec k :
-  Nat.Odd k -> { x : R | -1<=x<=-0.5 /\ x^(S k)-x^k-1=0 }.
+  Nat.Odd k -> { x : R | -1<=x<=-0.5 /\ P k x = 0 }.
 Proof.
  intros Hk.
- set (P := fun x => 1+x^k-x^(S k)).
- destruct (IVT_interv P (-1) (-0.5)) as (x & Hx & E).
+ apply (IVT_interv_decr (P k) (-1) (-0.5)).
    + intros a Ha. apply derivable_continuous_pt.
-     apply derivable_pt_minus; try apply derivable_pt_plus.
+     repeat apply derivable_pt_minus.
+     * apply derivable_pt_pow.
+     * apply derivable_pt_pow.
      * apply derivable_pt_const.
-     * apply derivable_pt_pow.
-     * apply derivable_pt_pow.
    + lra.
-   + unfold P. simpl. rewrite minusOne_pow_odd by trivial. lra.
-   + unfold P. clear P. replace (-0.5) with (-1*/2) by lra. simpl.
-     rewrite !Rpow_mult_distr, minusOne_pow_odd by trivial.
-     replace (_-_) with (1-3*(/2)^(S k)) by (simpl; lra).
-     apply Rmult_gt_reg_l with (2^(S k)). { apply pow_lt; lra. }
-     rewrite Rmult_0_r, pow_inv. field_simplify. 2:{ apply pow_nonzero; lra. }
-     apply Rlt_Rminus.
-     destruct Hk as (k', ->). rewrite Nat.add_1_r. simpl.
-     generalize (pow_R1_Rle 2 (k'+(k'+0))). lra.
-   + exists x; split; trivial. unfold P in *. lra.
+   + unfold P. simpl. rewrite minusone_pow_odd by trivial. lra.
+   + apply minushalf_no_root.
+Qed.
+
+Definition nu k : R :=
+ match Nat.Even_Odd_dec k with
+ | left _ => 0 (* arbitrary value, not a root *)
+ | right ODD => proj1_sig (nu_spec k ODD)
+ end.
+
+Lemma nu_itvl k : Nat.Odd k -> -1 < nu k < -0.5.
+Proof.
+ intros ODD. unfold nu. destruct (Nat.Even_Odd_dec k) as [EV|OD].
+ - destruct (Nat.Even_Odd_False k EV ODD).
+ - destruct (nu_spec k OD) as (x & H & E). simpl.
+   destruct (Req_dec x (-1)).
+   { subst. unfold P in *; simpl in *.
+     rewrite minusone_pow_odd in *; trivial; lra. }
+   destruct (Req_dec x (-0.5)).
+   { subst. generalize (minushalf_no_root k). lra. }
+   lra.
+Qed.
+
+Lemma nu_root k : Nat.Odd k -> P k (nu k) = 0.
+Proof.
+ intros ODD. unfold nu. destruct (Nat.Even_Odd_dec k) as [EV|OD].
+ - destruct (Nat.Even_Odd_False k EV ODD).
+ - destruct (nu_spec k OD) as (x & H & E). simpl in *. trivial.
+Qed.
+
+Lemma nu_carac k : Nat.Odd k -> (nu k)^(S k) = (nu k)^k+1.
+Proof.
+ intros Hk. generalize (nu_root k Hk). unfold P. lra.
+Qed.
+
+(* Uniqueness of the negative root (if it exists) *)
+
+Lemma P_odd_neg_decr k x y :
+ Nat.Odd k -> x<y<=0 -> P k y < P k x.
+Proof.
+ intros Hk.
+ set (P' := fun x => (S k)*x^k-k*x^(pred k)-0).
+ assert (D : forall x, derivable_pt_lim (P k) x (P' x)).
+ { clear. intros x. repeat apply derivable_pt_lim_minus.
+   apply derivable_pt_lim_pow.
+   apply derivable_pt_lim_pow.
+   apply derivable_pt_lim_const. }
+ set (DP := fun x => exist _ (P' x) (D x) : derivable_pt (P k) x).
+ intros Hxy.
+ apply (derive_decreasing_interv x y) with DP; try lra.
+ intros t Ht. simpl. unfold P'. ring_simplify.
+ replace k with (S (pred k)) at 2 by (destruct Hk as (k',->); lia).
+ rewrite <- tech_pow_Rmult.
+ apply Ropp_lt_cancel. rewrite Ropp_0.
+ replace (-_) with (t^pred k * (S k * (-t) + k)) by lra.
+ apply Rmult_lt_0_compat.
+ - apply pow_even_pos; try lra.
+   destruct Hk as (k', ->). rewrite Nat.add_1_r. now exists k'.
+ - apply Rplus_lt_0_compat; try apply Rmult_lt_0_compat; try lra.
+   apply RSpos.
+   destruct Hk as (k', ->). rewrite Nat.add_1_r. apply RSpos.
+Qed.
+
+Lemma P_even_neg_decr k x y :
+ Nat.Even k -> x<y<=0 -> P k x < P k y.
+Proof.
+ intros Hk Hxy.
+ destruct (Nat.eq_dec k 0) as [->|NZ]. { unfold P. simpl. lra. }
+ set (P' := fun x => (S k)*x^k-k*x^(pred k)-0).
+ assert (D : forall x, derivable_pt_lim (P k) x (P' x)).
+ { clear. intros x. repeat apply derivable_pt_lim_minus.
+   apply derivable_pt_lim_pow.
+   apply derivable_pt_lim_pow.
+   apply derivable_pt_lim_const. }
+ set (DP := fun x => exist _ (P' x) (D x) : derivable_pt (P k) x).
+ apply (derive_increasing_interv x y) with DP; try lra.
+ intros t Ht. simpl. unfold P'. ring_simplify.
+ replace k with (S (pred k)) at 2 by lia.
+ rewrite <- tech_pow_Rmult.
+ replace (_-_) with ((-t^pred k) * (S k * (-t) + k)) by lra.
+ apply Rmult_lt_0_compat.
+ - apply Ropp_0_gt_lt_contravar.
+   apply pow_odd_neg; try lra. apply Nat.Even_succ.
+   destruct k; simpl; trivial; lia.
+ - apply Rplus_lt_0_compat; try apply Rmult_lt_0_compat; try lra.
+   apply RSpos.
+   destruct k; try lia; apply RSpos.
+Qed.
+
+Lemma nu_unique k x : x <= 0 -> x^(S k)=x^k+1 -> x = nu k.
+Proof.
+ intros Hx E.
+ destruct (Nat.eq_dec k 0) as [->|NZ].
+ { simpl in E. lra. }
+ destruct (Req_dec x 0).
+ { subst x. rewrite !pow_i in E by lia. lra. }
+ destruct (Nat.Even_Odd_dec k) as [EV|OD].
+ - generalize (P_even_neg_decr k x 0 EV).
+   replace (P k x) with 0 by (unfold P; lra).
+   unfold P. rewrite !pow_i by lia. lra.
+ - assert (I := nu_itvl k OD).
+   assert (R := nu_root k OD).
+   assert (R' : P k x = 0) by (unfold P; lra).
+   destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; auto; exfalso.
+   + generalize (P_odd_neg_decr k x (nu k) OD); lra.
+   + generalize (P_odd_neg_decr k (nu k) x OD); lra.
 Qed.

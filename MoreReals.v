@@ -1,4 +1,4 @@
-From Coq Require Import List Lia Reals Lra.
+From Coq Require Export List Lia Reals Ranalysis5 Lra.
 Require Import MoreList.
 Import ListNotations.
 
@@ -71,6 +71,79 @@ Proof.
  - apply Rmult_le_compat_r; lra.
  - apply Rmult_lt_compat_l; lra.
 Qed.
+
+Lemma minusone_pow_even k : Nat.Even k -> (-1)^k = 1.
+Proof.
+ intros (m & ->).
+ rewrite pow_mult. replace ((-1)^2) with 1 by lra. apply pow1.
+Qed.
+
+Lemma minusone_pow_odd k : Nat.Odd k -> (-1)^k = -1.
+Proof.
+ intros (m & ->).
+ rewrite pow_add, pow_mult. replace ((-1)^2) with 1 by lra. rewrite pow1. lra.
+Qed.
+
+Lemma pow_even_pos k x : Nat.Even k -> 0 <> x -> 0 < x^k.
+Proof.
+ intros (m & ->) Hx.
+ rewrite pow_mult. apply pow_lt. rewrite <- Rsqr_pow2.
+ apply Rlt_0_sqr; lra.
+Qed.
+
+Lemma pow_odd_neg k x : Nat.Odd k -> x < 0 -> x^k < 0.
+Proof.
+ intros (m & ->) Hx.
+ rewrite Nat.add_1_r. rewrite <- tech_pow_Rmult, pow_mult.
+ apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_0.
+ apply Rmult_lt_0_compat; try lra.
+ apply pow_lt. rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra.
+Qed.
+
+(** [IVT_interv] and [derive_increasing_interv] but
+    for decreasing functions *)
+
+Lemma IVT_interv_decr (f : R -> R) x y :
+  (forall a : R, x <= a <= y -> continuity_pt f a) ->
+  x < y -> 0 < f x -> f y < 0 -> {z : R | x <= z <= y /\ f z = 0}.
+Proof.
+ intros Hf Hxy Hx Hy.
+ set (g := fun x => - f x).
+ destruct (IVT_interv g x y) as (z & Hz & E); unfold g in *; try lra.
+ + intros a Ha. now apply continuity_pt_opp, Hf.
+ + exists z; split; trivial; lra.
+Qed.
+
+Lemma derivable_pt_opp_defined :
+  forall (f : R -> R) (x:R), derivable_pt f x -> derivable_pt (- f) x.
+Proof.
+  intros f x H.
+  unfold derivable_pt in H.
+  destruct H as [l H]; exists (-l).
+  apply derivable_pt_lim_opp; assumption.
+Defined.
+
+Lemma derivable_opp_defined :
+  forall f, derivable f -> derivable (- f).
+Proof.
+  unfold derivable; intros f X x.
+  apply (derivable_pt_opp_defined _ x (X _)).
+Defined.
+
+Lemma derive_decreasing_interv a b (f : R -> R) (pr : derivable f) :
+  a < b ->
+  (forall t : R, a < t < b -> derive_pt f t (pr t) < 0) ->
+  forall x y : R, a <= x <= b -> a <= y <= b -> x < y -> f y < f x.
+Proof.
+ intros Hab Hf x y Hx Hy Hxy.
+ apply Ropp_lt_cancel.
+ apply (derive_increasing_interv a b _
+          (derivable_opp_defined f pr)); trivial.
+ intros t Ht.
+ unfold derive_pt, derivable_opp_defined, derivable_pt_opp_defined in *.
+ specialize (Hf t Ht). destruct (pr t). simpl in *. lra.
+Qed.
+
 
 (** Integer part and fractional part *)
 
