@@ -10,21 +10,21 @@ Local Coercion INR : nat >-> R.
     For instance :
 
      - mu(0) = 2
-     - mu(1) = 1.618033988749895 (Golden ratio)
-     - mu(2) = 1.465571231876768
-     - mu(3) = 1.380277569097614
-     - mu(4) = 1.324717957244746 (plastic number, root of X^3=X+1)
-     - mu(5) = 1.285199033245349
+     - mu(1) = 1.618033988749895.. (Golden ratio)
+     - mu(2) = 1.465571231876768..
+     - mu(3) = 1.380277569097614..
+     - mu(4) = 1.324717957244746.. (plastic number, root of X^3=X+1)
+     - mu(5) = 1.285199033245349..
 
     Dual : positive root tau(k) of X^(k+1)+X-1, in [0.5..1[
     i.e. tau(k) = 1/mu(k)
 
      - tau(0) = 0.5
-     - tau(1) = 0.6180339887498948
-     - tau(2) = 0.6823278038280193
-     - tau(3) = 0.7244919590005157
-     - tau(4) = 0.7548776662466925
-     - tau(5) = 0.778089598678601
+     - tau(1) = 0.6180339887498948..
+     - tau(2) = 0.6823278038280193..
+     - tau(3) = 0.7244919590005157..
+     - tau(4) = 0.7548776662466925..
+     - tau(5) = 0.778089598678601..
 *)
 
 Definition mu_spec k : { x : R | 1<=x<=2 /\ x^(S k)-x^k-1=0 }.
@@ -251,4 +251,46 @@ Proof.
  rewrite tau_inv.
  assert (H := tau_5).
  destruct tau_5 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
+Qed.
+
+(** When k is odd, there is also a real negative root to X^(k+1)-X^k-1.
+    nu(1) = -0.618033988749895.. = 1-phi
+    nu(3) = -0.8191725133961643..
+    nu(5) = -0.8812714616335695..
+ *)
+
+Lemma minusOne_pow_even k : Nat.Even k -> (-1)^k = 1.
+Proof.
+ intros (m & ->).
+ rewrite pow_mult. replace ((-1)^2) with 1 by lra. apply pow1.
+Qed.
+
+Lemma minusOne_pow_odd k : Nat.Odd k -> (-1)^k = -1.
+Proof.
+ intros (m & ->).
+ rewrite pow_add, pow_mult. replace ((-1)^2) with 1 by lra. rewrite pow1. lra.
+Qed.
+
+Definition nu_spec k :
+  Nat.Odd k -> { x : R | -1<=x<=-0.5 /\ x^(S k)-x^k-1=0 }.
+Proof.
+ intros Hk.
+ set (P := fun x => 1+x^k-x^(S k)).
+ destruct (IVT_interv P (-1) (-0.5)) as (x & Hx & E).
+   + intros a Ha. apply derivable_continuous_pt.
+     apply derivable_pt_minus; try apply derivable_pt_plus.
+     * apply derivable_pt_const.
+     * apply derivable_pt_pow.
+     * apply derivable_pt_pow.
+   + lra.
+   + unfold P. simpl. rewrite minusOne_pow_odd by trivial. lra.
+   + unfold P. clear P. replace (-0.5) with (-1*/2) by lra. simpl.
+     rewrite !Rpow_mult_distr, minusOne_pow_odd by trivial.
+     replace (_-_) with (1-3*(/2)^(S k)) by (simpl; lra).
+     apply Rmult_gt_reg_l with (2^(S k)). { apply pow_lt; lra. }
+     rewrite Rmult_0_r, pow_inv. field_simplify. 2:{ apply pow_nonzero; lra. }
+     apply Rlt_Rminus.
+     destruct Hk as (k', ->). rewrite Nat.add_1_r. simpl.
+     generalize (pow_R1_Rle 2 (k'+(k'+0))). lra.
+   + exists x; split; trivial. unfold P in *. lra.
 Qed.
