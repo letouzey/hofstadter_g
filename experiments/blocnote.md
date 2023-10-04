@@ -86,6 +86,21 @@ Rauzy fractals:
 https://im.icerm.brown.edu/portfolio/visualizing-rauzy-fractals-via-finite-directed-graphs/
 https://tilings.math.uni-bielefeld.de/substitution/a-ab--b-c--c-a/
 
+## Absence de forme exacte H(n) = floor(alpha.n+beta)
+
+Le comportement à l'infini force alpha = tau2 (vu que H(n)/n ---> tau2).
+Puis des cas particuliers pour montrer qu'il est impossible de
+determiner un beta convenable. Ainsi:
+
+H(5)=4 donc on aurait 4 <= 5.tau2+beta < 5 donc 4-5.tau2 <= beta donc 0.58 <= beta
+
+H(8)=5 donc on aurait 5 <= 8.tau2+beta < 6 donc beta < 6-8.tau2 donc beta < 0.55
+
+Impossible...
+
+Idem avec f3(n) : f3(2)=1 donne < 0.56 et f3(6)=5 donne > 0.65
+Ensuite de toute façon fk-n.tauk est non borné
+
 ## Bilan
 
 k=1 : G(n) = floor((n+1)*tau) avec tau=0.618. Quasi-add avec C=1
