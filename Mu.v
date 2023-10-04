@@ -29,6 +29,16 @@ Local Coercion INR : nat >-> R.
 
 Definition P (k:nat) (x:R) : R := x^(S k)-x^k-1.
 
+Lemma P_root_equiv k x : P k x = 0 <-> x^(S k) = x^k+1.
+Proof.
+ unfold P. lra.
+Qed.
+
+Lemma P_root_equiv' k x : P k x = 0 <-> x^(k+1) = x^k+1.
+Proof.
+ rewrite Nat.add_1_r. apply P_root_equiv.
+Qed.
+
 Definition mu_spec k : { x : R | 1<=x<=2 /\ P k x = 0 }.
 Proof.
  destruct k.
@@ -59,7 +69,7 @@ Qed.
 
 Lemma mu_carac k : (mu k)^(S k) = (mu k)^k+1.
 Proof.
- generalize (mu_root k). unfold P. lra.
+ rewrite <- P_root_equiv. apply mu_root.
 Qed.
 
 Definition tau k : R := (*1*) / mu k.
@@ -324,7 +334,7 @@ Qed.
 
 Lemma nu_carac k : Nat.Odd k -> (nu k)^(S k) = (nu k)^k+1.
 Proof.
- intros Hk. generalize (nu_root k Hk). unfold P. lra.
+ intros. rewrite <- P_root_equiv. now apply nu_root.
 Qed.
 
 (* Uniqueness of the negative root (if it exists) *)
@@ -381,21 +391,103 @@ Proof.
    destruct k; try lia; apply RSpos.
 Qed.
 
-Lemma nu_unique k x : x <= 0 -> x^(S k)=x^k+1 -> x = nu k.
+Lemma nu_unique_odd k x : x <= 0 -> P k x = 0 -> Nat.Odd k /\ x = nu k.
 Proof.
  intros Hx E.
  destruct (Nat.eq_dec k 0) as [->|NZ].
- { simpl in E. lra. }
+ { unfold P in E; simpl in E. lra. }
  destruct (Req_dec x 0).
- { subst x. rewrite !pow_i in E by lia. lra. }
+ { subst x. unfold P in E. rewrite !pow_i in E by lia. lra. }
  destruct (Nat.Even_Odd_dec k) as [EV|OD].
- - generalize (P_even_neg_decr k x 0 EV).
-   replace (P k x) with 0 by (unfold P; lra).
+ - generalize (P_even_neg_decr k x 0 EV). rewrite E.
    unfold P. rewrite !pow_i by lia. lra.
- - assert (I := nu_itvl k OD).
+ - split; trivial.
+   assert (I := nu_itvl k OD).
    assert (R := nu_root k OD).
-   assert (R' : P k x = 0) by (unfold P; lra).
    destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; auto; exfalso.
    + generalize (P_odd_neg_decr k x (nu k) OD); lra.
    + generalize (P_odd_neg_decr k (nu k) x OD); lra.
+Qed.
+
+Lemma nu_unique k x : x <= 0 -> x^(S k)=x^k+1 -> x = nu k.
+Proof.
+ intros Hx E. rewrite <- P_root_equiv in E. now apply nu_unique_odd.
+Qed.
+
+Lemma mu_unique_even k x : Nat.Even k -> P k x = 0 -> x = mu k.
+Proof.
+ intros Hk E.
+ destruct (Rle_or_lt x 0) as [LE|LT].
+ - destruct (Nat.Even_Odd_False k); trivial.
+   apply (nu_unique_odd _ _ LE E).
+ - apply mu_unique. lra. now apply P_root_equiv.
+Qed.
+
+Lemma mu_or_nu k x : Nat.Odd k -> P k x = 0 -> x = mu k \/ x = nu k.
+Proof.
+ intros Hk E. rewrite P_root_equiv in E.
+ destruct (Rle_or_lt x 0) as [LE|LT].
+ - right. now apply nu_unique.
+ - left. apply mu_unique; trivial. lra.
+Qed.
+
+Lemma P_neg_upper k x : Nat.Odd k -> P k x < 0 -> nu k < x.
+Proof.
+ intros Hk Hx.
+ destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; trivial; exfalso.
+ - generalize (P_odd_neg_decr k x (nu k) Hk).
+   generalize (nu_itvl k Hk). rewrite nu_root by trivial. lra.
+ - subst x. rewrite nu_root in Hx; trivial. lra.
+Qed.
+
+Lemma P_neg_lower k x : Nat.Odd k -> x <= 0 -> 0 < P k x -> x < nu k.
+Proof.
+ intros Hk Hx Hx'.
+ destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; trivial; exfalso.
+ - subst x. rewrite nu_root in Hx'; trivial. lra.
+ - generalize (P_odd_neg_decr k (nu k) x Hk).
+   rewrite nu_root by trivial. lra.
+Qed.
+
+Lemma nu_decr k : Nat.Odd k -> nu (S (S k)) < nu k.
+Proof.
+ intros Hk. apply P_neg_upper. now apply Nat.Odd_succ_succ.
+ assert (I := nu_itvl k Hk).
+ assert (E := nu_carac k Hk).
+ set (x := nu k) in *.
+ unfold P. rewrite <- 2 tech_pow_Rmult. rewrite E at 1. simpl.
+ ring_simplify. assert (x^2 < 1^2); try lra.
+ rewrite <- !Rsqr_pow2. apply neg_pos_Rsqr_lt; lra.
+Qed.
+
+Lemma nu_1 : nu 1 = (1-sqrt 5)/2.
+Proof.
+ symmetry.
+ apply nu_unique.
+ - apply Ropp_le_cancel. field_simplify.
+   apply Rle_mult_inv_pos; try lra.
+   assert (1 <= sqrt 5); try lra.
+   rewrite <- sqrt_1. apply sqrt_le_1_alt. lra.
+ - simpl. field_simplify. rewrite pow2_sqrt by lra. field.
+Qed.
+
+Lemma nu_1' : -0.619 < nu 1 < -0.618.
+Proof.
+ assert (H : Nat.Odd 1) by now rewrite <- Nat.odd_spec.
+ split; [apply P_neg_lower|apply P_neg_upper];
+   trivial; unfold P; simpl; lra.
+Qed.
+
+Lemma nu_3 : -0.820 < nu 3 < -0.819.
+Proof.
+ assert (H : Nat.Odd 3) by now rewrite <- Nat.odd_spec.
+ split; [apply P_neg_lower|apply P_neg_upper];
+   trivial; unfold P; simpl; lra.
+Qed.
+
+Lemma nu_5 : -0.882 < nu 5 < -0.881.
+Proof.
+ assert (H : Nat.Odd 5) by now rewrite <- Nat.odd_spec.
+ split; [apply P_neg_lower|apply P_neg_upper];
+   trivial; unfold P; simpl; lra.
 Qed.
