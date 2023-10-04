@@ -1,3 +1,4 @@
+From Coq Require Import Lia Reals Lra Ranalysis5.
 Require Import MoreReals.
 
 Local Open Scope R.
