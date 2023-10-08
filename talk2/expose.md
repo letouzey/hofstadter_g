@@ -27,18 +27,18 @@ G(n) &= n - G(G(n-1)) & \text{pour tout entier}\ n>0
 
  - Existence et premier encadrement: $0\leq G(n) \leq n$
  - $G(0)=0$, $G(1)=1$ puis $1\leq G(n)<n$
- - G "avance" par pas de +0 ou +1
+ - G "monte" par pas de +0 ou +1
  - Jamais deux +0 de suite
  - Jamais trois +1 de suite
 
 \pause
 
-On montre que $G(n)=\lfloor (n+1)/\phi \rfloor$ où
+Ici en fait : $G(n)=\lfloor (n+1)/\phi \rfloor$ où
 $\phi$ est le nombre d'or
 
 ## Etude préliminaire de G
 
-Graphe de $G(n)$ et $(n+1)/\phi$ :
+Graphes de $G(n)$ et $(n+1)/\phi$ :
 
 \bigskip
 
@@ -52,10 +52,6 @@ Graphe de $G(n)$ et $(n+1)/\phi$ :
   \end{axis}
 \end{tikzpicture}
 
-## Et en Coq ?
-
-TODO
-
 ## Généralisons : la fonction H (OEIS A5374)
 
 Comme Hofstadter, varions le nombre d'appels imbriqués:
@@ -68,8 +64,8 @@ H(n) &= n - H(H(H(n-1)) & \text{pour tout entier}\ n>0
 Mêmes propriétés de base que $G$, sauf que:
 
  - Au plus trois +1 successifs
- - Pas d'équation exacte à base de $\lfloor ~ \rfloor$
- - $H(n) = \lfloor \tau n \rfloor + 0 ~\text{ou}~ 1$
+ - Pas d'équation simple et exacte à base de $\lfloor ~ \rfloor$
+ - Par contre: $H(n) = \lfloor \tau n \rfloor + 0 ~\text{ou}~ 1$
  
    avec $\tau$ racine réelle de $X^3+X-1$ ($\tau = 0.6823$)
 
@@ -126,10 +122,58 @@ $f_0(n) = \lfloor (n+1)/2 \rfloor = \lceil n/2 \rceil$
  \end{axis}
 \end{tikzpicture}
 
-## Propriétés de $f_k$
+## Premières propriétés de $f_k$
+
+\ensuremath{f_k(n) = n - f_k^{(k+1)}(n-1))}
+
+ - Existence et premier encadrement: $0\leq f_k(n) \leq n$
+ - $f_k(0)=0$, $f_k(1)=1$ puis $1\leq f_k(n)<n$
+ - $f_k$ "monte" par pas de +0 ou +1
+ - Jamais deux +0 de suite
+ - Au plus $k+1$ pas de +1 de suite
+
+NB: Pour k>1, $f_k(n)$ n'a pas d'expression simple via $\lfloor~ \rfloor$.
+
+## Deux équations intéressantes pour $G$ puis $f_k$ 
+
+Surjectivité "explicite"
+
+ - $G(n+G(n))=n$
+ - $f_k(n+f_k^{(k)}(n))=n$
+
+\pause
+\bigskip
+
+Equation "renversée"
+
+ - $G(n)+G(G(n+1)-1)=n$
+ - $f_k(n)+f_k^{(k)}(f_k(n+1)-1)=n$
+
+## Et en Coq ?
 
 TODO
 
+## Conjecture: croissance des $f_k$ point-à-point
+
+Conjecture: $\forall k, \forall n, f_k(n) \le f_{k+1}(n)$
+
+Ici, on comparera toujours les fonctions via l'ordre produit.
+
+Cette conjecture affirme donc que $(f_k)$ est une suite croissante.
+
+ - Facile: $\forall k, f_0 \le f_k$
+ - Preuves ad-hoc (et dures) : pour $k\le9$, $f_k \le f_{k+1}$
+ - "Petits" $n$ : $\forall k, \forall n \le (k+4)(k+5)/2-3, f_k(n) \le
+   f_{k+1}(n)$
+ - "Grands" $n$ : $\forall k, \exists N, \forall n\ge N, f_k(n) \le f_{k+1}(n)$
+
+Preuve complète ??
+
+TODO: détailler (les 3 cas, pourquoi dur, etc)
+
+
+##
+\section{Arbres rationnels}
 
 ## Un arbre infini rationnel
 
@@ -190,9 +234,9 @@ Parcours en largeur, de gauche à droite
 \pause
 Départ à 3 ? Pour expliciter les nombres de Fibonacci...
 
-Ainsi, le noeud $n$ a $G(n)$ comme parent.
+Et ainsi, le noeud $n$ a $G(n)$ comme parent.
 
-## Ajout d'une racine ad-hoc...
+## Ajout d'une racine ad-hoc : l'arbre de G
 
 \begin{tikzpicture}[grow'=up]
 \Tree
@@ -225,6 +269,43 @@ qu'elle soit la fonction parent d'un et un seul tel arbre ?
  - f(n)<n hormis à la racine
  - f surjective
  - f ne stationne pas (i.e. tend vers $+\infty$)
+
+## A problem for curious readers is:
+
+Suppose you flip diagram G around as if in a mirror,
+and label the nodes of the new tree so that they increase
+from left to right. Can you find a recursive *algebraic*
+definition for this "flip-tree" ?
+
+## Arbre miroir $\overline{G}$
+
+\begin{tikzpicture}[grow'=up]
+\Tree
+ [.1 [.2 [.3
+       [.4 [.6 [.9 [.14 22 23 ] ]
+               [.10 [.\fbox{15} 24 ] 
+                    [.16 25 26 ]]]]
+       [.5 [.\fbox{7} [.11 [.17 27 ] [.18 \fbox{28} 29 ]]]
+           [.8 [.12 [.19 30 31 ] ]
+               [.13 [.\fbox{20} 32 ]
+                    [.21 33 34 ]]]]]]]
+\end{tikzpicture}
+
+## Solution ?
+
+\newcommand{\FG}{\ensuremath{\overline{G}}}
+
+- Il y avait une conjecture sur <https://oeis.org/A123070>
+- Mais pas de preuve...
+- Hofstadter devait probablement avoir au moins cette formule
+
+\begin{align*}
+\FG(n) &= n+1 - \FG(\FG(n-1)+1) & (n>3) \\
+\FG(n) &= n                     & (n=0,1) \\
+\FG(n) &= n-1                   & (n=2,3) \\
+\end{align*}
+
+- Preuve papier pénible, multiples cas (vive Coq! cf fichier `FlipG.v`)
 
 ## Arbre généralisé
 
@@ -268,18 +349,23 @@ Et toujours une racine ad-hoc (1 puis $k+1$ segments)
          [.8 15 16 ]]]]
 \end{tikzpicture}
 
-## Deux équations cruciales pour G
 
-Surjectivité "explicite"
+## Equation de l'arbre miroir $\overline{f}_k$ ?
 
- - $G(n+G(n))=n$
+Quasiment comme pour $\overline{G}$ :
 
-\pause
-\bigskip
+\begin{align*}
+\overline{f}_k(n) &= n+1 - \overline{f}_k^{(k)}(\overline{f}_k(n-1)+1) & (n>k+2) \\
+\overline{f}_k(n) &= n                     & (n=0,1) \\
+\overline{k}_k(n) &= n-1                   & (2\le n \le k+2) \\
+\end{align*}
 
-Equation "renversée"
 
- - $G(n)+G(G(n+1)-1)=n$
+TODO Différences entre $\overline{f}_k$ et $f_k$ : TODO
+
+
+##
+\section{Fibonacci généralisé et numération}
 
 ## Fibonacci 
 
@@ -331,7 +417,7 @@ Algo: canonisation d'une décomposition relachée de n
  - Preuve selon le rang de la décomposition (0, pair>0, impair).
  - Nombreuses conséquences concernant G et le rang.
 
-## Et en Coq ?
+## TODO Et en Coq ?
 
 Jusqu'ici, rien que du connu (cf <https://oeis.org/A005206>).
 Attention à la littérature (en particulier un article buggé de 1986) !
@@ -341,63 +427,8 @@ Preuves Coq "maison", sans trop de soucis:
  - `Fib.v`
  - `FunG.v`
  - `Phi.v`
-
-## A problem for curious readers is:
-
-Suppose you flip diagram G around as if in a mirror,
-and label the nodes of the new tree so that they increase
-from left to right. Can you find a recursive *algebraic*
-definition for this "flip-tree" ?
-
-## Arbre miroir $\overline{G}$
-
-\begin{tikzpicture}[grow'=up]
-\Tree
- [.1 [.2 [.3
-       [.4 [.6 [.9 [.14 22 23 ] ]
-               [.10 [.\fbox{15} 24 ] 
-                    [.16 25 26 ]]]]
-       [.5 [.\fbox{7} [.11 [.17 27 ] [.18 \fbox{28} 29 ]]]
-           [.8 [.12 [.19 30 31 ] ]
-               [.13 [.\fbox{20} 32 ]
-                    [.21 33 34 ]]]]]]]
-\end{tikzpicture}
-
-## Solution ?
-
-\newcommand{\FG}{\ensuremath{\overline{G}}}
-
-- Il y avait une conjecture sur <https://oeis.org/A123070>
-- Mais pas de preuve...
-- Hofstadter devait probablement avoir au moins cette formule
-
-\begin{align*}
-\FG(n) &= n+1 - \FG(\FG(n-1)+1) & (n>3) \\
-\FG(n) &= n                     & (n=0,1) \\
-\FG(n) &= n-1                   & (n=2,3) \\
-\end{align*}
-
-- Preuve papier pénible, multiples cas (vive Coq!)
-
-## Grandes lignes
-
- - Une fonction $depth$ donnant l'étage de $n$ dans l'arbre.
- - En fait un inverse de Fibonacci.
- - Aussi calculable en itérant $G$ sur $n$ jusqu'à atteindre 1.
-
-\pause
-
- - Une fonction $flip$ qui renverse un étage de l'arbre:
-   $flip(1+F_k),...,flip(F_{k+1}) = F_{k+1},...,1+F_k$.
- - Def: $flip(n)=if~n\leq 1~then~n~else~1+F(1+depth(n))-n$.
-
-\pause
- 
- - Def: $\overline{G}(n)=flip(G(flip(n)))$
- - Et on montre que ce $\overline{G}$ valide la formule
- - En Coq: `FlipG.v`
    
-## Autre résultat principal
+## Au passage, différences entre $\overline{G}$ et $G$
 
 Def: $n$ est de rang 1-impair si sa décomposition canonique
 commence par $F_1 + F_{2p+1} + ...$.
@@ -415,16 +446,6 @@ Preuve: encore pire que la précédente, pléthore de cas.
 \bigskip
 
 Cor: $\overline{G}$ et $G$ diffèrent pour $7 = F_1+F_3$, puis tous les 5 ou 8 entiers.
-
- 
-## Equation alternative
-
-Anciens essais: pour n>3, $\overline{G}(n-1)+\overline{G}(\overline{G}(n))= n$ 
-
-\bigskip
-
-Mais ceci ne caractérise pas une unique fonction
-(sauf à exiger qu'elle soit monotone).
 
 ## Fibonacci généralisé
 
@@ -466,41 +487,18 @@ Thm: tout entier naturel a une unique $k$-décomposition canonique.
 
 Algo: on peut "renormaliser" une $k$-décomposition relachée.
 
-## Etude de $f_k$
+## $f_k$ et Fibonacci généralisé
 
-Les propriétés de $G$ se généralisent plutôt bien à $f_k$:
-
- - $f_k(n+ f_k^{(k)}(n))=n$
- - $f_k(n)+f_k^{(k)}(f_k(n+1)-1)=n$
- - $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
- - ...
-
+ - \ensuremath{f_k(A^k_i) = A^k_{i-1}} (avec la convention \ensuremath{A^k_{0-1}=A^k_0=1})
 \pause
-
-Preuves Coq toutes fraîches, un peu de sport avec $f_k^{(k)}$
-
+ - Plus généralement: $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
 \pause
-\bigskip
-
-Par contre:
-
- - $f_k(n)$ n'est **pas** $\lfloor (n+1)/\alpha_k \rfloor$
-   avec $\alpha_k$ racine réelle positive de $X^{k+1}-X^k-1$.
+ - Cela marche pour des décompositions canoniques ou relachées
 
 
-## Etude de $\overline{f}_k$
+##
+\section{Lien avec des mots morphiques}
 
-Prouvé cette semaine, quasiment comme pour $\overline{G}$ :
-
-\begin{align*}
-\overline{f}_k(n) &= n+1 - \overline{f}_k^{(k)}(\overline{f}_k(n-1)+1) & (n>k+2) \\
-\overline{f}_k(n) &= n                     & (n=0,1) \\
-\overline{k}_k(n) &= n-1                   & (2\le n \le k+2) \\
-\end{align*}
-
-\pause
-
-Différences entre $\overline{f}_k$ et $f_k$ : TODO
 
 ## Comparaison des $f_k$ quand $k$ varie ?
 
@@ -512,8 +510,8 @@ Différences entre $\overline{f}_k$ et $f_k$ : TODO
 
 Pour établir ces comparaisons au moins pour $n$ assez grand:
 
-- Conjecture: $f_k(n) - n/\alpha_k$ borné quand n varie
-- Ou au moins $f_k(n) \sim n/\alpha_k$ quand $n\to\infty$ ?
+- Conjecture: $f_k(n) - n/\alpha_k$ borné quand n varie FAUX!
+- Ou au moins $f_k(n) \sim n/\alpha_k$ quand $n\to\infty$ ? OUI!
 - Preuve ???
 
 ## Entiers de rang 0
@@ -550,6 +548,9 @@ Colonne c: les nombres de rang c par ordre croissant
 \hline
 \end{tabular}
 
+##
+\section{Cas k=2, Pisot, Fractale}
+
 
 ## Surprise
 
@@ -559,10 +560,14 @@ et $\delta(n) = f_2(n) - n/\alpha_2$
 
 \includegraphics[width=\linewidth]{fractal.png}
 
+##
+\section{Cas k=3, Pisot sans jolie fractale...}
+
+##
+\section{Cas k>3, $f_k(n) - n.\tau_k$ diverge}
 
 
-
-## Conclusions & Perspectives
+## TODO Conclusions & Perspectives
 
 - On trouve encore des conjectures "abordables" sur OEIS
 - Et aussi parfois des petites choses fausses...
@@ -575,3 +580,13 @@ et $\delta(n) = f_2(n) - n/\alpha_2$
 - Quid des conjectures ?
 - Quid de cette fractale ?
 - Longue réponse d'Hofstadter par mail à étudier 
+
+
+## TODO encore à détailler
+
+- Additivité
+- suites linéaires, reels Coq, etc
+
+- factorisation de polynôme ? Position des racines ?
+  P.ex. raisonnement à rebours donnant des racines complexes | |>1
+  sinon on aurait un Pisot trop petit.
