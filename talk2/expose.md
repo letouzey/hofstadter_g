@@ -151,26 +151,49 @@ Equation "renversée"
 
 ## Et en Coq ?
 
-TODO
+Cf `FunG.v FunG_prog.v GenG.v` :
+
+- Décroissance non structurelle : pas de `Fixpoint` Coq ainsi
+- Spécification via un prédicat inductif
+- `recf` : une définition remaniée avec un compteur `p`
+- Possibilité d'utiliser `Program Fixpoint` (mais lourd)
+- Plus rapide : `fopt` fonctionnant par table
+
 
 ## Conjecture: croissance des $f_k$ point-à-point
 
 Conjecture: $\forall k, \forall n, f_k(n) \le f_{k+1}(n)$
 
+\pause
+
 Ici, on comparera toujours les fonctions via l'ordre produit.
 
-Cette conjecture affirme donc que $(f_k)$ est une suite croissante.
+Donc formulation alternative : $(f_k)$ est une suite croissante.
+
+\pause
+
+Preuve générale ??
+
+## Conjecture: croissance des $f_k$ point-à-point
+
+Quelques éléments préliminaires:
 
  - Facile: $\forall k, f_0 \le f_k$
- - Preuves ad-hoc (et dures) : pour $k\le9$, $f_k \le f_{k+1}$
+\pause
+ - Preuves ad-hoc (et dures) : pour $k\le9$, $f_k \le f_{k+1}$.
+
+   Utilise une forme de quasi-additivité (et des calculs!)
+\pause
  - "Petits" $n$ : $\forall k, \forall n \le (k+4)(k+5)/2-3, f_k(n) \le
-   f_{k+1}(n)$
+   f_{k+1}(n)$.
+   
+   Cf le "bas" des arbres à venir juste après
+\pause
  - "Grands" $n$ : $\forall k, \exists N, \forall n\ge N, f_k(n) \le f_{k+1}(n)$
-
-Preuve complète ??
-
-TODO: détailler (les 3 cas, pourquoi dur, etc)
-
+  
+   Lorsque $n\to \infty$ on a l'équivalent $f_k(n) \sim n.\tau_k$
+  
+   où $\tau_k$ est la racine réelle positive de $X^{k+1}+X-1$
 
 ##
 \section{Arbres rationnels}
@@ -270,7 +293,7 @@ qu'elle soit la fonction parent d'un et un seul tel arbre ?
  - f surjective
  - f ne stationne pas (i.e. tend vers $+\infty$)
 
-## A problem for curious readers is:
+## Hofstadter: A problem for curious readers is...
 
 Suppose you flip diagram G around as if in a mirror,
 and label the nodes of the new tree so that they increase
@@ -361,8 +384,6 @@ Quasiment comme pour $\overline{G}$ :
 \end{align*}
 
 
-TODO Différences entre $\overline{f}_k$ et $f_k$ : TODO
-
 
 ##
 \section{Fibonacci généralisé et numération}
@@ -407,121 +428,6 @@ Algo: canonisation d'une décomposition relachée de n
  - le nombre de termes décroît ou stagne
  - le rang augmente (par pas de 2) ou stagne
 
-## G et Fibonacci
-
- - \ensuremath{G(F_i) = F_{i-1}} (avec la convention \ensuremath{F_{0-1}=F_0=1})
-\pause
- - Plus généralement: $G(\Sigma F_i) = \Sigma F_{i-1}$
-\pause
- - Cela marche même pour des décompositions relachées
- - Preuve selon le rang de la décomposition (0, pair>0, impair).
- - Nombreuses conséquences concernant G et le rang.
-
-## TODO Et en Coq ?
-
-Jusqu'ici, rien que du connu (cf <https://oeis.org/A005206>).
-Attention à la littérature (en particulier un article buggé de 1986) !
-Preuves Coq "maison", sans trop de soucis:
-
- - `DeltaList.v`
- - `Fib.v`
- - `FunG.v`
- - `Phi.v`
-   
-## Au passage, différences entre $\overline{G}$ et $G$
-
-Def: $n$ est de rang 1-impair si sa décomposition canonique
-commence par $F_1 + F_{2p+1} + ...$.
-
-\bigskip
-
-Thm: $\overline{G}(n)=1+G(n)$ si $n$ est de rang 1-impair,
-sinon $\overline{G}(n)=G(n)$.
-
-\pause
-\bigskip
-
-Preuve: encore pire que la précédente, pléthore de cas.
-
-\bigskip
-
-Cor: $\overline{G}$ et $G$ diffèrent pour $7 = F_1+F_3$, puis tous les 5 ou 8 entiers.
-
-## Fibonacci généralisé
-
-Soit $k$ fixé.
-
-\begin{align*}
-A^k_0 &= 1 \\
-A^k_1 &= 2 \\
-... \\
-A^k_{k} &= k+1 \\
-A^k_{n+1} &= A^k_{n} + A^k_{n-k} & (\text{pour}\ n\ge k)
-\end{align*}
-
-## Fibonacci généralisé
-
-- $A^0$ : 1  2  4  8  16  32  64  128  256  512
-- $A^1$ : 1  2  3  5  8  13  21  34  55  89
-- $A^2$ : 1  2  3  4  6  9  13  19  28  41
-- $A^3$ : 1  2  3  4  5  7  10  14  19  26
-
-NB: $A^2$ est nommé Narayana’s Cows, cf. OEIS A930
-
-## Zeckendorf généralisé
-
-\newcommand{\Arest}{\ensuremath{\Sigma A^k_i}}
-
-Soit $k$ fixé.
-
-\bigskip
-
-$k$-décomposition $n = \Arest$ *canonique* : indices distants $\ge (k+1)$
-
-$k$-décomposition *relachée* : indices distants d'au moins $k$
-
-\pause
-\bigskip
-
-Thm: tout entier naturel a une unique $k$-décomposition canonique.
-
-Algo: on peut "renormaliser" une $k$-décomposition relachée.
-
-## $f_k$ et Fibonacci généralisé
-
- - \ensuremath{f_k(A^k_i) = A^k_{i-1}} (avec la convention \ensuremath{A^k_{0-1}=A^k_0=1})
-\pause
- - Plus généralement: $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
-\pause
- - Cela marche pour des décompositions canoniques ou relachées
-
-
-##
-\section{Lien avec des mots morphiques}
-
-
-## Comparaison des $f_k$ quand $k$ varie ?
-
-- Conjecture: $f_k(n) \le f_{k+1}(n)$ pour tout $n$ et $k$
-- Preuve ???
-
-\pause
-\bigskip
-
-Pour établir ces comparaisons au moins pour $n$ assez grand:
-
-- Conjecture: $f_k(n) - n/\alpha_k$ borné quand n varie FAUX!
-- Ou au moins $f_k(n) \sim n/\alpha_k$ quand $n\to\infty$ ? OUI!
-- Preuve ???
-
-## Entiers de rang 0
-
-Une piste pour la comparaison des $f_k$ :
-
-$f_k$ est "plate" en $n$ lorsque rang$_k$($n$) = 0
-
-Bref lorsque $n$ a un 1 dans sa $k$-décomposition
-
 ## Tableau de Wythoff / Zeckendorf (k=1)
 
 Colonne c: les nombres de rang c par ordre croissant
@@ -548,46 +454,248 @@ Colonne c: les nombres de rang c par ordre croissant
 \hline
 \end{tabular}
 
+## G et Fibonacci
+
+ - \ensuremath{G(F_i) = F_{i-1}} (avec la convention \ensuremath{F_{0-1}=F_0=1})
+\pause
+ - Plus généralement: $G(\Sigma F_i) = \Sigma F_{i-1}$
+\pause
+ - Cela marche même pour des décompositions relachées
+ - Preuve selon le rang de la décomposition (0, pair>0, impair).
+ - Nombreuses conséquences concernant G et le rang.
+
+   
+## Au passage, différences entre $\overline{G}$ et $G$
+
+Def: $n$ est de rang 1-impair si sa décomposition canonique
+commence par $F_1 + F_{2p+1} + ...$.
+
+\bigskip
+
+Thm: $\overline{G}(n)=1+G(n)$ si $n$ est de rang 1-impair,
+sinon $\overline{G}(n)=G(n)$.
+
+\pause
+\bigskip
+
+Preuve: encore pire que pour l'équation de $\overline{G}$, pléthore de cas.
+
+\bigskip
+
+Cor: $\overline{G}$ et $G$ diffèrent pour $7 = F_1+F_3$, puis tous les 5 ou 8 entiers.
+
+## Fibonacci généralisé
+
+Soit $k$ un entier naturel.
+
+\begin{align*}
+A^k_0 &= 1 \\
+A^k_1 &= 2 \\
+... \\
+A^k_{k} &= k+1 \\
+A^k_{n+1} &= A^k_{n} + A^k_{n-k} & \text{pour}\ n\ge k
+\end{align*}
+
+## Fibonacci généralisé
+
+- $A^0$ : 1  2  4  8  16  32  64  128  256  512
+- $A^1$ : 1  2  3  5  8  13  21  34  55  89
+- $A^2$ : 1  2  3  4  6  9  13  19  28  41
+- $A^3$ : 1  2  3  4  5  7  10  14  19  26
+
+NB: $A^2$ est nommé Narayana’s Cows, cf. OEIS A930
+
+## Zeckendorf généralisé
+
+\newcommand{\Arest}{\ensuremath{\Sigma A^k_i}}
+
+Soit $k$ fixé.
+
+\bigskip
+
+$k$-décomposition $n = \Arest$ est *canonique* : indices distants $\ge (k+1)$
+
+$k$-décomposition *relachée* : indices distants d'au moins $k$
+
+\pause
+\bigskip
+
+Thm: tout entier naturel a une unique $k$-décomposition canonique.
+
+Algo: on peut "renormaliser" une $k$-décomposition relachée.
+
+## Un peu d'arithmétique avec ces décompositions
+
+La décomposition de $n+1$ et $n-1$ peut s'obtenir raisonnablement bien
+à partir de celle de $n$. 
+
+Par contre pas d'addition, multiplication, etc.
+
+
+
+## $f_k$ et Fibonacci généralisé
+
+ - \ensuremath{f_k(A^k_i) = A^k_{i-1}} (avec la convention \ensuremath{A^k_{0-1}=A^k_0=1})
+\pause
+ - Plus généralement: $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
+\pause
+ - Cela marche pour des décompositions canoniques ou relachées
+ - Important : $f_k$ "stagne" en $n$ lorsque le rang de $n$ est 0
+   (i.e. lorsque $n$ a 1 dans sa décomposition)
+
+
+## Quasi-additivité de $f_k$ ?
+
+Un exemple d'utilisation des décompositions:
+
+```coq
+Lemma additivity_bounded k p : k<>0 ->
+ forall n, exists m,
+   m < add_bound k p /\
+   f k (p+n) - f k n = f k (p+m) - f k m.
+
+Lemma decide_additivity k p a b : k<>0 ->
+ calc_additivity k p (add_bound k p) = (a,b) ->
+ forall n, a + f k n <= f k (p+n) <= b + f k n.
+```
+
+\pause
+
+Ceci a permis de prouver $f_1\le f_2$ jusqu'à
+    $f_9 \le f_{10}$ (en Coq: seulement jusqu'à $f_5 \le f_6$).
+
 ##
-\section{Cas k=2, Pisot, Fractale}
+\section{Lien avec des mots morphiques}
+
+## Une substitution de lettres
+
+Soit k un entier naturel.
+On utilise $\mathcal{A}=[0..k]$ comme alphabet.
+
+\begin{align*}
+            & \mathcal{A} \to \mathcal{A}^* \\
+\sigma_k(n) &= (n+1) & \text{pour}\ n<k \\
+\sigma_k(k) &= k.0
+\end{align*}
+
+Ceci engendre un mot infini $m_k$ à partir de la lettre $k$
+(on parle de mot \emph{morphique})
+
+Par exemple $m_2 = 20122020120122012202...$
+
+## Equation récursive
+
+$m_k$ est la limite de $\sigma_k^n(k)$ quand $n\to\infty$
+
+Mais aussi la limite de préfixes finis $M_{k,n}$ définis ainsi:
+
+- $M_{k,n}=k.0...(n-1)$ pour $n\le k$
+- $M_{k,n+1}=M_{k,n}.M_{k,n-k}$ pour $k\le n$
+
+\pause
+Remarque : $|M_{k,n}| = A^k_n$
+
+## Lien avec $f_k$
+
+La $n$-ième lettre $(m_k)_n$ du mot infini $m_k$ est le rang de la
+$k$-decomposition de $n$ (ou $k$ si ce rang est plus de $k$).
+
+En particulier cette lettre est 0 si $f_k(n)=f_k(n+1)$
+
+En cumulant : le nombre de 0 dans $m_k$ entre 0 et $n$ est $n-f_k(n)$.
+
+Plus généralement, compter les lettres au dessus de $p$ donne
+$f_k^{(p)}$. En particulier le nombre de $k$ est $f_k^{(k)}$.
+
+## Fréquences ?
+
+Quelle limite pour $f_k(n)/n$ lorsque $n\to \infty$ ?
+
+ - Si elle existe, facile à déterminer, racine positive de $X^{k+1}+X-1$.
+ - Preuve d'existence non triviale
+ 
+Cf. K. Saari, \emph{On the Frequency of Letters in Morphic Sequences}.
+
+En Coq, il fallait déjà parler de racines, et d'équivalent infini de
+suites linéaires comme $A^k$.
+
+De fil en aiguille, preuve de la formule de Leibniz du determinant et
+determinant des matrices de Vandermonde...
+
+Assure la croissance des $f_k$ pour $n$ suffisemment grand.
+
+##
+\section{Cas k=2 (i.e. H)}
 
 
-## Surprise
+## Surprise il y a quelques années
 
-Affichage des points $(\delta(i),\delta(f_2(i))$ avec i=0..10000
-et $\delta(n) = f_2(n) - n/\alpha_2$
+Affichage des points $(\delta(i),\delta(H(i))$ avec i=0..10000
+et $\delta(n) = H(n) - n.\tau_2$
 
 
 \includegraphics[width=\linewidth]{fractal.png}
 
+## Fractale de Rauzy et variante
+
+Apparemment, la factale précédente est nommée Jacobi-Perron, proche de
+la fractale de Rauzy.
+
+G. Rauzy, \emph{Nombres algébriques et substitutions}, 1982
+
+- Dans son cas, suites de Tribonacci additionnant les trois derniers
+termes
+- Ici on additionne dernier et avant-avant-dernier termes
+
+L'étude est très similaire.
+
+## Application ici
+
+On obtient finalement:
+
+- $|H(n) - n.\tau_2|<0.996<1$
+- Et donc $H(n) = \lfloor n.\tau_2 \rfloor + 0~\text{ou}~1$
+- Et quasi-additivité de $H$ :
+  $\forall n m, -2 \le H(n+m)-H(n)-H(m) \le 2$
+
+## Nombres de Pisot
+
+Dixit Wikipédia: En mathématiques, un nombre de Pisot-Vijayaraghavan
+ est un entier algébrique réel strictement supérieur à 1, dont tous
+ les éléments conjugués ont un module strictement inférieur à 1.
+
+Ici la limite $\tau_2$ de $H(n)/n$ est la racine positive de $X^3+X-1$
+mais aussi l'inverse de la racine positive de $X^3-X^2-1$ qui est le
+nombre de Pisot $P_3$.
+
+
+
 ##
 \section{Cas k=3, Pisot sans jolie fractale...}
+
+## Résultat principal pour k=3
+
+En suivant le même cheminement (pas encore formalisé en Coq)
+
+- $|f_3(n) - n.\tau_3|<1.998$
+- Et donc $-1 \le f_3(n) - \lfloor n.\tau_3 \rfloor \le 2$
+- Et quasi-additivité de $f_3$ :
+  $\forall n m, -5 \le H(n+m)-H(n)-H(m) \le 5$
+
 
 ##
 \section{Cas k>3, $f_k(n) - n.\tau_k$ diverge}
 
 
-## TODO Conclusions & Perspectives
+
+
+## Conclusions & Perspectives
 
 - On trouve encore des conjectures "abordables" sur OEIS
 - Et aussi parfois des petites choses fausses...
 \pause
 - Des preuves étonnemment délicates pour de "simples" entiers.
-- Merci Coq.
-- Preuves papier plus directes ?
-- Preuves Coq moins pédestres (quasi 7000 lignes en tout) ?
-\pause
-- Quid des conjectures ?
-- Quid de cette fractale ?
-- Longue réponse d'Hofstadter par mail à étudier 
-
-
-## TODO encore à détailler
-
-- Additivité
-- suites linéaires, reels Coq, etc
-- Rauzy et tribonacci
-
-- factorisation de polynôme ? Position des racines ?
-  P.ex. raisonnement à rebours donnant des racines complexes | |>1
-  sinon on aurait un Pisot trop petit.
+- Merci Coq !
+- Peut-on éviter ces "détours" via $\mathbb{R}$ et $\mathbb{C}$ ?
+- Quid de la conjecture ?
+- Des questions restantes concernant l'irréductibilité des polynômes rencontrés
