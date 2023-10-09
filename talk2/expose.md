@@ -586,6 +586,7 @@ et $\delta(n) = f_2(n) - n/\alpha_2$
 
 - Additivité
 - suites linéaires, reels Coq, etc
+- Rauzy et tribonacci
 
 - factorisation de polynôme ? Position des racines ?
   P.ex. raisonnement à rebours donnant des racines complexes | |>1
