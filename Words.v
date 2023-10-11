@@ -823,6 +823,13 @@ Proof.
      destruct (rank k n); simpl in *; case Nat.leb_spec; lia.
 Qed.
 
+Lemma count_above_S f p n :
+ count_above f p n = count f p n + count_above f (S p) n.
+Proof.
+ induction n; cbn -[Nat.leb]; auto. rewrite IHn.
+ do 2 case Nat.leb_spec; case Nat.eqb_spec; try lia.
+Qed.
+
 (** Particular case : p=k *)
 
 Lemma count_above_kseq_k k n :
@@ -1055,6 +1062,62 @@ Qed.
 
 Lemma len_ksubst2 w :
  length (apply (ksubst 2) w) = length w + nbocc 2 w.
+Proof.
+ induction w; simpl; auto.
+ rewrite app_length, IHw.
+ unfold ksubst at 1.
+ case Nat.eqb_spec; simpl; lia.
+Qed.
+
+(* Special case k=3
+
+ 0 -> 1
+ 1 -> 2
+ 2 -> 3
+ 3 -> 30
+
+ Occurrence matrix :
+
+ 0001
+ 1000
+ 0100
+ 0011
+
+*)
+
+Lemma nbocc_ksubst3 w :
+ let s := apply (ksubst 3) in
+ nbocc 0 (s w) = nbocc 3 w /\
+ nbocc 1 (s w) = nbocc 0 w /\
+ nbocc 2 (s w) = nbocc 1 w /\
+ nbocc 3 (s w) = nbocc 2 w + nbocc 3 w.
+Proof.
+ assert (H:3<>0) by lia.
+ destruct (nbocc_ksubst 3 H w) as (H0 & H1 & Hp). repeat split; trivial.
+ apply Hp; lia.
+ apply Hp; lia.
+Qed.
+
+Definition fourocc w := (nbocc 0 w, nbocc 1 w, nbocc 2 w, nbocc 3 w).
+
+Definition occurmatrix4 '(x,y,z,t) : nat*nat*nat*nat := (t,x,y,z+t).
+
+Lemma nbocc_ksubst3_bis w :
+ fourocc (apply (ksubst 3) w) = occurmatrix4 (fourocc w).
+Proof.
+ unfold fourocc.
+ now destruct (nbocc_ksubst3 w) as (-> & -> & -> & ->).
+Qed.
+
+Lemma len_nbocc_0123 w :
+  Forall (fun a => a <= 3) w ->
+  length w = nbocc 0 w + nbocc 1 w + nbocc 2 w + nbocc 3 w.
+Proof.
+ intros. rewrite nbocc_total_le with (k:=3); simpl; auto; lia.
+Qed.
+
+Lemma len_ksubst3 w :
+ length (apply (ksubst 3) w) = length w + nbocc 3 w.
 Proof.
  induction w; simpl; auto.
  rewrite app_length, IHw.

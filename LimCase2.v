@@ -11,7 +11,7 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case k=2, compute the complex roots of [X^3-X^2-1],
    and express (A 2 n) in term of combinations of powers of these roots.
-   Application to frequencies in [Words.kseq 2], and to behaviour of
+   Then we study the frequencies in [Words.kseq 2], and the behaviour of
    function [h] (i.e. [f 2]).
 *)
 
@@ -137,6 +137,14 @@ Proof.
  - intros [= B]. generalize im_alpha_nz. lra.
 Qed.
 
+(** Explicit decomposition of [A 2 n] into a linear combination
+    of root powers.
+    This is less useful now that we have general results for any k,
+    see ThePoly.coefs_LinCombA and Freq.A_ratio for instance.
+    But these general results do not provide expressions for the
+    coefficients, unlike [coef_alpha] and [coef_mu] below.
+*)
+
 Definition coef_alpha : C :=
  ((3-mu^2+(alphabar+mu)*(mu-2))/(alpha-mu)/(alpha-alphabar))%C.
 
@@ -199,6 +207,10 @@ Lemma coef_mu_bound : 1.30 < coef_mu < 1.32.
 Proof.
  unfold coef_mu. generalize re_coef_alpha_bound. lra.
 Qed.
+
+(** These coefficients coef_alpha and coef_mu were found by manually
+    inverting the Vandermonde(mu,alpha,alphabar) matrix.
+    Let's first verify the corresponding equations: *)
 
 Lemma coefs_eqn1 : coef_mu + 2 * Re coef_alpha = 1.
 Proof.
@@ -347,6 +359,8 @@ Proof.
    rewrite Rabs_right by (apply Rle_ge, Cmod_ge_0).
    apply Cmod_alpha_mu.
 Qed.
+
+(** See also Freq.A_ratio now: *)
 
 Lemma Lim_A2_ratio :
  is_lim_seq (fun n => A 2 (S n) / A 2 n) mu.
