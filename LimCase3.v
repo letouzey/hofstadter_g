@@ -13,7 +13,7 @@ Local Set Printing Coercions.
 
    We focus here on the case k=3, compute the complex roots of [X^4-X^3-1],
    and express (A 3 n) in term of combinations of powers of these roots.
-   Application to frequencies in [Words.kseq 3], and to behaviour of
+   Then we study the frequencies in [Words.kseq 3] and the behaviour of
    function [f 3].
 *)
 
@@ -261,11 +261,10 @@ Proof.
    rewrite scalprod_alt. unfold mkvect; simpl. lca.
 Qed.
 
-(* NB:
-   - Si besoin des coef a b c d --> calcul de l'inverse de VDM(roots3)
-   - Si besoin de juste a>=1 --> Freq.A_gt_mu_pow
-*)
-
+(** Note about A3_eqn_exists : if someday precise estimates of coefficients
+    a b c d are needed, they can be obtained by inversing the Vandermonde
+    matrix of roots3. And if we just need that a is real and >=1, then
+    see Freq.A_gt_mu_pow. *)
 
 (** ** Occurrences of letters in morphic word [Words.kseq 3]
 
@@ -279,9 +278,9 @@ Qed.
 
     Here for [Words.kseq 3], the frequencies of letters [0],[1],[2],[3]
     will be respectively [tau^4],[tau^5],[tau^6],[tau^3]
-    (another numbering
-    of letters would make that more uniform). For proving that and
-    even more, we now consider the following differences :
+    (another numbering of letters would make that more uniform).
+    For proving that and even more, we now consider the following
+    differences :
 *)
 
 Definition Diff0 w := tau^4 * length w - nbocc 0 w.
@@ -500,11 +499,6 @@ Proof.
  apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
 Qed.
 
-Lemma Cmult_reg_l a b : b <> C0 -> (a*b = C0)%C -> a=C0.
-Proof.
- intros Hb E. apply Cmult_integral in E. tauto.
-Qed.
-
 Lemma UB_DU : U×B = D×U.
 Proof.
  apply mat_equiv_eq; auto using WF_mult, WF_U, WF_B, WF_D.
@@ -514,37 +508,31 @@ Proof.
  destruct i as [|[|[|?] ] ]; try lia; clear Hi;
   destruct j as [|[|[|?] ] ]; try lia; clear Hj;
   unfold U, B, D, list2D_to_matrix, Mmult; cbn -[nu pow Cpow];
- rewrite !Cplus_0_l; try ring.
- { rewrite Ceq_minus. ring_simplify.
-   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
-   ring_simplify.
-   apply Cmult_reg_l with (alpha-mu)%C.
-   - destruct distinct_roots as (H & _). contradict H.
-     now apply Ceq_minus. (* TODO why not lca ? *)
-   - rewrite mu_tau. rewrite RtoC_inv by lra'.
-     field_simplify; trivial.
-     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-     rewrite alpha_is_Croot. field; trivial. }
- { rewrite Ceq_minus. ring_simplify.
-   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
-   ring_simplify.
-   apply Cmult_reg_l with (alphabar-mu)%C.
-   - destruct distinct_roots as (_ & H & _). contradict H.
-     now apply Ceq_minus. (* TODO why not lca ? *)
-   - rewrite mu_tau. rewrite RtoC_inv by lra'.
-     field_simplify; trivial.
-     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-     rewrite alphabar_is_Croot. field; trivial. }
- { rewrite Ceq_minus. ring_simplify.
-   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
-   ring_simplify.
-   apply Cmult_reg_l with (nu-mu)%C.
-   - destruct distinct_roots as (_ & _ & _ & _ & _ & H). contradict H.
-     apply RtoC_inj. now apply Ceq_minus. (* TODO why not lca ? *)
-   - rewrite mu_tau. rewrite RtoC_inv by lra'.
-     field_simplify; trivial.
-     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-     rewrite nu_is_Croot. field; trivial. }
+  rewrite !Cplus_0_l; try ring;
+  rewrite Ceq_minus; ring_simplify;
+  rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow;
+  ring_simplify.
+ - apply Cmult_eq_reg_r with (alpha-mu)%C.
+   2:{ destruct distinct_roots as (H & _). contradict H.
+       now apply Ceq_minus. (* TODO why not lca ? *) }
+   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
+   field_simplify; trivial.
+   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+   rewrite alpha_is_Croot. field; trivial.
+ - apply Cmult_eq_reg_r with (alphabar-mu)%C.
+   2:{ destruct distinct_roots as (_ & H & _). contradict H.
+       now apply Ceq_minus. (* TODO why not lca ? *) }
+   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
+   field_simplify; trivial.
+   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+   rewrite alphabar_is_Croot. field; trivial.
+ - apply Cmult_eq_reg_r with (nu-mu)%C.
+   2:{ destruct distinct_roots as (_ & _ & _ & _ & _ & H). contradict H.
+       apply RtoC_inj. now apply Ceq_minus. (* TODO why not lca ? *) }
+   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
+   field_simplify; trivial.
+   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+   rewrite nu_is_Croot. field; trivial.
 Qed.
 
 (* TODO: U^(-1) *)
@@ -1428,19 +1416,4 @@ Proof.
          destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
          lia. }
 Qed.
-*)
-
-(* TODO: next cases
-
-For k=3, an extra negative real root. The complex roots can be expressed
- in function of the real roots. Similar convergence and results than for k=2,
- except that (f 3 n) could be further apart from (nat_part (tau 3 * n)).
-
-For k=4, four complex roots : j and (Cconj j) of modulus 1, and
-  some alpha and (Cconj alpha) of modulus < 1. Note that alpha can be
-  expressed in function of (tau 4). Apparently, no more finite bound to
-  (f 4 n - tau 4 * n).
-
-Afterwards, always some complex root of modulus > 1 (but < mu k).
-And (f k n - tau k * n) seems to diverge.
 *)

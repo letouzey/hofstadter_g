@@ -1,6 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From QuantumLib Require Import Complex Polynomial Matrix VecSet Eigenvectors.
-Require Import MoreList MorePermut MorePoly MoreMatrix.
+Require Import MoreList MorePermut MoreComplex MorePoly MoreMatrix.
 Local Open Scope C.
 
 (** * Some diagonalization theory *)
@@ -333,7 +333,7 @@ Proof.
        rewrite Diag_times_vect in H by lia.
        rewrite <- Cmult_plus_distr_r in H. apply Cmult_integral in H.
        destruct H as [H|H]; auto. exfalso.
-       apply Cminus_eq in H. apply NoDup_nth in H; auto; lia. }
+       apply Ceq_minus in H. apply NoDup_nth in H; auto; lia. }
    rewrite Ea in E'. rewrite Mscale_mult_dist_r in E'.
    rewrite times_ei_col in E'; auto with wf_db.
    unfold B in E'.

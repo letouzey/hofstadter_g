@@ -205,6 +205,33 @@ Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
 
+Lemma Cinv0 : Cinv 0 = 0.
+Proof.
+ compute. f_equal; ring.
+Qed.
+
+Lemma Cmult_integral (a b : C) : a * b = 0 <-> a = 0 \/ b = 0.
+Proof.
+ split.
+ - destruct (Ceq_dec a 0) as [->|A]. now left.
+   destruct (Ceq_dec b 0) as [->|B]. now right.
+   intros H. now destruct (Cmult_neq_0 a b).
+ - intros [-> | ->]; ring.
+Qed.
+
+Lemma Cmult_eq_reg_r a b c : a * c = b * c -> c<>0 -> a = b.
+Proof.
+ intros E N. rewrite Ceq_minus. rewrite Ceq_minus in E.
+ replace (a*c-b*c) with ((a-b)*c) in E by ring.
+ apply Cmult_integral in E. tauto.
+Qed.
+
+Lemma Cmult_eq_reg_l a b c : c * a = c * b -> c<>0 -> a = b.
+Proof.
+ intros E N. rewrite (Cmult_comm c a), (Cmult_comm c b) in E.
+ now apply Cmult_eq_reg_r with c.
+Qed.
+
 Local Open Scope R.
 
 Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0.

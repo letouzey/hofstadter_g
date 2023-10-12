@@ -13,7 +13,7 @@ Definition ThePoly (k:nat) : Polynomial :=
 Lemma ThePoly_root_carac r k : Root r (ThePoly k) <-> r^(S k) = r^k + 1.
 Proof.
  unfold ThePoly, Root. rewrite !Pplus_eval, !monom_eval.
- symmetry. rewrite Cminus_eq.
+ symmetry. rewrite Ceq_minus.
  rewrite Nat.add_1_r, Cmult_1_l. cbn.
  rewrite <- !Copp_mult_distr_l, !Cmult_1_l, Cplus_0_l.
  unfold Cminus. now rewrite Copp_plus_distr, Cplus_assoc.
@@ -88,13 +88,13 @@ Proof.
    rewrite Pmult_eval, monom_eval. cbn.
    rewrite !Cmult_1_r, Cmult_1_l, Cplus_0_l. intro E.
    apply Cmult_integral in E. destruct E as [E|E].
-   + rewrite Cplus_comm in E. apply Cminus_eq in E.
+   + rewrite Cplus_comm in E. apply Ceq_minus in E.
      assert (Hc' : c = (INR k / INR (S k))%C).
      { rewrite <- E. rewrite <- RtoC_plus, <- S_INR. field.
        intros H'. apply RtoC_inj in H'. generalize (RSpos k). lra. }
      rewrite <- RtoC_div in Hc'. 2:generalize (RSpos k); lra.
      revert Hc.
-     rewrite ThePoly_root_carac, Cminus_eq. unfold Cminus.
+     rewrite ThePoly_root_carac, Ceq_minus. unfold Cminus.
      rewrite Copp_plus_distr, Cplus_assoc.
      change (c^S k - c^k - 1 <> 0)%C.
      replace (c^S k - c^k - 1)%C with (c^S k - (c^k + 1))%C by ring.
@@ -197,7 +197,7 @@ Proof.
  - apply C1_neq_C0.
  - intros E. apply Cmult_integral in E. destruct E as [E|E]; try easy.
    apply G_big_mult_0 in E. rewrite in_map_iff in E.
-   destruct E as (y & E & IN). apply H. apply Cminus_eq in E. now subst.
+   destruct E as (y & E & IN). apply H. apply Ceq_minus in E. now subst.
 Qed.
 
 Definition mkvect {n} (l:list C) : Vector n :=

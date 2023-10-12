@@ -1,35 +1,10 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From QuantumLib Require Import Complex Polynomial FTA.
-Require Import MoreList.
+Require Import MoreList MoreComplex.
 Local Open Scope C.
 Local Open Scope poly_scope.
 
 (** * More on QuantumLib polynomials *)
-
-(** Complement about C. TODO move elsewhere *)
-Lemma Cinv0 : Cinv 0 = 0.
-Proof.
- compute. f_equal; ring.
-Qed.
-
-Lemma Cmult_integral (c1 c2 : C) :
- (c1 * c2 = 0 <-> c1 = 0 \/ c2 = 0)%C.
-Proof.
- split.
- - destruct (Ceq_dec c1 0) as [->|H1]. now left.
-   destruct (Ceq_dec c2 0) as [->|H2]. now right.
-   intros H. now destruct (Cmult_neq_0 c1 c2).
- - intros [-> | ->]; ring.
-Qed.
-
-Lemma Cminus_eq (c1 c2 : C) : c1 = c2 <-> c1 - c2 = C0.
-Proof.
- split; intros.
- - subst. ring.
- - destruct (Ceq_dec c1 c2) as [->|N]. trivial.
-   now apply Cminus_eq_contra in N.
-Qed.
-
 
 (** Some extra definitions about polynomials on C *)
 
@@ -646,7 +621,7 @@ Proof.
    cbn. rewrite Cplus_0_l, !Cmult_1_r, Cmult_1_l.
    split; destruct 1 as [A|B]; auto.
    + right. subst. ring.
-   + left. symmetry. apply Cminus_eq. now rewrite Cplus_comm in B.
+   + left. symmetry. apply Ceq_minus. now rewrite Cplus_comm in B.
 Qed.
 
 (** derivative of a polynomial *)
