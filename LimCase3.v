@@ -1,6 +1,6 @@
 From Coq Require Import Arith Lia Reals Lra.
-From QuantumLib Require Import Complex Polynomial.
-Require Import MoreReals MoreLim MoreComplex MorePoly.
+From QuantumLib Require Import Complex Polynomial Matrix.
+Require Import MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
 Require Import DeltaList FunG GenFib GenG GenAdd Words Mu ThePoly.
 Import Permutation.
 Local Open Scope Z.
@@ -30,6 +30,11 @@ Definition alphabar : C := (re_alpha, - im_alpha).
 Lemma tau_mu : tau = /mu.
 Proof.
  reflexivity.
+Qed.
+
+Lemma mu_tau : mu = /tau.
+Proof.
+ apply tau_inv.
 Qed.
 
 Lemma tau4 : tau^4 = 1 - tau.
@@ -71,31 +76,13 @@ Ltac lra' := generalize nu_approx mu_approx tau_approx; lra.
 
 Lemma mu_nz : mu <> 0. Proof. lra'. Qed.
 Lemma nu_nz : nu <> 0. Proof. lra'. Qed.
+Lemma tau_nz : tau <> 0. Proof. lra'. Qed.
 
 Lemma re_alpha_approx : 0.219 < re_alpha < 0.220.
 Proof. unfold re_alpha. lra'. Qed.
 
 Lemma re_alpha_nz : re_alpha <> 0.
 Proof. generalize re_alpha_approx. lra. Qed.
-
-(*
-Lemma tau2_approx : 0.465570 < tau^2 < 0.465572.
-Proof.
- destruct tau_approx as (H1,H2).
- simpl. rewrite Rmult_1_r. split.
- - eapply Rlt_trans; [ | eapply Rmult_le_0_lt_compat; eauto]; lra.
- - eapply Rlt_trans; [ eapply Rmult_le_0_lt_compat; eauto | ]; lra.
-Qed.
-
-Lemma re_alpha_alt : re_alpha = - tau ^ 2 / 2.
-Proof.
- unfold re_alpha. f_equal.
- unfold mu. rewrite tau_inv. fold tau.
- assert (tau <> 0) by (generalize tau_approx; lra).
- apply Rmult_eq_reg_l with tau; trivial.
- field_simplify; trivial. rewrite tau3. lra.
-Qed.
-*)
 
 Lemma im_alpha_2_pos :  re_alpha ^ 2 < tau / - nu.
 Proof.
@@ -255,7 +242,7 @@ Proof.
  apply linfactors_roots. simpl. tauto.
 Qed.
 
-Lemma alphabar_is_root : (alphabar^4 = alphabar^3 + 1)%C.
+Lemma alphabar_is_Croot : (alphabar^4 = alphabar^3 + 1)%C.
 Proof.
  rewrite <- ThePoly_root_carac, ThePoly3_linfactors.
  apply linfactors_roots. simpl. tauto.
@@ -371,11 +358,9 @@ Proof.
 Qed.
 
 
-(** Equations giving Diff0 and co after a substitution [ksubst 3].
-    Note : this could be stated via a matrix someday.
-*)
+(** Equations giving Diff0 and co after a substitution [ksubst 3]. *)
 
-Lemma Diff0_ksubst2 w :
+Lemma Diff0_ksubst3 w :
   Diff0 (apply (ksubst 3) w) = tau * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
@@ -411,6 +396,159 @@ Proof.
  rewrite tau5, tau4. ring_simplify.
  rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
 Qed.
+
+(** Same, expressed via matrix *)
+
+Definition mkvect n l : Vector n := list2D_to_matrix (map (fun x => [x]) l).
+Definition mkvectR n l : Vector n := mkvect n (map RtoC l).
+
+Definition Diffs w : Vector 3 := mkvectR 3 [Diff3 w; Diff0 w; Diff1 w].
+Definition diffs n : Vector 3 := mkvectR 3 [diff3 n; diff0 n; diff1 n].
+
+Definition B : Square 3 :=
+ list2D_to_matrix [ [-tau^3;-C1;-C1];[RtoC tau;C0;C0];[-tau^5;C1;C0] ]%C.
+
+Lemma WF_B : WF_Matrix B.
+Proof.
+ apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
+Qed.
+
+Lemma WF_mkvect n l : length l = n -> WF_Matrix (mkvect n l).
+Proof.
+ intros.
+ apply WF_list2D_to_matrix; simpl.
+ - now rewrite map_length.
+ - intros li. rewrite in_map_iff. now intros (x & <- & _).
+Qed.
+
+Lemma WF_mkvectR n l : length l = n -> WF_Matrix (mkvectR n l).
+Proof.
+ intros. apply WF_mkvect. now rewrite map_length.
+Qed.
+
+Lemma WF_Diffs w : WF_Matrix (Diffs w).
+Proof.
+ now apply WF_mkvectR.
+Qed.
+
+Lemma WF_diffs n : WF_Matrix (diffs n).
+Proof.
+ now apply WF_mkvectR.
+Qed.
+
+Lemma diffs_alt n : diffs n = Diffs (take n (kseq 3)).
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Diffs_ksubst3 w :
+  List.Forall (fun a => a <= 3)%nat w ->
+  Diffs (apply (ksubst 3) w) = B × Diffs w.
+Proof.
+ intros F. apply mat_equiv_eq; auto using WF_Diffs, WF_mult, WF_B.
+ intros i j Hi Hj. replace j with O by lia. clear j Hj.
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  unfold Diffs, B, list2D_to_matrix, Mmult; cbn -[Cpow].
+ - rewrite Diff3_ksubst3 by trivial.
+   rewrite !RtoC_minus, !RtoC_mult, !RtoC_pow, !RtoC_opp. ring.
+ - rewrite Diff0_ksubst3. rewrite !RtoC_mult. ring.
+ - rewrite Diff1_ksubst3 by trivial.
+   rewrite !RtoC_plus, !RtoC_mult, !RtoC_pow, !RtoC_opp. ring.
+Qed.
+
+Fixpoint Mpow {n} (M:Square n) m : Square n :=
+ match m with
+ | O => I n
+ | S m => M × Mpow M m
+ end.
+
+Lemma WF_Mpow {n} (M:Square n) m : WF_Matrix M -> WF_Matrix (Mpow M m).
+Proof.
+ induction m; simpl; auto using WF_I, WF_mult.
+Qed.
+
+Definition InitialVect : Vector 3 := mkvectR 3 [tau^3-1; tau^4; tau^5].
+
+Lemma diffs_A3 n :
+ diffs (A 3 n) = Mpow B n × InitialVect.
+Proof.
+ induction n.
+ - unfold diffs, diff3, diff0, diff1, Diff3, Diff0, Diff1, InitialVect.
+   cbn -[pow Cpow].
+   rewrite Mmult_1_l by now apply WF_mkvectR.
+   now rewrite !Rmult_1_r, !Rminus_0_r.
+ - rewrite diffs_alt, kseq_take_A, kword_S, Diffs_ksubst3, IHn in *
+    by (apply kword_letters).
+   simpl. now rewrite Mmult_assoc.
+Qed.
+
+Definition U : Square 3 :=
+ list2D_to_matrix [ [-alpha^2;alpha+1;alpha];
+                    [-alphabar^2;alphabar+1; alphabar];
+                    [-nu^2;nu+1;RtoC nu] ]%C.
+
+Definition D : Square 3 :=
+ list2D_to_matrix [ [alpha;C0;C0]; [C0;alphabar;C0]; [C0;C0;RtoC nu] ]%C.
+
+Lemma WF_U : WF_Matrix U.
+Proof.
+ apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
+Qed.
+
+Lemma WF_D : WF_Matrix D.
+Proof.
+ apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
+Qed.
+
+Lemma Cmult_reg_l a b : b <> C0 -> (a*b = C0)%C -> a=C0.
+Proof.
+ intros Hb E. apply Cmult_integral in E. tauto.
+Qed.
+
+Lemma UB_DU : U×B = D×U.
+Proof.
+ apply mat_equiv_eq; auto using WF_mult, WF_U, WF_B, WF_D.
+ intros i j Hi Hj.
+ assert (N : RtoC tau <> C0).
+ { intro E. apply RtoC_inj in E. now apply tau_nz. }
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  destruct j as [|[|[|?] ] ]; try lia; clear Hj;
+  unfold U, B, D, list2D_to_matrix, Mmult; cbn -[nu pow Cpow];
+ rewrite !Cplus_0_l; try ring.
+ { rewrite Ceq_minus. ring_simplify.
+   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
+   ring_simplify.
+   apply Cmult_reg_l with (alpha-mu)%C.
+   - destruct distinct_roots as (H & _). contradict H.
+     now apply Ceq_minus. (* TODO why not lca ? *)
+   - rewrite mu_tau. rewrite RtoC_inv by lra'.
+     field_simplify; trivial.
+     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+     rewrite alpha_is_Croot. field; trivial. }
+ { rewrite Ceq_minus. ring_simplify.
+   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
+   ring_simplify.
+   apply Cmult_reg_l with (alphabar-mu)%C.
+   - destruct distinct_roots as (_ & H & _). contradict H.
+     now apply Ceq_minus. (* TODO why not lca ? *)
+   - rewrite mu_tau. rewrite RtoC_inv by lra'.
+     field_simplify; trivial.
+     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+     rewrite alphabar_is_Croot. field; trivial. }
+ { rewrite Ceq_minus. ring_simplify.
+   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow.
+   ring_simplify.
+   apply Cmult_reg_l with (nu-mu)%C.
+   - destruct distinct_roots as (_ & _ & _ & _ & _ & H). contradict H.
+     apply RtoC_inj. now apply Ceq_minus. (* TODO why not lca ? *)
+   - rewrite mu_tau. rewrite RtoC_inv by lra'.
+     field_simplify; trivial.
+     rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
+     rewrite nu_is_Croot. field; trivial. }
+Qed.
+
+(* TODO: U^(-1) *)
+
 
 (** For [A 3] numbers, diff0 and co have nice expressions via
     powers of the [nu] and [alpha] and [alphabar] roots.
