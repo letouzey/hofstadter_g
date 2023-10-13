@@ -465,13 +465,16 @@ Proof.
  induction m; simpl; auto using WF_I, WF_mult.
 Qed.
 
-Definition InitialVect : Vector 3 := mkvectR 3 [tau^3-1; tau^4; tau^5].
+(* Initial vector of differences *)
+Definition V0 : Vector 3 := mkvectR 3 [tau^3-1; tau^4; tau^5].
+
+(** Hence diffs for (A 3) numbers are given by powers of matrix B *)
 
 Lemma diffs_A3 n :
- diffs (A 3 n) = Mpow B n × InitialVect.
+ diffs (A 3 n) = Mpow B n × V0.
 Proof.
  induction n.
- - unfold diffs, diff3, diff0, diff1, Diff3, Diff0, Diff1, InitialVect.
+ - unfold diffs, diff3, diff0, diff1, Diff3, Diff0, Diff1, V0.
    cbn -[pow Cpow].
    rewrite Mmult_1_l by now apply WF_mkvectR.
    now rewrite !Rmult_1_r, !Rminus_0_r.
@@ -507,6 +510,33 @@ Proof.
  apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
 Qed.
 
+Lemma P_factor_mu (x:C) :
+ (x^4-x^3-1 = (x - mu) * (x^3 + tau^3*x^2 + tau^2*x + tau))%C.
+Proof.
+ ring_simplify. rewrite mu_tau, RtoC_inv by lra'.
+ field_simplify; try (apply RtoC_neq; lra').
+ rewrite RtoC_pow, tau4, RtoC_minus.
+ field; try (apply RtoC_neq; lra').
+Qed.
+
+Lemma P_factor_mu_eq0 (x:C) :
+  x<>mu -> (x^4 = x^3+1)%C -> (x^3 + tau^3*x^2 + tau^2*x + tau = 0)%C.
+Proof.
+ intros Hx E.
+ rewrite Ceq_minus in E.
+ replace (_-_)%C with (x^4-x^3-1)%C in E by ring.
+ rewrite P_factor_mu in E. apply Cmult_integral in E.
+ destruct E as [E|E]; trivial. now rewrite <- Ceq_minus in E.
+Qed.
+
+(* Finally unused, but may someday : symmetry for <> in goal
+Ltac sym_not :=
+ let H := fresh in
+ match goal with |- ?x <> ?y =>
+  intro H; symmetry in H; revert H; change (y <> x)
+ end.
+*)
+
 Lemma UB_DU : U×B = D×U.
 Proof.
  apply mat_equiv_eq; auto using WF_mult, WF_U, WF_B, WF_D.
@@ -520,43 +550,17 @@ Proof.
   rewrite Ceq_minus; ring_simplify;
   rewrite !(RtoC_pow tau), tau5, RtoC_minus, <- !RtoC_pow;
   ring_simplify.
- - apply Cmult_eq_reg_r with (alpha-mu)%C.
-   2:{ destruct distinct_roots as (H & _). contradict H.
-       now apply Ceq_minus. (* TODO why not lca ? *) }
-   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
-   field_simplify; trivial.
-   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-   rewrite alpha_is_Croot. field; trivial.
- - apply Cmult_eq_reg_r with (alphabar-mu)%C.
-   2:{ destruct distinct_roots as (_ & H & _). contradict H.
-       now apply Ceq_minus. (* TODO why not lca ? *) }
-   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
-   field_simplify; trivial.
-   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-   rewrite alphabar_is_Croot. field; trivial.
- - apply Cmult_eq_reg_r with (nu-mu)%C.
-   2:{ destruct distinct_roots as (_ & _ & _ & _ & _ & H). contradict H.
-       apply RtoC_inj. now apply Ceq_minus. (* TODO why not lca ? *) }
-   rewrite Cmult_0_l. rewrite mu_tau. rewrite RtoC_inv by lra'.
-   field_simplify; trivial.
-   rewrite (RtoC_pow tau 4). rewrite tau4, RtoC_minus.
-   rewrite nu_is_Croot. field; trivial.
+ - rewrite <- (P_factor_mu_eq0 alpha);
+    [ ring | apply distinct_roots | apply alpha_is_Croot].
+ - rewrite <- (P_factor_mu_eq0 alphabar);
+    [ ring | apply distinct_roots | apply alphabar_is_Croot].
+ - rewrite <- (P_factor_mu_eq0 nu);
+    [ ring | apply RtoC_inj_neq; try apply distinct_roots | apply nu_is_Croot].
 Qed.
 
 Definition detU :=
  ((alpha-alphabar)*nu^2+(alphabar^2-alpha^2)*nu
   +alpha*alphabar*(alpha-alphabar))%C.
-
-Lemma re_im_id (c:C) : (Re c + Ci * Im c = c)%C.
-Proof.
- destruct c as (x,y). unfold Ci, Cmult, Cplus. simpl. f_equal; ring.
-Qed.
-
-Lemma re_im_conj (c:C) : (Re c - Ci * Im c = Cconj c)%C.
-Proof.
- destruct c as (x,y). unfold Cconj, Ci, Cmult, Cminus, Cplus, Copp.
- simpl. f_equal; ring.
-Qed.
 
 Lemma detU_alt :
  detU = (2*im_alpha*Ci*(Cmod(alpha)^2+nu^2+2*(-nu)*re_alpha))%C.
@@ -686,101 +690,141 @@ Proof.
    now rewrite <- !Mmult_assoc, U_invU, Mmult_1_l by apply WF_Dn.
 Qed.
 
+Definition UV0a := (alpha^3/(alpha-1))%C.
+Definition UV0abar := (alphabar^3/(alphabar-1))%C.
+Definition UV0nu := (nu^3/(nu-1))%C.
 
+Definition coefa_detU := ((nu-alphabar)*UV0a)%C.
+Definition coefnu_detU := ((alphabar-alpha)*UV0nu)%C.
+Definition vecta := mkvect 3 [C1;-nu*alphabar;nu*alphabar+nu+alphabar]%C.
+Definition vectabar := mkvect 3 [C1;-nu*alpha;nu*alpha+nu+alpha]%C.
+Definition vectnu := mkvect 3 [C1;-(Cmod alpha)^2;(Cmod alpha)^2+2*re_alpha]%C.
 
+Definition coefsa := (/detU * coefa_detU) .* vecta.
+Definition coefsabar := (/detU * (-Cconj coefa_detU)) .* vectabar.
+Definition coefsnu := (/detU * coefnu_detU) .* vectnu.
 
-
-
-
-(** For [A 3] numbers, diff0 and co have nice expressions via
-    powers of the [nu] and [alpha] and [alphabar] roots.
-    Let's first describe the coefficients used
-    in these expressions. *)
-
-(* TO BE CONTINUED
-Definition coefa2 := ((alpha*(tau^2-1)-tau^3)/(alpha-alphabar))%C.
-Definition coefa0 := (alphabar * coefa2)%C.
-
-Lemma re_coefa2 : 2*Re coefa2 = tau^2-1.
+Lemma U_V0_alt :
+  U × V0 = mkvect 3 [UV0a;UV0abar;UV0nu]%C.
 Proof.
- unfold coefa2.
- change alphabar with (Cconj alpha). rewrite im_alt'.
- change (Im alpha) with im_alpha.
- unfold Cdiv.
- replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
- 2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_alpha_nz. }
- rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
- rewrite !Cmult_assoc.
- rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_alpha_nz; lra).
- rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_alpha_nz.
+ apply mat_equiv_eq.
+ - apply WF_mult. apply WF_U. now apply WF_mkvectR.
+ - now apply WF_mkvect.
+ - intros i j Hi Hj.
+   destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+   destruct j as [|? ]; try lia; clear Hj;
+   unfold U, V0, mkvectR, mkvect, list2D_to_matrix, Mmult, scale;
+    cbn -[nu Cpow pow];
+    rewrite tau4, tau5; rewrite !RtoC_minus, <- !RtoC_pow.
+   + rewrite <- (P_factor_mu_eq0 alpha);
+       [ | apply distinct_roots | apply alpha_is_Croot ].
+     ring_simplify.
+     assert (N : (alpha-1 <> 0)%C).
+     { apply Cminus_eq_contra. unfold alpha. intros [= E E'].
+       generalize re_alpha_approx; lra. }
+     unfold UV0a.
+     apply Cmult_eq_reg_l with (alpha-1)%C; try field_simplify; trivial.
+     rewrite alpha_is_Croot; field.
+   + rewrite <- (P_factor_mu_eq0 alphabar);
+       [ | apply distinct_roots | apply alphabar_is_Croot ].
+     ring_simplify.
+     assert (N : (alphabar-1 <> 0)%C).
+     { apply Cminus_eq_contra. unfold alphabar. intros [= E E'].
+       generalize re_alpha_approx; lra. }
+     unfold UV0abar.
+     apply Cmult_eq_reg_l with (alphabar-1)%C; try field_simplify; trivial.
+     rewrite alphabar_is_Croot; field.
+   + rewrite <- (P_factor_mu_eq0 nu);
+       [ | apply RtoC_inj_neq,distinct_roots | apply nu_is_Croot ].
+     ring_simplify.
+     assert (N : (nu-1 <> 0)%C).
+     { apply Cminus_eq_contra. intros [= E]; lra'. }
+     unfold UV0nu.
+     apply Cmult_eq_reg_l with (nu-1)%C; try field_simplify; trivial.
+     rewrite nu_is_Croot; field.
 Qed.
 
-Lemma re_coefa0 : 2*Re coefa0 = tau^3.
+Lemma alphabar_conj : Cconj alphabar = alpha.
 Proof.
- unfold coefa0, coefa2. unfold Cdiv.
- rewrite Cmult_assoc.
- replace (alphabar * _)%C
-  with ((alpha * alphabar) * (tau^2-1) - alphabar * tau^3)%C by ring.
- rewrite <- Cmod2_conj, alphamod2.
- change alphabar with (Cconj alpha) at 2. rewrite im_alt'.
- change (Im alpha) with im_alpha.
- replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
- 2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_alpha_nz. }
- rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
- rewrite !Cmult_assoc.
- rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_alpha_nz; lra).
- rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_alpha_nz.
+ unfold alpha, alphabar, Cconj; simpl; f_equal; lra.
 Qed.
 
-Lemma diff_A n :
- diff0 (A 2 n) = 2 * Re(coefa0 * alpha^n)%C /\
- diff2 (A 2 n) = 2 * Re(coefa2 * alpha^n)%C.
+Lemma alpha_conj : Cconj alpha = alphabar.
 Proof.
- induction n as [|n IH].
- - simpl A. simpl Cpow.
-   unfold diff0, diff2. simpl take. change (kseq 2 0) with 2%nat.
-   unfold Diff0, Diff2. simpl length. simpl nbocc.
-   rewrite !Cmult_1_r. rewrite re_coefa0, re_coefa2. simpl; lra.
- - unfold diff0, diff2.
-   rewrite kseq_take_A, kword_S.
-   rewrite Diff0_ksubst2, Diff2_ksubst2 by (apply kword_letters).
-   rewrite <- kseq_take_A. fold (diff0 (A 2 n)) (diff2 (A 2 n)).
-   destruct IH as (-> & ->).
-   simpl Cpow.
-   split.
-   + rewrite Cmult_assoc. rewrite (Cmult_comm coefa0). unfold coefa0.
-     rewrite Cmult_assoc. change alphabar with (Cconj alpha).
-     rewrite <- Cmod2_conj, alphamod2.
-     rewrite <- Cmult_assoc, re_scal_l. lra.
-   + unfold coefa0.
-     rewrite (Cmult_assoc coefa2), (Cmult_comm coefa2 alpha).
-     rewrite <- !Cmult_assoc.
-     set (c := (coefa2 * (alpha^n))%C).
-     replace (-tau^2*(2*Re c)-2*Re (alphabar * c)) with
-         (2 * ((-tau^2)*Re c + (-1)*(Re (alphabar * c)))) by ring.
-     f_equal.
-     rewrite <-!re_scal_l, <-re_plus.
-     f_equal.
-     rewrite Cmult_assoc. rewrite <- Cmult_plus_distr_r. f_equal.
-     replace (-tau^2) with (2*re_alpha) by (rewrite re_alpha_alt; lra).
-     rewrite RtoC_mult.
-     change re_alpha with (Re alpha).
-     rewrite re_alt.
-     change (Cconj alpha) with alphabar. field.
+ unfold alpha, alphabar, Cconj; simpl; f_equal; lra.
 Qed.
 
-(** Now, any arbitrary number [n] is a sum of [A 2] numbers by Zeckendorf
-    theorem (cf. [GenFib.decomp]). So [diff0 n] will be a sum of powers
-    of [alpha]. *)
+Lemma UV0a_conj : Cconj UV0a = UV0abar.
+Proof.
+ unfold UV0abar, UV0a.
+ rewrite Cdiv_conj, Cconj_minus_distr, Cpow_conj, alpha_conj.
+ - f_equal. f_equal. lca.
+ - apply Cminus_eq_contra. unfold alpha. intros [= E E'].
+   generalize re_alpha_approx; lra.
+Qed.
 
+(** diffs for (A 3) numbers are linear combinations of little roots *)
+
+Lemma diffs_A3_powers n :
+  diffs (A 3 n) =
+   (alpha^n .* coefsa .+ alphabar^n .* coefsabar .+ nu^n .* coefsnu)%C.
+Proof.
+ rewrite diffs_A3, Bn_diag.
+ unfold invU, coefsa, coefsabar, coefsnu.
+ rewrite !Mscale_mult_dist_l.
+ rewrite !Mscale_assoc, !Cmult_assoc, !(Cmult_comm _ (/detU)),
+  <-Cmult_assoc, <- !Mscale_assoc, <- !Mscale_plus_distr_r.
+ f_equal.
+ rewrite Mmult_assoc, U_V0_alt.
+ unfold coefa_detU, coefnu_detU.
+ apply mat_equiv_eq.
+ - repeat apply WF_mult; try apply WF_scale;
+   auto using WF_Dn, WF_invU_detU.
+   now apply WF_mkvect.
+ - repeat apply WF_plus; repeat apply WF_scale; now apply WF_mkvect.
+ - intros i j Hi Hj.
+   destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+   destruct j as [|?]; try lia; clear Hj;
+   unfold Dn, invU_detU, vecta, vectabar, vectnu, mkvect,
+    list2D_to_matrix, Mplus, Mmult, scale;
+   cbn -[nu Cpow pow]; apply Ceq_minus; ring_simplify.
+   + rewrite Cconj_mult_distr, Cconj_minus_distr, Cconj_R, alphabar_conj,
+      UV0a_conj. ring.
+   + rewrite Cconj_mult_distr, Cconj_minus_distr, Cconj_R, alphabar_conj,
+      UV0a_conj. ring_simplify.
+     rewrite (RtoC_pow (Cmod _)), Cmod2_conj, alpha_conj. ring.
+   + rewrite Cconj_mult_distr, Cconj_minus_distr, Cconj_R, alphabar_conj,
+      UV0a_conj. ring_simplify.
+     rewrite (RtoC_pow (Cmod _)), Cmod2_conj, alpha_conj. ring_simplify.
+     change re_alpha with (Re alpha). rewrite re_alt, alpha_conj.
+     field.
+Qed. (* TODO too slow *)
+
+(* In particular for diff0 : *)
+
+Definition coefa0 := coefsa 1%nat 0%nat.
+Definition coefnu0 := Re (coefsnu 1%nat 0%nat).
+
+Lemma diff0_A3_powers n :
+  diff0 (A 3 n) = 2 * Re (coefa0 * alpha^n) + coefnu0 * nu^n.
+Proof.
+  apply RtoC_inj.
+  change (RtoC (diff0 (A 3 n))) with (diffs (A 3 n) 1%nat 0%nat).
+  rewrite diffs_A3_powers.
+  rewrite RtoC_plus, !RtoC_mult, <- !RtoC_pow.
+  rewrite re_alt, Cconj_mult_distr, Cpow_conj, alpha_conj.
+  unfold Mplus, scale; cbn -[nu Cpow pow Re].
+  unfold coefa0, coefnu0.
+  field_simplify. f_equal; f_equal. f_equal.
+  - admit. (* coefsabar est bien Cconj coefsa *)
+  - admit. (* coefsnu est bien reel *)
+Admitted.
+
+(** Now, any arbitrary number [n] is a sum of [A 3] numbers by Zeckendorf
+    theorem (cf. [GenFib.decomp]). So [diffs n] will be a sum of powers
+    of [alpha], [alphabar], [nu]. *)
+
+(* TODO: factor with LimCase2 ? *)
 Lemma Diff0_app u v : Diff0 (u++v) = Diff0 u + Diff0 v.
 Proof.
  unfold Diff0.
@@ -796,16 +840,18 @@ Qed.
 
 Lemma diff0_decomp_eqn n :
   diff0 n =
-   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C) (decomp 2 n)).
+   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C+coefnu0*nu^n)
+                      (decomp 3 n)).
 Proof.
  unfold diff0.
  rewrite decomp_prefix_kseq.
  rewrite Diff0_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
- rewrite <- kseq_take_A. apply diff_A.
+ rewrite <- kseq_take_A. apply diff0_A3_powers.
 Qed.
 
+(* TODO continuer
 Lemma diff0_decomp_eqn' n :
   diff0 n =
    2*Re (coefa0 * Clistsum (List.map (Cpow alpha) (decomp 2 n))).

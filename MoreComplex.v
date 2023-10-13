@@ -205,6 +205,22 @@ Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
 
+Lemma RtoC_inj_neq x y : x<>y -> RtoC x <> RtoC y.
+Proof.
+ intros N E. now apply RtoC_inj in E.
+Qed.
+
+Lemma re_im_id (c:C) : (Re c + Ci * Im c = c)%C.
+Proof.
+ destruct c as (x,y). unfold Ci, Cmult, Cplus. simpl. f_equal; ring.
+Qed.
+
+Lemma re_im_conj (c:C) : (Re c - Ci * Im c = Cconj c)%C.
+Proof.
+ destruct c as (x,y). unfold Cconj, Ci, Cmult, Cminus, Cplus, Copp.
+ simpl. f_equal; ring.
+Qed.
+
 Lemma Cinv0 : Cinv 0 = 0.
 Proof.
  compute. f_equal; ring.
