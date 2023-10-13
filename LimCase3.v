@@ -356,7 +356,6 @@ Proof.
  rewrite plus_INR. lra.
 Qed.
 
-
 (** Equations giving Diff0 and co after a substitution [ksubst 3]. *)
 
 Lemma Diff0_ksubst3 w :
@@ -489,12 +488,21 @@ Definition U : Square 3 :=
 Definition D : Square 3 :=
  list2D_to_matrix [ [alpha;C0;C0]; [C0;alphabar;C0]; [C0;C0;RtoC nu] ]%C.
 
+Definition Dn n : Square 3 :=
+ list2D_to_matrix
+   [ [alpha^n;C0;C0]; [C0;alphabar^n;C0]; [C0;C0;(RtoC nu)^n] ]%C.
+
 Lemma WF_U : WF_Matrix U.
 Proof.
  apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
 Qed.
 
 Lemma WF_D : WF_Matrix D.
+Proof.
+ apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
+Qed.
+
+Lemma WF_Dn n : WF_Matrix (Dn n).
 Proof.
  apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
 Qed.
@@ -535,7 +543,153 @@ Proof.
    rewrite nu_is_Croot. field; trivial.
 Qed.
 
-(* TODO: U^(-1) *)
+Definition detU :=
+ ((alpha-alphabar)*nu^2+(alphabar^2-alpha^2)*nu
+  +alpha*alphabar*(alpha-alphabar))%C.
+
+Lemma re_im_id (c:C) : (Re c + Ci * Im c = c)%C.
+Proof.
+ destruct c as (x,y). unfold Ci, Cmult, Cplus. simpl. f_equal; ring.
+Qed.
+
+Lemma re_im_conj (c:C) : (Re c - Ci * Im c = Cconj c)%C.
+Proof.
+ destruct c as (x,y). unfold Cconj, Ci, Cmult, Cminus, Cplus, Copp.
+ simpl. f_equal; ring.
+Qed.
+
+Lemma detU_alt :
+ detU = (2*im_alpha*Ci*(Cmod(alpha)^2+nu^2+2*(-nu)*re_alpha))%C.
+Proof.
+ unfold detU. change alphabar with (Cconj alpha).
+ rewrite im_alt'. change (Im alpha) with im_alpha.
+ rewrite <- Cmod2_conj.
+ replace ((Cconj alpha)^2-alpha^2)%C with (-4*Ci*im_alpha*re_alpha)%C.
+ 2:{ rewrite <- (re_im_conj alpha).
+     change (Re alpha) with re_alpha.
+     change (Im alpha) with im_alpha.
+     rewrite <- (re_im_id alpha).
+     change (Re alpha) with re_alpha.
+     change (Im alpha) with im_alpha. ring. }
+ rewrite <- !RtoC_pow. ring.
+Qed.
+
+Lemma detU_nz : detU <> 0.
+Proof.
+ rewrite detU_alt. intros E. rewrite !Cmult_integral in E.
+ repeat destruct E as [E|E]; try apply RtoC_inj in E; try lra.
+ - now apply im_alpha_nz.
+ - compute in E. injection E; lra.
+ - rewrite !RtoC_pow, <- !RtoC_opp, <- !RtoC_mult, <- !RtoC_plus in E.
+   apply RtoC_inj in E. symmetry in E. revert E. apply Rlt_not_eq.
+   repeat apply Rplus_lt_0_compat.
+   + rewrite alphamod2. apply Rmult_lt_0_compat. lra'.
+     apply Rinv_0_lt_compat; lra'.
+   + rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra'.
+   + repeat apply Rmult_lt_0_compat; lra'.
+Qed.
+
+Definition invU_detU : Square 3 :=
+ list2D_to_matrix
+  [ [ nu-alphabar; -(nu-alpha); alphabar-alpha];
+    [-alphabar*nu*(nu-alphabar); alpha*nu*(nu-alpha);
+       -alpha*alphabar*(alphabar-alpha)];
+    [(nu-alphabar)*(alphabar*nu+nu+alphabar);
+       -(nu-alpha)*(alpha*nu+nu+alpha);
+       (alphabar-alpha)*(alpha*alphabar+alphabar+alpha)] ]%C.
+
+Definition invU := /detU .* invU_detU.
+
+Lemma WF_invU_detU : WF_Matrix invU_detU.
+Proof.
+ apply WF_list2D_to_matrix; simpl; intuition; subst; auto.
+Qed.
+
+Lemma WF_invU : WF_Matrix invU.
+Proof.
+ apply WF_scale, WF_invU_detU.
+Qed.
+
+Lemma invU_detU_U : invU_detU × U = detU .* (I 3).
+Proof.
+ apply mat_equiv_eq; auto using WF_mult, WF_U, WF_invU_detU, WF_scale, WF_I.
+ intros i j Hi Hj.
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  destruct j as [|[|[|?] ] ]; try lia; clear Hj;
+  unfold U, invU_detU, detU, list2D_to_matrix, Mmult, scale, I;
+  cbn -[nu Cpow pow]; ring.
+Qed.
+
+Lemma U_invU_detU : U × invU_detU = detU .* (I 3).
+Proof.
+ apply mat_equiv_eq; auto using WF_mult, WF_U, WF_invU_detU, WF_scale, WF_I.
+ intros i j Hi Hj.
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  destruct j as [|[|[|?] ] ]; try lia; clear Hj;
+  unfold U, invU_detU, detU, list2D_to_matrix, Mmult, scale, I;
+  cbn -[nu Cpow pow]; ring.
+Qed.
+
+Lemma invU_U : invU × U = I 3.
+Proof.
+ unfold invU.
+ rewrite Mscale_mult_dist_l, invU_detU_U.
+ rewrite Mscale_assoc.
+ replace (/detU * detU)%C with C1. apply Mscale_1_l.
+ symmetry. apply Cinv_l. apply detU_nz.
+Qed.
+
+Lemma U_invU : U × invU = I 3.
+Proof.
+ unfold invU.
+ rewrite Mscale_mult_dist_r, U_invU_detU.
+ rewrite Mscale_assoc.
+ replace (/detU * detU)%C with C1. apply Mscale_1_l.
+ symmetry. apply Cinv_l. apply detU_nz.
+Qed.
+
+Lemma B_diag : B = invU × D × U.
+Proof.
+ rewrite Mmult_assoc, <- UB_DU, <- Mmult_assoc, invU_U, Mmult_1_l;
+   auto using WF_B.
+Qed.
+
+Lemma Dn_0 : Dn 0 = I 3.
+Proof.
+ apply mat_equiv_eq; auto using WF_Dn, WF_I.
+ intros i j Hi Hj.
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  destruct j as [|[|[|?] ] ]; try lia; clear Hj;
+  unfold I, D, list2D_to_matrix; cbn -[nu]; try ring.
+Qed.
+
+Lemma Dn_S n : Dn (S n) = D × Dn n.
+Proof.
+ apply mat_equiv_eq; auto using WF_mult, WF_D, WF_Dn.
+ intros i j Hi Hj.
+ destruct i as [|[|[|?] ] ]; try lia; clear Hi;
+  destruct j as [|[|[|?] ] ]; try lia; clear Hj;
+  unfold Dn, D, list2D_to_matrix, Mmult; cbn -[nu]; try ring.
+Qed.
+
+Lemma Dn_D n : Mpow D n = Dn n.
+Proof.
+ induction n; simpl; now rewrite ?Dn_0, ?Dn_S, ?IHn.
+Qed.
+
+Lemma Bn_diag n : Mpow B n = invU × Dn n × U.
+Proof.
+ induction n; simpl.
+ - now rewrite Dn_0, Mmult_1_r, invU_U by apply WF_invU.
+ - rewrite Dn_S, IHn, B_diag.
+   rewrite !Mmult_assoc. f_equal. f_equal.
+   now rewrite <- !Mmult_assoc, U_invU, Mmult_1_l by apply WF_Dn.
+Qed.
+
+
+
+
+
 
 
 (** For [A 3] numbers, diff0 and co have nice expressions via
