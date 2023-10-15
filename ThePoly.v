@@ -200,26 +200,15 @@ Proof.
    destruct E as (y & E & IN). apply H. apply Ceq_minus in E. now subst.
 Qed.
 
-Definition mkvect {n} (l:list C) : Vector n :=
- fun i j => if j =? 0 then nth i l 0 else 0.
-
-Lemma WF_mkvect n l : (length l <= n)%nat -> WF_Matrix (@mkvect n l).
-Proof.
- intros L i j [Hi|Hj]; unfold mkvect.
- - case Nat.eqb_spec; intros; auto. apply nth_overflow; lia.
- - case Nat.eqb_spec; intros; auto; lia.
-Qed.
-
-Definition scalprod {n} (v v' : Vector n) : C :=
- Mmult (transpose v) v' O O.
-
-Lemma scalprod_alt {n} (v v' : Vector n) :
- scalprod v v' = Σ (fun i => v i O * v' i O) n.
-Proof.
- now unfold scalprod, Mmult, transpose.
-Qed.
-
 Definition pows (l:list C) n := map (fun c => c^n) l.
+
+Lemma nth_pows i l p : (i < length l)%nat ->
+ nth i (pows l p) 0 = nth i l 0 ^p.
+Proof.
+ intros H.
+ rewrite <- map_nth with (f := fun c => c ^ p).
+ apply nth_indep. unfold pows; rewrite map_length; lia.
+Qed.
 
 Lemma get_row_mult n m p (A : Matrix n m) (B : Matrix m p) k :
  Mmult (get_row k A) B == get_row k (Mmult A B).
@@ -276,21 +265,22 @@ Qed.
 Lemma coefs_LinComb :
  exists coefs : Vector (S k),
   forall p, (p <= k)%nat ->
-    scalprod coefs (mkvect (pows allroots p)) = S p.
+    scalprod coefs (mkvect _ (pows allroots p)) = S p.
 Proof.
  destruct VdmRoots_invertible as (Vinv & E & _).
- set (vect_1_Sk := @mkvect (S k) (map (compose RtoC INR) (seq 1 (S k)))).
+ set (vect_1_Sk := mkvect (S k) (map (compose RtoC INR) (seq 1 (S k)))).
  assert (WF_Matrix vect_1_Sk).
  { apply WF_mkvect. now rewrite map_length, seq_length. }
  set (coefs := Mmult Vinv vect_1_Sk).
  exists (make_WF coefs). intros p Hp.
- replace (mkvect (pows allroots p)) with (transpose (get_row p vdmroot)).
- 2:{ apply mat_equiv_eq. apply WF_transpose, WF_get_row, WF_Vandermonde.
-     apply WF_mkvect. unfold pows. rewrite map_length; lia.
-     intros i j Hi Hj. unfold mkvect. case Nat.eqb_spec; intros; subst; try lia.
-     unfold get_row, transpose, vdmroot, Vandermonde; simpl.
-     do 2 (case Nat.ltb_spec; intros; try lia). simpl.
-     unfold pows. rewrite nth_map_indep with (d':=C0); auto; lia. }
+ replace (mkvect _ (pows allroots p)) with (transpose (get_row p vdmroot)).
+ 2:{ apply mat_equiv_eq.
+     - apply WF_transpose, WF_get_row, WF_Vandermonde.
+     - apply WF_mkvect. unfold pows. rewrite map_length; lia.
+     - intros i j Hi Hj. replace j with O by lia; clear j Hj.
+       rewrite mkvect_eqn, nth_pows by lia.
+       unfold get_row, vdmroot, Vandermonde. cbn.
+       do 2 case Nat.leb_spec; auto; lia. }
  unfold scalprod. rewrite <- Mmult_transpose.
  rewrite get_row_mult_eq. 2:apply WF_Vandermonde. 2:apply WF_make_WF.
  rewrite (eq_make_WF vdmroot). 2:apply WF_Vandermonde.
@@ -298,12 +288,15 @@ Proof.
  rewrite <- Mmult_assoc, E, Mmult_1_l; auto.
  rewrite <- eq_make_WF; auto.
  unfold get_row, transpose. cbn -[RtoC INR seq].
- rewrite <- seq_shift, map_map. rewrite nth_map_seq; auto; lia.
+ unfold vect_1_Sk, mkvect, list2D_to_matrix.
+ rewrite map_map.
+ rewrite nth_map_indep with (d':=O) by (rewrite seq_length; lia).
+ now rewrite seq_nth by lia.
 Qed.
 
 Lemma coefs_LinCombA :
  exists coefs : Vector (S k),
-  forall n, scalprod coefs (mkvect (pows allroots n)) = A k n.
+  forall n, scalprod coefs (mkvect _ (pows allroots n)) = A k n.
 Proof.
  destruct coefs_LinComb as (coefs & Init). exists coefs.
  induction n as [n IH] using lt_wf_ind.
@@ -311,14 +304,14 @@ Proof.
  - rewrite A_base by lia. now apply Init.
  - destruct n; try lia. simpl A.
    rewrite plus_INR, RtoC_plus, <- !IH by lia.
-   replace (mkvect (pows allroots (S n))) with
-       (@mkvect (S k) (pows allroots n) .+ mkvect (pows allroots (n-k))).
+   replace (mkvect _ (pows allroots (S n))) with
+       (mkvect (S k) (pows allroots n) .+ mkvect _ (pows allroots (n-k))).
    + unfold scalprod. now rewrite Mmult_plus_distr_l.
    + apply mat_equiv_eq.
      * apply WF_plus; apply WF_mkvect; unfold pows; rewrite map_length; lia.
      * apply WF_mkvect; unfold pows; rewrite map_length; lia.
-     * intros i j Hi Hj. unfold mkvect, Mplus. replace j with O by lia.
-       simpl. unfold pows. rewrite !nth_map_indep with (d':=C0) by lia.
+     * intros i j Hi Hj. replace j with O by lia.
+       unfold Mplus. rewrite !mkvect_eqn, !nth_pows by lia.
        set (r := nth i allroots C0).
        assert (R : Root r (ThePoly k)).
        { rewrite allroots_ok, <- linfactors_roots. apply nth_In; lia. }
@@ -342,16 +335,14 @@ Proof.
    (u := (fun n => Re (coefs O O) + big_sum (rest n) k)%R).
  - intros n.
    rewrite <- (re_RtoC (A k n)). rewrite <- E. clear E.
-   rewrite scalprod_alt, <- big_sum_extend_l.
-   unfold mkvect at 1. simpl Cmult. rewrite re_plus.
-   unfold pows at 1. rewrite nth_map_indep with (d':=C0) by lia.
-   rewrite allroots_mu', RtoC_pow, re_scal_r, Re_Σ.
+   rewrite scalprod_alt, <- big_sum_extend_l;
+   rewrite mkvect_eqn, nth_pows, allroots_mu' by lia.
+   rewrite RtoC_pow, re_plus, re_scal_r, Re_Σ.
    rewrite Rdiv_plus_distr. f_equal; [field; now apply pow_nonzero|].
    unfold Rdiv. rewrite (@big_sum_mult_r _ _ _ _ R_is_ring).
    apply bigsum_ext. intros i Hi. cbn -[Re].
    unfold rest. unfold Rdiv. f_equal. f_equal. f_equal.
-   unfold mkvect. simpl. unfold pows.
-   rewrite nth_map_indep with (d':=C0); auto; lia.
+   now rewrite mkvect_eqn, nth_pows by lia.
  - clear E. rewrite <- (Rplus_0_r (Re _)) at 1.
    apply is_lim_seq_plus'; [apply is_lim_seq_const|].
    apply is_lim_seq_Σ_0. intros i Hi.

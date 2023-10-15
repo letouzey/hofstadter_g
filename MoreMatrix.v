@@ -5,6 +5,92 @@ Local Open Scope C.
 
 (** * Complements about QuantumLib matrices *)
 
+Fixpoint Mpow {n} (M:Square n) m : Square n :=
+ match m with
+ | O => I n
+ | S m => M × Mpow M m
+ end.
+
+Lemma WF_Mpow {n} (M:Square n) m : WF_Matrix M -> WF_Matrix (Mpow M m).
+Proof.
+ induction m; simpl; auto using WF_I, WF_mult.
+Qed.
+
+Definition Mconj {n m} (M:Matrix n m) : Matrix n m :=
+ fun i j => Cconj (M i j).
+
+Lemma WF_Mconj {n m} (M : Matrix n m) : WF_Matrix M -> WF_Matrix (Mconj M).
+Proof.
+ intros WF x y Hxy. unfold Mconj. rewrite (WF x y Hxy). lca.
+Qed.
+
+Lemma Mconj_scale {n m} c (M : Matrix n m) :
+ Mconj (c .* M) = Cconj c .* Mconj M.
+Proof.
+ apply functional_extensionality. intros i.
+ apply functional_extensionality. intros j.
+ unfold Mconj, scale; cbn. apply Cconj_mult_distr.
+Qed.
+
+Definition mkvect n l : Vector n := list2D_to_matrix (map (fun x => [x]) l).
+Definition mkvectR n l : Vector n := mkvect n (map RtoC l).
+
+Lemma mkvect_eqn n l i : mkvect n l i O = nth i l 0.
+Proof.
+ unfold mkvect, list2D_to_matrix.
+ set (f := fun x => [x]).
+ destruct (Nat.lt_ge_cases i (length l)).
+ - rewrite nth_map_indep with (d':=C0); auto.
+ - rewrite nth_overflow with (n:=i) by now rewrite map_length.
+   simpl. now rewrite nth_overflow.
+Qed.
+
+Lemma WF_mkvect n l : length l = n -> WF_Matrix (mkvect n l).
+Proof.
+ intros.
+ apply WF_list2D_to_matrix; simpl.
+ - now rewrite map_length.
+ - intros li. rewrite in_map_iff. now intros (x & <- & _).
+Qed.
+
+Lemma WF_mkvectR n l : length l = n -> WF_Matrix (mkvectR n l).
+Proof.
+ intros. apply WF_mkvect. now rewrite map_length.
+Qed.
+
+#[export] Hint Resolve WF_Mpow WF_Mconj WF_mkvect WF_mkvectR : wf_db.
+
+(** Specialized versions of mat_equiv_eq for 3D Vectors and Matrix *)
+
+Lemma Vect3_eq (V V' : Vector 3) : WF_Matrix V -> WF_Matrix V' ->
+ (V 0 0 = V' 0 0 -> V 1 0 = V' 1 0 -> V 2 0 = V' 2 0 -> V = V')%nat.
+Proof.
+ intros. apply mat_equiv_eq; auto. intros i j Hi Hj.
+ replace j with O by lia; clear j Hj.
+ destruct i as [|[|[|?] ] ]; try lia; trivial.
+Qed.
+
+Lemma Mat3_eq (M M' : Square 3) : WF_Matrix M -> WF_Matrix M' ->
+ (M 0 0 = M' 0 0 -> M 1 0 = M' 1 0 -> M 2 0 = M' 2 0 ->
+  M 0 1 = M' 0 1 -> M 1 1 = M' 1 1 -> M 2 1 = M' 2 1 ->
+  M 0 2 = M' 0 2 -> M 1 2 = M' 1 2 -> M 2 2 = M' 2 2 -> M = M')%nat.
+Proof.
+ intros. apply mat_equiv_eq; auto. intros i j Hi Hj.
+ destruct i as [|[|[|?] ] ]; try lia;
+ destruct j as [|[|[|?] ] ]; try lia; trivial.
+Qed.
+
+(** Scalar product *)
+
+Definition scalprod {n} (v v' : Vector n) : C :=
+ Mmult (transpose v) v' O O.
+
+Lemma scalprod_alt {n} (v v' : Vector n) :
+ scalprod v v' = Σ (fun i => v i O * v' i O) n.
+Proof.
+ now unfold scalprod, Mmult, transpose.
+Qed.
+
 (** More on big sums and products *)
 
 Lemma Gbigplus_permut (l l' : list C) :
