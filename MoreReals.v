@@ -64,6 +64,19 @@ Proof.
  generalize (RSpos n). lra.
 Qed.
 
+Lemma Rmult_lt_compat a b c d :
+ 0 <= a < b -> 0 <= c < d -> a*c < b*d.
+Proof.
+ intros (Ha,Hab) (Hc,Hcd).
+ apply Rle_lt_or_eq_dec in Ha; destruct Ha as [Ha | <-].
+ 2:{ rewrite Rmult_0_l. apply Rmult_lt_0_compat; lra. }
+ apply Rle_lt_or_eq_dec in Hc; destruct Hc as [Hc | <-].
+ 2:{ rewrite Rmult_0_r. apply Rmult_lt_0_compat; lra. }
+ apply Rlt_trans with (a*d).
+ now apply Rmult_lt_compat_l.
+ apply Rmult_lt_compat_r; lra.
+Qed.
+
 Lemma Rle_lt_mult_compat (a b c d:R) :
  0 < a <= b -> 0 < c < d -> a*c < b*d.
 Proof.

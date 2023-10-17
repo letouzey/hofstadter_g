@@ -21,12 +21,6 @@ Definition mu := mu 3.
 Definition tau := tau 3.
 Definition nu := nu 3.
 
-Definition re_alpha := (1 - mu - nu)/2.
-Definition im_alpha := sqrt (tau/(-nu)-re_alpha^2).
-
-Definition alpha : C := (re_alpha, im_alpha).
-Definition alphabar : C := (re_alpha, - im_alpha).
-
 Lemma tau_mu : tau = /mu.
 Proof.
  reflexivity.
@@ -74,9 +68,24 @@ Qed.
 
 Ltac lra' := generalize nu_approx mu_approx tau_approx; lra.
 
+Lemma inv_nu_approx : 1.2195 < /-nu < 1.2211.
+Proof.
+ split.
+ - apply Rlt_trans with (/0.820); try apply Rinv_lt_contravar; lra'.
+ - apply Rlt_trans with (/0.819); try apply Rinv_lt_contravar; lra'.
+Qed.
+
 Lemma mu_nz : mu <> 0. Proof. lra'. Qed.
 Lemma nu_nz : nu <> 0. Proof. lra'. Qed.
 Lemma tau_nz : tau <> 0. Proof. lra'. Qed.
+
+(** The complex root of [X^4-X^3-1] *)
+
+Definition re_alpha := (1 - mu - nu)/2.
+Definition im_alpha := sqrt (tau/(-nu)-re_alpha^2).
+
+Definition alpha : C := (re_alpha, im_alpha).
+Definition alphabar : C := (re_alpha, - im_alpha).
 
 Lemma re_alpha_approx : 0.219 < re_alpha < 0.220.
 Proof. unfold re_alpha. lra'. Qed.
@@ -84,14 +93,27 @@ Proof. unfold re_alpha. lra'. Qed.
 Lemma re_alpha_nz : re_alpha <> 0.
 Proof. generalize re_alpha_approx. lra. Qed.
 
+Lemma re_alpha_2_approx : 0.0479 < re_alpha^2 < 0.0484.
+Proof.
+ rewrite <- Rsqr_pow2. split.
+ - apply Rlt_trans with (0.219*0.219); try lra.
+   apply Rmult_lt_compat; generalize re_alpha_approx; lra.
+ - replace 0.0484 with (0.220*0.220) by lra.
+   apply Rmult_lt_compat; generalize re_alpha_approx; lra.
+Qed.
+
+Lemma tau_div_nu_approx : 0.8834 < tau / -nu < 0.8847.
+Proof.
+ split.
+ - apply Rlt_trans with (0.7244 * 1.2195); try lra.
+   apply Rmult_lt_compat. lra'. generalize inv_nu_approx; lra.
+ - apply Rlt_trans with (0.7245 * 1.2211); try lra.
+   apply Rmult_lt_compat. lra'. generalize inv_nu_approx; lra.
+Qed.
+
 Lemma im_alpha_2_pos :  re_alpha ^ 2 < tau / - nu.
 Proof.
- apply Rlt_trans with (0.220 ^ 2).
- - rewrite <- !Rsqr_pow2.
-   apply Rsqr_incrst_1; generalize re_alpha_approx; lra.
- - apply Rmult_lt_reg_r with (-nu).
-   + lra'.
-   + field_simplify; lra'.
+ generalize re_alpha_2_approx, tau_div_nu_approx; lra.
 Qed.
 
 Lemma im_alpha_2 : im_alpha^2 = tau/(-nu)-re_alpha^2.
@@ -112,6 +134,22 @@ Lemma alphamod2 : (Cmod alpha)^2 = tau/(-nu).
 Proof.
  rewrite Cmod2_alt. unfold alpha. simpl Re; simpl Im.
  rewrite im_alpha_2. lra.
+Qed.
+
+Lemma alphamod2_approx : 0.8834 < (Cmod alpha)^2 < 0.8847.
+Proof.
+ rewrite alphamod2. exact tau_div_nu_approx.
+Qed.
+
+Lemma alphamod_approx : 0.9398 < Cmod alpha < 0.9406.
+Proof.
+ split; apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0;
+  rewrite !Rsqr_pow2; generalize alphamod2_approx; lra.
+Qed.
+
+Lemma alphamod_lt : 0 < Cmod alpha < 1.
+Proof.
+ generalize alphamod_approx; lra.
 Qed.
 
 Definition roots3 := [RtoC mu;RtoC nu;alpha;alphabar].
@@ -570,8 +608,7 @@ Proof.
  - rewrite !RtoC_pow, <- !RtoC_opp, <- !RtoC_mult, <- !RtoC_plus in E.
    apply RtoC_inj in E. symmetry in E. revert E. apply Rlt_not_eq.
    repeat apply Rplus_lt_0_compat.
-   + rewrite alphamod2. apply Rmult_lt_0_compat. lra'.
-     apply Rinv_0_lt_compat; lra'.
+   + generalize alphamod2_approx; lra.
    + rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra'.
    + repeat apply Rmult_lt_0_compat; lra'.
 Qed.
@@ -1025,23 +1062,23 @@ Ltac solve_trinom a b c :=
     field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify
   | f_equal; f_equal;
     rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8; ring ].
+*)
 
-Definition max3pack := Cmod (1+alpha^3+alpha^7)%C.
+Definition max4pack := Cmod (1+alpha^4+alpha^9)%C. (* TODO adjust *)
 
+(*
 Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
 Proof.
  unfold max3pack. solve_trinom 5 2 5. field.
 Qed.
+*)
 
-(* Curious note : all the trinoms we consider lead to N - M*tau - K*tau^2
-   except (Cmod (1+alpha^4+alpha^8)%C)^2 = 8 + 2*tau - 17*tau^2. *)
-
-(* TODO : how to improve the next lemma ? *)
-Ltac finish B n := specialize (B n); simpl in B; lia.
-Lemma best_3pack_0 l :
-  Delta 3 (O::l) -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
+Lemma best_4pack_0 l :
+  Delta 4 (O::l) -> Below l 16 ->
+  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max4pack.
 Proof.
+Admitted.
+(*
  intros D B.
  apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
  assert (T := tau_approx).
@@ -1086,6 +1123,7 @@ Proof.
  { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
    solve_trinom 5 3 6. lra. (* 1+alpha^8 *) }
 Qed.
+*)
 
 Lemma Clistsum_factor p l :
  Clistsum (List.map (fun n => alpha^(p+n))%C l) =
@@ -1109,61 +1147,54 @@ Proof.
    rewrite Cpow_add_r. unfold decr at 2. ring.
 Qed.
 
-Lemma best_3pack l :
-  Delta 3 l -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max3pack.
+Lemma best_4pack l :
+  Delta 4 l -> Below l 16 ->
+  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max4pack.
 Proof.
  intros D B.
  destruct l as [|a l].
  - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
  - revert l D B. induction a as [|a IH]; intros l D B.
-   + apply best_3pack_0; auto. unfold Below in *. simpl in *. intuition.
+   + apply best_4pack_0; auto. unfold Below in *. simpl in *. intuition.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
      2:{ simpl. f_equal. rewrite List.map_map.
          rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
          intros b Hb.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
-           apply (@Delta_nz' 3 (S a) l); auto; try lia. }}
+           apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
      rewrite List.map_map, (Clistsum_factor 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
        apply Rle_pow2_inv; try lra.
-       rewrite alphamod2. generalize tau_approx; lra.
+       rewrite alphamod2.
+       apply Rmult_le_reg_r with (-nu); try lra'. field_simplify; lra'.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
        { inversion_clear D. simpl. constructor. lia.
-         apply (@Delta_pred 3 (b::l)); auto.
-         apply (@Delta_nz' 3 a (b::l)); try lia.
+         apply (@Delta_pred 4 (b::l)); auto.
+         apply (@Delta_nz' 4 a (b::l)); try lia.
          constructor; auto; try lia. }
-       { unfold Below in *. intros y [->|Hy].
-         - specialize (B (S y)). simpl in B; lia.
-         - unfold l' in *. clear l'.
-           rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
-           assert (x < 9)%nat by (apply (B x); simpl; intuition).
-           lia. }
+     * unfold Below in *. intros y [->|Hy].
+       { specialize (B (S y)). simpl in B; lia. }
+       { unfold l' in *. clear l'.
+         rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
+         assert (x < 16)%nat by (apply (B x); simpl; intuition).
+         lia. }
 Qed.
 
-Lemma alphamod_lt : 0 < Cmod alpha < 1.
-Proof.
- split.
- - apply Cmod_gt_0. unfold alpha. injection 1 as H H'. now apply re_alpha_nz.
- - apply Rlt_pow2_inv; try lra.
-   rewrite alphamod2. generalize tau_approx; lra.
-Qed.
-
-Lemma alphamod9_lt : 0 < Cmod alpha^9 < 1.
+Lemma alphamod16_lt : 0 < Cmod alpha^16 < 1.
 Proof.
  assert (H := alphamod_lt).
  split.
  - apply pow_lt; lra.
- - change ((Cmod alpha)^9) with ((Cmod alpha)*(Cmod alpha)^8).
+ - change ((Cmod alpha)^16) with ((Cmod alpha)*(Cmod alpha)^15).
    apply Rle_lt_trans with (Cmod alpha * 1); try lra.
    apply Rmult_le_compat_l; try lra.
-   rewrite <- (pow1 8). apply pow_incr. lra.
+   rewrite <- (pow1 15). apply pow_incr. lra.
 Qed.
 
 Lemma Delta_map_decr p k l :
@@ -1176,6 +1207,7 @@ Proof.
    + apply IH; auto.
 Qed.
 
+(* TODO
 Lemma Clistsum_delta_below N l :
   Delta 3 l -> Below l N ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <=

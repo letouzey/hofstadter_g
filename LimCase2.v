@@ -911,12 +911,12 @@ Proof.
          apply (@Delta_pred 3 (b::l)); auto.
          apply (@Delta_nz' 3 a (b::l)); try lia.
          constructor; auto; try lia. }
-       { unfold Below in *. intros y [->|Hy].
-         - specialize (B (S y)). simpl in B; lia.
-         - unfold l' in *. clear l'.
-           rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
-           assert (x < 9)%nat by (apply (B x); simpl; intuition).
-           lia. }
+     * unfold Below in *. intros y [->|Hy].
+       { specialize (B (S y)). simpl in B; lia. }
+       { unfold l' in *. clear l'.
+         rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
+         assert (x < 9)%nat by (apply (B x); simpl; intuition).
+         lia. }
 Qed.
 
 Lemma alphamod_lt : 0 < Cmod alpha < 1.
