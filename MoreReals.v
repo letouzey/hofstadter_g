@@ -1,5 +1,6 @@
 From Coq Require Import List Lia Reals Ranalysis5 Lra.
-Require Import MoreList.
+From Coquelicot Require Rcomplements.
+Require Import MoreList DeltaList.
 Import ListNotations.
 
 Local Open Scope Z.
@@ -31,6 +32,37 @@ Proof.
  - apply Rmax_left. now apply le_INR.
  - apply Rmax_right. now apply le_INR.
 Qed.
+
+Lemma Rmult_lt_compat a b c d :
+ 0 <= a < b -> 0 <= c < d -> a*c < b*d.
+Proof.
+ intros (Ha,Hab) (Hc,Hcd).
+ apply Rle_lt_or_eq_dec in Ha; destruct Ha as [Ha | <-].
+ 2:{ rewrite Rmult_0_l. apply Rmult_lt_0_compat; lra. }
+ apply Rle_lt_or_eq_dec in Hc; destruct Hc as [Hc | <-].
+ 2:{ rewrite Rmult_0_r. apply Rmult_lt_0_compat; lra. }
+ apply Rlt_trans with (a*d).
+ now apply Rmult_lt_compat_l.
+ apply Rmult_lt_compat_r; lra.
+Qed.
+
+Lemma Rle_lt_mult_compat (a b c d:R) :
+ 0 < a <= b -> 0 < c < d -> a*c < b*d.
+Proof.
+ intros. apply Rle_lt_trans with (b*c).
+ - apply Rmult_le_compat_r; lra.
+ - apply Rmult_lt_compat_l; lra.
+Qed.
+
+Lemma pow_lt_compat_l x y n :
+ 0 <= x < y -> n<>O -> x^n < y^n.
+Proof.
+ induction n; try easy.
+ destruct (Nat.eq_dec n O) as [->|N]; try lra.
+ intros Hxy _. simpl. apply Rmult_lt_compat; trivial.
+ split; auto. now apply pow_le.
+Qed.
+
 Lemma Rle_pow_low r n m : 0<=r<1 -> (n<=m)%nat -> r^m <= r^n.
 Proof.
  induction 2; try lra.
@@ -64,26 +96,8 @@ Proof.
  generalize (RSpos n). lra.
 Qed.
 
-Lemma Rmult_lt_compat a b c d :
- 0 <= a < b -> 0 <= c < d -> a*c < b*d.
-Proof.
- intros (Ha,Hab) (Hc,Hcd).
- apply Rle_lt_or_eq_dec in Ha; destruct Ha as [Ha | <-].
- 2:{ rewrite Rmult_0_l. apply Rmult_lt_0_compat; lra. }
- apply Rle_lt_or_eq_dec in Hc; destruct Hc as [Hc | <-].
- 2:{ rewrite Rmult_0_r. apply Rmult_lt_0_compat; lra. }
- apply Rlt_trans with (a*d).
- now apply Rmult_lt_compat_l.
- apply Rmult_lt_compat_r; lra.
-Qed.
-
-Lemma Rle_lt_mult_compat (a b c d:R) :
- 0 < a <= b -> 0 < c < d -> a*c < b*d.
-Proof.
- intros. apply Rle_lt_trans with (b*c).
- - apply Rmult_le_compat_r; lra.
- - apply Rmult_lt_compat_l; lra.
-Qed.
+Lemma Rplus_reorder a b c d : (a+b)+(c+d) = (a+c)+(b+d).
+Proof. lra. Qed.
 
 Lemma minusone_pow_even k : Nat.Even k -> (-1)^k = 1.
 Proof.
@@ -303,4 +317,71 @@ Proof.
  induction l; simpl. lra.
  intros H. apply Rplus_le_compat. apply H; intuition.
  apply IHl; intuition.
+Qed.
+
+Lemma Rlistsum_pow_factor r p l :
+ Rlistsum (List.map (fun n => r^(p+n)) l) =
+ (r^p * Rlistsum (List.map (pow r) l)).
+Proof.
+ induction l; cbn -[pow].
+ - ring.
+ - change (List.fold_right Rplus 0) with Rlistsum. rewrite IHl.
+   rewrite Rdef_pow_add. ring.
+Qed.
+
+Lemma Rlistsum_pow_factor_above r p l :
+ (forall n, List.In n l -> p <= n)%nat ->
+ Rlistsum (List.map (pow r) l) =
+ (r^p * Rlistsum (List.map (pow r) (List.map (decr p) l))).
+Proof.
+ induction l as [|a l IH]; cbn -[pow]; intros Hl.
+ - ring.
+ - change (List.fold_right Rplus 0) with Rlistsum. rewrite IH by intuition.
+   replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
+   rewrite Rdef_pow_add. unfold decr at 2. ring.
+Qed.
+
+Lemma sum_pow_cons k l n r :
+  O<>k -> 0<=r<1 -> Delta k (n::l) ->
+  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
+Proof.
+ intros Hk Hr.
+ assert (H3 : 0 <= r^k < 1).
+ { apply pow_lt_1_compat. lra. lia. }
+ revert n.
+ induction l.
+ - intros n _. cbn -[pow].
+   rewrite Rplus_0_r.
+   apply Rcomplements.Rle_div_r; try lra.
+   rewrite <- (Rmult_1_r (r^n)) at 2.
+   apply Rmult_le_compat_l; try lra.
+   apply pow_le; lra.
+ - intros n. inversion_clear 1.
+   change (Rlistsum _) with (r^n + Rlistsum (List.map (pow r) (a::l))).
+   eapply Rle_trans. eapply Rplus_le_compat_l. apply IHl; eauto.
+   apply Rcomplements.Rle_div_r; try lra.
+   field_simplify; try lra.
+   rewrite <- Ropp_mult_distr_l, <- pow_add.
+   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. }
+   lra.
+Qed.
+
+Lemma sum_pow k l r :
+  O<>k -> 0<=r<1 -> Delta k l ->
+  Rlistsum (List.map (pow r) l) <= /(1-r^k).
+Proof.
+ intros Hk Hr D.
+ assert (H3 : 0 <= r^k < 1).
+ { apply pow_lt_1_compat. lra. lia. }
+ destruct l as [|n l].
+ - cbn -[pow].
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rcomplements.Rle_div_r; try lra.
+ - eapply Rle_trans. apply (sum_pow_cons k); auto.
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rmult_le_compat_r.
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rcomplements.Rle_div_r; try lra.
+   rewrite <-(pow1 n).
+   apply pow_maj_Rabs. rewrite Rabs_right; lra.
 Qed.

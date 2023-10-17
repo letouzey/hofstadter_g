@@ -1,6 +1,7 @@
 (** * DeltaList : lists of natural numbers with constrained differences *)
 
 From Coq Require Export Arith Lia List Bool.
+Require Import MoreList.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -266,4 +267,14 @@ Qed.
 Lemma DeltaRev_rev p l : DeltaRev p (rev l) <-> Delta p l.
 Proof.
  now rewrite <- Delta_rev, rev_involutive.
+Qed.
+
+Lemma Delta_map_decr p k l :
+  (forall n, List.In n l -> k <= n)%nat ->
+  Delta p l -> Delta p (List.map (decr k) l).
+Proof.
+ induction l as [|a l IH]; simpl; auto.
+ - intros H. inversion 1; subst; constructor.
+   + unfold decr. specialize (H a). lia.
+   + apply IH; auto.
 Qed.

@@ -316,3 +316,38 @@ Proof.
  rewrite count_occ_app, count_occ_remove, count_occ_repeat.
  destruct dec; subst; lia.
 Qed.
+
+(** Upper bound of the elements of a list *)
+
+Fixpoint listmax l :=
+ match l with
+ | nil => O
+ | n::l' => Nat.max n (listmax l')
+ end.
+
+Lemma listmax_above l :
+ forall n, List.In n l -> (n <= listmax l).
+Proof.
+ induction l; inversion 1; simpl; subst. apply Nat.le_max_l.
+ transitivity (listmax l); auto. apply Nat.le_max_r.
+Qed.
+
+(** Decreasing all elements of a list *)
+
+Definition decr x y := Nat.sub y x.
+
+Lemma decr_0 x : decr 0 x = x.
+Proof.
+ apply Nat.sub_0_r.
+Qed.
+
+Lemma map_decr_1 l : map (decr 1) l = map pred l.
+Proof.
+ apply map_ext. intros; unfold decr. lia.
+Qed.
+
+Lemma map_decr_S k l :
+ map (decr (S k)) l = map (decr k) (map pred l).
+Proof.
+ rewrite map_map. apply map_ext. intros. unfold decr. lia.
+Qed.

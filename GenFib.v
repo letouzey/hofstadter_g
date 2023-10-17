@@ -1,6 +1,6 @@
 (** * Fib : Fibonacci sequence and decomposition *)
 
-Require Import DeltaList.
+Require Import MoreList DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -407,24 +407,6 @@ Definition sumA k l := fold_right (fun n acc => A k n + acc) 0 l.
 Lemma sumA_cons k a l : sumA k (a::l) = A k a + sumA k l.
 Proof.
  reflexivity.
-Qed.
-
-Definition decr x y := Nat.sub y x.
-
-Lemma decr_0 x : decr 0 x = x.
-Proof.
- apply Nat.sub_0_r.
-Qed.
-
-Lemma map_decr_1 l : map (decr 1) l = map pred l.
-Proof.
- apply map_ext. intros; unfold decr. lia.
-Qed.
-
-Lemma map_decr_S k l :
- map (decr (S k)) l = map (decr k) (map pred l).
-Proof.
- rewrite map_map. apply map_ext. intros. unfold decr. lia.
 Qed.
 
 Lemma sumA_eqn k l :

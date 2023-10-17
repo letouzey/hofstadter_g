@@ -1,6 +1,6 @@
 From Coq Require Import Arith Lia Reals Lra.
 From QuantumLib Require Import Complex Polynomial Matrix.
-Require Import MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
+Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
 Require Import DeltaList FunG GenFib GenG GenAdd Words Mu ThePoly.
 Import Permutation.
 Local Open Scope Z.
@@ -67,6 +67,9 @@ Proof.
 Qed.
 
 Ltac lra' := generalize nu_approx mu_approx tau_approx; lra.
+
+Lemma opp_nu_approx : 0.819 < -nu < 0.820.
+Proof. lra'. Qed.
 
 Lemma inv_nu_approx : 1.2195 < /-nu < 1.2211.
 Proof.
@@ -796,7 +799,7 @@ Definition coefa0 := coefsa 1%nat 0%nat.
 Definition coefnu0 := Re (coefsnu 1%nat 0%nat).
 
 Lemma vectnu_alt :
- vectnu = mkvectR 3 [1;-Cmod alpha^2;Cmod alpha^2 + 2 * re_alpha].
+ vectnu = mkvectR 3 [1; -Cmod alpha^2; Cmod alpha^2 + 2*re_alpha].
 Proof.
  apply Vect3_eq; try (now apply WF_mkvect); try (now apply WF_mkvectR);
  unfold vectnu, mkvectR; rewrite !mkvect_eqn; cbn -[pow]; trivial.
@@ -851,7 +854,6 @@ Qed.
     theorem (cf. [GenFib.decomp]). So [diffs n] will be a sum of powers
     of [alpha], [alphabar], [nu]. *)
 
-(* TODO: factor with LimCase2 ? *)
 Lemma Diff0_app u v : Diff0 (u++v) = Diff0 u + Diff0 v.
 Proof.
  unfold Diff0.
@@ -895,8 +897,6 @@ Qed.
 (** With the previous expression of [diff0 n], we will progressively bound it
     by some constant independent from [n]. *)
 
-Lemma Rplus_reorder a b c d : (a+b)+(c+d) = (a+c)+(b+d). Proof. lra. Qed.
-
 Lemma diff0_decomp_le n :
  Rabs (diff0 n) <=
   2 * Cmod coefa0 * Rlistsum (List.map (pow (Cmod alpha)) (decomp 3 n))
@@ -920,55 +920,9 @@ Proof.
      rewrite RPow_abs; lra.
 Qed.
 
-(* TODO factor with LimCase2 *)
-Lemma sum_pow_cons k l n r :
-  O<>k -> 0<=r<1 -> Delta k (n::l) ->
-  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
-Proof.
- intros Hk Hr.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
- revert n.
- induction l.
- - intros n _. cbn -[pow].
-   rewrite Rplus_0_r.
-   apply Rcomplements.Rle_div_r; try lra.
-   rewrite <- (Rmult_1_r (r^n)) at 2.
-   apply Rmult_le_compat_l; try lra.
-   apply pow_le; lra.
- - intros n. inversion_clear 1.
-   change (Rlistsum _) with (r^n + Rlistsum (List.map (pow r) (a::l))).
-   eapply Rle_trans. eapply Rplus_le_compat_l. apply IHl; eauto.
-   apply Rcomplements.Rle_div_r; try lra.
-   field_simplify; try lra.
-   rewrite <- Ropp_mult_distr_l, <- pow_add.
-   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. }
-   lra.
-Qed.
-Lemma sum_pow k l r :
-  O<>k -> 0<=r<1 -> Delta k l ->
-  Rlistsum (List.map (pow r) l) <= /(1-r^k).
-Proof.
- intros Hk Hr D.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
- destruct l as [|n l].
- - cbn -[pow].
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; try lra.
- - eapply Rle_trans. apply (sum_pow_cons k); auto.
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rmult_le_compat_r.
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; try lra.
-   rewrite <-(pow1 n).
-   apply pow_maj_Rabs. rewrite Rabs_right; lra.
-Qed.
-
 Lemma diff0_indep_bound n :
  Rabs (diff0 n) <=
-  2 * Cmod coefa0 / (1 - Cmod alpha^4)
-  + Rabs coefnu0 / (1 - Rabs nu^4).
+  2 * Cmod coefa0 / (1 - Cmod alpha^4) + Rabs coefnu0 / (1 - nu^4).
 Proof.
  eapply Rle_trans. apply diff0_decomp_le.
  unfold Rdiv.
@@ -981,8 +935,9 @@ Proof.
      rewrite alphamod2, pow1.
      apply Rmult_lt_reg_r with (-nu); try lra'. field_simplify; lra'.
  - apply Rmult_le_compat_l; try apply Rabs_pos.
+   replace (nu^4) with (Rabs nu^4) by (rewrite Rabs_left by lra'; ring).
    apply sum_pow; try lia; try apply decomp_delta.
-   split; [ apply Rabs_pos | apply Rabs_def1; lra' ].
+   rewrite Rabs_left; lra'.
 Qed.
 
 (** Experimentally, this first bound is around 2.187.
@@ -997,6 +952,178 @@ Qed.
         [forall n p, -5 <= f 3 (n+p) - f 3 n - f 3 p <= 5]
 *)
 
+(* First, the nu part of the bound (easier) *)
+
+Definition max4packnu := 1+nu^4+nu^8+nu^12.
+
+Ltac pownu_approx :=
+ destruct opp_nu_approx as (Lo,Hi);
+ split;
+ [ eapply Rle_lt_trans;
+   [ | apply pow_lt_compat_l; try lia; split; [|apply Lo] ]; lra
+ | eapply Rlt_le_trans;
+   [ apply pow_lt_compat_l; try lia; split; [|apply Hi] | ]; lra ].
+
+Lemma nu4_approx : 0.44992 < nu^4 < 0.452122.
+Proof.
+ replace (nu^4) with ((-nu)^4) by ring. pownu_approx.
+Qed.
+
+Lemma nu8_approx : 0.20242 < nu^8 < 0.20442.
+Proof.
+ replace (nu^8) with ((-nu)^8) by ring. pownu_approx.
+Qed.
+
+Lemma nu12_approx : 0.09107 < nu^12 < 0.092421.
+Proof.
+ replace (nu^12) with ((-nu)^12) by ring. pownu_approx.
+Qed.
+
+Lemma nu16_approx : 0.04097 < nu^16 < 0.04179.
+Proof.
+ replace (nu^16) with ((-nu)^16) by ring. pownu_approx.
+Qed.
+
+Lemma max4packnu_approx : 1.743 < max4packnu < 1.749.
+Proof.
+ unfold max4packnu. generalize nu4_approx, nu8_approx, nu12_approx; lra.
+Qed.
+
+Lemma best_4packnu_0 l :
+  Delta 4 (O::l) -> Below l 16 ->
+  Rabs (Rlistsum (List.map (pow nu) (O::l))) <= max4packnu.
+Proof.
+ intros D B.
+ inversion D; subst; cbn -[Cpow pow nu]; simpl (nu^0).
+ { rewrite Rplus_0_r, Rabs_right by lra.
+   generalize max4packnu_approx; lra. }
+ eapply Rle_trans; [apply Rabs_triang|].
+ unfold max4packnu. rewrite Rabs_right by lra.
+ rewrite !Rplus_assoc. apply Rplus_le_compat_l.
+ eapply Rle_trans; [apply Rabs_triang|].
+ apply Rplus_le_compat.
+ { rewrite <- (Rabs_right (nu^4)) by (generalize nu4_approx; lra).
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
+   rewrite Rabs_left; lra'. }
+ inversion H2; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0;
+   try (generalize nu8_approx nu12_approx; lra).
+ eapply Rle_trans; [apply Rabs_triang|].
+ apply Rplus_le_compat.
+ { rewrite <- (Rabs_right (nu^8)) by (generalize nu8_approx; lra).
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
+   rewrite Rabs_left; lra'. }
+ inversion H4; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0;
+   try (generalize nu12_approx; lra).
+ eapply Rle_trans; [apply Rabs_triang|].
+ rewrite <- (Rplus_0_r (nu^12)).
+ apply Rplus_le_compat.
+ { rewrite <- (Rabs_right (nu^12)) by (generalize nu12_approx; lra).
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
+   rewrite Rabs_left; lra'. }
+ inversion H6; subst. simpl. rewrite Rabs_R0; lra.
+ assert (n2 < 16)%nat; try lia. { apply B. simpl. tauto. }
+Qed.
+
+Lemma best_4packnu_below l :
+  Delta 4 l -> Below l 16 ->
+  Rabs (Rlistsum (List.map (pow nu) l)) <= max4packnu.
+Proof.
+ intros D B.
+ destruct l as [|a l].
+ - simpl. rewrite Rabs_R0. generalize max4packnu_approx; lra.
+ - revert l D B. induction a as [|a IH]; intros l D B.
+   + apply best_4packnu_0; auto. unfold Below in *. simpl in *. intuition.
+   + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
+     2:{ simpl. f_equal. rewrite List.map_map.
+         rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
+         intros b Hb.
+         assert (b<>O); try lia.
+         { contradict Hb. subst b.
+           apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
+     rewrite List.map_map, (Rlistsum_pow_factor nu 1), Rabs_mult, pow_1.
+     set (l' := List.map pred l).
+     eapply Rle_trans. 2:apply (IH l').
+     * rewrite <- (Rmult_1_l (Rabs (Rlistsum _))) at 2.
+       apply Rmult_le_compat_r; try apply Rabs_pos.
+       rewrite Rabs_left; lra'.
+     * unfold l'. clear l'.
+       destruct l as [|b l].
+       { simpl; constructor. }
+       { inversion_clear D. simpl. constructor. lia.
+         apply (@Delta_pred 4 (b::l)); auto.
+         apply (@Delta_nz' 4 a (b::l)); try lia.
+         constructor; auto; try lia. }
+     * unfold Below in *. intros y [->|Hy].
+       { specialize (B (S y)). simpl in B; lia. }
+       { unfold l' in *. clear l'.
+         rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
+         assert (x < 16)%nat by (apply (B x); simpl; intuition).
+         lia. }
+Qed.
+
+Lemma best_4packnu l :
+  Delta 4 l ->
+  Rabs (Rlistsum (List.map (pow nu) l)) <= max4packnu / (1 - nu ^16).
+Proof.
+ intros D.
+ assert (B := listmax_above l).
+ setoid_rewrite <- Nat.lt_succ_r in B.
+ set (N := S (listmax l)). change (Below l N) in B. clearbody N.
+ revert l D B.
+ induction N as [N IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases N 16).
+ - clear IH. intros l D B.
+   eapply Rle_trans. apply best_4packnu_below; auto.
+   unfold Below in *. intros y Hy. specialize (B y Hy). lia.
+   rewrite <- (Rmult_1_r max4packnu) at 1. unfold Rdiv.
+   apply Rmult_le_compat_l. generalize max4packnu_approx; lra.
+   rewrite <- (Rmult_1_l (/ _)).
+   apply Rcomplements.Rle_div_r; generalize nu16_approx; lra.
+ - intros l D B. destruct (cut_lt_ge 16 l) as (l1,l2) eqn:E.
+   assert (D' := D).
+   assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
+   rewrite Delta_app_iff in D'. destruct D' as (D1 & D2 & D3).
+   rewrite List.map_app, Rlistsum_app.
+   eapply Rle_trans. apply Rabs_triang.
+   eapply Rle_trans; [eapply Rplus_le_compat_r|].
+   + apply best_4packnu_below; auto.
+     generalize (cut_fst 16 l). now rewrite E.
+   + assert (A : forall n, List.In n l2 -> (16 <= n)%nat).
+     { intros n Hn. apply (@cut_snd' 4 16 l); auto. now rewrite E. }
+     rewrite (Rlistsum_pow_factor_above nu 16 l2) by trivial.
+     set (l2' := List.map (decr 16) l2).
+     rewrite Rabs_mult.
+     replace (max4packnu / _)
+       with (max4packnu + Rabs (nu^16) * (max4packnu / (1 - nu^16))).
+     * apply Rplus_le_compat_l.
+       apply Rmult_le_compat_l; try apply Rabs_pos.
+       apply (IH (N-16)%nat); try lia.
+       { apply Delta_map_decr; auto. }
+       { unfold l2'. intros x Hx. rewrite List.in_map_iff in Hx.
+         destruct Hx as (y & <- & Hy).
+         specialize (A y Hy).
+         assert (y < N)%nat by (apply B; rewrite List.in_app_iff; now right).
+         unfold decr. lia. }
+     * rewrite Rabs_right; try field; generalize nu16_approx; lra.
+Qed.
+
+(** Now the alpha part of the bound *)
+
+Definition max4packa := Cmod (1+alpha^5+alpha^9+alpha^14).
+
+Lemma alphamod16_approx : 0.3709 < Cmod alpha ^16 < 0.3753.
+Proof.
+ replace (Cmod alpha^16) with ((Cmod alpha^2)^8) by ring.
+ split; [ apply Rlt_trans with (0.8834^8) |
+          apply Rlt_trans with (0.8847^8) ]; try lra;
+ apply pow_lt_compat_l; try lia; generalize alphamod2_approx; lra.
+Qed.
+
+Lemma alphamod16_lt : 0 < Cmod alpha ^16 < 1.
+Proof.
+ generalize alphamod16_approx; lra.
+Qed.
+
 Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
 Proof.
  simpl. ring.
@@ -1006,15 +1133,6 @@ Lemma im_alpha2 : Im (alpha^2) = 2*re_alpha*im_alpha.
 Proof.
  simpl. ring.
 Qed.
-
-(* TODO
-Lemma re_alpha2_tau : Re (alpha^2) = -tau*(1+tau)/2.
-Proof.
- rewrite re_alpha2. rewrite re_alpha_alt, im_alpha_2.
- field_simplify.
- rewrite tau4. field.
-Qed.
-*)
 
 Definition alpha4 := alpha_is_Croot.
 
@@ -1064,18 +1182,9 @@ Ltac solve_trinom a b c :=
     rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8; ring ].
 *)
 
-Definition max4pack := Cmod (1+alpha^4+alpha^9)%C. (* TODO adjust *)
-
-(*
-Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
-Proof.
- unfold max3pack. solve_trinom 5 2 5. field.
-Qed.
-*)
-
-Lemma best_4pack_0 l :
+Lemma best_4packa_0 l :
   Delta 4 (O::l) -> Below l 16 ->
-  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max4pack.
+  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max4packa.
 Proof.
 Admitted.
 (*
@@ -1125,37 +1234,15 @@ Admitted.
 Qed.
 *)
 
-Lemma Clistsum_factor p l :
- Clistsum (List.map (fun n => alpha^(p+n))%C l) =
- (alpha^p * Clistsum (List.map (Cpow alpha) l))%C.
-Proof.
- induction l; cbn -[Cpow].
- - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
-   rewrite Cpow_add_r. ring.
-Qed.
-
-Lemma Clistsum_factor_above p l :
- (forall n, List.In n l -> p <= n)%nat ->
- Clistsum (List.map (Cpow alpha) l) =
- (alpha^p * Clistsum (List.map (Cpow alpha) (List.map (decr p) l)))%C.
-Proof.
- induction l as [|a l IH]; cbn -[Cpow]; intros Hl.
- - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IH by intuition.
-   replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
-   rewrite Cpow_add_r. unfold decr at 2. ring.
-Qed.
-
-Lemma best_4pack l :
+Lemma best_4packa_below l :
   Delta 4 l -> Below l 16 ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max4pack.
+  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max4packa.
 Proof.
  intros D B.
  destruct l as [|a l].
  - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
  - revert l D B. induction a as [|a IH]; intros l D B.
-   + apply best_4pack_0; auto. unfold Below in *. simpl in *. intuition.
+   + apply best_4packa_0; auto. unfold Below in *. simpl in *. intuition.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
      2:{ simpl. f_equal. rewrite List.map_map.
          rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
@@ -1163,14 +1250,12 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
-     rewrite List.map_map, (Clistsum_factor 1), Cmod_mult, Cpow_1_r.
+     rewrite List.map_map, (Clistsum_pow_factor alpha 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
-       apply Rle_pow2_inv; try lra.
-       rewrite alphamod2.
-       apply Rmult_le_reg_r with (-nu); try lra'. field_simplify; lra'.
+       generalize alphamod_approx; lra.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
@@ -1186,143 +1271,75 @@ Proof.
          lia. }
 Qed.
 
-Lemma alphamod16_lt : 0 < Cmod alpha^16 < 1.
-Proof.
- assert (H := alphamod_lt).
- split.
- - apply pow_lt; lra.
- - change ((Cmod alpha)^16) with ((Cmod alpha)*(Cmod alpha)^15).
-   apply Rle_lt_trans with (Cmod alpha * 1); try lra.
-   apply Rmult_le_compat_l; try lra.
-   rewrite <- (pow1 15). apply pow_incr. lra.
-Qed.
-
-Lemma Delta_map_decr p k l :
-  (forall n, List.In n l -> k <= n)%nat ->
-  Delta p l -> Delta p (List.map (decr k) l).
-Proof.
- induction l as [|a l IH]; simpl; auto.
- - intros H. inversion 1; subst; constructor.
-   + unfold decr. specialize (H a). lia.
-   + apply IH; auto.
-Qed.
-
-(* TODO
-Lemma Clistsum_delta_below N l :
-  Delta 3 l -> Below l N ->
+Lemma best_4packa l :
+  Delta 4 l ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   max3pack / (1 - Cmod alpha ^9).
+   max4packa / (1 - Cmod alpha ^16).
 Proof.
- revert l.
+ intros D.
+ assert (B := listmax_above l).
+ setoid_rewrite <- Nat.lt_succ_r in B.
+ set (N := S (listmax l)). change (Below l N) in B. clearbody N.
+ revert l D B.
  induction N as [N IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases N 9).
+ destruct (Nat.le_gt_cases N 16).
  - clear IH. intros l D B.
-   eapply Rle_trans. apply best_3pack; auto.
+   eapply Rle_trans. apply best_4packa_below; auto.
    unfold Below in *. intros y Hy. specialize (B y Hy). lia.
-   rewrite <- (Rmult_1_r max3pack) at 1. unfold Rdiv.
+   rewrite <- (Rmult_1_r max4packa) at 1. unfold Rdiv.
    apply Rmult_le_compat_l; try apply Cmod_ge_0.
    rewrite <- (Rmult_1_l (/ _)).
    assert (P := Cmod_ge_0 alpha).
-   apply Rcomplements.Rle_div_r; generalize alphamod9_lt; lra.
- - intros l D B. destruct (cut_lt_ge 9 l) as (l1,l2) eqn:E.
+   apply Rcomplements.Rle_div_r; generalize alphamod16_lt; lra.
+ - intros l D B. destruct (cut_lt_ge 16 l) as (l1,l2) eqn:E.
    assert (D' := D).
-   assert (E' := cut_app 9 l). rewrite E in E'. rewrite <- E' in D',B |- *.
+   assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
    rewrite Delta_app_iff in D'. destruct D' as (D1 & D2 & D3).
    rewrite List.map_app, Clistsum_app.
    eapply Rle_trans. apply Cmod_triangle.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
-   + apply best_3pack; auto.
-     generalize (cut_fst 9 l). now rewrite E.
-   + assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
-     { intros n Hn. apply (@cut_snd' 3 9 l); auto. now rewrite E. }
-     rewrite (Clistsum_factor_above 9 l2) by trivial.
-     set (l2' := List.map (decr 9) l2).
+   + apply best_4packa_below; auto.
+     generalize (cut_fst 16 l). now rewrite E.
+   + assert (A : forall n, List.In n l2 -> (16 <= n)%nat).
+     { intros n Hn. apply (@cut_snd' 4 16 l); auto. now rewrite E. }
+     rewrite (Clistsum_pow_factor_above alpha 16 l2) by trivial.
+     set (l2' := List.map (decr 16) l2).
      rewrite Cmod_mult.
-     replace (max3pack / _)
-       with (max3pack + Cmod (alpha^9) * (max3pack / (1 - Cmod alpha ^9))).
+     replace (max4packa / _)
+       with (max4packa + Cmod (alpha^16) * (max4packa / (1 - Cmod alpha ^16))).
      * apply Rplus_le_compat_l.
        apply Rmult_le_compat_l; try apply Cmod_ge_0.
-       apply (IH (N-9)%nat); try lia.
+       apply (IH (N-16)%nat); try lia.
        { apply Delta_map_decr; auto. }
        { unfold l2'. intros x Hx. rewrite List.in_map_iff in Hx.
          destruct Hx as (y & <- & Hy).
          specialize (A y Hy).
          assert (y < N)%nat by (apply B; rewrite List.in_app_iff; now right).
          unfold decr. lia. }
-     * rewrite Cmod_pow. field. generalize alphamod9_lt; lra.
+     * rewrite Cmod_pow. field. generalize alphamod16_lt; lra.
 Qed.
 
-(** We need below to have an upper bound of the elements of a list *)
-
-Fixpoint listmax l :=
- match l with
- | nil => O
- | n::l' => Nat.max n (listmax l')
- end%list.
-
-Lemma listmax_above l :
- forall n, List.In n l -> (n <= listmax l)%nat.
-Proof.
- induction l; inversion 1; simpl; subst. apply Nat.le_max_l.
- transitivity (listmax l); auto. apply Nat.le_max_r.
-Qed.
-
-Lemma Clistsum_delta l :
-  Delta 3 l ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   max3pack / (1 - Cmod alpha ^9).
-Proof.
- intros D.
- apply (Clistsum_delta_below (S (listmax l))); auto.
- intros x Hx. apply listmax_above in Hx. lia.
-Qed.
+(** And finally: *)
 
 Lemma diff0_better_bound n :
- Rabs (diff0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod alpha ^9).
+ Rabs (diff0 n) <=
+  2 * Cmod coefa0 * max4packa / (1 - Cmod alpha ^16) +
+  Rabs coefnu0 * max4packnu / (1 - nu ^16).
 Proof.
  rewrite diff0_decomp_eqn'.
- rewrite Rabs_mult. rewrite Rabs_right by lra.
- unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l; try lra.
- eapply Rle_trans; [apply re_le_Cmod|].
- rewrite Cmod_mult. apply Rmult_le_compat_l; try apply Cmod_ge_0.
- apply Clistsum_delta, decomp_delta.
-Qed.
-
-(* TODO : toujours quelques %C parasites *)
-
-Lemma coefa2_inner_mod :
-  Cmod (alpha * (tau ^ 2 - 1) - tau ^ 3)%C ^ 2 = tau*(1-tau).
-Proof.
- rewrite !RtoC_pow, <- RtoC_minus.
- rewrite Cmod2_alt. unfold Cminus.
- rewrite re_plus, im_plus, re_scal_r, im_scal_r.
- rewrite <- !RtoC_opp, re_RtoC, im_RtoC, Rplus_0_r. simpl Re; simpl Im.
- rewrite re_alpha_alt.
- rewrite Rpow_mult_distr. rewrite im_alpha_2.
- rewrite tau3. field_simplify.
- replace (tau^8) with ((tau^4)^2) by ring.
- rewrite tau6, tau5, tau4, tau3. field_simplify.
- rewrite tau4, tau3. field.
-Qed.
-
-Lemma Cmod2_coefa2 :
-  Cmod coefa2 ^2 = (1-tau)/(3+tau).
-Proof.
- unfold coefa2, Cdiv.
- rewrite !Cmod_mult, !Rpow_mult_distr, Cmod_inv.
- 2:{ apply Cminus_eq_contra. apply distinct_roots. }
- rewrite coefa2_inner_mod.
- rewrite im_alt', !Cmod_mult.
- rewrite !Cmod_R, Rabs_right by lra.
- rewrite Cmod_Ci, Rmult_1_r.
- simpl Im.
- rewrite pow_inv, Rpow_mult_distr.
- rewrite pow2_abs. rewrite im_alpha_2. field. generalize tau_approx; lra.
+ eapply Rle_trans; [apply Rabs_triang|]. apply Rplus_le_compat.
+ - rewrite Rabs_mult. rewrite Rabs_right by lra.
+   unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l; try lra.
+   eapply Rle_trans; [apply re_le_Cmod|].
+   rewrite Cmod_mult. apply Rmult_le_compat_l; try apply Cmod_ge_0.
+   apply best_4packa, decomp_delta.
+ - rewrite Rabs_mult.
+   unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l.
+   apply Rabs_pos. apply best_4packnu, decomp_delta.
 Qed.
 
 (** And finally, we obtain that diff0 is always strictly less than 2.
     (experimentally the new bound is below 1.998) *)
-*)
 
 Lemma diff0_lt_2 n : Rabs (diff0 n) < 2.
 Proof.

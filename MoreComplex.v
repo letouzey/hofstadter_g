@@ -1,6 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation.
 From Coquelicot Require Complex.
 From QuantumLib Require Import Complex.
+Require Import MoreList.
 
 Module CC := Coquelicot.Complex.
 
@@ -275,4 +276,26 @@ Proof.
  assert (RE : Re c = Cmod c) by lra.
  assert (IM := Cmod_Re _ RE).
  rewrite <- RE. destruct c. simpl in *. now rewrite IM.
+Qed.
+
+Lemma Clistsum_pow_factor c p l :
+ Clistsum (List.map (fun n => c^(p+n))%C l) =
+ (c^p * Clistsum (List.map (Cpow c) l))%C.
+Proof.
+ induction l; cbn -[Cpow].
+ - ring.
+ - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
+   rewrite Cpow_add_r. ring.
+Qed.
+
+Lemma Clistsum_pow_factor_above c p l :
+ (forall n, List.In n l -> p <= n)%nat ->
+ Clistsum (List.map (Cpow c) l) =
+ (c^p * Clistsum (List.map (Cpow c) (List.map (decr p) l)))%C.
+Proof.
+ induction l as [|a l IH]; cbn -[Cpow]; intros Hl.
+ - ring.
+ - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IH by intuition.
+   replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
+   rewrite Cpow_add_r. unfold decr at 2. ring.
 Qed.

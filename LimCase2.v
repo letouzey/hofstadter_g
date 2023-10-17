@@ -1,6 +1,6 @@
 From Coq Require Import Arith Lia Reals Lra.
 From QuantumLib Require Import Complex.
-Require Import MoreReals MoreLim MoreComplex.
+Require Import MoreList MoreReals MoreLim MoreComplex.
 Require Import DeltaList FunG GenFib GenG GenAdd Words Mu.
 Local Open Scope Z.
 Local Open Scope R.
@@ -624,51 +624,6 @@ Proof.
    apply re_le_Cmod.
 Qed.
 
-Lemma sum_pow_cons k l n r :
-  O<>k -> 0<=r<1 -> Delta k (n::l) ->
-  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
-Proof.
- intros Hk Hr.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
- revert n.
- induction l.
- - intros n _. cbn -[pow].
-   rewrite Rplus_0_r.
-   apply Rcomplements.Rle_div_r; try lra.
-   rewrite <- (Rmult_1_r (r^n)) at 2.
-   apply Rmult_le_compat_l; try lra.
-   apply pow_le; lra.
- - intros n. inversion_clear 1.
-   change (Rlistsum _) with (r^n + Rlistsum (List.map (pow r) (a::l))).
-   eapply Rle_trans. eapply Rplus_le_compat_l. apply IHl; eauto.
-   apply Rcomplements.Rle_div_r; try lra.
-   field_simplify; try lra.
-   rewrite <- Ropp_mult_distr_l, <- pow_add.
-   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. }
-   lra.
-Qed.
-
-Lemma sum_pow k l r :
-  O<>k -> 0<=r<1 -> Delta k l ->
-  Rlistsum (List.map (pow r) l) <= /(1-r^k).
-Proof.
- intros Hk Hr D.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
- destruct l as [|n l].
- - cbn -[pow].
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; try lra.
- - eapply Rle_trans. apply (sum_pow_cons k); auto.
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rmult_le_compat_r.
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; try lra.
-   rewrite <-(pow1 n).
-   apply pow_maj_Rabs. rewrite Rabs_right; lra.
-Qed.
-
 Lemma diff0_indep_bound n :
  Rabs (diff0 n) <= 2 * Cmod coefa0 / (1 - Cmod alpha^3).
 Proof.
@@ -734,6 +689,25 @@ Qed.
      - [h n = nat_part (tau*n)+{0,1}]
      - [h] is quasi-additive [forall n p, -2 <= h (n+p) - h n - h p <= 2]
 *)
+
+Lemma alphamod_lt : 0 < Cmod alpha < 1.
+Proof.
+ split.
+ - apply Cmod_gt_0. unfold alpha. injection 1 as H H'. now apply re_alpha_nz.
+ - apply Rlt_pow2_inv; try lra.
+   rewrite alphamod2. generalize tau_approx; lra.
+Qed.
+
+Lemma alphamod9_lt : 0 < Cmod alpha^9 < 1.
+Proof.
+ assert (H := alphamod_lt).
+ split.
+ - apply pow_lt; lra.
+ - change ((Cmod alpha)^9) with ((Cmod alpha)*(Cmod alpha)^8).
+   apply Rle_lt_trans with (Cmod alpha * 1); try lra.
+   apply Rmult_le_compat_l; try lra.
+   rewrite <- (pow1 8). apply pow_incr. lra.
+Qed.
 
 Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
 Proof.
@@ -859,29 +833,7 @@ Proof.
    solve_trinom 5 3 6. lra. (* 1+alpha^8 *) }
 Qed.
 
-Lemma Clistsum_factor p l :
- Clistsum (List.map (fun n => alpha^(p+n))%C l) =
- (alpha^p * Clistsum (List.map (Cpow alpha) l))%C.
-Proof.
- induction l; cbn -[Cpow].
- - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
-   rewrite Cpow_add_r. ring.
-Qed.
-
-Lemma Clistsum_factor_above p l :
- (forall n, List.In n l -> p <= n)%nat ->
- Clistsum (List.map (Cpow alpha) l) =
- (alpha^p * Clistsum (List.map (Cpow alpha) (List.map (decr p) l)))%C.
-Proof.
- induction l as [|a l IH]; cbn -[Cpow]; intros Hl.
- - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IH by intuition.
-   replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
-   rewrite Cpow_add_r. unfold decr at 2. ring.
-Qed.
-
-Lemma best_3pack l :
+Lemma best_3pack_below l :
   Delta 3 l -> Below l 9 ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <= max3pack.
 Proof.
@@ -897,7 +849,7 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 3 (S a) l); auto; try lia. }}
-     rewrite List.map_map, (Clistsum_factor 1), Cmod_mult, Cpow_1_r.
+     rewrite List.map_map, (Clistsum_pow_factor alpha 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
@@ -919,45 +871,20 @@ Proof.
          lia. }
 Qed.
 
-Lemma alphamod_lt : 0 < Cmod alpha < 1.
-Proof.
- split.
- - apply Cmod_gt_0. unfold alpha. injection 1 as H H'. now apply re_alpha_nz.
- - apply Rlt_pow2_inv; try lra.
-   rewrite alphamod2. generalize tau_approx; lra.
-Qed.
-
-Lemma alphamod9_lt : 0 < Cmod alpha^9 < 1.
-Proof.
- assert (H := alphamod_lt).
- split.
- - apply pow_lt; lra.
- - change ((Cmod alpha)^9) with ((Cmod alpha)*(Cmod alpha)^8).
-   apply Rle_lt_trans with (Cmod alpha * 1); try lra.
-   apply Rmult_le_compat_l; try lra.
-   rewrite <- (pow1 8). apply pow_incr. lra.
-Qed.
-
-Lemma Delta_map_decr p k l :
-  (forall n, List.In n l -> k <= n)%nat ->
-  Delta p l -> Delta p (List.map (decr k) l).
-Proof.
- induction l as [|a l IH]; simpl; auto.
- - intros H. inversion 1; subst; constructor.
-   + unfold decr. specialize (H a). lia.
-   + apply IH; auto.
-Qed.
-
-Lemma Clistsum_delta_below N l :
-  Delta 3 l -> Below l N ->
+Lemma best_3pack l :
+  Delta 3 l ->
   Cmod (Clistsum (List.map (Cpow alpha) l)) <=
    max3pack / (1 - Cmod alpha ^9).
 Proof.
- revert l.
+ intros D.
+ assert (B := listmax_above l).
+ setoid_rewrite <- Nat.lt_succ_r in B.
+ set (N := S (listmax l)). change (Below l N) in B. clearbody N.
+ revert l D B.
  induction N as [N IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases N 9).
  - clear IH. intros l D B.
-   eapply Rle_trans. apply best_3pack; auto.
+   eapply Rle_trans. apply best_3pack_below; auto.
    unfold Below in *. intros y Hy. specialize (B y Hy). lia.
    rewrite <- (Rmult_1_r max3pack) at 1. unfold Rdiv.
    apply Rmult_le_compat_l; try apply Cmod_ge_0.
@@ -971,11 +898,11 @@ Proof.
    rewrite List.map_app, Clistsum_app.
    eapply Rle_trans. apply Cmod_triangle.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
-   + apply best_3pack; auto.
+   + apply best_3pack_below; auto.
      generalize (cut_fst 9 l). now rewrite E.
    + assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 3 9 l); auto. now rewrite E. }
-     rewrite (Clistsum_factor_above 9 l2) by trivial.
+     rewrite (Clistsum_pow_factor_above alpha 9 l2) by trivial.
      set (l2' := List.map (decr 9) l2).
      rewrite Cmod_mult.
      replace (max3pack / _)
@@ -992,31 +919,6 @@ Proof.
      * rewrite Cmod_pow. field. generalize alphamod9_lt; lra.
 Qed.
 
-(** We need below to have an upper bound of the elements of a list *)
-
-Fixpoint listmax l :=
- match l with
- | nil => O
- | n::l' => Nat.max n (listmax l')
- end%list.
-
-Lemma listmax_above l :
- forall n, List.In n l -> (n <= listmax l)%nat.
-Proof.
- induction l; inversion 1; simpl; subst. apply Nat.le_max_l.
- transitivity (listmax l); auto. apply Nat.le_max_r.
-Qed.
-
-Lemma Clistsum_delta l :
-  Delta 3 l ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   max3pack / (1 - Cmod alpha ^9).
-Proof.
- intros D.
- apply (Clistsum_delta_below (S (listmax l))); auto.
- intros x Hx. apply listmax_above in Hx. lia.
-Qed.
-
 Lemma diff0_better_bound n :
  Rabs (diff0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod alpha ^9).
 Proof.
@@ -1025,7 +927,7 @@ Proof.
  unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l; try lra.
  eapply Rle_trans; [apply re_le_Cmod|].
  rewrite Cmod_mult. apply Rmult_le_compat_l; try apply Cmod_ge_0.
- apply Clistsum_delta, decomp_delta.
+ apply best_3pack, decomp_delta.
 Qed.
 
 (* TODO : toujours quelques %C parasites *)
