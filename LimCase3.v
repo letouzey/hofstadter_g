@@ -1134,34 +1134,86 @@ Proof.
  simpl. ring.
 Qed.
 
-Definition alpha4 := alpha_is_Croot.
+Ltac simpl_alpha := repeat (autorewrite with alpha; ring_simplify).
+#[local] Hint Rewrite alpha_is_Croot : alpha.
 
 Lemma alpha5 : (alpha^5 = 1 + alpha + alpha^3)%C.
-Proof.
- rewrite Cpow_S, alpha4. ring_simplify. rewrite alpha4. ring.
-Qed.
-
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha5 : alpha.
 Lemma alpha6 : (alpha^6 = 1 + alpha + alpha^2 + alpha^3)%C.
-Proof.
- rewrite Cpow_S, alpha5. ring_simplify. rewrite alpha4. ring.
-Qed.
-
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha6 : alpha.
 Lemma alpha7 : (alpha^7 = 1 + alpha + alpha^2 + 2*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha7 : alpha.
+Lemma alpha8 : (alpha^8 = 2 + alpha + alpha^2 + 3*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha8 : alpha.
+Lemma alpha9 : (alpha^9 = 3 + 2*alpha + alpha^2 + 4*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha9 : alpha.
+Lemma alpha10 : (alpha^10 = 4 + 3*alpha + 2*alpha^2 + 5*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha10 : alpha.
+Lemma alpha11 : (alpha^11 = 5 + 4*alpha + 3*alpha^2 + 7*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha11 : alpha.
+Lemma alpha12 : (alpha^12 = 7 + 5*alpha + 4*alpha^2 + 10*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha12 : alpha.
+Lemma alpha13 : (alpha^13 = 10 + 7*alpha + 5*alpha^2 + 14*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha13 : alpha.
+Lemma alpha14 : (alpha^14 = 14 + 10*alpha + 7*alpha^2 + 19*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha14 : alpha.
+Lemma alpha15 : (alpha^15 = 19 + 14*alpha + 10*alpha^2 + 26*alpha^3)%C.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha15 : alpha.
+
+Ltac calc_alpha :=
+  let c := fresh in
+  let H := fresh in
+  remember (Cplus _ _) as c eqn:H;
+  repeat (autorewrite with alpha in H; ring_simplify in H);
+  rewrite H; clear c H;
+ (* Hack : explicit 1*alpha and 1*alpha^2 if needed for easy
+    application of cmod2_trinom_alpha below *)
+ match goal with
+ | |- context [ (alpha^2 + _)%C ] => rewrite <- (Cmult_1_l (alpha^2))
+ | _ => idtac
+ end;
+ match goal with
+ | |- context [ (_ + alpha)%C ] => rewrite <- (Cmult_1_l alpha) at 2
+ | _ => idtac
+ end.
+
+Lemma re_quadri (a b c d : R) :
+ Re (a+b*alpha+c*alpha^2+d*alpha^3) =
+ a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2.
 Proof.
- rewrite Cpow_S, alpha6. ring_simplify. rewrite alpha4. ring.
+ unfold alpha. cbn. ring.
 Qed.
 
-(* TODO
-Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
+Lemma im_quadri (a b c d : R) :
+ Im (a+b*alpha+c*alpha^2+d*alpha^3) =
+ re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3.
 Proof.
- rewrite Cpow_S, alpha6. ring_simplify. rewrite alpha3. ring.
+ unfold alpha. cbn. ring.
 Qed.
 
-Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
+Lemma cmod2_quadri (a b c d : R) :
+ Cmod (a+b*alpha+c*alpha^2+d*alpha^3)^2 =
+ (a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2)^2
+ + (re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3)^2.
 Proof.
- rewrite Cpow_S, alpha7. ring_simplify. rewrite alpha3. ring.
+ now rewrite Cmod2_alt, re_quadri, im_quadri.
 Qed.
 
+(* Mieux ? *)
+
+
+(*
 Lemma cmod2_trinom_alpha (a b c : R) :
  (Cmod (a + b*alpha + c*alpha^2)%C)^2 =
  (1/4)*((2*a - b*tau^2 - c*tau*(1+tau))^2 + tau*(3+tau)*(b-c*tau^2)^2).
@@ -1187,6 +1239,9 @@ Proof.
  repeat destruct H as [<-|H]; try easy; cbn -[Cpow pow];
   rewrite ?Cplus_0_r, ?Cplus_assoc.
  (* 69 cases ! *)
+ { calc_alpha. unfold max4packa. simpl_alpha.
+
+
 Admitted.
 
 Lemma best_4packa_below l :

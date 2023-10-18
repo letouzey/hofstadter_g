@@ -726,32 +726,28 @@ Proof.
  simpl. ring.
 Qed.
 
-Definition alpha3 := alpha_is_root.
+Ltac simpl_alpha := repeat (autorewrite with alpha; ring_simplify).
+#[local] Hint Rewrite alpha_is_root : alpha.
 
 Lemma alpha4 : (alpha^4 = 1 + alpha + alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha3. ring_simplify. rewrite alpha3. ring.
-Qed.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha4 : alpha.
 
 Lemma alpha5 : (alpha^5 = 1 + alpha + 2*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha4. ring_simplify. rewrite alpha3. ring.
-Qed.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha5 : alpha.
 
 Lemma alpha6 : (alpha^6 = 2 + alpha + 3*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha5. ring_simplify. rewrite alpha3. ring.
-Qed.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha6 : alpha.
 
 Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha6. ring_simplify. rewrite alpha3. ring.
-Qed.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha7 : alpha.
 
 Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
-Proof.
- rewrite Cpow_S, alpha7. ring_simplify. rewrite alpha3. ring.
-Qed.
+Proof. rewrite Cpow_S. now simpl_alpha. Qed.
+#[local] Hint Rewrite alpha8 : alpha.
 
 Lemma cmod2_trinom_alpha (a b c : R) :
  (Cmod (a*alpha^2 + b*alpha + c)%C)^2 =
@@ -769,9 +765,7 @@ Ltac calc_alpha :=
   let c := fresh in
   let H := fresh in
   remember (Cplus _ _) as c eqn:H;
-  repeat
-    (rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8 in H;
-     ring_simplify in H);
+  repeat (autorewrite with alpha in H; ring_simplify in H);
   rewrite H; clear c H;
  (* Hack : explicit 1*alpha and 1*alpha^2 if needed for easy
     application of cmod2_trinom_alpha below *)
