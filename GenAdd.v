@@ -90,7 +90,7 @@ Proof.
  - inversion 1.
  - specialize (H a l2 eq_refl).
    intros x [<-|IN]; auto.
-   transitivity a; auto. eapply Delta_le; eauto.
+   transitivity (a+k). lia. eapply Delta_le; eauto.
 Qed.
 
 (* To add p to a strict k-decomposition (while possibly relaxing it),

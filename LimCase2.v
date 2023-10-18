@@ -754,83 +754,66 @@ Proof.
 Qed.
 
 Lemma cmod2_trinom_alpha (a b c : R) :
- (Cmod (a + b*alpha + c*alpha^2)%C)^2 =
- (1/4)*((2*a - b*tau^2 - c*tau*(1+tau))^2 + tau*(3+tau)*(b-c*tau^2)^2).
+ (Cmod (a*alpha^2 + b*alpha + c)%C)^2 =
+ (1/4)*((2*c - b*tau^2 - a*tau*(1+tau))^2 + tau*(3+tau)*(b-a*tau^2)^2).
 Proof.
  rewrite Cmod2_alt.
  rewrite !re_plus, !im_plus, re_RtoC, im_RtoC.
  rewrite !re_scal_l, !im_scal_l, re_alpha2_tau, im_alpha2.
  simpl Im. simpl Re.
- replace (0 + _ + _) with (im_alpha * (b + c * (2*re_alpha))) by ring.
+ replace (_ + _ + 0) with (im_alpha * (b + a * (2*re_alpha))) by ring.
  rewrite Rpow_mult_distr, im_alpha_2, re_alpha_alt. field.
 Qed.
 
-Ltac solve_trinom a b c :=
-  replace ((Cmod _)^2) with (Cmod (a+b*alpha+c*alpha^2)%C^2);
-  [ rewrite (cmod2_trinom_alpha a b c);
-    field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify
-  | f_equal; f_equal;
-    rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8; ring ].
+Ltac calc_alpha :=
+  let c := fresh in
+  let H := fresh in
+  remember (Cplus _ _) as c eqn:H;
+  repeat
+    (rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8 in H;
+     ring_simplify in H);
+  rewrite H; clear c H;
+ (* Hack : explicit 1*alpha and 1*alpha^2 if needed for easy
+    application of cmod2_trinom_alpha below *)
+ match goal with
+ | |- context [ (alpha^2 + _)%C ] => rewrite <- (Cmult_1_l (alpha^2))
+ | _ => idtac
+ end;
+ match goal with
+ | |- context [ (_ + alpha)%C ] => rewrite <- (Cmult_1_l alpha) at 2
+ | _ => idtac
+ end.
+
+Ltac calc_tau :=
+  field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify.
 
 Definition max3pack := Cmod (1+alpha^3+alpha^7)%C.
 
 Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
 Proof.
- unfold max3pack. solve_trinom 5 2 5. field.
+ unfold max3pack. calc_alpha. rewrite cmod2_trinom_alpha. calc_tau. field.
 Qed.
 
 (* Curious note : all the trinoms we consider lead to N - M*tau - K*tau^2
    except (Cmod (1+alpha^4+alpha^8)%C)^2 = 8 + 2*tau - 17*tau^2. *)
 
-(* TODO : how to improve the next lemma ? *)
-Ltac finish B n := specialize (B n); simpl in B; lia.
 Lemma best_3pack_0 l :
   Delta 3 (O::l) -> Below l 9 ->
   Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
 Proof.
  intros D B.
- apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
  assert (T := tau_approx).
  assert (T2 := tau2_approx).
- inversion D; subst; cbn -[Cpow pow]; simpl (alpha^0)%C.
- { rewrite Cplus_0_r, Cmod_1. lra. (* 1 *) }
- destruct (Nat.eq_dec n 3) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 0 1. lra. (* 1 + alpha^3 *) }
-   destruct (Nat.eq_dec n 6) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 4 1 4. lra. (* 1 + alpha^3 + alpha^6 *) }
-   destruct (Nat.eq_dec n 7) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     (* 1 + alpha^3 + alpha^7 *)
-     apply Req_le. now rewrite Cplus_0_r, Cplus_assoc, <- max3pack_eqn. }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 3 7. lra. (* 1+alpha^3+alpha^8 *) }}
- destruct (Nat.eq_dec n 4) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 1 1. lra. (* 1+alpha^4*) }
-   destruct (Nat.eq_dec n 7) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 5 3 5. lra. (* 1+alpha^4+alpha^7 *) }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 4 7. lra. (* 1+alpha^4+alpha^8 *) }}
- destruct (Nat.eq_dec n 5) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 1 2. lra. (* 1+alpha^5 *) }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 4 8. lra. (* 1+alpha^5+alpha^8 *) }}
- destruct (Nat.eq_dec n 6) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 3 1 3. lra. (* 1+alpha^6 *) }
- destruct (Nat.eq_dec n 7) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 4 2 4. lra. (* 1+alpha^7 *) }
- destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 5 3 6. lra. (* 1+alpha^8 *) }
+ apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
+ assert (H : Delta 3 (O::l) /\ Below (O::l) 9).
+ { split; trivial. intros x [<-|Hx]. lia. now apply B. }
+ rewrite enum_delta_below_ok0 in H. compute in H;
+ repeat destruct H as [<-|H]; try destruct H; cbn -[Cpow pow]; (* 13 cases *)
+ calc_alpha; try rewrite cmod2_trinom_alpha; calc_tau; try lra.
+ - (* special case without the alpha monom *)
+   replace C2 with (0*alpha+C2)%C by ring.
+   rewrite Cplus_assoc, cmod2_trinom_alpha; calc_tau; lra.
+ - rewrite Cmod_1. lra.
 Qed.
 
 Lemma best_3pack_below l :

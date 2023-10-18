@@ -1173,66 +1173,21 @@ Proof.
  replace (0 + _ + _) with (im_alpha * (b + c * (2*re_alpha))) by ring.
  rewrite Rpow_mult_distr, im_alpha_2, re_alpha_alt. field.
 Qed.
-
-Ltac solve_trinom a b c :=
-  replace ((Cmod _)^2) with (Cmod (a+b*alpha+c*alpha^2)%C^2);
-  [ rewrite (cmod2_trinom_alpha a b c);
-    field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify
-  | f_equal; f_equal;
-    rewrite ?alpha3, ?alpha4, ?alpha5, ?alpha6, ?alpha7, ?alpha8; ring ].
 *)
 
 Lemma best_4packa_0 l :
   Delta 4 (O::l) -> Below l 16 ->
   Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max4packa.
 Proof.
-Admitted.
-(*
  intros D B.
- apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
- assert (T := tau_approx).
- assert (T2 := tau2_approx).
- inversion D; subst; cbn -[Cpow pow]; simpl (alpha^0)%C.
- { rewrite Cplus_0_r, Cmod_1. lra. (* 1 *) }
- destruct (Nat.eq_dec n 3) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 0 1. lra. (* 1 + alpha^3 *) }
-   destruct (Nat.eq_dec n 6) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 4 1 4. lra. (* 1 + alpha^3 + alpha^6 *) }
-   destruct (Nat.eq_dec n 7) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     (* 1 + alpha^3 + alpha^7 *)
-     apply Req_le. now rewrite Cplus_0_r, Cplus_assoc, <- max3pack_eqn. }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 3 7. lra. (* 1+alpha^3+alpha^8 *) }}
- destruct (Nat.eq_dec n 4) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 1 1. lra. (* 1+alpha^4*) }
-   destruct (Nat.eq_dec n 7) as [->|?].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 5 3 5. lra. (* 1+alpha^4+alpha^7 *) }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 4 7. lra. (* 1+alpha^4+alpha^8 *) }}
- destruct (Nat.eq_dec n 5) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow].
-   { solve_trinom 2 1 2. lra. (* 1+alpha^5 *) }
-   destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
-   { inversion H4; subst; cbn -[Cpow pow]; [|finish B n].
-     solve_trinom 6 4 8. lra. (* 1+alpha^5+alpha^8 *) }}
- destruct (Nat.eq_dec n 6) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 3 1 3. lra. (* 1+alpha^6 *) }
- destruct (Nat.eq_dec n 7) as [->|?].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 4 2 4. lra. (* 1+alpha^7 *) }
- destruct (Nat.eq_dec n 8) as [->|?]; [|finish B n].
- { inversion H2; subst; cbn -[Cpow pow]; [|finish B n].
-   solve_trinom 5 3 6. lra. (* 1+alpha^8 *) }
-Qed.
-*)
+ apply Rle_pow2_inv; [apply Cmod_ge_0| ].
+ assert (H : Delta 4 (O::l) /\ Below (O::l) 16).
+ { split; trivial. intros x [<-|Hx]. lia. now apply B. }
+ rewrite enum_delta_below_ok0 in H. compute in H;
+ repeat destruct H as [<-|H]; try easy; cbn -[Cpow pow];
+  rewrite ?Cplus_0_r, ?Cplus_assoc.
+ (* 69 cases ! *)
+Admitted.
 
 Lemma best_4packa_below l :
   Delta 4 l -> Below l 16 ->

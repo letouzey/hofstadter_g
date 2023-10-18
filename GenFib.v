@@ -538,8 +538,6 @@ Proof.
    + apply A_mono; lia.
 Qed.
 
-Definition Below l x := forall y, In y l -> y < x.
-
 Lemma rev_switch {A} (l l' : list A) : rev l = l' -> l = rev l'.
 Proof.
  intros. now rewrite <- (rev_involutive l), H.
