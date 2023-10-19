@@ -1,4 +1,4 @@
-From Coq Require Import Arith Lia Reals Lra.
+From Coq Require Import Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex Polynomial Matrix.
 Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
 Require Import DeltaList FunG GenFib GenG GenAdd Words Mu ThePoly.
@@ -8,6 +8,133 @@ Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 Local Set Printing Coercions.
+
+(** TODO move elsewhere *)
+
+Lemma Q2R_pow q n : Q2R (q^Z.of_nat n) = (Q2R q)^n.
+Proof.
+ induction n.
+ - simpl. try lra.
+ - rewrite Nat2Z.inj_succ, <-Z.add_1_l.
+   rewrite Qpower.Qpower_plus' by lia. now rewrite Q2R_mult, IHn.
+Qed.
+
+Lemma Q2R_pow' q z : (0<=z)%Z -> Q2R (q^z) = (Q2R q)^Z.to_nat z.
+Proof.
+ intros Hz. rewrite <- Q2R_pow. f_equal. f_equal. lia.
+Qed.
+
+Lemma Q2R_pow2 q : Q2R (q^2) = (Q2R q)^2.
+Proof.
+ now apply Q2R_pow'.
+Qed.
+
+Lemma Q2R_IZR z : Q2R (inject_Z z) = IZR z.
+Proof. unfold Q2R, inject_Z. simpl. lra. Qed.
+
+Lemma Qle_bool_nimp_lt (x y:Q) : Qle_bool y x = false -> (x < y)%Q.
+Proof.
+ intro E. apply Qnot_le_lt. intro LE. rewrite <- Qle_bool_iff in LE.
+ now rewrite E in LE.
+Qed.
+
+Ltac qle := now apply Qle_bool_imp_le.
+Ltac qlt := now apply Qle_bool_nimp_lt.
+
+(** A little real approximation library *)
+
+Class Approx (low:Q)(r:R)(high:Q) := { prf : Q2R low <= r <= Q2R high }.
+Arguments prf {low} {r} {high}.
+
+#[global] Instance Q2R_approx q : Approx q (Q2R q) q.
+Proof. constructor. lra. Qed.
+
+#[global] Instance IZR_approx z : Approx (inject_Z z) (IZR z) (inject_Z z).
+Proof. rewrite <- Q2R_IZR. apply Q2R_approx. Qed.
+
+#[global] Instance plus_approx {a r b a' r' b'} :
+  Approx a r b -> Approx a' r' b' -> Approx (a+a') (r+r') (b+b').
+Proof.
+ intros [p] [p']. constructor. rewrite !Q2R_plus. lra.
+Qed.
+
+#[global] Instance opp_approx {a r b} : Approx a r b -> Approx (-b) (-r) (-a).
+Proof.
+ intros [p]. constructor. rewrite !Q2R_opp. lra.
+Qed.
+
+#[global] Instance minus_approx {a r b a' r' b'} :
+  Approx a r b -> Approx a' r' b' -> Approx (a-b') (r-r') (b-a').
+Proof.
+ intros A A'. apply plus_approx; trivial. now apply opp_approx.
+Qed.
+
+#[global] Instance mult_approx {a r b a' r' b'} :
+  Approx a r b -> Approx a' r' b' -> (0 <= a)%Q -> (0 <= a')%Q ->
+  Approx (a*a') (r*r') (b*b').
+Proof.
+ intros [p] [p'] LE LE'. constructor. rewrite !Q2R_mult.
+ apply Qle_Rle in LE, LE'. split; apply Rmult_le_compat; lra.
+Qed.
+
+#[global] Instance pow_approx {a r b} (n:nat) :
+  Approx a r b -> (0 <= a)%Q ->
+  Approx (a^Z.of_nat n) (r^n) (b^Z.of_nat n).
+Proof.
+ intros [p] LE. apply Qle_Rle in LE. constructor. rewrite !Q2R_pow.
+ split; apply pow_incr; lra.
+Qed.
+
+#[global] Instance inv_approx {a r b} :
+  Approx a r b -> (0 < a)%Q -> Approx (/b) (/r) (/a).
+Proof.
+ intros [p] LT. constructor.
+ apply Qlt_Rlt in LT.
+ rewrite !Q2R_inv by (intro E; rewrite E in *; lra).
+ split; apply Rinv_le_contravar; lra.
+Qed.
+
+#[global] Instance div_approx {a r b a' r' b'} :
+  Approx a r b -> Approx a' r' b' -> (0 <= a)%Q -> (0 < a')%Q ->
+  Approx (a/b') (r/r') (b/a').
+Proof.
+ intros A A' LE LT. apply mult_approx; auto. apply inv_approx; auto.
+ destruct A' as [p']. apply Rle_Qle. apply Qlt_Rlt in LT.
+ rewrite !Q2R_inv by (intro E; rewrite E in *; lra).
+ assert (Hb : 0 < Q2R b') by lra.
+ apply Rinv_0_lt_compat in Hb. lra.
+Qed.
+
+Lemma approx_trans {a a' r b b'} :
+ Approx a r b -> (a'<=a)%Q -> (b<=b')%Q -> Approx a' r b'.
+Proof.
+ intros [p] LE LE'. apply Qle_Rle in LE,LE'. constructor. lra.
+Qed.
+
+#[global] Hint Extern 10 (Qle _ _) => qle : typeclass_instances.
+#[global] Hint Extern 10 (Qlt _ _) => qlt : typeclass_instances.
+
+Ltac approximate r :=
+  let H := fresh in
+  assert (H : Approx _ r _) by typeclasses eauto 10;
+  match type of H with
+  | Approx ?a _ ?b =>
+    let x := fresh in
+    set (x := a) in H; compute in x; unfold x in H; clear x;
+    set (x := b) in H; compute in x; unfold x in H; clear x
+  end;
+  destruct H as [H].
+
+Ltac approx :=
+ match goal with
+ | |- Approx _ _ _ => eapply approx_trans; typeclasses eauto 10
+ | |- ?r <> ?r' => approximate r; approximate r'; lra
+ | |- ?r <= ?r' => approximate r; approximate r'; lra
+ | |- ?r >= ?r' => approximate r; approximate r'; lra
+ | |- ?r < ?r' => approximate r; approximate r'; lra
+ | |- ?r > ?r' => approximate r; approximate r'; lra
+ | |- _ => split; approx
+ end.
 
 (** * Studying case k=3
 
@@ -51,36 +178,27 @@ Proof.
  rewrite tau6, tau5, tau4; ring.
 Qed.
 
-Lemma tau_approx : 0.7244 < tau < 0.7245.
-Proof.
- exact tau_3.
-Qed.
+#[local] Instance tau_approx : Approx 0.7244 tau 0.7245.
+Proof. constructor. unfold tau. generalize tau_3. lra. Qed.
 
-Lemma mu_approx : 1.380 < mu < 1.381.
-Proof.
- exact mu_3.
-Qed.
+#[local] Instance mu_approx : Approx 1.380 mu 1.381.
+Proof. constructor. unfold mu. generalize mu_3. lra. Qed.
 
-Lemma nu_approx : -0.820 < nu < -0.819.
-Proof.
- exact nu_3.
-Qed.
+#[local] Instance nu_approx : Approx (-0.820) nu (-0.819).
+Proof. constructor. unfold nu. generalize nu_3. lra. Qed.
 
-Ltac lra' := generalize nu_approx mu_approx tau_approx; lra.
+Ltac lra' :=
+ generalize nu_approx.(prf) mu_approx.(prf) tau_approx.(prf); lra.
 
-Lemma opp_nu_approx : 0.819 < -nu < 0.820.
-Proof. lra'. Qed.
+#[local] Instance opp_nu_approx : Approx 0.819 (-nu) 0.820.
+Proof. approx. Qed.
 
-Lemma inv_nu_approx : 1.2195 < /-nu < 1.2211.
-Proof.
- split.
- - apply Rlt_trans with (/0.820); try apply Rinv_lt_contravar; lra'.
- - apply Rlt_trans with (/0.819); try apply Rinv_lt_contravar; lra'.
-Qed.
+#[local] Instance inv_nu_approx : Approx 1.2195 (/-nu) 1.2211.
+Proof. approx. Qed.
 
-Lemma mu_nz : mu <> 0. Proof. lra'. Qed.
-Lemma nu_nz : nu <> 0. Proof. lra'. Qed.
-Lemma tau_nz : tau <> 0. Proof. lra'. Qed.
+Lemma mu_nz : mu <> 0. Proof. approx. Qed.
+Lemma nu_nz : nu <> 0. Proof. approx. Qed.
+Lemma tau_nz : tau <> 0. Proof. approx. Qed.
 
 (** The complex root of [X^4-X^3-1] *)
 
@@ -90,34 +208,20 @@ Definition im_alpha := sqrt (tau/(-nu)-re_alpha^2).
 Definition alpha : C := (re_alpha, im_alpha).
 Definition alphabar : C := (re_alpha, - im_alpha).
 
-Lemma re_alpha_approx : 0.219 < re_alpha < 0.220.
-Proof. unfold re_alpha. lra'. Qed.
+#[local] Instance re_alpha_approx : Approx 0.219 re_alpha 0.220.
+Proof. unfold re_alpha. approx. Qed.
 
 Lemma re_alpha_nz : re_alpha <> 0.
-Proof. generalize re_alpha_approx. lra. Qed.
+Proof. approx. Qed.
 
-Lemma re_alpha_2_approx : 0.0479 < re_alpha^2 < 0.0484.
-Proof.
- rewrite <- Rsqr_pow2. split.
- - apply Rlt_trans with (0.219*0.219); try lra.
-   apply Rmult_lt_compat; generalize re_alpha_approx; lra.
- - replace 0.0484 with (0.220*0.220) by lra.
-   apply Rmult_lt_compat; generalize re_alpha_approx; lra.
-Qed.
+#[local] Instance re_alpha_2_approx : Approx 0.0479 (re_alpha^2) 0.0484.
+Proof. approx. Qed.
 
-Lemma tau_div_nu_approx : 0.8834 < tau / -nu < 0.8847.
-Proof.
- split.
- - apply Rlt_trans with (0.7244 * 1.2195); try lra.
-   apply Rmult_lt_compat. lra'. generalize inv_nu_approx; lra.
- - apply Rlt_trans with (0.7245 * 1.2211); try lra.
-   apply Rmult_lt_compat. lra'. generalize inv_nu_approx; lra.
-Qed.
+#[local] Instance tau_div_nu_approx : Approx 0.8834 (tau / -nu) 0.8847.
+Proof. approx. Qed.
 
 Lemma im_alpha_2_pos :  re_alpha ^ 2 < tau / - nu.
-Proof.
- generalize re_alpha_2_approx, tau_div_nu_approx; lra.
-Qed.
+Proof. approx. Qed.
 
 Lemma im_alpha_2 : im_alpha^2 = tau/(-nu)-re_alpha^2.
 Proof.
@@ -139,21 +243,29 @@ Proof.
  rewrite im_alpha_2. lra.
 Qed.
 
-Lemma alphamod2_approx : 0.8834 < (Cmod alpha)^2 < 0.8847.
+#[local] Instance alphamod2_approx :
+ Approx 0.8834 ((Cmod alpha)^2) 0.8847.
+Proof. rewrite alphamod2. approx. Qed.
+
+Lemma pow2_approx_inv {a r b} :
+  Approx (a^2) (r^2) (b^2) -> (0 <= a)%Q -> 0 <= r -> (0 <= b)%Q ->
+  Approx a r b.
 Proof.
- rewrite alphamod2. exact tau_div_nu_approx.
+ intros [p] Ha Hr Hb. constructor.
+ apply Qle_Rle in Ha,Hb. rewrite !Q2R_pow2 in p.
+ rewrite <- !Rsqr_pow2 in p.
+ split; apply Rsqr_incr_0; lra.
 Qed.
 
-Lemma alphamod_approx : 0.9398 < Cmod alpha < 0.9406.
+(* TODO: general approx of sqrt ? *)
+
+#[local] Instance alphamod_approx : Approx 0.9398 (Cmod alpha) 0.9406 |20.
 Proof.
- split; apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0;
-  rewrite !Rsqr_pow2; generalize alphamod2_approx; lra.
+ apply pow2_approx_inv; try qle; try apply Cmod_ge_0. approx.
 Qed.
 
 Lemma alphamod_lt : 0 < Cmod alpha < 1.
-Proof.
- generalize alphamod_approx; lra.
-Qed.
+Proof. approx. Qed.
 
 Definition roots3 := [RtoC mu;RtoC nu;alpha;alphabar].
 
@@ -167,7 +279,7 @@ Proof.
  - intros [= B]. generalize im_alpha_nz. lra.
  - intros [= A B]. now destruct im_alpha_nz.
  - intros [= A B]. generalize im_alpha_nz. lra.
- - lra'.
+ - approx.
 Qed.
 
 Lemma nodup_roots : NoDup roots3.
@@ -610,10 +722,8 @@ Proof.
  - compute in E. injection E; lra.
  - rewrite !RtoC_pow, <- !RtoC_opp, <- !RtoC_mult, <- !RtoC_plus in E.
    apply RtoC_inj in E. symmetry in E. revert E. apply Rlt_not_eq.
-   repeat apply Rplus_lt_0_compat.
-   + generalize alphamod2_approx; lra.
-   + rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra'.
-   + repeat apply Rmult_lt_0_compat; lra'.
+   repeat apply Rplus_lt_0_compat; try approx.
+   rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra'. (* TODO: approx ? *)
 Qed.
 
 Definition invU_detU : Square 3 :=
@@ -713,11 +823,11 @@ Definition coefsnu := (/detU * coefnu_detU) .* vectnu.
 
 Lemma alpha_neq_1 : alpha <> 1.
 Proof.
- unfold alpha. intros [= ? ?]. generalize re_alpha_approx; lra.
+ unfold alpha. intros [= ? ?]. generalize re_alpha_approx.(prf); lra.
 Qed.
 
 Lemma alphabar_neq_1 : alphabar <> 1.
- unfold alphabar. intros [= ? ?]. generalize re_alpha_approx; lra.
+ unfold alphabar. intros [= ? ?]. generalize re_alpha_approx.(prf); lra.
 Qed.
 
 Lemma alphabar_conj : Cconj alphabar = alpha.
@@ -956,38 +1066,20 @@ Qed.
 
 Definition max4packnu := 1+nu^4+nu^8+nu^12.
 
-Ltac pownu_approx :=
- destruct opp_nu_approx as (Lo,Hi);
- split;
- [ eapply Rle_lt_trans;
-   [ | apply pow_lt_compat_l; try lia; split; [|apply Lo] ]; lra
- | eapply Rlt_le_trans;
-   [ apply pow_lt_compat_l; try lia; split; [|apply Hi] | ]; lra ].
+#[local] Instance nu4_approx : Approx 0.44992 (nu^4) 0.452122.
+Proof. replace (nu^4) with ((-nu)^4) by ring. approx. Qed.
 
-Lemma nu4_approx : 0.44992 < nu^4 < 0.452122.
-Proof.
- replace (nu^4) with ((-nu)^4) by ring. pownu_approx.
-Qed.
+#[local] Instance nu8_approx : Approx 0.20242 (nu^8) 0.20442.
+Proof. replace (nu^8) with ((-nu)^8) by ring. approx. Qed.
 
-Lemma nu8_approx : 0.20242 < nu^8 < 0.20442.
-Proof.
- replace (nu^8) with ((-nu)^8) by ring. pownu_approx.
-Qed.
+#[local] Instance nu12_approx : Approx 0.09107 (nu^12) 0.092421.
+Proof. replace (nu^12) with ((-nu)^12) by ring. approx. Qed.
 
-Lemma nu12_approx : 0.09107 < nu^12 < 0.092421.
-Proof.
- replace (nu^12) with ((-nu)^12) by ring. pownu_approx.
-Qed.
+#[local] Instance nu16_approx : Approx 0.04097 (nu^16) 0.04179.
+Proof. replace (nu^16) with ((-nu)^16) by ring. approx. Qed.
 
-Lemma nu16_approx : 0.04097 < nu^16 < 0.04179.
-Proof.
- replace (nu^16) with ((-nu)^16) by ring. pownu_approx.
-Qed.
-
-Lemma max4packnu_approx : 1.743 < max4packnu < 1.749.
-Proof.
- unfold max4packnu. generalize nu4_approx, nu8_approx, nu12_approx; lra.
-Qed.
+#[local] Instance max4packnu_approx : Approx 1.743 max4packnu 1.749.
+Proof. unfold max4packnu. approx. Qed.
 
 Lemma best_4packnu_0 l :
   Delta 4 (O::l) -> Below l 16 ->
@@ -995,31 +1087,28 @@ Lemma best_4packnu_0 l :
 Proof.
  intros D B.
  inversion D; subst; cbn -[Cpow pow nu]; simpl (nu^0).
- { rewrite Rplus_0_r, Rabs_right by lra.
-   generalize max4packnu_approx; lra. }
+ { rewrite Rplus_0_r, Rabs_right by lra. approx. }
  eapply Rle_trans; [apply Rabs_triang|].
  unfold max4packnu. rewrite Rabs_right by lra.
  rewrite !Rplus_assoc. apply Rplus_le_compat_l.
  eapply Rle_trans; [apply Rabs_triang|].
  apply Rplus_le_compat.
- { rewrite <- (Rabs_right (nu^4)) by (generalize nu4_approx; lra).
+ { rewrite <- (Rabs_right (nu^4)) by approx.
    rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; lra'. }
- inversion H2; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0;
-   try (generalize nu8_approx nu12_approx; lra).
+   rewrite Rabs_left; approx. }
+ inversion H2; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0; try approx.
  eapply Rle_trans; [apply Rabs_triang|].
  apply Rplus_le_compat.
- { rewrite <- (Rabs_right (nu^8)) by (generalize nu8_approx; lra).
+ { rewrite <- (Rabs_right (nu^8)) by approx.
    rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
    rewrite Rabs_left; lra'. }
- inversion H4; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0;
-   try (generalize nu12_approx; lra).
+ inversion H4; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0; try approx.
  eapply Rle_trans; [apply Rabs_triang|].
  rewrite <- (Rplus_0_r (nu^12)).
  apply Rplus_le_compat.
- { rewrite <- (Rabs_right (nu^12)) by (generalize nu12_approx; lra).
+ { rewrite <- (Rabs_right (nu^12)) by approx.
    rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; lra'. }
+   rewrite Rabs_left; approx. }
  inversion H6; subst. simpl. rewrite Rabs_R0; lra.
  assert (n2 < 16)%nat; try lia. { apply B. simpl. tauto. }
 Qed.
@@ -1030,7 +1119,7 @@ Lemma best_4packnu_below l :
 Proof.
  intros D B.
  destruct l as [|a l].
- - simpl. rewrite Rabs_R0. generalize max4packnu_approx; lra.
+ - simpl. rewrite Rabs_R0. approx.
  - revert l D B. induction a as [|a IH]; intros l D B.
    + apply best_4packnu_0; auto. unfold Below in *. simpl in *. intuition.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
@@ -1075,10 +1164,7 @@ Proof.
  - clear IH. intros l D B.
    eapply Rle_trans. apply best_4packnu_below; auto.
    unfold Below in *. intros y Hy. specialize (B y Hy). lia.
-   rewrite <- (Rmult_1_r max4packnu) at 1. unfold Rdiv.
-   apply Rmult_le_compat_l. generalize max4packnu_approx; lra.
-   rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; generalize nu16_approx; lra.
+   approx.
  - intros l D B. destruct (cut_lt_ge 16 l) as (l1,l2) eqn:E.
    assert (D' := D).
    assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
@@ -1104,25 +1190,21 @@ Proof.
          specialize (A y Hy).
          assert (y < N)%nat by (apply B; rewrite List.in_app_iff; now right).
          unfold decr. lia. }
-     * rewrite Rabs_right; try field; generalize nu16_approx; lra.
+     * rewrite Rabs_right; try field; approx.
 Qed.
 
 (** Now the alpha part of the bound *)
 
 Definition max4packa := Cmod (1+alpha^5+alpha^9+alpha^14).
 
-Lemma alphamod16_approx : 0.3709 < Cmod alpha ^16 < 0.3753.
+#[local] Instance alphamod16_approx :
+ Approx 0.3709 (Cmod alpha ^16) 0.3753.
 Proof.
- replace (Cmod alpha^16) with ((Cmod alpha^2)^8) by ring.
- split; [ apply Rlt_trans with (0.8834^8) |
-          apply Rlt_trans with (0.8847^8) ]; try lra;
- apply pow_lt_compat_l; try lia; generalize alphamod2_approx; lra.
+ replace (Cmod alpha^16) with ((Cmod alpha^2)^8) by ring. approx.
 Qed.
 
 Lemma alphamod16_lt : 0 < Cmod alpha ^16 < 1.
-Proof.
- generalize alphamod16_approx; lra.
-Qed.
+Proof. approx. Qed.
 
 Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
 Proof.
@@ -1189,21 +1271,21 @@ Ltac calc_alpha :=
  end.
 
 Lemma re_quadri (a b c d : R) :
- Re (a+b*alpha+c*alpha^2+d*alpha^3) =
+ Re (d*alpha^3+c*alpha^2+b*alpha+a) =
  a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2.
 Proof.
  unfold alpha. cbn. ring.
 Qed.
 
 Lemma im_quadri (a b c d : R) :
- Im (a+b*alpha+c*alpha^2+d*alpha^3) =
+ Im (d*alpha^3+c*alpha^2+b*alpha+a) =
  re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3.
 Proof.
  unfold alpha. cbn. ring.
 Qed.
 
 Lemma cmod2_quadri (a b c d : R) :
- Cmod (a+b*alpha+c*alpha^2+d*alpha^3)^2 =
+ Cmod (d*alpha^3+c*alpha^2+b*alpha+a)^2 =
  (a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2)^2
  + (re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3)^2.
 Proof.
@@ -1212,6 +1294,45 @@ Qed.
 
 (* Mieux ? *)
 
+#[local] Instance im_alpha_2_approx : Approx 0.835 (im_alpha^2) 0.8368.
+Proof. rewrite im_alpha_2. approx. Qed.
+
+#[local] Instance im_alpha_approx : Approx 0.91378 im_alpha 0.91477 |10.
+Proof.
+ apply pow2_approx_inv. approx. qle. generalize im_alpha_pos; lra. qle.
+Qed.
+
+#[local] Instance max4packa2_approx :
+ Approx (2.58^2) (max4packa^2) (2.59^2).
+Proof.
+ unfold max4packa.
+ remember (Cplus _ _) as c.
+ repeat (autorewrite with alpha in Heqc; ring_simplify in Heqc).
+ subst c.
+(*
+ rewrite cmod2_quadri.
+ eapply approx_trans.
+ eapply plus_approx.
+ eapply pow_approx.
+ eapply minus_approx.
+ eapply plus_approx.
+ typeclasses eauto 10.
+ typeclasses eauto 10.
+ eapply mult_approx.
+ typeclasses eauto 10.
+ typeclasses eauto 10.
+ typeclasses eauto 10.
+ typeclasses eauto 10.
+ typeclasses eauto 10.
+ eapply pow_approx.
+ typeclasses eauto 10.
+ apply Qle_bool_imp_le. compute.
+ qle.
+ (* !! interieure de pow peut être negatif ! *)
+*)
+
+ (* approx. (* LENT *) *)
+Admitted.
 
 (*
 Lemma cmod2_trinom_alpha (a b c : R) :
@@ -1264,8 +1385,7 @@ Proof.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
-       apply Rmult_le_compat_r; try apply Cmod_ge_0.
-       generalize alphamod_approx; lra.
+       apply Rmult_le_compat_r; try apply Cmod_ge_0; try approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
