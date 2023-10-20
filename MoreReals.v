@@ -36,22 +36,13 @@ Qed.
 Lemma Rmult_lt_compat a b c d :
  0 <= a < b -> 0 <= c < d -> a*c < b*d.
 Proof.
- intros (Ha,Hab) (Hc,Hcd).
- apply Rle_lt_or_eq_dec in Ha; destruct Ha as [Ha | <-].
- 2:{ rewrite Rmult_0_l. apply Rmult_lt_0_compat; lra. }
- apply Rle_lt_or_eq_dec in Hc; destruct Hc as [Hc | <-].
- 2:{ rewrite Rmult_0_r. apply Rmult_lt_0_compat; lra. }
- apply Rlt_trans with (a*d).
- now apply Rmult_lt_compat_l.
- apply Rmult_lt_compat_r; lra.
+ nra.
 Qed.
 
 Lemma Rle_lt_mult_compat (a b c d:R) :
  0 < a <= b -> 0 < c < d -> a*c < b*d.
 Proof.
- intros. apply Rle_lt_trans with (b*c).
- - apply Rmult_le_compat_r; lra.
- - apply Rmult_lt_compat_l; lra.
+ nra.
 Qed.
 
 Lemma pow_lt_compat_l x y n :
@@ -72,18 +63,12 @@ Qed.
 
 Lemma Rlt_pow2_inv x y : 0 <= y -> x^2 < y^2 -> x < y.
 Proof.
- intros Hy LT.
- destruct (Rle_or_lt 0 x) as [Hx|Hx]; try lra.
- rewrite <- (Rabs_right x), <- (Rabs_right y) by lra.
- apply Rsqr_lt_abs_0. now rewrite !Rsqr_pow2.
+ nra.
 Qed.
 
 Lemma Rle_pow2_inv x y : 0 <= y -> x^2 <= y^2 -> x <= y.
 Proof.
- intros Hy LT.
- destruct (Rle_or_lt 0 x) as [Hx|Hx]; try lra.
- rewrite <- (Rabs_right x), <- (Rabs_right y) by lra.
- apply Rsqr_le_abs_0. now rewrite !Rsqr_pow2.
+ nra.
 Qed.
 
 Lemma RSpos n : 0 < S n.
@@ -111,11 +96,14 @@ Proof.
  rewrite pow_add, pow_mult. replace ((-1)^2) with 1 by lra. rewrite pow1. lra.
 Qed.
 
+Lemma pow_even_nonneg k x : Nat.Even k -> 0 <= x^k.
+Proof.
+ intros (m & ->). rewrite pow_mult. apply pow_le. nra.
+Qed.
+
 Lemma pow_even_pos k x : Nat.Even k -> 0 <> x -> 0 < x^k.
 Proof.
- intros (m & ->) Hx.
- rewrite pow_mult. apply pow_lt. rewrite <- Rsqr_pow2.
- apply Rlt_0_sqr; lra.
+ intros (m & ->) Hx. rewrite pow_mult. apply pow_lt. nra.
 Qed.
 
 Lemma pow_odd_neg k x : Nat.Odd k -> x < 0 -> x^k < 0.
@@ -123,8 +111,7 @@ Proof.
  intros (m & ->) Hx.
  rewrite Nat.add_1_r. rewrite <- tech_pow_Rmult, pow_mult.
  apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_0.
- apply Rmult_lt_0_compat; try lra.
- apply pow_lt. rewrite <- Rsqr_pow2. apply Rlt_0_sqr; lra.
+ apply Rmult_lt_0_compat; try lra. apply pow_lt. nra.
 Qed.
 
 (** [IVT_interv] and [derive_increasing_interv] but
