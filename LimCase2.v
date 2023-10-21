@@ -50,7 +50,7 @@ Proof.
  rewrite <- tau3. ring.
 Qed.
 
-Lemma tau_approx : 0.682327 < tau < 0.682328.
+Lemma tau_approx : 0.6823278038280 < tau < 0.6823278038281.
 Proof.
  exact tau_2.
 Qed.

@@ -1,4 +1,4 @@
-From Coq Require Import List Lia Reals Ranalysis5 Lra.
+From Coq Require Import List Lia Reals Ranalysis5 Lra Qreals Qminmax.
 From Coquelicot Require Rcomplements.
 Require Import MoreList DeltaList.
 Import ListNotations.
@@ -43,6 +43,25 @@ Lemma Rle_lt_mult_compat (a b c d:R) :
  0 < a <= b -> 0 < c < d -> a*c < b*d.
 Proof.
  nra.
+Qed.
+
+Lemma Rmult_ge_lowerbound a r b a' r' b' :
+ a <= r <= b -> a' <= r' <= b' ->
+ a*a' <= r*r' \/ a*b' <= r*r' \/ b*a' <= r*r' \/ b*b' <= r*r'.
+Proof.
+ intros.
+ destruct (Rle_lt_dec 0 a); destruct (Rle_lt_dec 0 a'); try nra.
+ destruct (Rle_lt_dec 0 b); destruct (Rle_lt_dec 0 b'); try nra.
+ destruct (Rle_lt_dec 0 r); nra.
+Qed.
+
+Lemma Rmult_le_upperbound a r b a' r' b' :
+ a <= r <= b -> a' <= r' <= b' ->
+ r*r' <= a*a' \/ r*r' <= a*b' \/ r*r' <= b*a' \/ r*r' <= b*b'.
+Proof.
+ intros A A'. assert (B : -b <= -r <= -a) by lra.
+ generalize (Rmult_ge_lowerbound _ _ _ _ _ _ B A').
+ rewrite <- !Ropp_mult_distr_l. lra.
 Qed.
 
 Lemma pow_lt_compat_l x y n :
@@ -113,6 +132,104 @@ Proof.
  apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_0.
  apply Rmult_lt_0_compat; try lra. apply pow_lt. nra.
 Qed.
+
+Lemma pow_incr_odd n x y : Nat.Odd n -> x <= y -> x^n <= y^n.
+Proof.
+ intros Hn LE.
+ destruct (Rle_lt_dec 0 x).
+ - apply pow_incr; lra.
+ - destruct (Rle_lt_dec 0 y).
+   + apply Rle_trans with 0.
+     * apply Rlt_le. apply pow_odd_neg; auto.
+     * now apply pow_le.
+   + replace x with (-1*-x) by lra.
+     replace y with (-1*-y) by lra.
+     rewrite !Rpow_mult_distr.
+     rewrite minusone_pow_odd by trivial.
+     generalize (pow_incr (-y) (-x) n). lra.
+Qed.
+
+Lemma pow_decr_even_neg n x y :
+  Nat.Even n -> x <= y <= 0 -> y^n <= x^n.
+Proof.
+ intros Hn LE.
+ replace x with (-1*-x) by lra.
+ replace y with (-1*-y) by lra.
+ rewrite !Rpow_mult_distr.
+ rewrite minusone_pow_even by trivial.
+ generalize (pow_incr (-y) (-x) n). lra.
+Qed.
+
+(** Link between Q and R *)
+
+Lemma Q2R_pow q n : Q2R (q^Z.of_nat n) = (Q2R q)^n.
+Proof.
+ induction n.
+ - simpl. try lra.
+ - rewrite Nat2Z.inj_succ, <-Z.add_1_l.
+   rewrite Qpower.Qpower_plus' by lia. now rewrite Q2R_mult, IHn.
+Qed.
+
+Lemma Q2R_pow' q z : (0<=z)%Z -> Q2R (q^z) = (Q2R q)^Z.to_nat z.
+Proof.
+ intros Hz. rewrite <- Q2R_pow. f_equal. f_equal. lia.
+Qed.
+
+Lemma Q2R_pow2 q : Q2R (q^2) = (Q2R q)^2.
+Proof.
+ now apply Q2R_pow'.
+Qed.
+
+Lemma Q2R_IZR z : Q2R (inject_Z z) = IZR z.
+Proof. unfold Q2R, inject_Z. simpl. lra. Qed.
+
+Lemma Qle_bool_nimp_lt (x y:Q) : Qle_bool y x = false -> (x < y)%Q.
+Proof.
+ intro E. apply Qnot_le_lt. intro LE. rewrite <- Qle_bool_iff in LE.
+ now rewrite E in LE.
+Qed.
+
+Definition Qsgn q := Z.sgn q.(Qnum).
+
+Lemma Qsgn_pos q : Qsgn q = 1%Z <-> (0 < q)%Q.
+Proof.
+ now destruct q as ([ ],?).
+Qed.
+
+Lemma Qsgn_neg q : Qsgn q = (-1)%Z <-> (q < 0)%Q.
+Proof.
+ now destruct q as ([ ],?).
+Qed.
+
+Definition Qmin4 a b c d := Qmin (Qmin a b) (Qmin c d).
+Definition Qmax4 a b c d := Qmax (Qmax a b) (Qmax c d).
+
+Lemma Qmin4_ok a b c d :
+  let m := Qmin4 a b c d in (m <= a /\ m <= b /\ m <= c /\ m <= d)%Q.
+Proof.
+ set (m := Qmin4 a b c d). unfold Qmin4 in *.
+ assert (LE : (m <= Qmin a b)%Q) by apply Q.le_min_l.
+ assert (LE' : (m <= Qmin c d)%Q) by apply Q.le_min_r.
+ repeat split.
+ apply Qle_trans with (Qmin a b); auto. apply Q.le_min_l.
+ apply Qle_trans with (Qmin a b); auto. apply Q.le_min_r.
+ apply Qle_trans with (Qmin c d); auto. apply Q.le_min_l.
+ apply Qle_trans with (Qmin c d); auto. apply Q.le_min_r.
+Qed.
+
+Lemma Qmax4_ok a b c d :
+  let m := Qmax4 a b c d in (a <= m /\ b <= m /\ c <= m /\ d <= m)%Q.
+Proof.
+ set (m := Qmax4 a b c d). unfold Qmax4 in *.
+ assert (LE : (Qmax a b <= m)%Q) by apply Q.le_max_l.
+ assert (LE' : (Qmax c d <= m)%Q) by apply Q.le_max_r.
+ repeat split.
+ apply Qle_trans with (Qmax a b); auto. apply Q.le_max_l.
+ apply Qle_trans with (Qmax a b); auto. apply Q.le_max_r.
+ apply Qle_trans with (Qmax c d); auto. apply Q.le_max_l.
+ apply Qle_trans with (Qmax c d); auto. apply Q.le_max_r.
+Qed.
+
 
 (** [IVT_interv] and [derive_increasing_interv] but
     for decreasing functions *)

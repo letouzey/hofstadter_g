@@ -206,22 +206,22 @@ Proof.
    generalize (Rsqr_sqrt 5). unfold Rsqr. lra.
 Qed.
 
-Lemma tau_2 : 0.682327 < tau 2 < 0.682328.
+Lemma tau_2 : 0.6823278038280 < tau 2 < 0.6823278038281.
 Proof.
  split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
 Qed.
 
-Lemma tau_3 : 0.7244 < tau 3 < 0.7245.
+Lemma tau_3 : 0.7244919590005 < tau 3 < 0.7244919590006.
 Proof.
  split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
 Qed.
 
-Lemma tau_4 : 0.7548 < tau 4 < 0.7549.
+Lemma tau_4 : 0.7548776662466 < tau 4 < 0.7548776662467.
 Proof.
  split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
 Qed.
 
-Lemma tau_5 : 0.7780 < tau 5 < 0.7781.
+Lemma tau_5 : 0.7780895986786 < tau 5 < 0.7780895986787.
 Proof.
  split; [ apply Ptau_lower | apply Ptau_upper ]; unfold Ptau; lra.
 Qed.
@@ -241,28 +241,28 @@ Proof.
  generalize (Rsqr_sqrt 5). unfold Rsqr. lra.
 Qed.
 
-Lemma mu_2 : 1.465 < mu 2 < 1.466.
+Lemma mu_2 : 1.465571231876 < mu 2 < 1.465571231877.
 Proof.
  rewrite tau_inv.
  assert (H := tau_2).
  destruct tau_2 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
 Qed.
 
-Lemma mu_3 : 1.380 < mu 3 < 1.381.
+Lemma mu_3 : 1.380277569097 < mu 3 < 1.380277569098.
 Proof.
  rewrite tau_inv.
  assert (H := tau_3).
  destruct tau_3 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
 Qed.
 
-Lemma mu_4 : 1.324 < mu 4 < 1.325.
+Lemma mu_4 : 1.324717957244 < mu 4 < 1.324717957245.
 Proof.
  rewrite tau_inv.
  assert (H := tau_4).
  destruct tau_4 as (H1,H2). apply Rinv_lt_contravar in H1,H2; lra.
 Qed.
 
-Lemma mu_5 : 1.285 < mu 5 < 1.286.
+Lemma mu_5 : 1.285199033245 < mu 5 < 1.286199033246.
 Proof.
  rewrite tau_inv.
  assert (H := tau_5).
@@ -471,21 +471,21 @@ Proof.
  - simpl. field_simplify. rewrite pow2_sqrt by lra. field.
 Qed.
 
-Lemma nu_1' : -0.619 < nu 1 < -0.618.
+Lemma nu_1' : -0.6180339887499 < nu 1 < -0.6180339887498.
 Proof.
  assert (H : Nat.Odd 1) by now rewrite <- Nat.odd_spec.
  split; [apply P_neg_lower|apply P_neg_upper];
    trivial; unfold P; simpl; lra.
 Qed.
 
-Lemma nu_3 : -0.820 < nu 3 < -0.819.
+Lemma nu_3 : -0.819172513397 < nu 3 < -0.819172513396.
 Proof.
  assert (H : Nat.Odd 3) by now rewrite <- Nat.odd_spec.
  split; [apply P_neg_lower|apply P_neg_upper];
    trivial; unfold P; simpl; lra.
 Qed.
 
-Lemma nu_5 : -0.882 < nu 5 < -0.881.
+Lemma nu_5 : -0.88127146164 < nu 5 < -0.88127146163.
 Proof.
  assert (H : Nat.Odd 5) by now rewrite <- Nat.odd_spec.
  split; [apply P_neg_lower|apply P_neg_upper];
