@@ -19,9 +19,9 @@ Proof.
  intros _. rewrite Z.eqb_eq, Qsgn_neg. now right.
 Qed.
 
-Ltac qle := now apply Qle_bool_imp_le.
-Ltac qlt := now apply Qle_bool_nimp_lt.
-Ltac qposneg := now apply Qpos_or_neg.
+Ltac qle := apply Qle_bool_imp_le; vm_compute; reflexivity.
+Ltac qlt := apply Qle_bool_nimp_lt; vm_compute; reflexivity.
+Ltac qposneg := apply Qpos_or_neg; vm_compute; reflexivity.
 
 #[local] Hint Extern 3 (Qle _ _) => qle : typeclass_instances.
 #[local] Hint Extern 3 (Qlt _ _) => qlt : typeclass_instances.
@@ -213,21 +213,34 @@ Defined.
 
 Ltac approximate r :=
   let A := fresh in
-  assert (A : Approx _ r _) by typeclasses eauto 20;
-  match type of A with Approx ?a _ ?b =>
+  assert (A : Approx _ r _) by once (typeclasses eauto 20);
+  revert A.
+
+Ltac approxnorm r :=
+  approximate r;
+  match goal with |- Approx ?a ?r ?b -> ?g =>
     let a' := (eval vm_compute in a) in
     let b' := (eval vm_compute in b) in
-    change (Approx a' r b') in A
+    change (Approx a' r b' -> g)
   end.
 
 Ltac approx :=
  match goal with
- | |- Approx _ _ _ => eapply approx_trans; typeclasses eauto 20
- | |- ?r <> ?r' => approximate r; approximate r'; unfold Approx in *; lra
- | |- ?r <= ?r' => approximate r; approximate r'; unfold Approx in *; lra
- | |- ?r >= ?r' => approximate r; approximate r'; unfold Approx in *; lra
- | |- ?r < ?r' => approximate r; approximate r'; unfold Approx in *; lra
- | |- ?r > ?r' => approximate r; approximate r'; unfold Approx in *; lra
+ | |- Approx _ _ _ => eapply approx_trans; once (typeclasses eauto 20)
+ | |- ?r <= ?r' =>
+   let H := fresh in let H' := fresh in
+   approximate r; intros (_,H); approximate r'; intros (H',_);
+   eapply Rle_trans; [exact H| ]; eapply Rle_trans; [ |exact H'];
+   apply Qle_Rle; qle
+ | |- ?r < ?r' =>
+   let H := fresh in let H' := fresh in
+   approximate r; intros (_,H); approximate r'; intros (H',_);
+   eapply Rle_lt_trans; [exact  H| ]; eapply Rlt_le_trans; [ |exact H'];
+   apply Qlt_Rlt; qlt
+ | |- ?r >= ?r' => apply Rle_ge; approx
+ | |- ?r > ?r' => apply Rlt_gt; approx
+ | |- ?r <> ?r' =>
+   apply Rlt_dichotomy_converse; (left; approx)||(right; approx)
  | |- _ /\ _ => split; approx
  end.
 
@@ -1185,7 +1198,7 @@ Lemma best_4packnu_0 l :
   Rabs (Rlistsum (List.map (pow nu) (O::l))) <= max4packnu.
 Proof.
  intros D B.
- inversion D; subst; cbn -[Cpow pow nu]; simpl (nu^0).
+ inversion D; subst; cbn -[Cpow pow nu]. rewrite !pow_0_r.
  { rewrite Rplus_0_r, Rabs_right by lra. approx. }
  eapply Rle_trans; [apply Rabs_triang|].
  unfold max4packnu. rewrite Rabs_right by lra.
@@ -1352,32 +1365,49 @@ Lemma alpha15 : (alpha^15 = 19 + 14*alpha + 10*alpha^2 + 26*alpha^3)%C.
 Proof. rewrite Cpow_S. now simpl_alpha. Qed.
 #[local] Hint Rewrite alpha15 : alpha.
 
-Ltac calc_alpha_raw :=
+Module ExactQuadrinom.
+(* explicit polynomial syntax [a*alpha^3+b*alpha^2+c*alpha+d]
+   even if some coefficients are 0 or 1. Needed for application
+   of cmod2_quadri below. *)
+Local Open Scope C.
+Ltac fix1 t :=
+ match t with
+ | ?c * alpha + _ => constr:(t)
+ | ?c * alpha => constr:(c*alpha+0)
+ | alpha + ?t => constr:(1*alpha+t)
+ | alpha => constr:(1*alpha+0)
+ | _ => constr:(0*alpha+t)
+ end.
+Ltac fix2 t :=
+ match t with
+ | ?c * alpha^2 + ?t => let t' := fix1 t in constr:(c*alpha^2+t')
+ | ?c * alpha^2 => fix2 constr:(t+0)
+ | alpha^2 + ?t => fix2 constr:(1*alpha^2+t)
+ | alpha^2 => fix2 constr:(1*alpha^2+0)
+ | _ => fix2 constr:(0*alpha^2+t)
+ end.
+Ltac fix3 t :=
+ match t with
+ | ?c * alpha^3 + ?t => let t' := fix2 t in constr:(c*alpha^3+t')
+ | ?c * alpha^2 => fix3 constr:(t+0)
+ | alpha^3 + ?t => fix3 constr:(1*alpha^3+t)
+ | alpha^3 => fix3 constr:(1*alpha^3+0)
+ | _ => fix3 constr:(0*alpha^3+t)
+ end.
+End ExactQuadrinom.
+
+Ltac calc_alpha :=
   let c := fresh in
   let H := fresh in
-  remember (Cplus _ _) as c eqn:H;
+  remember (Cplus _ _) as c eqn:H; (* ad-hoc but enough here ! *)
   repeat (autorewrite with alpha in H; ring_simplify in H);
+  (* fixing quadrinom *)
+  rewrite <- ?Cplus_assoc in H;
+  match type of H with _ = ?t =>
+    let t' := ExactQuadrinom.fix3 t in replace t with t' in H by ring
+  end;
+  rewrite ?Cplus_assoc in H;
   rewrite H; clear c H.
-
-Ltac fix_alpha_quadri :=
- (* Hack : explicit 1*alpha and 1*alpha^2 if needed for easy
-    application of cmod2_quadri below *)
- match goal with
- | |- context [ (alpha^3 + _)%C ] => rewrite <- (Cmult_1_l (alpha^3))
- | _ => idtac
- end;
- match goal with
- | |- context [ (_ + alpha^2)%C ] => rewrite <- (Cmult_1_l (alpha^2))
-
- | _ => idtac
- end;
- match goal with
- | |- context [ (_ + alpha)%C ] => rewrite <- (Cmult_1_l alpha) at 3
-
- | _ => idtac
- end.
-
-Ltac calc_alpha := calc_alpha_raw; fix_alpha_quadri.
 
 Lemma re_quadri (a b c d : R) :
  Re (d*alpha^3+c*alpha^2+b*alpha+a) =
@@ -1416,27 +1446,7 @@ Qed.
 #[local] Instance max4packa2_approx :
  Approx 6.7073103 (max4packa^2) 6.7073105.
 Proof.
- unfold max4packa. calc_alpha_raw. rewrite cmod2_quadri. approx.
-Qed.
-
-(** Three cases that are were slow with older version of approx *)
-
-Lemma adhoc_1 :
-  Cmod (1 + alpha ^ 4 + alpha ^ 9 + alpha ^ 14)^2 <= max4packa^2.
-Proof.
- calc_alpha. rewrite cmod2_quadri. approx.
-Qed.
-
-Lemma adhoc_2 :
-  Cmod (1 + alpha ^ 5 + alpha ^ 10 + alpha ^ 14)^2 <= max4packa^2.
-Proof.
- calc_alpha. rewrite cmod2_quadri. approx.
-Qed.
-
-Lemma adhoc_3 :
-  Cmod (1 + alpha ^ 5 + alpha ^ 10 + alpha ^ 15)^2 <= max4packa^2.
-Proof.
- calc_alpha. rewrite cmod2_quadri. approx.
+ unfold max4packa. calc_alpha. rewrite cmod2_quadri. approx.
 Qed.
 
 Lemma best_4packa_0 l :
@@ -1447,22 +1457,13 @@ Proof.
  apply Rle_pow2_inv; [apply Cmod_ge_0| ].
  assert (H : Delta 4 (O::l) /\ Below (O::l) 16).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite enum_delta_below_ok0 in H. compute in H;
- repeat destruct H as [<-|H]; try easy; cbn -[Cpow pow];
-  change (alpha^0)%C with C1;
-  rewrite ?Cplus_0_r, ?Cplus_assoc;
+ rewrite enum_delta_below_ok0 in H.
+ compute in H;
+ repeat destruct H as [<-|H]; try destruct H as [ ];
+  cbn -[Cpow pow]; rewrite ?Cpow_0_r, ?Cplus_0_r, ?Cplus_assoc;
   try apply Rle_refl; (* for max4packa itself *)
-  try apply adhoc_1; try apply adhoc_2; try apply adhoc_3;
-  try (calc_alpha; rewrite cmod2_quadri; approx).
- (* Slow ! about 2sec x 69 cases... *)
- { calc_alpha.
-   replace C2 with (0*alpha^2+0*alpha+C2)%C by ring.
-   rewrite !Cplus_assoc, cmod2_quadri. approx. }
- { calc_alpha.
-   replace (C1*alpha^3+alpha)%C with
-       (C1*alpha^3 + 0*alpha^2+1*alpha)%C by ring.
-   rewrite cmod2_quadri. approx. }
- { rewrite Cmod_1, pow1. approx. }
+  try (calc_alpha; rewrite cmod2_quadri; approx). (* slow... *)
+ rewrite Cmod_1, pow1. approx.
 Qed.
 
 Lemma best_4packa_below l :

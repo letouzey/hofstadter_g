@@ -206,6 +206,9 @@ Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
 
+Lemma Cpow_0_r c : c^0 = 1.
+Proof. reflexivity. Qed.
+
 Lemma RtoC_inj_neq x y : x<>y -> RtoC x <> RtoC y.
 Proof.
  intros N E. now apply RtoC_inj in E.

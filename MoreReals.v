@@ -64,6 +64,9 @@ Proof.
  rewrite <- !Ropp_mult_distr_l. lra.
 Qed.
 
+Lemma pow_0_r r : r ^ 0 = 1.
+Proof. reflexivity. Qed.
+
 Lemma pow_lt_compat_l x y n :
  0 <= x < y -> n<>O -> x^n < y^n.
 Proof.
