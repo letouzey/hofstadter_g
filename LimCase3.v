@@ -1453,7 +1453,8 @@ Proof.
   rewrite ?Cplus_0_r, ?Cplus_assoc;
   try apply Rle_refl; (* for max4packa itself *)
   try apply adhoc_1; try apply adhoc_2; try apply adhoc_3;
-  try (calc_alpha; rewrite cmod2_quadri; timeout 3 approx).
+  try (calc_alpha; rewrite cmod2_quadri; approx).
+ (* Slow ! about 2sec x 69 cases... *)
  { calc_alpha.
    replace C2 with (0*alpha^2+0*alpha+C2)%C by ring.
    rewrite !Cplus_assoc, cmod2_quadri. approx. }
