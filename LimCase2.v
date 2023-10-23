@@ -1,7 +1,7 @@
-From Coq Require Import Arith Lia Reals Lra.
+From Coq Require Import Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex.
 Require Import MoreList MoreReals MoreLim MoreComplex.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Mu.
+Require Import DeltaList FunG GenFib GenG GenAdd Words Mu Approx.
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
@@ -50,24 +50,24 @@ Proof.
  rewrite <- tau3. ring.
 Qed.
 
-Lemma tau_approx : 0.6823278038280 < tau < 0.6823278038281.
+#[local] Instance mu_approx : Approx 1.465571231876 mu 1.465571231877.
 Proof.
- exact tau_2.
+ red. unfold mu. generalize mu_2. lra.
 Qed.
 
-Lemma tau2_approx : 0.465570 < tau^2 < 0.465572.
+#[local] Instance tau_approx : Approx 0.6823278038280 tau 0.6823278038281.
 Proof.
- destruct tau_approx as (H1,H2).
- simpl. rewrite Rmult_1_r. split.
- - eapply Rlt_trans; [ | eapply Rmult_le_0_lt_compat; eauto]; lra.
- - eapply Rlt_trans; [ eapply Rmult_le_0_lt_compat; eauto | ]; lra.
+ red. unfold tau. generalize tau_2. lra.
 Qed.
+
+#[local] Instance tau2_approx : Approx 0.465570 (tau^2) 0.465572.
+Proof. approx. Qed.
 
 Lemma re_alpha_alt : re_alpha = - tau ^ 2 / 2.
 Proof.
  unfold re_alpha. f_equal.
  unfold mu. rewrite tau_inv. fold tau.
- assert (tau <> 0) by (generalize tau_approx; lra).
+ assert (tau <> 0) by approx.
  apply Rmult_eq_reg_l with tau; trivial.
  field_simplify; trivial. rewrite tau3. lra.
 Qed.
@@ -76,8 +76,7 @@ Lemma im_alpha_2 : im_alpha ^ 2 = tau * (3+tau) / 4.
 Proof.
  unfold im_alpha.
  unfold Rdiv.
- rewrite Rpow_mult_distr, pow2_sqrt; try lra.
- apply Rmult_le_pos; generalize tau_approx; lra.
+ rewrite Rpow_mult_distr, pow2_sqrt; try lra. approx.
 Qed.
 
 Lemma alphamod2 : (Cmod alpha)^2 = tau.
@@ -88,6 +87,13 @@ Proof.
  unfold alpha; simpl. ring_simplify.
  rewrite im_alpha_2. rewrite re_alpha_alt.
  field_simplify. rewrite tau4. field.
+Qed.
+
+#[local] Instance alphamod_approx :
+  Approx 0.8260313576541 (Cmod alpha) 0.8260313576543 |20.
+Proof.
+ apply pow2_approx_inv; try qle; try apply Cmod_ge_0.
+ rewrite alphamod2. approx.
 Qed.
 
 Lemma mu_is_Croot : (mu ^3 = mu ^2 + 1)%C.
@@ -115,7 +121,7 @@ Qed.
 
 Lemma re_alpha_nz : re_alpha <> 0.
 Proof.
- unfold re_alpha, mu. generalize mu_2. lra.
+ unfold re_alpha. approx.
 Qed.
 
 Lemma im_alpha_nz : im_alpha <> 0.
@@ -123,9 +129,8 @@ Proof.
  assert (LE : 0 <= im_alpha).
  { unfold im_alpha. apply Rle_mult_inv_pos; try lra. apply sqrt_pos. }
  assert (LT : 0 < im_alpha ^2).
- { rewrite im_alpha_2. unfold Rdiv.
-   repeat apply Rmult_lt_0_compat; generalize tau_approx; lra. }
- destruct (Rle_lt_or_eq_dec _ _ LE) as [?|EQ]; try rewrite <- EQ in *; lra.
+ { rewrite im_alpha_2. approx. }
+ nra.
 Qed.
 
 Lemma distinct_roots :
@@ -190,22 +195,15 @@ Proof.
  negapply Rplus_sqr_eq_0_l. apply im_alpha_nz.
 Qed.
 
-Lemma re_coef_alpha_bound : -0.16 < Re coef_alpha < -0.15.
+#[local] Instance re_coef_alpha_bound :
+  Approx (-0.16) (Re coef_alpha) (-0.15).
 Proof.
- generalize tau_approx tau2_approx mu_2. fold mu. intros H H' H''.
- assert (1.465^2 < mu^2 < 1.466^2).
- { split; rewrite <-!Rsqr_pow2; apply Rsqr_incrst_1; lra. }
- rewrite re_coef_alpha_alt.
- rewrite Rcomplements.Rlt_div_l by lra.
- rewrite <- Rcomplements.Rlt_div_r by lra.
- assert (E : tau ^ 2 * mu  = tau).
- { unfold mu, tau, Mu.tau. field. fold mu. lra. }
- split; apply Rminus_gt_0_lt; ring_simplify; lra.
+ rewrite re_coef_alpha_alt. approx.
 Qed.
 
-Lemma coef_mu_bound : 1.30 < coef_mu < 1.32.
+#[local] Instance coef_mu_bound : Approx 1.30 coef_mu 1.32.
 Proof.
- unfold coef_mu. generalize re_coef_alpha_bound. lra.
+ unfold coef_mu. approx.
 Qed.
 
 (** These coefficients coef_alpha and coef_mu were found by manually
@@ -318,7 +316,7 @@ Qed.
 Lemma A2_div_mu_n n :
  A 2 n / mu ^n = coef_mu + 2 * Re (coef_alpha * (alpha/mu)^n)%C.
 Proof.
- assert (mu <> 0). { unfold mu. generalize (mu_itvl 2). lra. }
+ assert (mu <> 0) by approx.
  assert (mu^n <> 0). { now apply pow_nonzero. }
  unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by (negapply RtoC_inj; auto).
  rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
@@ -327,14 +325,12 @@ Qed.
 
 Lemma Cmod_alpha_mu : Cmod (alpha/mu) < 1.
 Proof.
- assert (0 < mu). { unfold mu. generalize (mu_itvl 2). lra. }
- assert (0 < tau) by (generalize tau_approx; lra).
+ assert (0 < mu) by approx.
+ assert (0 < tau) by approx.
  apply Rlt_pow2_inv; try lra.
  rewrite Cmod_div by (negapply RtoC_inj; lra).
  rewrite Cmod_R, Rabs_right by lra.
- unfold Rdiv. rewrite Rpow_mult_distr. rewrite alphamod2.
- unfold mu. rewrite tau_inv, Rinv_inv; fold tau; try lra.
- ring_simplify. rewrite tau3. lra.
+ unfold Rdiv. rewrite Rpow_mult_distr. rewrite alphamod2. approx.
 Qed.
 
 Lemma Lim_A2_div_mu_n :
@@ -365,10 +361,8 @@ Qed.
 Lemma Lim_A2_ratio :
  is_lim_seq (fun n => A 2 (S n) / A 2 n) mu.
 Proof.
- assert (mu_pos : 0 < mu ).
- { unfold mu. generalize mu_2. lra. }
- assert (coef_mu <> 0).
- { generalize coef_mu_bound. lra. }
+ assert (mu_pos : 0 < mu ) by approx.
+ assert (coef_mu <> 0) by approx.
  apply is_lim_seq_ext with
      (u := fun n => mu * ((A 2 (S n) / mu ^ (S n))
                           / (A 2 n / mu ^ n))).
@@ -633,8 +627,7 @@ Proof.
  - generalize (Cmod_ge_0 coefa0). lra.
  - apply sum_pow; try lia; try apply decomp_delta.
    split; try apply Cmod_ge_0.
-   apply Rlt_pow2_inv; try lra.
-   rewrite alphamod2. generalize tau_approx. lra.
+   apply Rlt_pow2_inv; try lra. rewrite alphamod2. approx.
 Qed.
 
 (** Experimentally, this first bound is around 1.112.
@@ -694,8 +687,7 @@ Lemma alphamod_lt : 0 < Cmod alpha < 1.
 Proof.
  split.
  - apply Cmod_gt_0. unfold alpha. injection 1 as H H'. now apply re_alpha_nz.
- - apply Rlt_pow2_inv; try lra.
-   rewrite alphamod2. generalize tau_approx; lra.
+ - apply Rlt_pow2_inv; try lra. rewrite alphamod2. approx.
 Qed.
 
 Lemma alphamod9_lt : 0 < Cmod alpha^9 < 1.
@@ -796,18 +788,17 @@ Lemma best_3pack_0 l :
   Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
 Proof.
  intros D B.
- assert (T := tau_approx).
- assert (T2 := tau2_approx).
  apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
  assert (H : Delta 3 (O::l) /\ Below (O::l) 9).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
  rewrite enum_delta_below_ok0 in H. compute in H;
  repeat destruct H as [<-|H]; try destruct H; cbn -[Cpow pow]; (* 13 cases *)
- calc_alpha; try rewrite cmod2_trinom_alpha; calc_tau; try lra.
+ calc_alpha; try rewrite cmod2_trinom_alpha; calc_tau; try approx.
+ - lra. (* max3pack <= max3pack *)
  - (* special case without the alpha monom *)
    replace C2 with (0*alpha+C2)%C by ring.
-   rewrite Cplus_assoc, cmod2_trinom_alpha; calc_tau; lra.
- - rewrite Cmod_1. lra.
+   rewrite Cplus_assoc, cmod2_trinom_alpha; calc_tau; approx.
+ - rewrite Cmod_1, pow1. approx.
 Qed.
 
 Lemma best_3pack_below l :
@@ -831,8 +822,7 @@ Proof.
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
-       apply Rle_pow2_inv; try lra.
-       rewrite alphamod2. generalize tau_approx; lra.
+       apply Rle_pow2_inv; try lra. rewrite alphamod2. approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
@@ -936,7 +926,7 @@ Proof.
  rewrite Cmod_Ci, Rmult_1_r.
  simpl Im.
  rewrite pow_inv, Rpow_mult_distr.
- rewrite pow2_abs. rewrite im_alpha_2. field. generalize tau_approx; lra.
+ rewrite pow2_abs. rewrite im_alpha_2. field. approx.
 Qed.
 
 (** And finally, we obtain that diff0 is always strictly less than 1.
@@ -955,16 +945,7 @@ Proof.
  rewrite alphamod2, tau4.
  unfold coefa0. rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
  change alphabar with (Cconj alpha). rewrite Cmod_Cconj, alphamod2.
- assert (H := tau_approx).
- assert (H2 := tau2_approx).
- field_simplify; try lra. rewrite alphamod2, tau4, tau3.
- field_simplify; try lra. apply Rcomplements.Rlt_div_l; try lra.
- field_simplify; try lra. rewrite tau3. field_simplify; try lra.
- assert (LT : Cmod alpha * (-4*tau^2 + 8*tau -2) < 151 * tau^2 - 104*tau + 2).
- { apply Rlt_pow2_inv; try lra.
-   rewrite Rpow_mult_distr. rewrite alphamod2. ring_simplify.
-   rewrite tau5, tau4, tau3. ring_simplify; lra. }
- ring_simplify in LT. lra.
+ approx.
 Qed.
 
 (* Print Assumptions diff0_lt_1. *)
@@ -1098,10 +1079,7 @@ Proof.
  unfold Rdiv.
  apply Rmult_le_compat_l.
  - generalize (Cmod_ge_0 coefa2). lra.
- - apply sum_pow; try lia; try apply decomp_delta.
-   split; try apply Cmod_ge_0.
-   apply Rlt_pow2_inv; try lra.
-   rewrite alphamod2. generalize tau_approx. lra.
+ - apply sum_pow; try lia; try apply decomp_delta. approx.
 Qed.
 
 Lemma diff2_lt_2 n : Rabs (diff2 n) < 2.
@@ -1109,24 +1087,10 @@ Proof.
  eapply Rle_lt_trans. apply diff2_indep_bound.
  replace 2 with (2*1) at 2 by lra.
  unfold Rdiv. rewrite Rmult_assoc. apply Rmult_lt_compat_l; try lra.
- assert (H := tau_approx).
- assert (H2 := tau2_approx).
- assert (Cmod alpha^3 < 1).
- { apply Rlt_pow2_inv; try lra. ring_simplify.
-   change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3. lra. }
+ assert (Cmod alpha^3 < 1) by approx.
  apply Rcomplements.Rlt_div_l; try lra.
  rewrite Rmult_1_l.
- apply Rlt_pow2_inv; try lra. rewrite Cmod2_coefa2.
- apply Rcomplements.Rlt_div_l; try lra.
- ring_simplify.
- change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3.
- ring_simplify.
- assert (LT : Cmod alpha^3 * (2*tau + 6) < 5 - tau^2).
- { apply Rlt_pow2_inv; try lra.
-   rewrite Rpow_mult_distr. ring_simplify.
-   change 6%nat with (2*3)%nat. rewrite pow_mult, alphamod2, tau3.
-   ring_simplify. rewrite tau3, tau4. ring_simplify. lra. }
- ring_simplify in LT. lra.
+ apply Rlt_pow2_inv; try lra. rewrite Cmod2_coefa2. approx.
 Qed.
 
 
@@ -1216,13 +1180,13 @@ Proof.
  split.
  - assert (nat_part (tau^2 * n) < 2 + (h^^2) n)%nat; try lia.
    { apply nat_part_lt. split.
-     - apply Rmult_le_pos. generalize tau2_approx; lra. apply pos_INR.
+     - apply Rmult_le_pos. approx. apply pos_INR.
      - rewrite plus_INR. replace (INR 2) with 2 by auto.
        assert (LT := diff2_lt_2 n). apply Rcomplements.Rabs_lt_between in LT.
        generalize (diff2_alt n). lra. }
  - assert ((h^^2) n - 2 <= nat_part (tau^2 * n))%nat; try lia.
    { apply nat_part_le.
-     - apply Rmult_le_pos. generalize tau2_approx; lra. apply pos_INR.
+     - apply Rmult_le_pos. approx. apply pos_INR.
      - destruct (Nat.le_gt_cases 4 n) as [LE|LT].
        + assert (LE' := fs_mono 2 2 LE).
          rewrite minus_INR by trivial.
@@ -1230,19 +1194,21 @@ Proof.
          assert (LT := diff2_lt_2 n). apply Rcomplements.Rabs_lt_between in LT.
          generalize (diff2_alt n). lra.
        + destruct n. simpl; lra.
-         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
-         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
-         destruct n. simpl. rewrite !Rmult_1_r. generalize tau2_approx. lra.
+         destruct n. simpl. approx.
+         destruct n. simpl. approx.
+         destruct n. simpl. approx.
          lia. }
 Qed.
 
-(* TODO: next cases
+(* Next cases:
 
-For k=3, an extra negative real root. The complex roots can be expressed
+For k=3, see LimCase3.v
+ an extra negative real root. The complex roots can be expressed
  in function of the real roots. Similar convergence and results than for k=2,
  except that (f 3 n) could be further apart from (nat_part (tau 3 * n)).
 
-For k=4, four complex roots : j and (Cconj j) of modulus 1, and
+For k=4, no Coq proofs yet.
+ four complex roots : j and (Cconj j) of modulus 1, and
   some alpha and (Cconj alpha) of modulus < 1. Note that alpha can be
   expressed in function of (tau 4). Apparently, no more finite bound to
   (f 4 n - tau 4 * n).

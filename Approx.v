@@ -208,6 +208,18 @@ Proof.
  unfold Approx. intros A LE LE'. apply Qle_Rle in LE,LE'. lra.
 Qed.
 
+(* TODO: general approx of sqrt ? *)
+
+Lemma pow2_approx_inv {a r b} :
+  Approx (a^2) (r^2) (b^2) -> (0 <= a)%Q -> 0 <= r -> (0 <= b)%Q ->
+  Approx a r b.
+Proof.
+ unfold Approx. intros p Ha Hr Hb.
+ apply Qle_Rle in Ha,Hb. rewrite !Q2R_pow2 in p.
+ rewrite <- !Rsqr_pow2 in p.
+ split; apply Rsqr_incr_0; lra.
+Qed.
+
 Ltac approxim r :=
   let A := fresh in
   assert (A : Approx _ r _) by once (typeclasses eauto 20);

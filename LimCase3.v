@@ -122,18 +122,6 @@ Qed.
  Approx 0.884419273293 ((Cmod alpha)^2) 0.884419273296.
 Proof. rewrite alphamod2. approx. Qed.
 
-Lemma pow2_approx_inv {a r b} :
-  Approx (a^2) (r^2) (b^2) -> (0 <= a)%Q -> 0 <= r -> (0 <= b)%Q ->
-  Approx a r b.
-Proof.
- unfold Approx. intros p Ha Hr Hb.
- apply Qle_Rle in Ha,Hb. rewrite !Q2R_pow2 in p.
- rewrite <- !Rsqr_pow2 in p.
- split; apply Rsqr_incr_0; lra.
-Qed.
-
-(* TODO: general approx of sqrt ? *)
-
 #[local] Instance alphamod_approx :
   Approx 0.9404356826 (Cmod alpha) 0.9404356828 |20.
 Proof.
