@@ -8,6 +8,7 @@ FunG_prog.v
 FlipG.v
 MoreList.v
 MoreReals.v
+Approx.v
 Phi.v
 GenFib.v
 GenG.v
@@ -25,3 +26,4 @@ Diagonalize.v
 ThePoly.v
 Freq.v
 LimCase2.v
+LimCase3.v

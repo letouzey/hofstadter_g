@@ -186,54 +186,6 @@ Qed.
 Lemma Q2R_IZR z : Q2R (inject_Z z) = IZR z.
 Proof. unfold Q2R, inject_Z. simpl. lra. Qed.
 
-Lemma Qle_bool_nimp_lt (x y:Q) : Qle_bool y x = false -> (x < y)%Q.
-Proof.
- intro E. apply Qnot_le_lt. intro LE. rewrite <- Qle_bool_iff in LE.
- now rewrite E in LE.
-Qed.
-
-Definition Qsgn q := Z.sgn q.(Qnum).
-
-Lemma Qsgn_pos q : Qsgn q = 1%Z <-> (0 < q)%Q.
-Proof.
- now destruct q as ([ ],?).
-Qed.
-
-Lemma Qsgn_neg q : Qsgn q = (-1)%Z <-> (q < 0)%Q.
-Proof.
- now destruct q as ([ ],?).
-Qed.
-
-Definition Qmin4 a b c d := Qmin (Qmin a b) (Qmin c d).
-Definition Qmax4 a b c d := Qmax (Qmax a b) (Qmax c d).
-
-Lemma Qmin4_ok a b c d :
-  let m := Qmin4 a b c d in (m <= a /\ m <= b /\ m <= c /\ m <= d)%Q.
-Proof.
- set (m := Qmin4 a b c d). unfold Qmin4 in *.
- assert (LE : (m <= Qmin a b)%Q) by apply Q.le_min_l.
- assert (LE' : (m <= Qmin c d)%Q) by apply Q.le_min_r.
- repeat split.
- apply Qle_trans with (Qmin a b); auto. apply Q.le_min_l.
- apply Qle_trans with (Qmin a b); auto. apply Q.le_min_r.
- apply Qle_trans with (Qmin c d); auto. apply Q.le_min_l.
- apply Qle_trans with (Qmin c d); auto. apply Q.le_min_r.
-Qed.
-
-Lemma Qmax4_ok a b c d :
-  let m := Qmax4 a b c d in (a <= m /\ b <= m /\ c <= m /\ d <= m)%Q.
-Proof.
- set (m := Qmax4 a b c d). unfold Qmax4 in *.
- assert (LE : (Qmax a b <= m)%Q) by apply Q.le_max_l.
- assert (LE' : (Qmax c d <= m)%Q) by apply Q.le_max_r.
- repeat split.
- apply Qle_trans with (Qmax a b); auto. apply Q.le_max_l.
- apply Qle_trans with (Qmax a b); auto. apply Q.le_max_r.
- apply Qle_trans with (Qmax c d); auto. apply Q.le_max_l.
- apply Qle_trans with (Qmax c d); auto. apply Q.le_max_r.
-Qed.
-
-
 (** [IVT_interv] and [derive_increasing_interv] but
     for decreasing functions *)
 
