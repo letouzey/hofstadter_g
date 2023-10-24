@@ -983,39 +983,41 @@ Qed.
 Ltac simpl_α := repeat (autorewrite with α; ring_simplify).
 #[local] Hint Rewrite α_is_Croot : α.
 
-Lemma α5 : (α^5 = 1 + α + α^3)%C.
+Local Open Scope C.
+Lemma α5 : α^5 = 1 + α + α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α5 : α.
-Lemma α6 : (α^6 = 1 + α + α^2 + α^3)%C.
+Lemma α6 : α^6 = 1 + α + α^2 + α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α6 : α.
-Lemma α7 : (α^7 = 1 + α + α^2 + 2*α^3)%C.
+Lemma α7 : α^7 = 1 + α + α^2 + 2*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α7 : α.
-Lemma α8 : (α^8 = 2 + α + α^2 + 3*α^3)%C.
+Lemma α8 : α^8 = 2 + α + α^2 + 3*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α8 : α.
-Lemma α9 : (α^9 = 3 + 2*α + α^2 + 4*α^3)%C.
+Lemma α9 : α^9 = 3 + 2*α + α^2 + 4*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α9 : α.
-Lemma α10 : (α^10 = 4 + 3*α + 2*α^2 + 5*α^3)%C.
+Lemma α10 : α^10 = 4 + 3*α + 2*α^2 + 5*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α10 : α.
-Lemma α11 : (α^11 = 5 + 4*α + 3*α^2 + 7*α^3)%C.
+Lemma α11 : α^11 = 5 + 4*α + 3*α^2 + 7*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α11 : α.
-Lemma α12 : (α^12 = 7 + 5*α + 4*α^2 + 10*α^3)%C.
+Lemma α12 : α^12 = 7 + 5*α + 4*α^2 + 10*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α12 : α.
-Lemma α13 : (α^13 = 10 + 7*α + 5*α^2 + 14*α^3)%C.
+Lemma α13 : α^13 = 10 + 7*α + 5*α^2 + 14*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α13 : α.
-Lemma α14 : (α^14 = 14 + 10*α + 7*α^2 + 19*α^3)%C.
+Lemma α14 : α^14 = 14 + 10*α + 7*α^2 + 19*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α14 : α.
-Lemma α15 : (α^15 = 19 + 14*α + 10*α^2 + 26*α^3)%C.
+Lemma α15 : α^15 = 19 + 14*α + 10*α^2 + 26*α^3.
 Proof. rewrite Cpow_S. now simpl_α. Qed.
 #[local] Hint Rewrite α15 : α.
+Local Close Scope C.
 
 Module FixQuadrinomial.
 (* explicit polynomial syntax [a*α^3+b*α^2+c*α+d]
@@ -1084,11 +1086,9 @@ Proof.
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
  rewrite enum_delta_below_ok0 in H.
  compute in H;
- repeat destruct H as [<-|H]; try destruct H as [ ];
-  cbn -[Cpow pow]; rewrite ?Cpow_0_r, ?Cplus_0_r, ?Cplus_assoc;
-  try apply Rle_refl; (* for max4packa itself *)
+ repeat destruct H as [<-|H]; try destruct H as [ ]; cbn -[Cpow pow];
   try (calc_α; rewrite cmod2_α_quadrinomial; approx). (* slow... *)
- rewrite Cmod_1, pow1. approx.
+ rewrite !Cplus_assoc, Cplus_0_r; apply Rle_refl. (* for max4packa *)
 Qed.
 
 Lemma best_4packa_below l :
