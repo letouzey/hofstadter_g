@@ -112,15 +112,6 @@ Proof.
  apply pow2_approx_inv. approx. qle. generalize im_alpha_pos; lra. qle.
 Qed.
 
-Lemma alpha_neq_1 : alpha <> 1.
-Proof.
- unfold alpha. intros [= E _]. revert E. approx.
-Qed.
-
-Lemma alphabar_neq_1 : alphabar <> 1.
- unfold alphabar. intros [= E ?]. revert E. approx.
-Qed.
-
 Lemma alphamod2 : Cmod alpha ^2 = tau/(-nu).
 Proof.
  rewrite Cmod2_alt. unfold alpha. simpl Re; simpl Im.
@@ -670,8 +661,9 @@ Proof.
    now rewrite <- !Mmult_assoc, U_invU, Mmult_1_l by apply WF_Dn.
 Qed.
 
-Definition UV0a := (alpha^3/(alpha-1))%C.
-Definition UV0nu := (nu^3/(nu-1))%C.
+Definition UV0a := (1+alpha+alpha^2+alpha^3)%C.
+Definition UV0nu := (1+nu+nu^2+nu^3)%C.
+(** possible alternative forms : alpha^3/(alpha-1) and nu^3/(nu-1) *)
 
 Definition coefa_detU := ((nu-alphabar)*UV0a)%C.
 Definition coefnu_detU := ((alphabar-alpha)*UV0nu)%C.
@@ -681,27 +673,6 @@ Definition vectnu :=
 
 Definition coefsa := (/detU * coefa_detU) .* vecta.
 Definition coefsnu := (/detU * coefnu_detU) .* vectnu.
-
-Lemma UV0a_conj : Cconj UV0a = (alphabar^3/(alphabar-1))%C.
-Proof.
- unfold UV0a. rewrite Cdiv_conj by apply Cminus_eq_contra, alpha_neq_1.
- rewrite Cconj_minus_distr, Cpow_conj, alpha_conj. f_equal. f_equal. lca.
-Qed.
-
-Lemma UV0a_alt : (UV0a = 1 + alpha + alpha^2 + alpha^3)%C.
-Proof.
- unfold UV0a.
- apply Cmult_eq_reg_l with (alpha-1)%C; try field_simplify;
-  try apply Cminus_eq_contra, alpha_neq_1.
- rewrite alpha_is_Croot; field.
-Qed.
-
-Lemma UV0nu_alt : UV0nu = RtoC (1+nu+nu^2+nu^3).
-Proof.
- unfold UV0nu. autorewrite with RtoC. f_equal.
- replace (nu^3) with (nu^4-1) at 1 by (rewrite nu_is_Rroot; ring).
- field; approx.
-Qed.
 
 Local Hint Rewrite Cconj_mult_distr Cconj_plus_distr Cconj_minus_distr
  Cconj_opp Cdiv_conj Cinv_conj Cconj_R Cpow_conj alphabar_conj alpha_conj
@@ -714,14 +685,13 @@ Proof.
  unfold U, V0, scale; cbn -[nu Cpow pow];
  rewrite tau4, tau5; rewrite !RtoC_minus, <- !RtoC_pow.
  - rewrite <- (P_factor_mu_eq0 alpha);
-   [ | apply distinct_roots | apply alpha_is_Croot ].
-   ring_simplify. rewrite UV0a_alt; ring.
+   [ | apply distinct_roots | apply alpha_is_Croot ]. unfold UV0a. ring.
  - rewrite <- (P_factor_mu_eq0 alphabar);
    [ | apply distinct_roots | apply alphabar_is_Croot ].
-   ring_simplify. rewrite UV0a_alt. autorewrite with cconj. ring.
+   unfold UV0a. autorewrite with cconj. ring.
  - rewrite <- (P_factor_mu_eq0 nu);
    [ | apply RtoC_inj_neq,distinct_roots | apply nu_is_Croot ].
-   ring_simplify. rewrite UV0nu_alt. autorewrite with RtoC. f_equal. ring.
+   unfold UV0nu. autorewrite with RtoC. f_equal. ring.
 Qed.
 
 (** diffs for (A 3) numbers are linear combinations of little roots *)
@@ -766,7 +736,7 @@ Qed.
 Lemma coefsnu_real i : (i < 3)%nat -> Im (coefsnu i O) = 0.
 Proof.
  assert (E0 : Cconj UV0nu = UV0nu).
- { now rewrite UV0nu_alt, Cconj_R. }
+ { unfold UV0nu. now autorewrite with cconj. }
  assert (E : Im (/ detU * coefnu_detU) = 0).
  { rewrite is_real_carac. autorewrite with cconj; try apply detU_nz.
    rewrite detU_conj.
@@ -1247,7 +1217,7 @@ Qed.
 
 #[local] Instance : Approx 0.4785740967 (Cmod UV0a ^2) 0.4785740985.
 Proof.
- rewrite UV0a_alt. calc_alpha. rewrite cmod2_alpha_quadrinomial. approx.
+ unfold UV0a. calc_alpha. rewrite cmod2_alpha_quadrinomial. approx.
 Qed.
 
 #[local] Instance : Approx 0.916466310 (Cmod coefa_detU ^2) 0.916466315.
@@ -1299,7 +1269,7 @@ Proof.
      - autorewrite with RtoC. apply RtoC_inj_neq. approx.
      - injection 1. lra.
      - apply RtoC_inj_neq. approx. }
- rewrite UV0nu_alt. autorewrite with RtoC. rewrite re_RtoC.
+ unfold UV0nu. autorewrite with RtoC. rewrite re_RtoC.
  rewrite Ropp_div, !Rabs_Ropp. rewrite 2 Rabs_right by approx.
  approx.
 Qed.
