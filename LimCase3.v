@@ -210,13 +210,12 @@ Proof.
  ring_simplify in E0. field_simplify in E3.
  assert (E3' : (RtoC μ + RtoC ν + e + Cconj e = 1)%C).
  { rewrite Ceq_minus in E3. ring_simplify in E3.
-   replace (RtoC (-1)) with (- C1)%C in E3 by lca.
-   change (_+ - C1)%C with ((Cconj e+e+ν+μ)-1)%C in E3.
-   rewrite <- Ceq_minus in E3. rewrite <- E3. lca. }
+   replace (RtoC (-1)) with (-(1))%C in E3 by lca.
+   apply Ceq_minus in E3. rewrite <- E3. lca. }
  clear E E3 He.
  assert (Hx : Re e = re_α).
  { apply RtoC_inj. rewrite re_alt.
-   replace (e+Cconj e)%C with (C1-μ-ν)%C by (rewrite <- E3'; lca).
+   replace (e+Cconj e)%C with (1-μ-ν)%C by (rewrite <- E3'; lca).
    unfold re_α. lca. }
  assert (Hm : Cmod e ^2 = Cmod α ^2).
  { apply RtoC_inj.
@@ -415,7 +414,7 @@ Definition Diffs w : Vector 3 := mkvectR 3 [Diff3 w; Diff0 w; Diff1 w].
 Definition diffs n : Vector 3 := mkvectR 3 [diff3 n; diff0 n; diff1 n].
 
 Definition B : Square 3 :=
- list2D_to_matrix [ [-τ^3;-C1;-C1];[RtoC τ;C0;C0];[-τ^5;C1;C0] ]%C.
+ list2D_to_matrix [ [-τ^3;-1%C;-1%C];[RtoC τ;0;0];[-τ^5;1;0] ]%C.
 
 Lemma WF_B : WF_Matrix B.
 Proof.
@@ -479,11 +478,10 @@ Definition U : Square 3 :=
                     [-ν^2;ν+1;RtoC ν] ]%C.
 
 Definition D : Square 3 :=
- list2D_to_matrix [ [α;C0;C0]; [C0;αbar;C0]; [C0;C0;RtoC ν] ]%C.
+ list2D_to_matrix [ [α;0;0]; [0;αbar;0]; [0;0;RtoC ν] ]%C.
 
 Definition Dn n : Square 3 :=
- list2D_to_matrix
-   [ [α^n;C0;C0]; [C0;αbar^n;C0]; [C0;C0;RtoC ν ^n] ]%C.
+ list2D_to_matrix [ [α^n;0;0]; [0;αbar^n;0]; [0;0;RtoC ν ^n] ]%C.
 
 Lemma WF_U : WF_Matrix U.
 Proof.
@@ -611,7 +609,7 @@ Proof.
  unfold invU.
  rewrite Mscale_mult_dist_l, invU_detU_U.
  rewrite Mscale_assoc.
- replace (/detU * detU)%C with C1. apply Mscale_1_l.
+ replace (/detU * detU)%C with 1%C. apply Mscale_1_l.
  symmetry. apply Cinv_l. apply detU_nz.
 Qed.
 
@@ -620,7 +618,7 @@ Proof.
  unfold invU.
  rewrite Mscale_mult_dist_r, U_invU_detU.
  rewrite Mscale_assoc.
- replace (/detU * detU)%C with C1. apply Mscale_1_l.
+ replace (/detU * detU)%C with 1%C. apply Mscale_1_l.
  symmetry. apply Cinv_l. apply detU_nz.
 Qed.
 
@@ -660,9 +658,8 @@ Definition UV0ν := (1+ν+ν^2+ν^3)%C.
 
 Definition coefa_detU := ((ν-αbar)*UV0a)%C.
 Definition coefν_detU := ((αbar-α)*UV0ν)%C.
-Definition vecta := mkvect 3 [C1;-ν*αbar;ν*αbar+ν+αbar]%C.
-Definition vectν :=
- mkvect 3 [C1;-α*αbar;α*αbar+α+αbar]%C.
+Definition vecta := mkvect 3 [1;-ν*αbar;ν*αbar+ν+αbar]%C.
+Definition vectν := mkvect 3 [1;-α*αbar;α*αbar+α+αbar]%C.
 
 Definition coefsa := (/detU * coefa_detU) .* vecta.
 Definition coefsν := (/detU * coefν_detU) .* vectν.
@@ -671,8 +668,7 @@ Local Hint Rewrite Cconj_mult_distr Cconj_plus_distr Cconj_minus_distr
  Cconj_opp Cdiv_conj Cinv_conj Cconj_R Cpow_conj αbar_conj α_conj
  : cconj.
 
-Lemma U_V0_alt :
-  U × V0 = mkvect 3 [UV0a;Cconj UV0a;UV0ν]%C.
+Lemma U_V0_alt : U × V0 = mkvect 3 [UV0a;Cconj UV0a;UV0ν]%C.
 Proof.
  apply Vect3_eq; auto with wf_db;
  unfold U, V0, scale; cbn -[ν Cpow pow];

@@ -5,6 +5,9 @@ Require Import MoreList.
 
 Module CC := Coquelicot.Complex.
 
+Global Notation "0" := C0 : C_scope. (* TODO *)
+Global Notation "1" := C1 : C_scope. (* TODO *)
+
 (* A tactic solving (dis)equalities between C constants *)
 Ltac cconst := compute; injection || f_equal ; lra.
 
@@ -124,7 +127,7 @@ Proof. apply CC.im_mult. Qed.
 Lemma re_RtoC (r:R) : Re (RtoC r) = r.
 Proof. reflexivity. Qed.
 
-Lemma im_RtoC (r:R) : Im (RtoC r) = 0.
+Lemma im_RtoC (r:R) : Im (RtoC r) = 0%R.
 Proof. reflexivity. Qed.
 
 Lemma re_scal_l (r:R)(c:C) : (Re (r*c) = r * Re c)%R.
@@ -198,10 +201,10 @@ Proof.
  lra.
 Qed.
 
-Lemma Cmod_Ci : Cmod Ci = 1.
+Lemma Cmod_Ci : Cmod Ci = 1%R.
 Proof.
  unfold Cmod, Ci. simpl fst; simpl snd.
- replace (_ + _)%R with 1 by (simpl; lra). apply sqrt_1.
+ replace (_ + _)%R with 1%R by (simpl; lra). apply sqrt_1.
 Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
