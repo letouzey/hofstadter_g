@@ -51,29 +51,20 @@ Proof.
  rewrite tau6, tau5, tau4; ring.
 Qed.
 
-#[local] Instance tau_approx : Approx 0.7244919590005 tau 0.7244919590006.
+#[local] Instance : Approx 0.7244919590005 tau 0.7244919590006.
 Proof. red. unfold tau. generalize tau_3. lra. Qed.
 
-#[local] Instance mu_approx : Approx 1.380277569097 mu 1.380277569098.
+#[local] Instance : Approx 1.380277569097 mu 1.380277569098.
 Proof. red. unfold mu. generalize mu_3. lra. Qed.
 
-#[local] Instance nu_approx : Approx (-0.819172513397) nu (-0.819172513396).
+#[local] Instance : Approx (-0.819172513397) nu (-0.819172513396).
 Proof. red. unfold nu. generalize nu_3. lra. Qed.
-
-Ltac lra' :=
- generalize nu_approx mu_approx tau_approx; unfold Approx; lra.
-
-#[local] Instance opp_nu_approx : Approx 0.819172513396 (-nu) 0.819172513397.
-Proof. approx. Qed.
-
-#[local] Instance inv_nu_approx : Approx  1.220744084604 (/-nu) 1.220744084607.
-Proof. approx. Qed.
 
 Lemma mu_nz : mu <> 0. Proof. approx. Qed.
 Lemma nu_nz : nu <> 0. Proof. approx. Qed.
 Lemma tau_nz : tau <> 0. Proof. approx. Qed.
 
-(** The complex root of [X^4-X^3-1] *)
+(** The complex roots of [X^4-X^3-1] *)
 
 Definition re_alpha := (1 - mu - nu)/2.
 Definition im_alpha := sqrt (tau/(-nu)-re_alpha^2).
@@ -81,18 +72,19 @@ Definition im_alpha := sqrt (tau/(-nu)-re_alpha^2).
 Definition alpha : C := (re_alpha, im_alpha).
 Definition alphabar : C := (re_alpha, - im_alpha).
 
-#[local] Instance re_alpha_approx : Approx 0.2194474721 re_alpha 0.2194474722.
+Lemma alpha_conj : Cconj alpha = alphabar.
+Proof. reflexivity. Qed.
+
+Lemma alphabar_conj : Cconj alphabar = alpha.
+Proof. now rewrite <- (Cconj_involutive alpha). Qed.
+
+#[local] Instance : Approx 0.2194474721 re_alpha 0.2194474722.
 Proof. unfold re_alpha. approx. Qed.
 
-Lemma re_alpha_nz : re_alpha <> 0.
+#[local] Instance : Approx 0.0481571930 (re_alpha^2) 0.0481571931.
 Proof. approx. Qed.
 
-#[local] Instance re_alpha_2_approx :
- Approx 0.0481571930 (re_alpha^2) 0.0481571931.
-Proof. approx. Qed.
-
-#[local] Instance tau_div_nu_approx :
- Approx 0.884419273293 (tau / -nu) 0.884419273296.
+#[local] Instance : Approx 0.884419273293 (tau / -nu) 0.884419273296.
 Proof. approx. Qed.
 
 Lemma im_alpha_2_pos :  re_alpha ^ 2 < tau / - nu.
@@ -112,18 +104,33 @@ Qed.
 Lemma im_alpha_nz : im_alpha <> 0.
 Proof. generalize im_alpha_pos; lra. Qed.
 
-Lemma alphamod2 : (Cmod alpha)^2 = tau/(-nu).
+#[local] Instance : Approx 0.8362620801 (im_alpha^2) 0.8362620803.
+Proof. rewrite im_alpha_2. approx. Qed.
+
+#[local] Instance : Approx 0.9144736628 im_alpha 0.9144736630.
+Proof.
+ apply pow2_approx_inv. approx. qle. generalize im_alpha_pos; lra. qle.
+Qed.
+
+Lemma alpha_neq_1 : alpha <> 1.
+Proof.
+ unfold alpha. intros [= E _]. revert E. approx.
+Qed.
+
+Lemma alphabar_neq_1 : alphabar <> 1.
+ unfold alphabar. intros [= E ?]. revert E. approx.
+Qed.
+
+Lemma alphamod2 : Cmod alpha ^2 = tau/(-nu).
 Proof.
  rewrite Cmod2_alt. unfold alpha. simpl Re; simpl Im.
  rewrite im_alpha_2. lra.
 Qed.
 
-#[local] Instance alphamod2_approx :
- Approx 0.884419273293 ((Cmod alpha)^2) 0.884419273296.
+#[local] Instance : Approx 0.884419273293 (Cmod alpha ^2) 0.884419273296.
 Proof. rewrite alphamod2. approx. Qed.
 
-#[local] Instance alphamod_approx :
-  Approx 0.9404356826 (Cmod alpha) 0.9404356828 |20.
+#[local] Instance : Approx 0.9404356826 (Cmod alpha) 0.9404356828.
 Proof.
  apply pow2_approx_inv; try qle; try apply Cmod_ge_0. approx.
 Qed.
@@ -153,6 +160,10 @@ Proof.
  repeat constructor; simpl; try tauto.
 Qed.
 
+Local Hint Rewrite RtoC_pow : RtoC.
+Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
+ RtoC_div using approx : RtoC.
+
 Lemma ThePoly3_linfactors :
   ThePoly 3 ≅ linfactors roots3.
 Proof.
@@ -163,11 +174,11 @@ Proof.
  apply perm_skip.
  assert (In (RtoC nu) [RtoC mu;b;c;d]).
  { apply linfactors_roots. rewrite <- E, ThePoly_root_carac.
-   rewrite !RtoC_pow, <- RtoC_plus. f_equal. apply (nu_carac 3).
+   autorewrite with RtoC. f_equal. apply (nu_carac 3).
    now apply Nat.odd_spec. }
  assert (EF : exists e f, Permutation [RtoC nu; e; f] [b;c;d]).
  { simpl in H. destruct H.
-   + exfalso. apply RtoC_inj in H. lra'.
+   + exfalso. apply RtoC_inj in H. revert H. approx.
    + repeat destruct H; try easy; subst.
      * now exists c, d.
      * exists b, d. apply perm_swap.
@@ -194,9 +205,9 @@ Proof.
      injection H as H. replace y with 0 in * by lra. clear H.
      rewrite ThePoly_root_carac in He.
      replace (x,0) with (RtoC x) in * by trivial.
-     rewrite !RtoC_pow, <- RtoC_plus in He. apply RtoC_inj in He.
+     autorewrite with RtoC in He. apply RtoC_inj in He.
      rewrite <- (P_root_equiv 3) in He.
-     apply mu_or_nu in He.  2:now apply Nat.odd_spec.
+     apply mu_or_nu in He. 2:now apply Nat.odd_spec.
      change (x = mu \/ x = nu) in He.
      destruct He as [-> | ->]; inversion_clear ND.
      + simpl in H; tauto.
@@ -216,13 +227,13 @@ Proof.
  { apply RtoC_inj. rewrite re_alt.
    replace (e+Cconj e)%C with (C1-mu-nu)%C by (rewrite <- E3'; lca).
    unfold re_alpha. lca. }
- assert (Hm : ((Cmod e)^2 = (Cmod alpha)^2)).
+ assert (Hm : Cmod e ^2 = Cmod alpha ^2).
  { apply RtoC_inj.
    rewrite alphamod2, <- RtoC_pow, Cmod_sqr.
-   replace (tau/-nu) with ((-1)*(tau/nu)) by (field; lra').
-   rewrite RtoC_mult, RtoC_div by lra'.
-   rewrite E0, tau_mu, RtoC_inv by lra'. field.
-   split; apply RtoC_neq; lra'. }
+   replace (tau/-nu) with ((-1)*(tau/nu)) by (field; approx).
+   rewrite RtoC_mult, RtoC_div by approx.
+   rewrite E0, tau_mu, RtoC_inv by approx. field.
+   split; apply RtoC_neq; approx. }
  assert (Hy : (Im e)^2 = im_alpha^2).
  { rewrite !Cmod2_alt, Hx in Hm. unfold alpha in Hm; simpl in Hm; lra. }
  clear E0 E3' Hm.
@@ -240,7 +251,7 @@ Qed.
 
 Lemma mu_is_Croot : (mu^4 = mu^3 + 1)%C.
 Proof.
- rewrite !RtoC_pow, <- RtoC_plus. f_equal. apply mu_is_Rroot.
+ autorewrite with RtoC. f_equal. apply mu_is_Rroot.
 Qed.
 
 Lemma nu_is_Rroot : nu^4 = nu^3+1.
@@ -250,7 +261,7 @@ Qed.
 
 Lemma nu_is_Croot : (nu ^4 = nu ^3 + 1)%C.
 Proof.
- rewrite !RtoC_pow, <- RtoC_plus. f_equal. apply nu_is_Rroot.
+ autorewrite with RtoC. f_equal. apply nu_is_Rroot.
 Qed.
 
 Lemma alpha_is_Croot : (alpha^4 = alpha^3 + 1)%C.
@@ -450,7 +461,7 @@ Proof.
  apply Vect3_eq; auto with wf_db;
   unfold Diffs; cbn -[Cpow];
   rewrite ?Diff3_ksubst3, ?Diff0_ksubst3, ?Diff1_ksubst3 by trivial;
-  rewrite ?RtoC_plus, ?RtoC_minus, ?RtoC_mult, ?RtoC_pow, ?RtoC_opp; ring.
+  autorewrite with RtoC; f_equal; ring.
 Qed.
 
 (* Initial vector of differences *)
@@ -508,10 +519,10 @@ Qed.
 Lemma P_factor_mu (x:C) :
  (x^4-x^3-1 = (x - mu) * (x^3 + tau^3*x^2 + tau^2*x + tau))%C.
 Proof.
- ring_simplify. rewrite mu_tau, RtoC_inv by lra'.
- field_simplify; try (apply RtoC_neq; lra').
+ ring_simplify. rewrite mu_tau, RtoC_inv by approx.
+ field_simplify; try (apply RtoC_neq; approx).
  rewrite RtoC_pow, tau4, RtoC_minus.
- field; try (apply RtoC_neq; lra').
+ field. apply RtoC_neq; approx.
 Qed.
 
 Lemma P_factor_mu_eq0 (x:C) :
@@ -551,24 +562,13 @@ Definition detU :=
   +alpha*alphabar*(alpha-alphabar))%C.
 
 Lemma detU_alt :
- detU = (2*im_alpha*Ci*(Cmod(alpha)^2+nu^2+2*(-nu)*re_alpha))%C.
+ detU = (2*im_alpha*Ci*(Cmod alpha ^2+nu^2+2*(-nu)*re_alpha))%C.
 Proof.
- unfold detU. change alphabar with (Cconj alpha).
- rewrite im_alt'. change (Im alpha) with im_alpha.
- rewrite <- Cmod2_conj.
- replace ((Cconj alpha)^2-alpha^2)%C with (-4*Ci*im_alpha*re_alpha)%C.
- 2:{ rewrite <- (re_im_conj alpha).
-     change (Re alpha) with re_alpha.
-     change (Im alpha) with im_alpha.
-     rewrite <- (re_im_id alpha).
-     change (Re alpha) with re_alpha.
-     change (Im alpha) with im_alpha. ring. }
- rewrite <- !RtoC_pow. ring.
-Qed.
-
-Lemma Ci_conj : Cconj Ci = Copp Ci.
-Proof.
- lca.
+ unfold detU. rewrite <- alpha_conj, im_alt'.
+ rewrite <- Cmod2_conj, conj2_minus_pow2, <- !RtoC_pow.
+ replace (RtoC (-4)) with (-(4))%C by lca.
+ change (Re alpha) with re_alpha.
+ change (Im alpha) with im_alpha. ring.
 Qed.
 
 Lemma detU_conj : Cconj detU = Copp detU.
@@ -584,9 +584,7 @@ Proof.
  repeat destruct E as [E|E]; try apply RtoC_inj in E; try lra.
  - now apply im_alpha_nz.
  - compute in E. injection E; lra.
- - rewrite !RtoC_pow, <- !RtoC_opp, <- !RtoC_mult, <- !RtoC_plus in E.
-   apply RtoC_inj in E. symmetry in E. revert E. apply Rlt_not_eq.
-   approx.
+ - autorewrite with RtoC in E. apply RtoC_inj in E. revert E. approx.
 Qed.
 
 Definition invU_detU : Square 3 :=
@@ -684,32 +682,30 @@ Definition vectnu :=
 Definition coefsa := (/detU * coefa_detU) .* vecta.
 Definition coefsnu := (/detU * coefnu_detU) .* vectnu.
 
-Lemma alpha_neq_1 : alpha <> 1.
-Proof.
- unfold alpha. intros [= ? ?].
- generalize re_alpha_approx; unfold Approx; lra.
-Qed.
-
-Lemma alphabar_neq_1 : alphabar <> 1.
- unfold alphabar. intros [= ? ?].
- generalize re_alpha_approx; unfold Approx; lra.
-Qed.
-
-Lemma alphabar_conj : Cconj alphabar = alpha.
-Proof.
- unfold alpha, alphabar, Cconj; simpl; f_equal; lra.
-Qed.
-
-Lemma alpha_conj : Cconj alpha = alphabar.
-Proof.
- unfold alpha, alphabar, Cconj; simpl; f_equal; lra.
-Qed.
-
 Lemma UV0a_conj : Cconj UV0a = (alphabar^3/(alphabar-1))%C.
 Proof.
  unfold UV0a. rewrite Cdiv_conj by apply Cminus_eq_contra, alpha_neq_1.
  rewrite Cconj_minus_distr, Cpow_conj, alpha_conj. f_equal. f_equal. lca.
 Qed.
+
+Lemma UV0a_alt : (UV0a = 1 + alpha + alpha^2 + alpha^3)%C.
+Proof.
+ unfold UV0a.
+ apply Cmult_eq_reg_l with (alpha-1)%C; try field_simplify;
+  try apply Cminus_eq_contra, alpha_neq_1.
+ rewrite alpha_is_Croot; field.
+Qed.
+
+Lemma UV0nu_alt : UV0nu = RtoC (1+nu+nu^2+nu^3).
+Proof.
+ unfold UV0nu. autorewrite with RtoC. f_equal.
+ replace (nu^3) with (nu^4-1) at 1 by (rewrite nu_is_Rroot; ring).
+ field; approx.
+Qed.
+
+Local Hint Rewrite Cconj_mult_distr Cconj_plus_distr Cconj_minus_distr
+ Cconj_opp Cdiv_conj Cinv_conj Cconj_R Cpow_conj alphabar_conj alpha_conj
+ : cconj.
 
 Lemma U_V0_alt :
   U × V0 = mkvect 3 [UV0a;Cconj UV0a;UV0nu]%C.
@@ -719,32 +715,16 @@ Proof.
  rewrite tau4, tau5; rewrite !RtoC_minus, <- !RtoC_pow.
  - rewrite <- (P_factor_mu_eq0 alpha);
    [ | apply distinct_roots | apply alpha_is_Croot ].
-   ring_simplify.
-   unfold UV0a.
-   apply Cmult_eq_reg_l with (alpha-1)%C; try field_simplify;
-    try apply Cminus_eq_contra, alpha_neq_1.
-   rewrite alpha_is_Croot; field.
+   ring_simplify. rewrite UV0a_alt; ring.
  - rewrite <- (P_factor_mu_eq0 alphabar);
    [ | apply distinct_roots | apply alphabar_is_Croot ].
-   ring_simplify.
-   rewrite UV0a_conj.
-   apply Cmult_eq_reg_l with (alphabar-1)%C; try field_simplify;
-    try apply Cminus_eq_contra, alphabar_neq_1.
-   rewrite alphabar_is_Croot; field.
+   ring_simplify. rewrite UV0a_alt. autorewrite with cconj. ring.
  - rewrite <- (P_factor_mu_eq0 nu);
    [ | apply RtoC_inj_neq,distinct_roots | apply nu_is_Croot ].
-   ring_simplify.
-   unfold UV0nu.
-   apply Cmult_eq_reg_l with (nu-1)%C; try field_simplify;
-    try (apply Cminus_eq_contra, RtoC_inj_neq; lra').
-   rewrite nu_is_Croot; field.
+   ring_simplify. rewrite UV0nu_alt. autorewrite with RtoC. f_equal. ring.
 Qed.
 
 (** diffs for (A 3) numbers are linear combinations of little roots *)
-
-Local Hint Rewrite Cconj_mult_distr Cconj_plus_distr Cconj_minus_distr
- Cconj_opp Cdiv_conj Cinv_conj Cconj_R Cpow_conj alphabar_conj alpha_conj
- : cconj.
 
 Lemma diffs_A3_powers n :
   diffs (A 3 n) =
@@ -783,20 +763,10 @@ Proof.
    rewrite RtoC_plus, RtoC_mult, Cmod2_conj, re_alt, alpha_conj. field.
 Qed.
 
-Lemma is_real_carac c : Im c = 0 <-> Cconj c = c.
-Proof.
- split; intros H.
- - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. subst.
-   f_equal. lra.
- - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. injection H.
-   lra.
-Qed.
-
 Lemma coefsnu_real i : (i < 3)%nat -> Im (coefsnu i O) = 0.
 Proof.
  assert (E0 : Cconj UV0nu = UV0nu).
- { unfold UV0nu. autorewrite with cconj; trivial.
-   apply Cminus_eq_contra, RtoC_inj_neq; lra'. }
+ { now rewrite UV0nu_alt, Cconj_R. }
  assert (E : Im (/ detU * coefnu_detU) = 0).
  { rewrite is_real_carac. autorewrite with cconj; try apply detU_nz.
    rewrite detU_conj.
@@ -844,7 +814,7 @@ Qed.
 
 Lemma diff0_decomp_eqn n :
   diff0 n =
-   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C+coefnu0*nu^n)
+   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)+coefnu0*nu^n)
                       (decomp 3 n)).
 Proof.
  unfold diff0.
@@ -904,15 +874,11 @@ Proof.
  apply Rplus_le_compat.
  - apply Rmult_le_compat_l.
    + generalize (Cmod_ge_0 coefa0). lra.
-   + apply sum_pow; try lia; try apply decomp_delta.
-     split; try apply Cmod_ge_0.
-     apply Rlt_pow2_inv; try lra.
-     rewrite alphamod2, pow1.
-     apply Rmult_lt_reg_r with (-nu); try lra'. field_simplify; lra'.
+   + apply sum_pow; try lia; try apply decomp_delta. approx.
  - apply Rmult_le_compat_l; try apply Rabs_pos.
-   replace (nu^4) with (Rabs nu^4) by (rewrite Rabs_left by lra'; ring).
+   replace (nu^4) with (Rabs nu^4) by (rewrite Rabs_left by approx; ring).
    apply sum_pow; try lia; try apply decomp_delta.
-   rewrite Rabs_left; lra'.
+   rewrite Rabs_left; approx.
 Qed.
 
 (** Experimentally, this first bound is around 2.187.
@@ -931,19 +897,7 @@ Qed.
 
 Definition max4packnu := 1+nu^4+nu^8+nu^12.
 
-#[local] Instance nu4_approx : Approx 0.44992 (nu^4) 0.452122.
-Proof. replace (nu^4) with ((-nu)^4) by ring. approx. Qed.
-
-#[local] Instance nu8_approx : Approx 0.20242 (nu^8) 0.20442.
-Proof. replace (nu^8) with ((-nu)^8) by ring. approx. Qed.
-
-#[local] Instance nu12_approx : Approx 0.09107 (nu^12) 0.092421.
-Proof. replace (nu^12) with ((-nu)^12) by ring. approx. Qed.
-
-#[local] Instance nu16_approx : Approx 0.04097 (nu^16) 0.04179.
-Proof. replace (nu^16) with ((-nu)^16) by ring. approx. Qed.
-
-#[local] Instance max4packnu_approx : Approx 1.743 max4packnu 1.749.
+#[local] Instance : Approx 1.74437626251 max4packnu 1.74437626252.
 Proof. unfold max4packnu. approx. Qed.
 
 Lemma best_4packnu_0 l :
@@ -966,7 +920,7 @@ Proof.
  apply Rplus_le_compat.
  { rewrite <- (Rabs_right (nu^8)) by approx.
    rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; lra'. }
+   rewrite Rabs_left; approx. }
  inversion H4; subst; cbn -[Cpow pow nu]; rewrite ?Rabs_R0; try approx.
  eapply Rle_trans; [apply Rabs_triang|].
  rewrite <- (Rplus_0_r (nu^12)).
@@ -999,7 +953,7 @@ Proof.
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Rabs (Rlistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Rabs_pos.
-       rewrite Rabs_left; lra'.
+       rewrite Rabs_left; approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
@@ -1062,23 +1016,9 @@ Qed.
 
 Definition max4packa := Cmod (1+alpha^5+alpha^9+alpha^14).
 
-#[local] Instance alphamod16_approx :
- Approx 0.37433943916 (Cmod alpha ^16) 0.37433943918.
+#[local] Instance : Approx 0.37433943916 (Cmod alpha ^16) 0.37433943918.
 Proof.
  replace (Cmod alpha^16) with ((Cmod alpha^2)^8) by ring. approx.
-Qed.
-
-Lemma alphamod16_lt : 0 < Cmod alpha ^16 < 1.
-Proof. approx. Qed.
-
-Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
-Proof.
- simpl. ring.
-Qed.
-
-Lemma im_alpha2 : Im (alpha^2) = 2*re_alpha*im_alpha.
-Proof.
- simpl. ring.
 Qed.
 
 Ltac simpl_alpha := repeat (autorewrite with alpha; ring_simplify).
@@ -1118,10 +1058,10 @@ Lemma alpha15 : (alpha^15 = 19 + 14*alpha + 10*alpha^2 + 26*alpha^3)%C.
 Proof. rewrite Cpow_S. now simpl_alpha. Qed.
 #[local] Hint Rewrite alpha15 : alpha.
 
-Module ExactQuadrinom.
+Module FixQuadrinomial.
 (* explicit polynomial syntax [a*alpha^3+b*alpha^2+c*alpha+d]
    even if some coefficients are 0 or 1. Needed for application
-   of cmod2_quadri below. *)
+   of cmod2_alpha_quadrinomial below. *)
 Local Open Scope C.
 Ltac fix1 t :=
  match t with
@@ -1147,59 +1087,32 @@ Ltac fix3 t :=
  | alpha^3 => fix3 constr:(1*alpha^3+0)
  | _ => fix3 constr:(0*alpha^3+t)
  end.
-End ExactQuadrinom.
+End FixQuadrinomial.
 
 Ltac calc_alpha :=
   let c := fresh in
   let H := fresh in
   remember (Cplus _ _) as c eqn:H; (* ad-hoc but enough here ! *)
   repeat (autorewrite with alpha in H; ring_simplify in H);
-  (* fixing quadrinom *)
+  (* fixing quadrinomial *)
   rewrite <- ?Cplus_assoc in H;
   match type of H with _ = ?t =>
-    let t' := ExactQuadrinom.fix3 t in replace t with t' in H by ring
+    let t' := FixQuadrinomial.fix3 t in replace t with t' in H by ring
   end;
   rewrite ?Cplus_assoc in H;
   rewrite H; clear c H.
 
-Lemma re_quadri (a b c d : R) :
- Re (d*alpha^3+c*alpha^2+b*alpha+a) =
- a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2.
-Proof.
- unfold alpha. cbn. ring.
-Qed.
-
-Lemma im_quadri (a b c d : R) :
- Im (d*alpha^3+c*alpha^2+b*alpha+a) =
- re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3.
-Proof.
- unfold alpha. cbn. ring.
-Qed.
-
-Lemma cmod2_quadri (a b c d : R) :
+Lemma cmod2_alpha_quadrinomial (a b c d : R) :
  Cmod (d*alpha^3+c*alpha^2+b*alpha+a)^2 =
  (a + b*re_alpha + c*re_alpha^2 + d*re_alpha^3 - (c+3*d*re_alpha)*im_alpha^2)^2
  + (re_alpha*im_alpha*(2*c+3*d*re_alpha) + im_alpha*b - d*im_alpha^3)^2.
 Proof.
- now rewrite Cmod2_alt, re_quadri, im_quadri.
+ rewrite Cmod2_alt. f_equal; f_equal; unfold alpha; cbn; ring.
 Qed.
 
-(* TODO: Mieux que ce cmod2_quadri ? *)
-
-#[local] Instance im_alpha_2_approx :
-  Approx 0.8362620801 (im_alpha^2) 0.8362620803.
-Proof. rewrite im_alpha_2. approx. Qed.
-
-#[local] Instance im_alpha_approx :
-  Approx 0.9144736628 im_alpha 0.9144736630 |10.
+#[local] Instance : Approx 6.7073103 (max4packa^2) 6.7073105.
 Proof.
- apply pow2_approx_inv. approx. qle. generalize im_alpha_pos; lra. qle.
-Qed.
-
-#[local] Instance max4packa2_approx :
- Approx 6.7073103 (max4packa^2) 6.7073105.
-Proof.
- unfold max4packa. calc_alpha. rewrite cmod2_quadri. approx.
+ unfold max4packa. calc_alpha. rewrite cmod2_alpha_quadrinomial. approx.
 Qed.
 
 Lemma best_4packa_0 l :
@@ -1215,7 +1128,7 @@ Proof.
  repeat destruct H as [<-|H]; try destruct H as [ ];
   cbn -[Cpow pow]; rewrite ?Cpow_0_r, ?Cplus_0_r, ?Cplus_assoc;
   try apply Rle_refl; (* for max4packa itself *)
-  try (calc_alpha; rewrite cmod2_quadri; approx). (* slow... *)
+  try (calc_alpha; rewrite cmod2_alpha_quadrinomial; approx). (* slow... *)
  rewrite Cmod_1, pow1. approx.
 Qed.
 
@@ -1271,10 +1184,7 @@ Proof.
    eapply Rle_trans. apply best_4packa_below; auto.
    unfold Below in *. intros y Hy. specialize (B y Hy). lia.
    rewrite <- (Rmult_1_r max4packa) at 1. unfold Rdiv.
-   apply Rmult_le_compat_l; try apply Cmod_ge_0.
-   rewrite <- (Rmult_1_l (/ _)).
-   assert (P := Cmod_ge_0 alpha).
-   apply Rcomplements.Rle_div_r; generalize alphamod16_lt; lra.
+   apply Rmult_le_compat_l; try apply Cmod_ge_0. approx.
  - intros l D B. destruct (cut_lt_ge 16 l) as (l1,l2) eqn:E.
    assert (D' := D).
    assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
@@ -1300,7 +1210,7 @@ Proof.
          specialize (A y Hy).
          assert (y < N)%nat by (apply B; rewrite List.in_app_iff; now right).
          unfold decr. lia. }
-     * rewrite Cmod_pow. field. generalize alphamod16_lt; lra.
+     * rewrite Cmod_pow. field. approx.
 Qed.
 
 (** And finally: *)
@@ -1327,27 +1237,20 @@ Qed.
 (** And finally, we obtain that diff0 is always strictly less than 2.
     (experimentally the new bound is around 1.997) *)
 
-#[local] Instance : Approx 12.2669622508 ((Cmod detU)^2) 12.266962256.
+#[local] Instance : Approx 12.2669622508 (Cmod detU ^2) 12.266962256.
 Proof.
  rewrite detU_alt.
  rewrite !Cmod_mult, !Rpow_mult_distr, !Cmod_R, Cmod_Ci.
- rewrite !Rabs_right by approx.
- rewrite !RtoC_pow, <- RtoC_opp, <- !RtoC_mult, <- !RtoC_plus, Cmod_R.
- rewrite alphamod2.
- rewrite Rabs_right; approx.
+ rewrite !Rabs_right by approx. autorewrite with RtoC. rewrite Cmod_R.
+ rewrite alphamod2. rewrite Rabs_right; approx.
 Qed.
 
-#[local] Instance : Approx 0.4785740967 ((Cmod UV0a)^2) 0.4785740985.
+#[local] Instance : Approx 0.4785740967 (Cmod UV0a ^2) 0.4785740985.
 Proof.
- replace UV0a with (1*alpha^3+1*alpha^2+1*alpha+1)%C.
- 2:{ unfold UV0a.
-     replace (alpha^3)%C with (alpha^4-1)%C at 2
-      by (rewrite alpha_is_Croot; ring).
-     field. cbn. apply Cminus_eq_contra, alpha_neq_1. }
- rewrite cmod2_quadri. approx.
+ rewrite UV0a_alt. calc_alpha. rewrite cmod2_alpha_quadrinomial. approx.
 Qed.
 
-#[local] Instance : Approx 0.916466310 ((Cmod coefa_detU)^2) 0.916466315.
+#[local] Instance : Approx 0.916466310 (Cmod coefa_detU ^2) 0.916466315.
 Proof.
  unfold coefa_detU.
  rewrite !Cmod_mult, !Rpow_mult_distr.
@@ -1359,30 +1262,23 @@ Proof.
  approx.
 Qed.
 
-#[local] Instance : Approx 0.04433925756 ((Cmod coefa0)^2) 0.04433925783.
+#[local] Instance : Approx 0.04433925756 (Cmod coefa0 ^2) 0.04433925783.
 Proof.
  unfold coefa0, coefsa. unfold scale. cbn -[pow nu].
  rewrite !Cmod_mult, !Rpow_mult_distr.
  rewrite <- alpha_conj, Cmod_Cconj, alphamod2.
- rewrite <- RtoC_opp, Cmod_R, Rabs_right by approx.
+ autorewrite with RtoC. rewrite Cmod_R, Rabs_right by approx.
  replace (_*(tau/_)) with ((-nu)*tau) by (field; approx).
  rewrite Cmod_inv, pow_inv by apply detU_nz.
  approx.
 Qed.
 
-#[local] Instance : Approx 1.09068264 (2 * Cmod coefa0 * max4packa) 1.09068267.
+#[local] Instance :
+  Approx 1.09068264 (2 * Cmod coefa0 * max4packa) 1.09068267.
 Proof.
  apply pow2_approx_inv; try qle.
  - rewrite !Rpow_mult_distr; approx.
  - repeat apply Rmult_le_pos; try apply Cmod_ge_0; lra.
-Qed.
-
-Lemma UV0nu_alt : UV0nu = RtoC (1+nu+nu^2+nu^3).
-Proof.
- unfold UV0nu. rewrite <-RtoC_minus, RtoC_pow, <- RtoC_div by approx.
- f_equal.
- replace (nu^3) with (nu^4-1) at 1 by (rewrite nu_is_Rroot; ring).
- field; approx.
 Qed.
 
 #[local] Instance : Approx 0.1395542639 (Rabs coefnu0) 0.1395542641.
@@ -1393,22 +1289,18 @@ Proof.
  rewrite re_scal_r.
  rewrite Rabs_mult.
  replace (/detU * coefnu_detU)%C with
-     (-UV0nu / ((Cmod alpha)^2 + nu^2 + C2 * - nu * re_alpha))%C.
+     (-UV0nu / (Cmod alpha ^2 + nu^2 + C2 * - nu * re_alpha))%C.
  2:{ unfold coefnu_detU.
      replace (alphabar-alpha)%C with (-(alpha - Cconj alpha))%C
        by (rewrite alpha_conj; ring).
      rewrite im_alt'. change (Im alpha) with im_alpha.
      rewrite detU_alt. field.
      repeat split.
-     - rewrite <- RtoC_opp, <- !RtoC_mult, !RtoC_pow, <- !RtoC_plus.
-       apply RtoC_inj_neq. approx.
+     - autorewrite with RtoC. apply RtoC_inj_neq. approx.
      - injection 1. lra.
      - apply RtoC_inj_neq. approx. }
- rewrite <- RtoC_opp, <- !RtoC_mult, !RtoC_pow, <- !RtoC_plus.
- rewrite UV0nu_alt.
- rewrite <- RtoC_opp, <- RtoC_div, re_RtoC by approx.
- rewrite Ropp_div, !Rabs_Ropp.
- rewrite 2 Rabs_right by approx.
+ rewrite UV0nu_alt. autorewrite with RtoC. rewrite re_RtoC.
+ rewrite Ropp_div, !Rabs_Ropp. rewrite 2 Rabs_right by approx.
  approx.
 Qed.
 
@@ -1443,7 +1335,7 @@ Lemma f3_close_natpart (n:nat) :
 Proof.
 assert (LT := f3_close_tau_n n).
 assert (LE : 0 <= tau*n).
-{ apply Rmult_le_pos; try lra'. apply pos_INR. }
+{ apply Rmult_le_pos. approx. apply pos_INR. }
 split.
 - assert (H : 0 <= tau*n < INR(2 + f 3 n)).
   { rewrite plus_INR. simpl. lra. }

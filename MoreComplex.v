@@ -206,6 +206,9 @@ Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
 
+Lemma Ci_conj : Cconj Ci = - Ci.
+Proof. compute. f_equal. symmetry. exact Ropp_0. Qed.
+
 Lemma Cpow_0_r c : c^0 = 1.
 Proof. reflexivity. Qed.
 
@@ -225,7 +228,18 @@ Proof.
  simpl. f_equal; ring.
 Qed.
 
-Lemma Cinv0 : Cinv 0 = 0.
+Lemma pow2_minus_conj2 c : c^2 - Cconj c ^2 = 4*Ci* Re c * Im c.
+Proof.
+ rewrite <- (re_im_conj c). rewrite <- (re_im_id c) at 1. ring.
+Qed.
+
+Lemma conj2_minus_pow2 c : Cconj c ^2 - c^2 = -4*Ci* Re c * Im c.
+Proof.
+ replace (RtoC (-4)) with (-(4)) by lca.
+ rewrite <- !Copp_mult_distr_l, <- pow2_minus_conj2. ring.
+Qed.
+
+Lemma Cinv0 : /0 = 0.
 Proof.
  compute. f_equal; ring.
 Qed.
@@ -260,6 +274,15 @@ Proof.
  assert (E' : Cmod c ^2 = Re c ^2) by now rewrite E.
  rewrite Cmod2_alt in E'.
  apply Rsqr_eq_0. rewrite Rsqr_pow2. lra.
+Qed.
+
+Lemma is_real_carac c : Im c = 0 <-> Cconj c = c.
+Proof.
+ split; intros H.
+ - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. subst.
+   f_equal. lra.
+ - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. injection H.
+   lra.
 Qed.
 
 Lemma Cmod_triangle_exact (c:C) :

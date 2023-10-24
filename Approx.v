@@ -242,6 +242,7 @@ Ltac approx :=
  | |- ?r > ?r' => apply Rlt_gt; approx
  | |- ?r <> ?r' =>
    apply Rlt_dichotomy_converse; (left; approx)||(right; approx)
+ | |- ?r = ?r' -> False => change (r<>r'); approx
  | |- _ /\ _ => split; approx
  end.
 
