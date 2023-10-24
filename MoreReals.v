@@ -1,4 +1,5 @@
-From Coq Require Import List Lia Reals Ranalysis5 Lra Qreals Qminmax.
+From Coq Require Import List Lia Reals Ranalysis5 Lra.
+From Coq Require Import Qreals Qminmax Qabs.
 From Coquelicot Require Rcomplements.
 Require Import MoreList DeltaList.
 Import ListNotations.
@@ -24,6 +25,11 @@ Proof.
  destruct (Rle_or_lt b a).
  - rewrite Rabs_right in H; lra.
  - rewrite Rabs_left in H; lra.
+Qed.
+
+Lemma Rabs_left' r : r <= 0 -> Rabs r = - r.
+Proof.
+ intros LE. rewrite <- Rabs_Ropp, Rabs_right; lra.
 Qed.
 
 Lemma max_INR a b : INR (Nat.max a b) = Rmax a b.
@@ -181,6 +187,13 @@ Qed.
 Lemma Q2R_pow2 q : Q2R (q^2) = (Q2R q)^2.
 Proof.
  now apply Q2R_pow'.
+Qed.
+
+Lemma Q2R_abs q : Q2R (Qabs q) = Rabs (Q2R q).
+Proof.
+ apply Qabs_case; intros LE; apply Qle_Rle in LE.
+ - rewrite Rabs_right; lra.
+ - rewrite <- Rabs_Ropp, Rabs_right, ?Q2R_opp; lra.
 Qed.
 
 Lemma Q2R_IZR z : Q2R (inject_Z z) = IZR z.

@@ -1,4 +1,4 @@
-From Coq Require Import QArith Reals Lra Qreals Qminmax.
+From Coq Require Import QArith Reals Lra Qreals Qminmax Qabs.
 Require Import MoreReals.
 Local Open Scope Z.
 Local Open Scope R.
@@ -200,6 +200,45 @@ Proof.
  rewrite !Q2R_inv by (intro E; rewrite E in *; lra).
  assert (Hb : 0 < Q2R b') by lra.
  apply Rinv_0_lt_compat in Hb. lra.
+Qed.
+
+Definition Qabs_lb a b :=
+  if Z.eqb (Qsgn a) (-1) && Z.eqb (Qsgn b) 1 then 0%Q
+  else Qmin (Qabs a) (Qabs b).
+
+Definition Qabs_ub a b := Qmax (Qabs a) (Qabs b).
+
+#[global] Instance abs_approx {a r b} :
+  Approx a r b -> Approx (Qabs_lb a b) (Rabs r) (Qabs_ub a b).
+Proof.
+ unfold Approx. intros A. split.
+ - unfold Qabs_lb.
+   case Z.eqb_spec; simpl; intros Ha.
+   + rewrite Qsgn_neg in Ha.
+     case Z.eqb_spec; simpl; intros Hb.
+     * replace (Q2R 0) with 0 by lra. apply Rabs_pos.
+     * rewrite Qsgn_pos in Hb. apply Qnot_lt_le in Hb.
+       apply Qle_Rle in Hb. clear Ha.
+       rewrite Q.min_r.
+       2:{ rewrite !Qabs_neg; apply Rle_Qle; rewrite ?Q2R_opp; lra. }
+       rewrite Qabs_neg; try apply Rle_Qle; rewrite ?Q2R_opp; try lra.
+       rewrite Rabs_left'; lra.
+   + rewrite Qsgn_neg in Ha. apply Qnot_lt_le in Ha.
+     apply Qle_Rle in Ha.
+     rewrite Q.min_l.
+     2:{ rewrite !Qabs_pos; apply Rle_Qle; lra. }
+     rewrite Qabs_pos; try apply Rle_Qle; try lra.
+     rewrite Rabs_right; lra.
+ - unfold Qabs_ub.
+   destruct (Rle_lt_dec 0 r).
+   + rewrite Rabs_right by lra.
+     rewrite (Qabs_pos b) by (apply Rle_Qle; lra).
+     apply Rle_trans with (Q2R b); try lra.
+     apply Qle_Rle. apply Q.le_max_r.
+   + rewrite Rabs_left by lra.
+     rewrite (Qabs_neg a) by (apply Rle_Qle; lra).
+     apply Rle_trans with (Q2R (-a)). rewrite Q2R_opp; lra.
+     apply Qle_Rle. apply Q.le_max_l.
 Qed.
 
 Lemma approx_trans {a a' r b b'} :

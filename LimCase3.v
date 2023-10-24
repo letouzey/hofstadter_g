@@ -872,21 +872,18 @@ Proof.
  eapply Rle_trans; [apply Rabs_triang|].
  apply Rplus_le_compat.
  { rewrite <- (Rabs_right (ν^4)) by approx.
-   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; approx. }
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia. approx. }
  inversion H2; subst; cbn -[Cpow pow ν]; rewrite ?Rabs_R0; try approx.
  eapply Rle_trans; [apply Rabs_triang|].
  apply Rplus_le_compat.
  { rewrite <- (Rabs_right (ν^8)) by approx.
-   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; approx. }
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia. approx. }
  inversion H4; subst; cbn -[Cpow pow ν]; rewrite ?Rabs_R0; try approx.
  eapply Rle_trans; [apply Rabs_triang|].
  rewrite <- (Rplus_0_r (ν^12)).
  apply Rplus_le_compat.
  { rewrite <- (Rabs_right (ν^12)) by approx.
-   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia.
-   rewrite Rabs_left; approx. }
+   rewrite <- !RPow_abs. apply Rle_pow_le1; try lia. approx. }
  inversion H6; subst. simpl. rewrite Rabs_R0; lra.
  assert (n2 < 16)%nat; try lia. { apply B. simpl. tauto. }
 Qed.
@@ -911,8 +908,7 @@ Proof.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Rabs (Rlistsum _))) at 2.
-       apply Rmult_le_compat_r; try apply Rabs_pos.
-       rewrite Rabs_left; approx.
+       apply Rmult_le_compat_r; try apply Rabs_pos. approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
@@ -1201,7 +1197,7 @@ Proof.
  rewrite detU_alt.
  rewrite !Cmod_mult, !Rpow_mult_distr, !Cmod_R, Cmod_Ci.
  rewrite !Rabs_right by approx. autorewrite with RtoC. rewrite Cmod_R.
- rewrite αmod2. rewrite Rabs_right; approx.
+ approx.
 Qed.
 
 #[local] Instance : Approx 0.4785740967 (Cmod UV0a ^2) 0.4785740985.
@@ -1248,7 +1244,7 @@ Proof.
  rewrite re_scal_r.
  rewrite Rabs_mult.
  replace (/detU * coefν_detU)%C with
-     (-UV0ν / (Cmod α ^2 + ν^2 + C2 * - ν * re_α))%C.
+     (-UV0ν / (Cmod α ^2 + ν^2 + 2 * - ν * re_α))%C.
  2:{ unfold coefν_detU.
      replace (αbar-α)%C with (-(α - Cconj α))%C
        by (rewrite α_conj; ring).
@@ -1259,7 +1255,6 @@ Proof.
      - injection 1. lra.
      - apply RtoC_inj_neq. approx. }
  unfold UV0ν. autorewrite with RtoC. rewrite re_RtoC.
- rewrite Ropp_div, !Rabs_Ropp. rewrite 2 Rabs_right by approx.
  approx.
 Qed.
 
