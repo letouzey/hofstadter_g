@@ -22,7 +22,6 @@ MorePermut.v
 MorePoly.v
 MoreMatrix.v
 MoreComplex.v
-Diagonalize.v
 ThePoly.v
 Freq.v
 LimCase2.v
