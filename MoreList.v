@@ -15,6 +15,11 @@ Proof.
  intros. now rewrite <- (rev_involutive l), H.
 Qed.
 
+Lemma rev_inj {A} (l l' : list A) : rev l = rev l' -> l = l'.
+Proof.
+ intro H. now rewrite <- (rev_involutive l), H, rev_involutive.
+Qed.
+
 Lemma split_inv {A} (x:A) u u' v v' :
  ~In x u -> ~In x u' -> u++x::v = u'++x::v' -> u=u' /\ v=v'.
 Proof.

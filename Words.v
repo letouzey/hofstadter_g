@@ -1,4 +1,4 @@
-Require Import DeltaList FunG GenFib GenG MoreList.
+Require Import MoreList DeltaList FunG GenFib GenG.
 Import ListNotations.
 
 (** * Morphic words
@@ -17,7 +17,11 @@ Definition letter := nat.
 
 Definition word := list letter.
 
+(** Some predicates on words : Prefix, Suffix, Sub *)
+
 Definition Prefix (u v:word) := exists w, u++w = v.
+Definition Suffix (u v:word) := exists w, w++u = v.
+Definition Sub (u v:word) := exists w w', w++u++w' = v.
 
 Lemma Prefix_id w : Prefix w w.
 Proof.
@@ -88,6 +92,162 @@ Proof.
  - apply Prefix_cons_inv in P. destruct P as [->|(w' & -> & P)]; trivial.
    simpl. f_equal; auto.
 Qed.
+
+Lemma Prefix_rev_Suffix u v : Prefix (rev u) (rev v) <-> Suffix u v.
+Proof.
+ split; intros (w,E).
+ - exists (rev w).
+   rewrite <- (rev_involutive w), <- rev_app_distr in E.
+   now apply rev_inj in E.
+ - exists (rev w). now rewrite <- rev_app_distr, E.
+Qed.
+
+Lemma Suffix_rev_Prefix u v : Suffix (rev u) (rev v) <-> Prefix u v.
+Proof.
+ now rewrite <- Prefix_rev_Suffix, !rev_involutive.
+Qed.
+
+Lemma Suffix_id w : Suffix w w.
+Proof.
+ now exists [].
+Qed.
+
+Lemma Suffix_len u v : Suffix u v -> length u <= length v.
+Proof.
+ intros (w,<-). rewrite app_length. lia.
+Qed.
+
+Lemma Suffix_nil u : Suffix u [] -> u = [].
+Proof.
+ intros Su. apply Suffix_len in Su. simpl in Su. now destruct u.
+Qed.
+
+Lemma Suffix_app_l l u v : Suffix u v -> Suffix u (l++v).
+Proof.
+ intros (w,<-). exists (l++w). now rewrite app_ass.
+Qed.
+
+Lemma Suffix_app_r u v r : Suffix u v -> Suffix (u++r) (v++r).
+Proof.
+ intros (w,<-). exists w. now rewrite app_ass.
+Qed.
+
+Lemma Suffix_cons_inv a u v :
+ Suffix u (a::v) -> u = a::v \/ Suffix u v.
+Proof.
+ intros ([|a' w],E).
+ - now left.
+ - right. injection E as -> E. now exists w.
+Qed.
+
+Lemma Suffix_app_inv u v w :
+ Suffix u (v++w) -> Suffix u w \/ exists u', u = u'++w /\ Suffix u' v.
+Proof.
+ revert u. induction v as [|a v IH]; intros u H.
+ - now left.
+ - simpl in H. apply Suffix_cons_inv in H. destruct H as [->|H].
+   + right. exists (a::v); split; auto. apply Suffix_id.
+   + apply IH in H. destruct H as [H|(u' & E & H)].
+     * now left.
+     * right. exists u'; split; auto. now apply (Suffix_app_l [a]).
+Qed.
+
+Lemma Suffix_seq w a n :
+ Suffix w (List.seq a n) -> w = List.seq (a+n-length w) (length w).
+Proof.
+ revert w a.
+ induction n as [|n IH]; simpl; intros w a P.
+ - apply Suffix_nil in P. now subst w.
+ - apply Suffix_cons_inv in P. destruct P as [E|P].
+   + replace (length w) with (S n).
+     2:{ subst. simpl. now rewrite seq_length. }
+     replace (a+_-_) with a by lia. trivial.
+   + apply IH in P. rewrite P at 1. f_equal. lia.
+Qed.
+
+Lemma Sub_id w : Sub w w.
+Proof.
+ exists [], []. now rewrite app_nil_r.
+Qed.
+
+Lemma Sub_nil_l u : Sub [] u.
+Proof.
+ now exists [], u.
+Qed.
+
+Lemma Prefix_Sub u v : Prefix u v -> Sub u v.
+Proof.
+ intros (w,<-). now exists [], w.
+Qed.
+
+Lemma Suffix_Sub u v : Suffix u v -> Sub u v.
+Proof.
+ intros (w,<-). exists w, []. now rewrite app_nil_r.
+Qed.
+
+Lemma Sub_len u v : Sub u v -> length u <= length v.
+Proof.
+ intros (w & w' & <-). rewrite !app_length. lia.
+Qed.
+
+Lemma Sub_nil_r u : Sub u [] -> u = [].
+Proof.
+ intros H. apply Sub_len in H. simpl in H. now destruct u.
+Qed.
+
+Lemma Sub_app_l l u v : Sub u v -> Sub u (l++v).
+Proof.
+ intros (w & w' & <-). exists (l++w), w'. now rewrite app_ass.
+Qed.
+
+Lemma Sub_app_r u v r : Sub u v -> Sub u (v++r).
+Proof.
+ intros (w & w' & <-). exists w, (w'++r). now rewrite !app_ass.
+Qed.
+
+Lemma Sub_cons_inv a u v :
+ Sub u (a::v) -> Sub u v \/ exists u', u = a::u' /\ Prefix u' v.
+Proof.
+ intros ([|a' w] & w' & E).
+ - destruct u as [|a' u'].
+   + left. apply Sub_nil_l.
+   + injection E as -> E. right. exists u'. split; trivial. now exists w'.
+ - injection E as -> E. left. now exists w, w'.
+Qed.
+
+Lemma Sub_app_inv u l r :
+ Sub u (l++r) ->
+  Sub u l \/ Sub u r \/
+  exists u1 u2, u = u1++u2 /\ Suffix u1 l /\ Prefix u2 r.
+Proof.
+ revert u. induction l as [|a l IH]; intros u H.
+ - now (right; left).
+ - simpl in H. apply Sub_cons_inv in H. destruct H as [H|(u' & E & H)].
+   + apply IH in H. clear IH. destruct H as [H|[H|(u1 & u2 & E & Su & Pr)]].
+     * left. now apply (Sub_app_l [a]).
+     * now (right; left).
+     * right; right. exists u1, u2; repeat split; trivial.
+       now apply (Suffix_app_l [a]).
+   + subst u. apply Prefix_app in H. destruct H as [H|(u2 & E & Pr)].
+     * left. destruct H as (w & <-). now exists [], w.
+     * right. right. exists (a::l), u2. repeat split; trivial.
+       simpl; now f_equal. apply Suffix_id.
+Qed.
+
+Lemma Sub_seq w a n :
+ Sub w (List.seq a n) ->
+ exists b, a <= b <= a+n-length w /\ w = List.seq b (length w).
+Proof.
+ revert w a.
+ induction n as [|n IH]; simpl; intros w a H.
+ - apply Sub_nil_r in H. subst w; simpl. exists a. split; trivial; lia.
+ - apply Sub_cons_inv in H. destruct H as [H|(u & E & H)].
+   + apply IH in H. destruct H as (b & Hb & E). exists b; split; trivial; lia.
+   + subst w; simpl. assert (H' := Prefix_len _ _ H).
+     rewrite seq_length in H'.
+     apply Prefix_seq in H. exists a; split. lia. now f_equal.
+Qed.
+
 
 (** Sequence a.k.a Infinite word : function from nat to letter *)
 
@@ -1309,3 +1469,38 @@ Proof.
  intros LE.
  rewrite count_nbocc. f_equal. now apply kseq_take.
 Qed.
+
+(** Study of suffixes of kword : always exactly (k+1) different suffixes
+    of the same length *)
+
+Lemma kword_suffix_cycle k n u :
+  Suffix u (kword k n) -> Suffix u (kword k (n+k+1)).
+Proof.
+ intros Su.
+ rewrite Nat.add_1_r, kword_alt by lia. replace (n+k-k) with n by lia.
+ now apply Suffix_app_l.
+Qed.
+
+(* TODO: these k+1 are all different (and consequence of the last letter) *)
+
+(** Complexity of infinite words : for each value of p,
+    number of sub-words of length p *)
+
+Definition sub a n (f:sequence) := map f (seq a n).
+
+Definition IsSub u (f:sequence) := exists a, u = sub a (length u) f.
+
+Definition IsSubp p u (f:sequence) := length u = p /\ IsSub u f.
+
+Definition AllSubp p l f := NoDup l /\ (forall w, In w l <-> IsSubp p w f).
+
+Definition Complexity f p n := exists l, AllSubp p l f /\ length l = n.
+
+(*
+Lemma Complexity_kseq k : forall p, Complexity (kseq k) p (k*p+1).
+Proof.
+Admitted. (* TODO *)
+*)
+
+(* TODO : explicitely enumerate these (k*p+1) sub-words of length p
+   and deduce additivity bounds for f in a nicer way than in GenAdd ! *)

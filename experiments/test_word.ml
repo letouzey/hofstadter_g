@@ -180,3 +180,60 @@ let _ = all2 (=) (List.tl steps10) (itersubst subst10red 70 [11])
    - croissance des fk avec k
  *)
 
+let tabulate k n =
+  let a = Array.make (n+1) [k] in
+  for i = 1 to n do
+    if i <= k then a.(i) <- a.(i-1) @ [i-1]
+    else a.(i) <- a.(i-1) @ a.(i-1-k)
+  done;
+  a
+
+let w1 = tabulate 1 10
+let w2 = tabulate 2 10
+let w3 = tabulate 3 10
+let w4 = tabulate 4 20
+let w5 = tabulate 5 20
+let w6 = tabulate 6 20
+
+let psuffix p w =
+  (* ugly *)
+  let l = List.length w in
+  if l < p then []
+  else
+    let t = Array.of_list w in
+    let t' = Array.sub t (l-p) p in
+    Array.to_list t'
+
+let allpsuffix p a =
+  let s = Array.to_list a in
+  let s = List.map (psuffix p) s in
+  let s = List.filter ((<>) []) s in
+  List.sort_uniq compare s
+
+let _ = List.init 10 (fun p -> allpsuffix p w1 |> List.length)
+let _ = List.init 10 (fun p -> allpsuffix p w2 |> List.length)
+let _ = List.init 10 (fun p -> allpsuffix p w3 |> List.length)
+let _ = List.init 10 (fun p -> allpsuffix p w4 |> List.length)
+let _ = List.init 10 (fun p -> allpsuffix p w5 |> List.length)
+let _ = List.init 10 (fun p -> allpsuffix p w6 |> List.length)
+
+let psubs p w =
+  let l = List.length w in
+  if l < p then []
+  else
+    let t = Array.of_list w in
+    List.init (l-p+1) (fun i -> Array.sub t i p)
+
+let _ = psubs 5 [1;2;3;4]
+
+let allpsubs p w = List.sort_uniq compare (psubs p w)
+
+let arraylast a = let n = Array.length a in a.(n-1)
+
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w1) |> List.length)
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w2) |> List.length)
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w3) |> List.length)
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w4) |> List.length)
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w5) |> List.length)
+let _ = List.init 10 (fun p -> allpsubs p (arraylast w6) |> List.length)
+(* conjecture: complexité (fun p -> k*p+1) *)
