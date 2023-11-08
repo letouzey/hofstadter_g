@@ -217,6 +217,22 @@ let _ = List.init 10 (fun p -> allpsuffix p w4 |> List.length)
 let _ = List.init 10 (fun p -> allpsuffix p w5 |> List.length)
 let _ = List.init 10 (fun p -> allpsuffix p w6 |> List.length)
 
+let a3 = memo_A 3 100
+
+let invA3 = invA_tab a3
+
+let _ = invA3 1000
+let _ = a3.(21)
+
+let rec suffixM3 n p =
+  if n <= 3 then psuffix p w3.(n)
+  else if a3.(n-4) < p then suffixM3 (n-1) (p - a3.(n-4)) @ w3.(n-4)
+  else suffixM3 (n-4) p
+
+let _ = let n0 = invA3 4 in List.init 4 (fun q -> suffixM3 (n0 + q) 4)
+
+let _ = List.init 20 (fun n -> suffixM3 n 4)
+
 let psubs p w =
   let l = List.length w in
   if l < p then []
