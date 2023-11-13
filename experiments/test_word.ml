@@ -455,6 +455,112 @@ let _ = bispecial factors4
 
 let _ = Array.init 13 (fun i -> (i,w4.(i)))
 
+let left_letter k n =
+  if n = k then
+    (* before k : any letter 0 .. k may occur *)
+    failwith "multiple letters possible"
+  else if n = 0 then k else n-1
+
+(* suffixes des M_i avec k en première lettre,
+   quel suffixe étendu à gauche ?
+   P.ex k=4
+
+1:  4 -> 34  (on colle M_4 devant M_0)
+2:  40 -> 440 (on colle M_5 devant M_1)
+
+3:  401 -> 0401 (on colle M_6 devant M_2)
+    440 -> 3440 (sous-partie de M_6=M_5.M_1=M_4.M_0.M_1, fin de M_4)
+
+4:  4012 -> 14012 (on colle M_7 devant M_3)
+
+5:  40401 -> 440401
+    40123 -> 240123
+
+6:  440401 -> 3
+    401234 -> 3
+
+7:  4014012 -> 0
+
+8:  40123440 -> 4
+
+9:  401240123 -> 1
+    404014012 -> 4
+    440123440 -> 3
+
+10: 4404014012 -> 3
+
+11: 40123401234 -> 2
+    40123440401 -> 0
+
+12: 401401240123 -> 0
+
+TODO: Est-ce qu'il y en a pour tout p ??
+
+*)
+
+(*
+let _ = Array.map (psuffix 7) w4
+      |> Array.to_list |> List.filter (fun w -> w<>"" && w.[1]='4')
+      |> List.sort_uniq compare
+*)
+
+let invA_up_modk aa k p last =
+  let n = invA_up_tab aa p in
+  (* choose the right last letter *)
+  let rec loop n =
+    let nlast = (n+k) mod (k+1) in
+    if nlast = last then n
+    else loop (n+1)
+  in loop n
+
+let rec opt_suffix_tab aa ww k p =
+  if p = 1 then List.init (k+1) mkstring
+  else
+    let su = opt_suffix_tab aa ww k (p-1) in
+    List.map
+    (fun w -> if w.[0] = mkchar k then
+                let n = invA_up_modk aa k p (ofchar w.[p-2]) in
+                psuffix p (ww.(n))
+              else
+                let c = mkstring (left_letter k (ofchar w.[0])) in
+                c^w)
+    su |> List.sort_uniq compare
+
+let opt_suffix k p =
+  opt_suffix_tab (memo_A k 100) (string_tabulate k (max 30 (p+5))) k p
+
+let _ = opt_suffix 4 60
+
+let opt_psubs k p =
+  let inits = psubs p (string_tabulate k k).(k) in
+  let suf = opt_suffix k (p-1) in
+  let pre = arraylast (string_tabulate k (max 30 (p+5))) in
+  let ll = List.init (p-1) (fun i -> let i = i+1 in
+                   List.map (fun w -> psuffix i w ^
+                                      String.sub pre 0 (p-i))
+                     suf)
+  in (inits @ List.flatten ll) |> List.sort_uniq compare
+
+let _ = opt_psubs 4 50 |> List.length
+
+let reduce_psubs l =
+  let p = String.length (List.hd l) in
+  List.init p
+    (fun i ->
+      l |> List.map (fun w -> String.sub w 0 (i+1))
+      |> List.sort_uniq compare)
+
+let factors4' = reduce_psubs (opt_psubs 4 50)
+
+let _ = bispecial factors4' |> List.map (List.map String.length);;
+
+let _ = Array.init 13 (fun i -> (i,String.length w4.(i),w4.(i)))
+
+let _ = ()
+
+401234404014012401234
+40123440401401240123
+
 (* bispecial : mots M_n entiers, mais pas tous, p.ex 40123 non
 
 M_n.M_{n-k} donc prol à droite possible par k
@@ -488,7 +594,15 @@ Pour M_9:  M_8 = M_7.M_3 = M_4.M_0.M_1.M_2.M_3
 Pour M_10: M_9 = M_8.M_4 = M_5.M_1.M_2.M_3.M_4
   marche plus, donne juste -k->
 
-TODO: fini fini ? Tester mais avec une autre enumération des facteurs
- Si oui, comment le prouver ?
+M5 = M4M0
+...
+M8 = M7M3
+ensuite *pas* des Mx
+M9M0 (de taille 21 alors que M9 de taille 20)
+M10M1
+M11M2
+M12M3
+ensuite ?
+
 
 *)
