@@ -1009,10 +1009,20 @@ Qed.
 
 (** Full decomposition of any prefix of kword, then kseq (used in Lim) *)
 
+Definition kwords k (l:list nat) : word := concat (map (kword k) l).
+
+Lemma kwords_singl k n : kwords k [n] = kword k n.
+Proof.
+ unfold kwords. simpl. now apply app_nil_r.
+Qed.
+
+Lemma kwords_app k l l' : kwords k (l++l') = kwords k l ++ kwords k l'.
+Proof.
+ unfold kwords. now rewrite map_app, concat_app.
+Qed.
+
 Lemma decomp_prefix_kword k w n l :
- Prefix w (kword k n) ->
- l = rev (decomp k (length w)) ->
- w = concat (map (kword k) l).
+ Prefix w (kword k n) -> l = rev (decomp k (length w)) -> w = kwords k l.
 Proof.
  revert w l. induction n as [n IH] using lt_wf_ind.
  intros w l P.
@@ -1025,12 +1035,12 @@ Proof.
      rewrite E'. simpl length. set (p := length w') in *.
      rewrite decomp_low by lia.
      replace (S _ -1) with p by lia. intros ->. simpl.
-     rewrite kword_low, <-P', app_nil_r by lia. trivial.
+     rewrite kwords_singl, kword_low, <-P' by lia. trivial.
  - assert (P' := P). destruct P' as ([|a u] & E).
    + rewrite app_nil_r in E. rewrite E. rewrite kword_len.
      replace (decomp k (A k n)) with [n].
      2:{ symmetry; apply decomp_carac; try constructor; simpl; auto. }
-     intros ->. simpl. now rewrite app_nil_r.
+     intros ->. simpl. now rewrite kwords_singl.
    + assert (LT : length w < A k n).
      { rewrite <- kword_len, <- E, app_length. simpl. lia. }
      clear  E.
@@ -1040,12 +1050,13 @@ Proof.
      * apply (IH n); auto.
      * rewrite app_length, kword_len in *.
        rewrite Nat.add_comm, decomp_plus_A by (simpl in LT; lia).
-       rewrite rev_app_distr. intros ->. simpl.
-       f_equal. apply (IH (n-k)); auto. lia.
+       rewrite rev_app_distr. intros ->. rewrite kwords_app.
+       simpl. f_equal. now rewrite kwords_singl.
+       apply (IH (n-k)); auto. lia.
 Qed.
 
 Lemma decomp_prefix_kseq k n :
- take n (kseq k) = concat (map (kword k) (rev (decomp k n))).
+ take n (kseq k) = kwords k (rev (decomp k n)).
 Proof.
  assert (H := invA_spec k n). set (m := invA k n) in *.
  assert (H' : n <= A k (S m)) by lia. clear H. clearbody m.
@@ -1056,12 +1067,51 @@ Proof.
  - now rewrite take_length.
 Qed.
 
+Lemma renorm_kwords k l :
+ Delta k l -> kwords k (rev (renorm k l)) = kwords k (rev l).
+Proof.
+ unfold renorm.
+ generalize (Nat.le_refl (length l)). generalize (length l) at 2 3.
+ intro n. revert l.
+ induction n as [[|n] IH] using lt_wf_ind; intros l Hl D.
+ - now destruct l.
+ - destruct l as [|i l]; simpl in *; trivial.
+   apply Delta_inv in D.
+   destruct (renorm_loop k l n) as [|a l'] eqn:E.
+   + simpl. rewrite kwords_app.
+     rewrite <- (IH n); trivial; try lia. now rewrite E.
+   + case Nat.eqb_spec; intros.
+     * rewrite IH; try lia.
+       2:{ change (length (S a :: l')) with (length (a::l')).
+           rewrite <- E. rewrite renorm_loop_length; lia. }
+       2:{ apply Delta_S_cons. rewrite <- E.
+           apply renorm_loop_delta; trivial. lia. }
+       subst a. simpl. rewrite !kwords_app, !kwords_singl.
+       rewrite kword_alt by lia.
+       replace (i+k-k) with i by lia. rewrite <- app_ass. f_equal.
+       rewrite <- (kwords_singl k (i+k)), <- kwords_app.
+       change (_++_) with (rev (i+k::l')). rewrite <- E.
+       apply IH; trivial; try lia.
+     * rewrite <- E. simpl. rewrite !kwords_app. f_equal.
+       apply IH; trivial; lia.
+Qed.
+
+Lemma prefix_kseq_laxdecomp k n l :
+ DeltaRev k l -> sumA k l = n -> take n (kseq k) = kwords k l.
+Proof.
+ rewrite <- Delta_rev. rewrite <- (rev_involutive l) at 2 3.
+ rewrite sumA_rev. intros D E.
+ rewrite <- renorm_kwords by trivial.
+ rewrite decomp_prefix_kseq. f_equal. f_equal.
+ apply decomp_carac. now apply renorm_delta. now rewrite renorm_sum.
+Qed.
+
 Lemma count_kseq_decomp k n a :
  count (kseq k) a n =
   listsum (map (fun m => nbocc a (kword k m)) (decomp k n)).
 Proof.
- rewrite count_nbocc, decomp_prefix_kseq, nbocc_concat.
- now rewrite map_map, map_rev, listsum_rev.
+ rewrite count_nbocc, decomp_prefix_kseq. unfold kwords.
+ rewrite nbocc_concat. now rewrite map_map, map_rev, listsum_rev.
 Qed.
 
 (** Occurrences of letters when applying ksubst *)
