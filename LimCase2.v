@@ -579,7 +579,7 @@ Lemma diff0_decomp_eqn n :
    Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)%C) (decomp 2 n)).
 Proof.
  unfold diff0.
- rewrite decomp_prefix_kseq.
+ rewrite decomp_prefix_kseq. unfold kwords.
  rewrite Diff0_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
@@ -1033,7 +1033,7 @@ Lemma diff2_decomp_eqn n :
    Rlistsum (List.map (fun n => 2*Re(coefa2 * alpha^n)%C) (decomp 2 n)).
 Proof.
  unfold diff2.
- rewrite decomp_prefix_kseq.
+ rewrite decomp_prefix_kseq. unfold kwords.
  rewrite Diff2_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
