@@ -467,15 +467,6 @@ Proof.
  now rewrite <- Hf, <- Hf'.
 Qed.
 
-(* Auxiliary result *)
-
-Lemma seq_S a b : List.seq a (S b) = List.seq a b ++ [a+b].
-Proof.
- revert a.
- induction b; simpl; intros. f_equal; lia.
- rewrite Nat.add_succ_r, <- Nat.add_succ_l. now rewrite <- IHb.
-Qed.
-
 (** Specific susbstitution for Hofstadter functions.
     Works on letters 0..k *)
 

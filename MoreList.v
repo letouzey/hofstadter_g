@@ -46,6 +46,13 @@ Proof.
  apply map_nth.
 Qed.
 
+Lemma seq_S a b : List.seq a (S b) = List.seq a b ++ [a+b].
+Proof.
+ revert a.
+ induction b; simpl; intros. f_equal; lia.
+ rewrite Nat.add_succ_r, <- Nat.add_succ_l. now rewrite <- IHb.
+Qed.
+
 (* Quite ad-hoc, but used several times *)
 Lemma nth_map_seq {A} (f:nat->A) k n d :
  k < n -> nth k (map f (seq 0 n)) d = f k.
