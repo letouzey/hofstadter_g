@@ -837,6 +837,87 @@ Proof.
  destruct rank; simpl; lia.
 Qed.
 
+(** The substitution [(ksubst k)^k] is also quite interesting :
+    its infinite word is also [kseq k], but it produces it by
+    blocks starting by all the [k] letters. *)
+
+Definition ksubstk k n := napply (ksubst k) k [n].
+
+(** Fun fact: for n <= k, ksubst^k(n) = ksubst^n(k) *)
+
+Lemma ksubst_pearl k n :
+  n <= k -> napply (ksubst k) k [n] = napply (ksubst k) n [k].
+Proof.
+ intros LE.
+ rewrite <- (ksubst_low0 k n LE).
+ rewrite <- (ksubst_low0 k k (Nat.le_refl _)).
+ rewrite <- !napply_add. f_equal. lia.
+Qed.
+
+Lemma ksubstk_kword k n : n <= k ->
+  ksubstk k n = kword k n.
+Proof.
+ intros. now apply ksubst_pearl.
+Qed.
+
+Lemma ksubstk_alt k n : n <= k ->
+  ksubstk k n = k :: seq 0 n.
+Proof.
+ intros. rewrite <- kword_low by lia. now apply ksubstk_kword.
+Qed.
+
+Lemma ksubstk_noerase k : NoErase (ksubstk k).
+Proof.
+ intro a. apply noerase_nonnil_napply; try easy. apply ksubst_noerase.
+Qed.
+
+Lemma ksubstk_prolong k : k<>0 -> Prolong (ksubstk k) k.
+Proof.
+ exists (seq 0 k); split.
+ - contradict H. now rewrite <- (seq_length k 0), H.
+ - now rewrite ksubstk_alt by lia.
+Qed.
+
+Lemma apply_napply s n l :
+  apply (fun x => napply s n [x]) l = napply s n l.
+Proof.
+ induction l; simpl.
+ - symmetry. apply napply_nil.
+ - rewrite IHl. symmetry. apply napply_cons.
+Qed.
+
+Lemma napply_ksubstk k n l :
+ napply (ksubstk k) n l = napply (ksubst k) (n*k) l.
+Proof.
+ induction n; trivial.
+ rewrite napply_alt, IHn.
+ simpl. rewrite napply_add. apply apply_napply.
+Qed.
+
+Definition kseqk k := subst2seq (ksubstk k) k.
+
+Lemma kseqk_kseq k : forall n, kseqk k n = kseq k n.
+Proof.
+ destruct (Nat.eq_dec k 0) as [->|N].
+ - (* We don't really care about k=0, but for the fun... *)
+   intros n. unfold kseqk, subst2seq.
+   assert (E : napply (ksubstk 0) n [0] = [0]) by now induction n.
+   unfold letter in *. rewrite E.
+   replace (nth n [0] 0) with 0.
+   2:{ now destruct n as [|[|n]]. }
+   generalize (kseq_letters 0 n). lia.
+ - intros n.
+   unfold kseqk.
+   rewrite subst2seq_indep with (m:=n);
+    auto using ksubstk_noerase, ksubstk_prolong.
+   unfold kseq.
+   rewrite subst2seq_indep with (m:=n*k);
+    auto using ksubst_noerase, ksubst_prolong.
+   2:{ destruct k; simpl; lia. }
+   f_equal. apply napply_ksubstk.
+Qed.
+
+
 (** Counting letter a in word w *)
 
 Fixpoint nbocc a w :=
