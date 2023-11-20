@@ -5,6 +5,16 @@
 %TODO: nullfont ?  Dès le début de l'usage de tikzposter !
 %TODO: font subst TS1/aer/m/n, cf \textbullet dans itemize
 
+%\usepackage{type1cm}
+\usepackage{pgfplots}
+\usepackage{tkz-euclide}% for geometry
+\usepackage{tikz-qtree}
+\usepackage{lipsum}% for dummy text
+\usepackage{multicol}% for multiple columns
+\setlength{\columnsep}{4cm}
+\setlength{\columnseprule}{1mm}
+\usepackage{amsmath}
+
 \definelayouttheme{MyBoard}{
     \usecolorstyle[colorPalette=BlueGrayOrange]{Spain}
     \usebackgroundstyle{Default}
@@ -16,15 +26,6 @@
 
 \usetheme{MyBoard}
 \colorlet{backgroundcolor}{white}
-
-%\usepackage{type1cm}
-\usepackage{pgfplots}
-\usepackage{tkz-euclide}% for geometry
-\usepackage{tikz-qtree}
-\usepackage{lipsum}% for dummy text
-\usepackage{multicol}% for multiple columns
-\setlength{\columnsep}{4cm}
-\setlength{\columnseprule}{1mm}
 
 \pgfplotsset{compat=1.18}
 
@@ -44,42 +45,13 @@
 %  \rule{R -> -LF+RFR+FL-}}
 
 \begin{document}
-\title{\huge Curious recursive functions : Hostadter's G and after}
-\author{Pierre Letouzey}
-\institute{Picube, IRIF, UPC \& Inria \& CNRS}
+\title{\huge Some Curious Recursive Functions : Hostadter's G and After}
+\author{Pierre Letouzey (équipes Picube / Preuves et Programmes)}
+\institute{IRIF, Université Paris Cité / INRIA / CNRS}
 \maketitle
 
 \begin{columns}
-  \column{.5}
-
-  \block{Plotting G and after}{
-\pgfplotsset{width=\linewidth}
-\begin{tikzpicture}[scale=1]
-  \begin{axis}[
-    xmin=0,xmax=30,ymin=0,ymax=20,samples=31,
-    xlabel=$n$, legend pos=south east
-  ]
-
-    \addplot [mark=.,color=blue] coordinates {
-(0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 5) (7, 5) (8, 6)
- (9, 6) (10, 7) (11, 8) (12, 8) (13, 9) (14, 10) (15, 11) (16, 11)
- (17, 12) (18, 13) (19, 14) (20, 15) (21, 15) (22, 16) (23, 17)
- (24, 18) (25, 19) (26, 19) (27, 20) (28, 20) (29, 21) (30, 22)};
- \addlegendentry{$f_3$}
-    \addplot [mark=.,color=orange] coordinates {
-(0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 4) (7, 5) (8, 5)
- (9, 6) (10, 7) (11, 7) (12, 8) (13, 9) (14, 10) (15, 10) (16, 11)
- (17, 12) (18, 13) (19, 13) (20, 14) (21, 14) (22, 15) (23, 16)
- (24, 17) (25, 17) (26, 18) (27, 18) (28, 19) (29, 20) (30, 20) };
- \addlegendentry{$f_2$}
- \addplot+[mark=.,domain=0:30,color=red]
- {floor((x+1) * 0.618033988749894903)};
- \addlegendentry{$f_1$}
- \addplot+[mark=.,domain=0:30] {ceil(x/2)};
- \addlegendentry{$f_0$}
- \end{axis}
-\end{tikzpicture}
-}%block
+  \column{.33}%GAUCHE
 
 \block{The G tree}{
 
@@ -95,17 +67,75 @@
 %TODO : et H ? et motifs d'arbres ?
 }%block
 
-\block{Fractal}{
+\column{.33}%CENTRE
+\block{Nested Recursions}{
+{\Large
+From the book "Gödel,Escher,Bach" :
+%TODO Proper ref
 
-\includegraphics[width=\linewidth]{fractal.png}
+\medskip
+
+\innerblock{Definition: Hofstadter's G function}{
+\begin{align*}
+G(0) &= 0 \\
+G(n) &= n - G(G(n-1)) & \text{for all}\ n>0
+\end{align*}
+}
+
+\medskip
+
+More generally, with $k+1$ nested recursive calls:
+
+\medskip
+
+\innerblock{Definition: the $f_k$ function}{
+\begin{align*}
+f_k(0) &= 0 \\
+f_k(n) &= n - f_k^{(k+1)}(n-1)) & \text{for all}\ n>0
+\end{align*}
+}}
 
 }%block
 
+  \block{Plotting $G$ and $f_k$ }{
+\pgfplotsset{width=\linewidth}
+\begin{tikzpicture}[scale=1]
+  \begin{axis}[
+    xmin=0,xmax=30,ymin=0,ymax=25,samples=31,
+    xtick = {0,5,...,30},
+    ytick = {0,5,...,30},
+    xlabel=$n$, legend pos=south east
+  ]
 
+ \addplot+[mark=.,color=black,style=dashed,domain=0:30] {x};
+ \addlegendentry{id}
+    \addplot [mark=.,color=blue] coordinates {
+(0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 5) (7, 5) (8, 6)
+ (9, 6) (10, 7) (11, 8) (12, 8) (13, 9) (14, 10) (15, 11) (16, 11)
+ (17, 12) (18, 13) (19, 14) (20, 15) (21, 15) (22, 16) (23, 17)
+ (24, 18) (25, 19) (26, 19) (27, 20) (28, 20) (29, 21) (30, 22)};
+ \addlegendentry{$f_3$}
+    \addplot [mark=.,color=orange] coordinates {
+(0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 4) (7, 5) (8, 5)
+ (9, 6) (10, 7) (11, 7) (12, 8) (13, 9) (14, 10) (15, 10) (16, 11)
+ (17, 12) (18, 13) (19, 13) (20, 14) (21, 14) (22, 15) (23, 16)
+ (24, 17) (25, 17) (26, 18) (27, 18) (28, 19) (29, 20) (30, 20) };
+ \addlegendentry{$f_2$}
+ \addplot+[mark=.,domain=0:30,color=red]
+ {floor((x+1) * 0.618033988749894903)};
+ \addlegendentry{$G = f_1$}
+ \addplot+[mark=.,domain=0:30] {ceil(x/2)};
+ \addlegendentry{$f_0$}
+ \end{axis}
+\end{tikzpicture}
+}%block
 
-  \column{.5}
-  \begin{subcolumns}
-    \subcolumn{.5}
+\block{Fractal}{
+\includegraphics[width=\linewidth]{fractal.png}
+}%block
+
+\column{.33}%DROITE
+
     \block{Mathematics}{
       Bla Bla
 %%      Take a coffee, then:
@@ -165,7 +195,8 @@
 %%       \tkzLabelSegment[below right=4cm,font=\small](A,E){Thales circle}
 %%     \end{tikzpicture}
   }
-  \end{subcolumns}
+
+
   \block{Fractals in \LaTeX}{
 %    \lipsum[1]
     %\image[\LaTeX\ workflow]{flowchart}% if external
@@ -202,7 +233,13 @@
 %%     \end{tikzpicture}
 %% %    \lipsum[4]
 %%   }
+
 \end{columns}
+
+
+%  \begin{subcolumns}
+%    \subcolumn{.5}
+%  \end{subcolumns}
 
 %\block{Conclusion and outlook}{
 %  \begin{multicols}{4}
