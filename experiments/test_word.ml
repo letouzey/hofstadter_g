@@ -561,11 +561,16 @@ let _ = ()
 401234404014012401234
 40123440401401240123
 
-(* bispecial : mots M_n entiers, mais pas tous, p.ex 40123 non
+(* bispecial : au début des mots M_n entiers, mais pas tous, p.ex 40123 non
+   ensuite plus compliqué que ça
 
 M_n.M_{n-k} donc prol à droite possible par k
 (et si n <= k alors on étend à g d'abord M_{n+k+1} = M_{n+k}.M_n
  puis M_{n+k+1}.M_{n+1})
+
+Rq: dès qu'on sait que w est dans RS, alors valence 2 (sinon on aurait
+ sa dernière lettre dans RS avec valence > 2). Donc avec -k-> et une autre
+ on est bon
 
 autre lettre : redescente jusqu'aux règles initiales ?
 
@@ -573,16 +578,12 @@ p.ex k=4   4 -0-> 40 -1-> 401 -2-> 4012 -3-> 40123=M_4
 
 +gal si i<j<=k alors M_j = M_i.(i)...(j-1)
 
-Pour n>=k, M_{n+k+2} = = M_{n+k+1}.M_{n+1} = M_{n+k).M_n.M_n.M_{n-k}
+Pour n>=k, M_{n+k+2} = M_{n+k+1}.M_{n+1} = M_{n+k).M_n.M_n.M_{n-k}
 Donc M_n.M_n facteur
 
 M_{n-k} préfixe de M_n donc M_n = M_{n-k}.reste
 
 Donc M_n.M_n = M_n.M_{n-k}.reste = M_{n+1}.reste
-
-Rq: dès qu'on sait que w est dans RS, alors valence 2 (sinon on aurait
- sa dernière lettre dans RS avec valence > 2). Donc avec -k-> et -?-> on
- est bon
 
 Pour M_5:  M_4 = M_0.0123 donc M_5 -0-> ..
 Pour M_6:  M_5 = M_4.M_0 = M_1.123.M_0 donc M_6 -1-> ..
@@ -598,7 +599,12 @@ M5 = M4M0
 ...
 M8 = M7M3
 ensuite *pas* des Mx
+
 M9M0 (de taille 21 alors que M9 de taille 20)
+ M9M0 inclus dans M9M9=M9M8M4=M9M4...=M9M0.0123...
+      -0->
+
+
 M10M1
 M11M2
 M12M3
