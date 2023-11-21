@@ -44,13 +44,21 @@
 %  \rule{L -> +RF-LFL-FR+}
 %  \rule{R -> -LF+RFR+FL-}}
 
-\begin{document}
 \title{\huge Some Curious Recursive Functions : Hostadter's G and After}
-\author{Pierre Letouzey (équipes Picube / Preuves et Programmes)}
-\institute{IRIF, Université Paris Cité / INRIA / CNRS}
+\author{Pierre Letouzey (équipe ACS, ...)}
+\institute{IRIF, Université Paris Cité / Picube, INRIA / CNRS}
+
+\include{tikzposterlogo}
+
+\insertlogoi[width=9cm]{logo-irif.pdf}
+\insertlogoii[width=9cm]{logo-3tutelles.pdf}
+
+\begin{document}
 \maketitle
 
 \begin{columns}
+
+
   \column{.33}%GAUCHE
 
 \block{The G tree}{
@@ -84,20 +92,20 @@ G(n) &= n - G(G(n-1)) & \text{for all}\ n>0
 
 \medskip
 
-More generally, with $k+1$ nested recursive calls:
+More generally, with \textbf{\textit{k} nested recursive calls}:
 
 \medskip
 
-\innerblock{Definition: the $f_k$ function}{
+\innerblock{Definition: the $F_k$ functions}{
 \begin{align*}
-f_k(0) &= 0 \\
-f_k(n) &= n - f_k^{(k+1)}(n-1)) & \text{for all}\ n>0
+F_k(0) &= 0 \\
+F_k(n) &= n - F_k^{(k)}(n-1)) & \text{for all}\ n>0
 \end{align*}
 }}
 
 }%block
 
-  \block{Plotting $G$ and $f_k$ }{
+  \block{Plotting $G$ and $F_k$ }{
 \pgfplotsset{width=\linewidth}
 \begin{tikzpicture}[scale=1]
   \begin{axis}[
@@ -114,18 +122,18 @@ f_k(n) &= n - f_k^{(k+1)}(n-1)) & \text{for all}\ n>0
  (9, 6) (10, 7) (11, 8) (12, 8) (13, 9) (14, 10) (15, 11) (16, 11)
  (17, 12) (18, 13) (19, 14) (20, 15) (21, 15) (22, 16) (23, 17)
  (24, 18) (25, 19) (26, 19) (27, 20) (28, 20) (29, 21) (30, 22)};
- \addlegendentry{$f_3$}
+ \addlegendentry{$F_4$}
     \addplot [mark=.,color=orange] coordinates {
 (0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 4) (7, 5) (8, 5)
  (9, 6) (10, 7) (11, 7) (12, 8) (13, 9) (14, 10) (15, 10) (16, 11)
  (17, 12) (18, 13) (19, 13) (20, 14) (21, 14) (22, 15) (23, 16)
  (24, 17) (25, 17) (26, 18) (27, 18) (28, 19) (29, 20) (30, 20) };
- \addlegendentry{$f_2$}
+ \addlegendentry{$F_3$}
  \addplot+[mark=.,domain=0:30,color=red]
  {floor((x+1) * 0.618033988749894903)};
- \addlegendentry{$G = f_1$}
+ \addlegendentry{$G=F_2$}
  \addplot+[mark=.,domain=0:30] {ceil(x/2)};
- \addlegendentry{$f_0$}
+ \addlegendentry{$F_1$}
  \end{axis}
 \end{tikzpicture}
 }%block
@@ -233,6 +241,16 @@ f_k(n) &= n - f_k^{(k+1)}(n-1)) & \text{for all}\ n>0
 %%     \end{tikzpicture}
 %% %    \lipsum[4]
 %%   }
+
+\block{Fun fact : what about k=1 ?}{
+
+TODO: $F_1$ is division by two, $A_0$ is power of two, the tree is
+binary, the decomposition is the usual binary decomp...
+
+Base 2 is ``just'' a particular case !
+
+}
+
 
 \end{columns}
 
