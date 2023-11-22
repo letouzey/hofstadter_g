@@ -372,16 +372,14 @@ M_{k,n} = k.0...(n-1) \hfill \text{for}\ n\le k \\
 M_{k,n+1} = M_{k,n}.M_{k,n-k} \hspace{5cm} \text{for}\ n+1 > k
 \end{cases}
 \end{equation*}
+
+Also note that $|M_{k,n}| = A^k_n$
 }
 
 \hspace{1cm}
 
-\coloredbox{Property: $|M_{k,n}| = A^k_n$}
-
-\hspace{1cm}
-
 \innerblock{Theorem: linear complexity}{
-The subword complexity of $m_k$ (i.e. its number of distinct factor of
+The subword complexity of $m_k$ (i.e. its number of distinct factors of
 size $p$) is $p \mapsto k.p+1$.
 }
 
