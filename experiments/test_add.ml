@@ -1,9 +1,9 @@
 
 #use "defs.ml";;
 
-let ff = tabulate_f 100 1_000_000
+let ff = tabulate_f 50 1_000_000
 
-let a = tabulate_A 100 200 (* beware of overflows, coded here as -1 *)
+let a = tabulate_A 50 200 (* beware of overflows, coded here as -1 *)
 
 let invA_up k n = invA_up_tab a.(k) n
 

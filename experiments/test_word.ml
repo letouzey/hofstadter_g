@@ -201,6 +201,9 @@ let ofchar c =
   if Char.code '0' <= n && n <= Char.code '9' then n - Char.code '0'
   else 10 + n - Char.code 'a'
 
+let l2s l = String.init (List.length l) (fun i -> mkchar (List.nth l i))
+let s2l w = List.init (String.length w) (fun i -> ofchar w.[i])
+
 let string_tabulate k n =
   let a = Array.make (n+1) (mkstring k) in
   for i = 1 to n do
@@ -220,6 +223,23 @@ let psuffix p w =
   let l = String.length w in
   if l < p then ""
   else String.sub w (l-p) p
+
+(* Claim : any prefix finishing by <>k
+   is the image of a shorter prefix by subst *)
+
+let ksubst k n = if n = k then [n;0] else [n+1]
+
+let arraylast a = let n = Array.length a in a.(n-1)
+
+let w = arraylast w6
+
+let stringsubst f w = w |> s2l |> dosubst f |> l2s
+
+let _ = for i = 0 to String.length w -1 do
+          let pr = String.sub w 0 i in
+          print_string (stringsubst (ksubst 6) pr); print_string "\n"
+        done
+
 
 let array_sort_uniq a =
   a |> Array.to_list |> List.filter ((<>) "")
@@ -397,8 +417,6 @@ let psubs p w =
 let _ = psubs 3 "1234"
 
 let allpsubs p w = List.sort_uniq compare (psubs p w)
-
-let arraylast a = let n = Array.length a in a.(n-1)
 
 let factors1 = List.init 10 (fun p -> allpsubs (p+1) (arraylast w1))
 let factors2 = List.init 10 (fun p -> allpsubs (p+1) (arraylast w2))
