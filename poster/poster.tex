@@ -265,55 +265,166 @@ Now, with an ad-hoc trunk and node numbered via BFS:
 
 }%block
 
-\block{Specific cases : $F_0$, $F_1$, $F_2$}{
+\block{Linear Equivalents}{
 
+Let $\tau_k$ be the positive root of $X^{k+1}+X-1$. It is hence
+algebraic, and irrational except for $k=0$.
+
+\vspace{0.5cm}
+
+\innerblock{Theorem:}{
+For all $k\ge$, when $n\to\infty$ we have $F_k(n) = \tau_k.n + o(n)$
+}
+
+\vspace{0.5cm}
+More precisely:
+\vspace{0.5cm}
+
+\coloredbox{
 \begin{itemize}
 \item $F_0(n) = \lfloor (n+1)/2 \rfloor = \lceil n/2 \rceil$
-  and $A^0_n = 2^n$ and we retrieve the binary decomposition !
+\end{itemize}}
+And $A^0_n = 2^n$ and we retrieve the base-2 decomposition !
 
-\item $F_1(n) = G(n) = \lfloor (n+1)/\phi \rfloor$ where $\phi$ is the
-  golden ratio.
+\vspace{0.5cm}
 
-\item $F_2(n) = \lfloor \tau n \rfloor + 0 ~\text{or}~ 1$ with
- $\tau$ real root of $X^3+X-1$ ($\tau = 0.6823$).
+\coloredbox{
+\begin{itemize}
+\item $F_1(n) = G(n) = \lfloor \tau_1.(n+1) \rfloor$
+\end{itemize}}
+Here $\tau_1=1/\phi=\phi-1 \approx 0.618...$
 
-\end{itemize}
+\vspace{0.5cm}
 
-With $\delta(n) = F_2(n) - \tau n$, plotting $(\delta(i),\delta(F_2(i)))$
+\coloredbox{
+\begin{itemize}
+\item $F_2(n) - \lfloor \tau_2.n \rfloor \in \{0,1\}$
+\end{itemize}}
+Here $\tau_2 \approx 0.6823...$, inverse of Pisot number $P_3$. \\
+With $\delta(n) = F_2(n) - \tau_2.n$, plotting $(\delta(i),\delta(F_2(i)))$
  leads to this Rauzy fractal !
 
 \includegraphics[width=\linewidth]{fractal.png}
+
+\vspace{0.5cm}
+
+\coloredbox{
+\begin{itemize}
+\item $F_3(n) - \lfloor \tau_3.n \rfloor \in \{-1,0,1,2\}$
+\end{itemize}}
+Here $\tau_3 \approx 0.7244...$, inverse of Pisot number $Q_3$.
+
+\vspace{0.5cm}
+
+\coloredbox{
+\begin{itemize}
+\item After $k\ge 4$, $F_k(n)-\tau_k.n = o(n)$ but not bounded.
+\end{itemize}}
+Note: $\tau_4$ is the inverse of the Plastic number (smallest Pisot),
+then $\tau_k$ for $k\ge 5$ is above any Pisot inverses.
+
+
 }%block
 
 \column{.33}%DROITE
 
-    \block{Substitutions and Morphic Words}{
+\block{Morphic Words}{
 
+We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
-    }
+\hspace{1cm}
+
+\innerblock{Definition: the substitutions $\sigma_k$}{
+\begin{equation*}
+\begin{cases}
+\mathcal{A} \to \mathcal{A}^* \\
+\sigma_k(n) = (n+1) \hspace{7cm} \text{for}\ n<k \\
+\sigma_k(k) = k.0
+\end{cases}
+\end{equation*}
+}
+
+\hspace{1cm}
+
+\innerblock{Definition: the morphic words $m_k$}{
+
+The substition $\sigma_k$ is prolongeable at k. It hence admits
+an infinite word $m_k$ (called \emph{morphic}) as fixed point:
+
+$$m_k = \lim_{n\to\infty} \sigma_k^n(k) = \sigma_k(m_k) $$
+}
+
+\hspace{1cm}
+
+For instance:
+\begin{itemize}
+\item $m_1$ is the Fibonacci word (with inversed letters)
+\item $m_2 = 20122020120122012202...$
+\end{itemize}
+
+\hspace{1cm}
+
+\innerblock{Theorem:}{
+$m_k$ is also the limit of its finite prefixes $M_{k,n}$ defined as:
+\begin{equation*}
+\begin{cases}
+M_{k,n} = k.0...(n-1) \hfill \text{for}\ n\le k \\
+M_{k,n+1} = M_{k,n}.M_{k,n-k} \hspace{5cm} \text{for}\ n+1 > k
+\end{cases}
+\end{equation*}
+}
+
+\hspace{1cm}
+
+\coloredbox{Property: $|M_{k,n}| = A^k_n$}
+
+\hspace{1cm}
+
+\innerblock{Theorem: linear complexity}{
+The subword complexity of $m_k$ (i.e. its number of distinct factor of
+size $p$) is $p \mapsto k.p+1$.
+}
+
+\hspace{1cm}
+
+Lien avec $f_k$ :
+
+La $n$-ième lettre $(m_k)_n$ du mot infini $m_k$ est le rang de la
+$k$-decomposition de $n$ (ou $k$ si ce rang est plus de $k$).
+
+En particulier cette lettre est 0 si $f_k(n)=f_k(n+1)$
+
+En cumulant : le nombre de 0 dans $m_k$ entre 0 et $n$ est $n-f_k(n)$.
+
+Plus généralement, compter les lettres au dessus de $p$ donne
+$f_k^{(p)}$. En particulier le nombre de $k$ est $f_k^{(k)}$.
+
+}%block
 
 \block{Coq formalization}{
 \begin{itemize}
+\item Already $90\%$ of this poster defined and proved in Coq:
+TODO URL %\url{https://github.com/letouzey/hofstadter_g}
 
+\item Nearly 20\,000 lines of Coq formalization
+
+\item Matrix (e.g. Vandermonde), polynoms, etc
 
 \end{itemize}
 }%block
 
+\block{Thanks!}{
 
+A big thanks to P.A. Melliès, W. Steiner, Y. Hu, S. Li
 
-%TODO
+}%block
 
+\block{References}{
+
+TODO: Hofstadter, Fogg, Saari
+
+}%block
 
 \end{columns}
 
-
-%  \begin{subcolumns}
-%    \subcolumn{.5}
-%  \end{subcolumns}
-
-%\block{Conclusion and outlook}{
-%  \begin{multicols}{4}
-%    \lipsum[1-2]
-%  \end{multicols}
-%}
 \end{document}
