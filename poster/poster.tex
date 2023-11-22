@@ -15,7 +15,13 @@
 
 \newcommand{\myvspace}{\vspace{0.5cm}}
 \newcommand{\rank}{\text{rank}}
+\newcommand{\defblock}[2]{
+ \colorlet{innerblocktitlebgcolor}{colorFour}
+ \innerblock{#1}{#2}
+ \colorlet{innerblocktitlebgcolor}{colorThree}
+}
 
+\definecolor{colorFour}{HTML}{008000} %green
 \definelayouttheme{MyBoard}{
     \usecolorstyle[colorPalette=BlueGrayOrange]{Spain}
     \usebackgroundstyle{Default}
@@ -65,8 +71,7 @@ From the book "Gödel,Escher,Bach" \cite{GEB} :
 %TODO Proper ref
 
 \medskip
-
-\innerblock{Definition: Hofstadter's G function}{
+\defblock{Definition: Hofstadter's G function}{
 \begin{equation*}
 \begin{cases}
 G(0) = 0 \\
@@ -81,7 +86,7 @@ More generally, with $k+1$ nested recursive calls:
 
 \medskip
 
-\innerblock{Definition: the $F_k$ functions}{
+\defblock{Definition: the $F_k$ functions}{
 \begin{equation*}
 \begin{cases}
 F_k(0) = 0 \\
@@ -139,7 +144,7 @@ For any $k\ge 0$:
 
 \myvspace
 
-\innerblock{Definition: the $A_k$ sequences}{
+\defblock{Definition: the $A_k$ sequences}{
 \begin{equation*}
 \begin{cases}
 A^k_n = n+1 \hfill \text{when}\ n\le k \\
@@ -191,7 +196,7 @@ For instance for $k=2$ and $n=18$ :
 
 \myvspace
 
-\innerblock{Definition: rank}{
+\defblock{Definition: rank}{
 $\rank_k(n)$ : lowest index in the $k$-decomposition of $n$
 }
 
@@ -311,7 +316,8 @@ Here $\tau_1=1/\phi=\phi-1 \approx 0.618...$
 \item $F_2(n) - \lfloor \tau_2.n \rfloor \in \{0,1\}$
 \end{itemize}}
 Here $\tau_2 \approx 0.6823...$, inverse of Pisot number $P_3$. \\
-With $\delta(n) = F_2(n) - \tau_2.n$, plotting $(\delta(i),\delta(F_2(i)))$
+Let $\delta(n) = F_2(n) - \tau_2.n$.
+Then plotting $(\delta(i),\delta(F_2(i)))$
  leads to this Rauzy fractal\cite{Rauzy,Fogg}!
 
 \includegraphics[width=\linewidth]{fractal.png}
@@ -344,7 +350,7 @@ We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
 \myvspace
 
-\innerblock{Definition: the substitutions $\sigma_k$}{
+\defblock{Definition: the substitutions $\sigma_k$}{
 \begin{equation*}
 \begin{cases}
 \mathcal{A} \to \mathcal{A}^* \\
@@ -356,7 +362,7 @@ We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
 \myvspace
 
-\innerblock{Definition: the morphic words $m_k$}{
+\defblock{Definition: the morphic words $m_k$}{
 
 The substitution $\sigma_k$ is prolongeable at k. It hence admits
 an infinite word $m_k$ (called \emph{morphic}) as fixed point:
@@ -441,7 +447,7 @@ and {\bf Yining Hu} and {\bf Shuo Li} !
 
 \block{References}{
 \normalsize
-\vspace{-2.5cm}
+\vspace{-2.8cm}
 \renewcommand{\refname}{}
 \begin{thebibliography}{1}
 \bibitem{GEB}
@@ -462,7 +468,9 @@ Sequences}, CSR 2006, LNCS 3967.
 Rauzy, G., {\it Nombres algébriques et substitutions}. Bulletin de la
 SMF, Vol 110 (1982).
 \end{thebibliography}
+\vspace{-0.5cm}
 }%block
+
 
 \end{columns}
 
