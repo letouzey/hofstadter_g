@@ -3,7 +3,7 @@
 %TODO: nullfont ?  Dès le début de l'usage de tikzposter !
 %TODO: various font subst to investigate
 
-%\usepackage{type1cm}
+\usepackage{hyperref}
 \usepackage{pgfplots}
 \usepackage{tkz-euclide}% for geometry
 \usepackage{tikz-qtree}
@@ -12,6 +12,9 @@
 \setlength{\columnsep}{4cm}
 \setlength{\columnseprule}{1mm}
 \usepackage{amsmath}
+
+\newcommand{\myvspace}{\vspace{0.5cm}}
+\newcommand{\rank}{\text{rank}}
 
 \definelayouttheme{MyBoard}{
     \usecolorstyle[colorPalette=BlueGrayOrange]{Spain}
@@ -58,7 +61,7 @@
   \column{.33}%GAUCHE
 \block{Nested Recursions}{
 
-From the book "Gödel,Escher,Bach" :
+From the book "Gödel,Escher,Bach" \cite{GEB} :
 %TODO Proper ref
 
 \medskip
@@ -87,7 +90,7 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
 \end{equation*}
 }
 
-\vspace{1cm}
+\myvspace
 
 \pgfplotsset{width=\linewidth}
 \begin{tikzpicture}[scale=1]
@@ -95,7 +98,8 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
     xmin=0,xmax=30,ymin=0,ymax=25,samples=31,
     xtick = {0,5,...,30},
     ytick = {0,5,...,30},
-    xlabel=$n$, legend pos=south east
+    %xlabel=$n$,
+    legend pos=south east
   ]
 
  \addplot+[mark=.,color=black,style=dashed,domain=0:30] {x};
@@ -120,7 +124,7 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
  \end{axis}
 \end{tikzpicture}
 
-\vspace{0.5cm}
+\myvspace
 
 \innerblock{ Theorem (with Shuo Li, nov. 2023!): }
 {$\forall k,\forall n, F_k(n) \le F_{k+1}(n)$}
@@ -133,7 +137,7 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
 
 For any $k\ge 0$:
 
-\vspace{1cm}
+\myvspace
 
 \innerblock{Definition: the $A_k$ sequences}{
 \begin{equation*}
@@ -144,7 +148,7 @@ A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
 \end{equation*}
 }
 
-\vspace{1cm}
+\myvspace
 
 \begin{itemize}
 \item $A^0$ : 1  2  4  8  16  32  64  128  256 $\ldots$
@@ -153,9 +157,10 @@ A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
 \item $A^3$ : 1  2  3  4  5  7  10  14  19  26 $\ldots$
 \end{itemize}
 
-\vspace{1cm}
+\myvspace
 
-\innerblock{Theorem:}{$\forall k, \forall n, F_k(A^k_n) = A^k_{n-1}$}
+\innerblock{Theorem: $F_k$ shifts down $A^k$}
+{$\forall k, \forall n, F_k(A^k_n) = A^k_{n-1}$}
 
 }%block
 
@@ -168,27 +173,32 @@ Let $k\ge 0$. All $n\ge 0$ has a unique canonical decomposition
   $\Arest$ (i.e. with indices $i$ apart by at least $k+1$).
 }
 
-\vspace{1cm}
+\myvspace
 
-\innerblock{Theorem:}{
+\innerblock{Theorem: $F_k$ on decompositions}{
 The function $F_k$ shifts down the indices of canonical
 decompositions: $F_k(\Arest) = \Sigma A^k_{i-1}$ (with here $0-1 = 0$).
 }
 
-\vspace{1cm}
+\myvspace
 
 For instance for $k=2$ and $n=18$ :
 \begin{itemize}
 \item $18 = A^2_0 + A^2_3 + A^2_6 = 1 + 4 + 13$
 \item $F_3(18) = A^2_0 + A^2_2 + A^2_5 = 1 + 3 + 9 = 13$
-\item $1+3+9$ isn't canonical, renormalization possible
+\item $1+3+9$ no more canonical, possible renormalization
 \end{itemize}
 
-\vspace{1cm}
+\myvspace
 
-\innerblock{Theorem:}{
-$F_k(n)=F_k(n+1)$ whenever $A^k_0=1$ is in the decomposition of $n$
-  (we say $n$ has rank 0).
+\innerblock{Definition: rank}{
+$\rank_k(n)$ : lowest index in the $k$-decomposition of $n$
+}
+
+\myvspace
+
+\innerblock{Theorem: $F_k$ flat spots}{
+$F_k(n)=F_k(n+1)$ iff $\rank_k(n) = 0$ (i.e. $n = 1 + \Arest$)
 }
 
 }%block
@@ -200,7 +210,7 @@ $F_k(n)=F_k(n+1)$ whenever $A^k_0=1$ is in the decomposition of $n$
 
 Let's repeat this branch pattern:
 
-\vspace{1cm}
+\myvspace
 
 \begin{tabular}{lclclclc}
 T & = & \hspace{-1cm}
@@ -235,11 +245,11 @@ T & = & \hspace{-1cm}
 
 \end{tabular}
 
-\vspace{1cm}
+\myvspace
 
 Now, with an ad-hoc trunk and node numbered via BFS:
 
-\vspace{1cm}
+\myvspace
 
 \begin{tikzpicture}[grow'=up,level distance=2.5cm]
 
@@ -255,11 +265,11 @@ Now, with an ad-hoc trunk and node numbered via BFS:
                [.13 [.21 33 34 ]]]]]]]
 \end{tikzpicture}
 
-\vspace{1cm}
+\myvspace
 
 \innerblock{Theorem:}{For any node $n>1$, its ancestor is $G(n)$. }
 
-\vspace{1cm}
+\myvspace
 
 \innerblock{Exercise:}{ Which trees correspond to functions $F_k$ ? }
 
@@ -270,15 +280,15 @@ Now, with an ad-hoc trunk and node numbered via BFS:
 Let $\tau_k$ be the positive root of $X^{k+1}+X-1$. It is hence
 algebraic, and irrational except for $k=0$.
 
-\vspace{0.5cm}
+\myvspace
 
 \innerblock{Theorem:}{
 For all $k\ge$, when $n\to\infty$ we have $F_k(n) = \tau_k.n + o(n)$
 }
 
-\vspace{0.5cm}
+\myvspace
 More precisely:
-\vspace{0.5cm}
+\myvspace
 
 \coloredbox{
 \begin{itemize}
@@ -286,15 +296,15 @@ More precisely:
 \end{itemize}}
 And $A^0_n = 2^n$ and we retrieve the base-2 decomposition !
 
-\vspace{0.5cm}
+\myvspace
 
 \coloredbox{
 \begin{itemize}
-\item $F_1(n) = G(n) = \lfloor \tau_1.(n+1) \rfloor$
+\item $G(n) = F_1(n) = \lfloor \tau_1.(n+1) \rfloor$
 \end{itemize}}
 Here $\tau_1=1/\phi=\phi-1 \approx 0.618...$
 
-\vspace{0.5cm}
+\myvspace
 
 \coloredbox{
 \begin{itemize}
@@ -302,11 +312,11 @@ Here $\tau_1=1/\phi=\phi-1 \approx 0.618...$
 \end{itemize}}
 Here $\tau_2 \approx 0.6823...$, inverse of Pisot number $P_3$. \\
 With $\delta(n) = F_2(n) - \tau_2.n$, plotting $(\delta(i),\delta(F_2(i)))$
- leads to this Rauzy fractal !
+ leads to this Rauzy fractal\cite{Rauzy,Fogg}!
 
 \includegraphics[width=\linewidth]{fractal.png}
 
-\vspace{0.5cm}
+\myvspace
 
 \coloredbox{
 \begin{itemize}
@@ -314,14 +324,14 @@ With $\delta(n) = F_2(n) - \tau_2.n$, plotting $(\delta(i),\delta(F_2(i)))$
 \end{itemize}}
 Here $\tau_3 \approx 0.7244...$, inverse of Pisot number $Q_3$.
 
-\vspace{0.5cm}
+\myvspace
 
 \coloredbox{
 \begin{itemize}
 \item After $k\ge 4$, $F_k(n)-\tau_k.n = o(n)$ but not bounded.
 \end{itemize}}
 Note: $\tau_4$ is the inverse of the Plastic number (smallest Pisot),
-then $\tau_k$ for $k\ge 5$ is above any Pisot inverses.
+then $\tau_k$ for $k\ge 5$ is above any Pisot inverse.
 
 
 }%block
@@ -332,95 +342,126 @@ then $\tau_k$ for $k\ge 5$ is above any Pisot inverses.
 
 We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
-\hspace{1cm}
+\myvspace
 
 \innerblock{Definition: the substitutions $\sigma_k$}{
 \begin{equation*}
 \begin{cases}
 \mathcal{A} \to \mathcal{A}^* \\
-\sigma_k(n) = (n+1) \hspace{7cm} \text{for}\ n<k \\
+\sigma_k(n) = n+1 \hspace{9cm} \text{for}\ n<k \\
 \sigma_k(k) = k.0
 \end{cases}
 \end{equation*}
 }
 
-\hspace{1cm}
+\myvspace
 
 \innerblock{Definition: the morphic words $m_k$}{
 
-The substition $\sigma_k$ is prolongeable at k. It hence admits
+The substitution $\sigma_k$ is prolongeable at k. It hence admits
 an infinite word $m_k$ (called \emph{morphic}) as fixed point:
 
 $$m_k = \lim_{n\to\infty} \sigma_k^n(k) = \sigma_k(m_k) $$
 }
 
-\hspace{1cm}
-
-For instance:
+\myvspace
+For example:
 \begin{itemize}
-\item $m_1$ is the Fibonacci word (with inversed letters)
-\item $m_2 = 20122020120122012202...$
+\item $m_1$ is the Fibonacci word (with opposite letters)
+\item And $m_2 = 20122020120122012202...$
 \end{itemize}
 
-\hspace{1cm}
+\myvspace
 
-\innerblock{Theorem:}{
-$m_k$ is also the limit of its finite prefixes $M_{k,n}$ defined as:
+\innerblock{Theorem: alternative description of $m_k$}{
+$m_k$ is also the limit of its finite prefixes $M^k_n$ defined as:
 \begin{equation*}
 \begin{cases}
-M_{k,n} = k.0...(n-1) \hfill \text{for}\ n\le k \\
-M_{k,n+1} = M_{k,n}.M_{k,n-k} \hspace{5cm} \text{for}\ n+1 > k
+M^k_n = k.0...(n-1) \hfill \text{for}\ n\le k \\
+M^k_{n+1} = M^k_{n}.M^k_{n-k} \hspace{7cm} \text{for}\ n+1 > k
 \end{cases}
 \end{equation*}
 
 Also note that $|M_{k,n}| = A^k_n$
 }
 
-\hspace{1cm}
+\myvspace
 
 \innerblock{Theorem: linear complexity}{
 The subword complexity of $m_k$ (i.e. its number of distinct factors of
 size $p$) is $p \mapsto k.p+1$.
 }
+In particular, $m_1$ is Sturmian (as expected).
 
-\hspace{1cm}
+\myvspace
 
-Lien avec $f_k$ :
-
-La $n$-ième lettre $(m_k)_n$ du mot infini $m_k$ est le rang de la
-$k$-decomposition de $n$ (ou $k$ si ce rang est plus de $k$).
-
-En particulier cette lettre est 0 si $f_k(n)=f_k(n+1)$
-
-En cumulant : le nombre de 0 dans $m_k$ entre 0 et $n$ est $n-f_k(n)$.
-
-Plus généralement, compter les lettres au dessus de $p$ donne
-$f_k^{(p)}$. En particulier le nombre de $k$ est $f_k^{(k)}$.
+\innerblock{Theorem: relating $m_k$ and $\rank_k$ and $F_k$}{
+\begin{itemize}
+\item At position $n>1$, $m_k[n] = min(k,\rank_k(n))$.
+\item In particular this letter is 0 iff $F_k$ is flat there.
+\item Hence the number of 0 in the $n$ first letters of $m_k$ is
+  $n-F_k(n)$.
+\item For any $p\le k$, counting the letters $\ge p$ gives
+  $F_k^{(p)}$.
+\item All letters in $m_k$ have (infinite) frequencies, for instance
+  the frequency of 0 is $1-\tau_k$ (see Saari\cite{Saari}).
+\end{itemize}
+}
 
 }%block
 
 \block{Coq formalization}{
 \begin{itemize}
-\item Already $90\%$ of this poster defined and proved in Coq:
-TODO URL %\url{https://github.com/letouzey/hofstadter_g}
+\item Already $90\%$ of this poster certified in Coq:\\
+\url{https://github.com/letouzey/hofstadter_g}
 
 \item Nearly 20\,000 lines of Coq formalization
 
-\item Matrix (e.g. Vandermonde), polynoms, etc
+\item Several proved facts were just conjectures on OEIS.
+
+\item At first, delicate (non-structural) function definitions over
+  {\tt nat}, and many tedious recursions (multiple cases).
+
+\item More recently, use of real and complex numbers, polynoms, matrix
+  (e.g. Vandermonde and its determinant), some interval arithmetic for real
+  approximation, etc.
+
+\item Use the {\tt QuantumLib} library for its linear algebra part!
 
 \end{itemize}
 }%block
 
 \block{Thanks!}{
 
-A big thanks to P.A. Melliès, W. Steiner, Y. Hu, S. Li
+A huge thanks to {\bf Paul-André Melliès}, one of the last
+universalists, and to combinatorics experts {\bf Wolfgang Steiner},
+and {\bf Yining Hu} and {\bf Shuo Li} !
 
 }%block
 
 \block{References}{
+\normalsize
+\vspace{-2.5cm}
+\renewcommand{\refname}{}
+\begin{thebibliography}{1}
+\bibitem{GEB}
+ Hofstadter, Douglas R.,
+ {\it Gödel, Escher, Bach: An Eternal Golden Braid},
+ 1979, Basic Books, Inc, NY.
 
-TODO: Hofstadter, Fogg, Saari
+\bibitem{Fogg}
+Pytheas Fogg, N.,
+{\it Substitutions in Dynamics, Arithmetics and Combinatorics},
+2002, LNCS 1794.
 
+\bibitem{Saari}
+Saari, K., {\it On the Frequency of Letters in Morphic
+Sequences}, CSR 2006, LNCS 3967.
+
+\bibitem{Rauzy}
+Rauzy, G., {\it Nombres algébriques et substitutions}. Bulletin de la
+SMF, Vol 110 (1982).
+\end{thebibliography}
 }%block
 
 \end{columns}
