@@ -1,9 +1,7 @@
 \documentclass[portrait]{tikzposter}
 
-%TODO: autres styles ?
-%TODO: logos
 %TODO: nullfont ?  Dès le début de l'usage de tikzposter !
-%TODO: font subst TS1/aer/m/n, cf \textbullet dans itemize
+%TODO: various font subst to investigate
 
 %\usepackage{type1cm}
 \usepackage{pgfplots}
@@ -28,8 +26,6 @@
 \colorlet{backgroundcolor}{white}
 
 \pgfplotsset{compat=1.18}
-
-%\renewcommand*{\familydefault}{\sfdefault}% Let's have a sans serif font
 
 \usetikzlibrary{lindenmayersystems,shadings}% gives us fractals
 %\pgfdeclarelindenmayersystem{Koch curve}{
@@ -60,82 +56,39 @@
 
 
   \column{.33}%GAUCHE
-
-\block{A Rational Tree}{
-
-\begin{tabular}{lclclcl}
-G & = &
-\begin{tikzpicture}[grow'=up, level distance=2cm]
-\Tree
-     [.$\circ$ G
-        [.$\circ$ [.G ]]]
-\end{tikzpicture}
-\pause
-& = &
-\begin{tikzpicture}[grow'=up, level distance=2cm]
-\Tree
-     [.$\circ$
-       [.$\circ$ G
-          [.$\circ$ [.G ]]]
-       [.$\circ$ [.$\circ$ G
-          [.$\circ$ [.G ]]]]]
-\end{tikzpicture}
-&=& ...
-\end{tabular}
-
-
-
-}
-
-\block{The G tree}{
-
-\begin{tikzpicture}[grow'=up,level distance=3cm]
-
-\bigskip
-\bigskip
-
-\Tree
- [.1 [.2 [.3
-       [.4 [.6 [.9 [.14 22 23 ] [.15 24 ] ]
-               [.10 [.16 25 26 ]]]
-           [.7 [.11 [.17 27 28 ] [.18 29 ]]]]
-       [.5 [.8 [.12 [.19 30 31 ] [.20 32 ]]
-               [.13 [.21 33 34 ]]]]]]]
-\end{tikzpicture}
-%TODO : et H ? et motifs d'arbres ?
-}%block
-
-\column{.33}%CENTRE
 \block{Nested Recursions}{
-{\Large
+
 From the book "Gödel,Escher,Bach" :
 %TODO Proper ref
 
 \medskip
 
 \innerblock{Definition: Hofstadter's G function}{
-\begin{align*}
-G(0) &= 0 \\
-G(n) &= n - G(G(n-1)) & \text{for all}\ n>0
-\end{align*}
+\begin{equation*}
+\begin{cases}
+G(0) = 0 \\
+G(n) = n - G(G(n-1)) \hspace{4cm} \text{for all}\ n>0
+\end{cases}
+\end{equation*}
 }
 
 \medskip
 
-More generally, with \textbf{\textit{k} nested recursive calls}:
+More generally, with $k+1$ nested recursive calls:
 
 \medskip
 
 \innerblock{Definition: the $F_k$ functions}{
-\begin{align*}
-F_k(0) &= 0 \\
-F_k(n) &= n - F_k^{(k)}(n-1)) & \text{for all}\ n>0
-\end{align*}
-}}
+\begin{equation*}
+\begin{cases}
+F_k(0) = 0 \\
+F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
+\end{cases}
+\end{equation*}
+}
 
-}%block
+\vspace{1cm}
 
-  \block{Plotting $G$ and $F_k$ }{
 \pgfplotsset{width=\linewidth}
 \begin{tikzpicture}[scale=1]
   \begin{axis}[
@@ -152,134 +105,203 @@ F_k(n) &= n - F_k^{(k)}(n-1)) & \text{for all}\ n>0
  (9, 6) (10, 7) (11, 8) (12, 8) (13, 9) (14, 10) (15, 11) (16, 11)
  (17, 12) (18, 13) (19, 14) (20, 15) (21, 15) (22, 16) (23, 17)
  (24, 18) (25, 19) (26, 19) (27, 20) (28, 20) (29, 21) (30, 22)};
- \addlegendentry{$F_4$}
+ \addlegendentry{$F_3$}
     \addplot [mark=.,color=orange] coordinates {
 (0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 4) (7, 5) (8, 5)
  (9, 6) (10, 7) (11, 7) (12, 8) (13, 9) (14, 10) (15, 10) (16, 11)
  (17, 12) (18, 13) (19, 13) (20, 14) (21, 14) (22, 15) (23, 16)
  (24, 17) (25, 17) (26, 18) (27, 18) (28, 19) (29, 20) (30, 20) };
- \addlegendentry{$F_3$}
+ \addlegendentry{$F_2$}
  \addplot+[mark=.,domain=0:30,color=red]
  {floor((x+1) * 0.618033988749894903)};
- \addlegendentry{$G=F_2$}
+ \addlegendentry{$G=F_1$}
  \addplot+[mark=.,domain=0:30] {ceil(x/2)};
- \addlegendentry{$F_1$}
+ \addlegendentry{$F_0$}
  \end{axis}
 \end{tikzpicture}
+
+\vspace{0.5cm}
+
+\innerblock{ Theorem (with Shuo Li, nov. 2023!): }
+{$\forall k,\forall n, F_k(n) \le F_{k+1}(n)$}
+}%block
+%\note[targetoffsetx = 3cm, targetoffsety = -20cm,
+%       angle = -30, connection, width=12cm]{\Large Nov~2023:~Proved! }
+
+
+\block{Fibonacci-like Sequences}{
+
+For any $k\ge 0$:
+
+\vspace{1cm}
+
+\innerblock{Definition: the $A_k$ sequences}{
+\begin{equation*}
+\begin{cases}
+A^k_n = n+1 \hfill \text{when}\ n\le k \\
+A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
+\end{cases}
+\end{equation*}
+}
+
+\vspace{1cm}
+
+\begin{itemize}
+\item $A^0$ : 1  2  4  8  16  32  64  128  256 $\ldots$
+\item $A^1$ : 1  2  3  5  8  13  21  34  55  89 $\ldots$ (Fibonacci)
+\item $A^2$ : 1  2  3  4  6  9  13  19  28  41 $\ldots$ (Narayana's Cows)
+\item $A^3$ : 1  2  3  4  5  7  10  14  19  26 $\ldots$
+\end{itemize}
+
+\vspace{1cm}
+
+\innerblock{Theorem:}{$\forall k, \forall n, F_k(A^k_n) = A^k_{n-1}$}
+
 }%block
 
-\block{Fractal}{
+\block{Numerical Systems}{
+
+\newcommand{\Arest}{\ensuremath{\Sigma A^k_i}}
+
+\innerblock{Theorem (Zeckendorf):}{
+Let $k\ge 0$. All $n\ge 0$ has a unique canonical decomposition
+  $\Arest$ (i.e. with indices $i$ apart by at least $k+1$).
+}
+
+\vspace{1cm}
+
+\innerblock{Theorem:}{
+The function $F_k$ shifts down the indices of canonical
+decompositions: $F_k(\Arest) = \Sigma A^k_{i-1}$ (with here $0-1 = 0$).
+}
+
+\vspace{1cm}
+
+For instance for $k=2$ and $n=18$ :
+\begin{itemize}
+\item $18 = A^2_0 + A^2_3 + A^2_6 = 1 + 4 + 13$
+\item $F_3(18) = A^2_0 + A^2_2 + A^2_5 = 1 + 3 + 9 = 13$
+\item $1+3+9$ isn't canonical, renormalization possible
+\end{itemize}
+
+\vspace{1cm}
+
+\innerblock{Theorem:}{
+$F_k(n)=F_k(n+1)$ whenever $A^k_0=1$ is in the decomposition of $n$
+  (we say $n$ has rank 0).
+}
+
+}%block
+
+
+\column{.33}%CENTRE
+
+\block{G as a Rational Tree}{
+
+Let's repeat this branch pattern:
+
+\vspace{1cm}
+
+\begin{tabular}{lclclclc}
+T & = & \hspace{-1cm}
+\begin{tikzpicture}[grow'=up, level distance=2cm]
+\Tree
+     [.$\circ$ T
+        [.$\circ$ [.T ]]]
+\end{tikzpicture}
+& = & \hspace{-1cm}
+\begin{tikzpicture}[grow'=up, level distance=2cm]
+\Tree
+     [.$\circ$
+       [.$\circ$ T
+          [.$\circ$ [.T ]]]
+       [.$\circ$ [.$\circ$ T
+          [.$\circ$ [.T ]]]]]
+\end{tikzpicture}
+& = & \hspace{-1cm}
+\begin{tikzpicture}[grow'=up, level distance=2cm]
+\Tree
+     [.$\circ$
+       [.$\circ$ [.$\circ$ [.$\circ$ T
+                                     [.$\circ$ T ] ]
+               [.$\circ$ [.T ]]]
+           [.$\circ$ [.$\circ$ T
+                                           [.$\circ$ T ]]]]
+       [.$\circ$ [.$\circ$ [.$\circ$ T
+                                     [.$\circ$ T ]]
+               [.$\circ$ T ]]]]
+\end{tikzpicture}
+& \hspace{-3cm} = $\ldots$
+
+\end{tabular}
+
+\vspace{1cm}
+
+Now, with an ad-hoc trunk and node numbered via BFS:
+
+\vspace{1cm}
+
+\begin{tikzpicture}[grow'=up,level distance=2.5cm]
+
+\bigskip
+\bigskip
+
+\Tree
+ [.1 [.2 [.3
+       [.4 [.6 [.9 [.14 22 23 ] [.15 24 ] ]
+               [.10 [.16 25 26 ]]]
+           [.7 [.11 [.17 27 28 ] [.18 29 ]]]]
+       [.5 [.8 [.12 [.19 30 31 ] [.20 32 ]]
+               [.13 [.21 33 34 ]]]]]]]
+\end{tikzpicture}
+
+\vspace{1cm}
+
+\innerblock{Theorem:}{For any node $n>1$, its ancestor is $G(n)$. }
+
+\vspace{1cm}
+
+\innerblock{Exercise:}{ Which trees correspond to functions $F_k$ ? }
+
+}%block
+
+\block{Specific cases : $F_0$, $F_1$, $F_2$}{
+
+\begin{itemize}
+\item $F_0(n) = \lfloor (n+1)/2 \rfloor = \lceil n/2 \rceil$
+  and $A^0_n = 2^n$ and we retrieve the binary decomposition !
+
+\item $F_1(n) = G(n) = \lfloor (n+1)/\phi \rfloor$ where $\phi$ is the
+  golden ratio.
+
+\item $F_2(n) = \lfloor \tau n \rfloor + 0 ~\text{or}~ 1$ with
+ $\tau$ real root of $X^3+X-1$ ($\tau = 0.6823$).
+
+\end{itemize}
+
+With $\delta(n) = F_2(n) - \tau n$, plotting $(\delta(i),\delta(F_2(i)))$
+ leads to this Rauzy fractal !
+
 \includegraphics[width=\linewidth]{fractal.png}
 }%block
 
 \column{.33}%DROITE
 
-    \block{Mathematics}{
-      Bla Bla
-%%      Take a coffee, then:
-%%       \vspace{1.4cm}
-%%       \coloredbox{\begin{itemize}
-%%         \item State
-%%         \item Proof
-%%         \item Write in \LaTeX
-%%       \end{itemize}}
-%%       \vspace{1.4cm}
-%%       \innerblock{Integral approximation}{
-%%         \[
-%%           \int_a^b f(x) dx \approx (b-a)
-%%             \sum_{i=0}^n w_i f(x_i)
-%%         \]
-%%       }
-    }%block
-     \note[targetoffsetx = 4.5cm, targetoffsety = -5cm,
-       angle = -30, connection, width=10cm]{\Large Weight function}
-    \subcolumn{.5}
-    \block{Geometry}{
-    %\vspace{-3cm}
-    %\centering
-%%     \begin{tikzpicture}[scale=1]
-%%       \tkzDefPoint(0,0){A}
-%%       \tkzDefPoint(4,1){B}
-%%       \tkzInterCC(A,B)(B,A)
-%%       \tkzGetPoints{C}{D}
-%%       \tkzDrawPolygon(A,B,C)
-%%       \tkzDrawPoints(A,B,C,D)
-%%       \tkzLabelPoints[below left](A)
-%%       \tkzLabelPoints(B,D)
-%%       \tkzLabelPoint[above](C){$C$}
-%%       \tkzDrawCircle[dotted](A,B)
-%%       \tkzDrawCircle[dotted](B,A)
-%%       \tkzCompass[color=red, very thick](A,C)
-%%       \tkzCompass[color=red, very thick](B,C)
-%%       \tkzCompass[color=red, very thick](A,D)
-%%       \tkzCompass[color=red, very thick](B,D)
-%%       \tkzDrawArc[fill=blue!10,thick](A,B)(C)
-%%       \tkzDrawArc[fill=blue!10,thick](B,C)(A)
-%%       \tkzDrawArc[fill=blue!10,thick](C,A)(B)
-%%       \tkzInterLC(A,B)(B,A)
-%%       \tkzGetPoints{F}{E}
-%%       \tkzDrawPoints(E)
-%%       \tkzLabelPoints(E)
-%%       \tkzDrawPolygon(A,E,D)
-%%       \tkzMarkAngles[fill=yellow,opacity=0.5](D,A,E A,E,D)
-%%       \tkzMarkRightAngle[size=0.65,fill=red,opacity=0.5](A,D,E)
-%%       \tkzLabelAngle[pos=0.7](D,A,E){\small$\alpha$}
-%%       \tkzLabelAngle[pos=0.8](A,E,D){\small$\beta$}
-%%       \tkzLabelAngle[pos=0.5,xshift=-1.4mm](A,D,D){\small$90^\circ$}
-%%       \tkzLabelSegment[below=0.6cm,align=center,font=\small](A,B){Reuleaux\\triangle}
-%%       \tkzLabelSegment[above right,sloped,font=\small](A,E){hypotenuse}
-%%       \tkzLabelSegment[below,sloped,font=\small](D,E){opposite}
-%%       \tkzLabelSegment[below,sloped,font=\small](A,D){adjacent}
-%%       \tkzLabelSegment[below right=4cm,font=\small](A,E){Thales circle}
-%%     \end{tikzpicture}
-  }
+    \block{Substitutions and Morphic Words}{
 
 
-  \block{Fractals in \LaTeX}{
-%    \lipsum[1]
-    %\image[\LaTeX\ workflow]{flowchart}% if external
-%%     \tikz\shadedraw[shading=color wheel,scale=2]
-%%       [l-system={Koch curve, step=2pt, angle=60, axiom=F++F++F, order=4}]
-%%         lindenmayer system -- cycle;\hfill
-%%     \tikz\shadedraw [top color=white, bottom color=blue!80,scale=3,
-%%       draw=blue!80!black] [l-system={Sierpinski triangle, step=2pt,
-%%       angle=60, axiom=F, order=7}] lindenmayer system -- cycle;\hfill
-%%     \tikz\shadedraw [bottom color=white, top color=red!80,scale=3,
-%%       draw=red!80!black][l-system={Hilbert curve, axiom=L, order=4,
-%%       step=8pt, angle=90}] lindenmayer system; \hfill
-%%     \tikz\draw [green!50!black, rotate=90,scale=2]
-%%       [l-system={Fractal plant, axiom=X, order=5, step=2pt, angle=25}]
-%%       lindenmayer system;\hfill
-%    \tikz\shade[shading=Mandelbrot set] (0,0) rectangle (15,15);
-  }
+    }
 
-%%   \block{Plotting functions}{
-%%     %\image{plot}% if you would like to include an external image
-%%     \pgfplotsset{width=\linewidth}
-%%     \begin{tikzpicture}
-%%       \begin{axis} [
-%%         title = {$f(x,y) = \sin(x)\sin(y)$},
-%%         xtick = {0,90,...,360},
-%%         ytick = {90,180,...,360},
-%%         xlabel = $x$, ylabel = $y$,
-%%         ticklabel style = {font = \scriptsize},
-%%         grid
-%%       ]
-%%       \addplot3 [surf, domain=0:360, samples=15]% raise samples if desired
-%%         { sin(x)*sin(y) };
-%%       \end{axis}
-%%     \end{tikzpicture}
-%% %    \lipsum[4]
-%%   }
+\block{Coq formalization}{
+\begin{itemize}
 
-\block{Fun fact : what about k=1 ?}{
 
-TODO: $F_1$ is division by two, $A_0$ is power of two, the tree is
-binary, the decomposition is the usual binary decomp...
+\end{itemize}
+}%block
 
-Base 2 is ``just'' a particular case !
 
-}
+
+%TODO
 
 
 \end{columns}
