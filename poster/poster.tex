@@ -2,26 +2,26 @@
 
 %TODO: nullfont ?  Dès le début de l'usage de tikzposter !
 %TODO: various font subst to investigate
+%TODO: echec de la premiere compilation a froid (sans poster.aux) ?!
+%TODO: modifier une fois pour toute la taille entre les paragraphes
+% au lieu de mettre tous ces \myvspace
+% Comment modifier \parskip une fois pour toute ?
+% Mais attention devant les itemize 0.5cm c'est un peu beaucoup
+%TODO: pourquoi rubber -f necessaire même quand poster.tex modifié ?
 
+\usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{pgfplots}
-\usepackage{tkz-euclide}% for geometry
+\pgfplotsset{compat=1.18}
 \usepackage{tikz-qtree}
-\usepackage{lipsum}% for dummy text
-\usepackage{multicol}% for multiple columns
+\usepackage{multicol}
 \setlength{\columnsep}{4cm}
 \setlength{\columnseprule}{1mm}
-\usepackage{amsmath}
 
 \newcommand{\myvspace}{\vspace{0.5cm}}
 \newcommand{\rank}{\text{rank}}
-\newcommand{\defblock}[2]{
- \colorlet{innerblocktitlebgcolor}{colorFour}
- \innerblock{#1}{#2}
- \colorlet{innerblocktitlebgcolor}{colorThree}
-}
 
-\definecolor{colorFour}{HTML}{008000} %green
+%% Style
 \definelayouttheme{MyBoard}{
     \usecolorstyle[colorPalette=BlueGrayOrange]{Spain}
     \usebackgroundstyle{Default}
@@ -30,48 +30,39 @@
     \useinnerblockstyle{Envelope}
     \usenotestyle{Sticky}
 }
-
 \usetheme{MyBoard}
 \colorlet{backgroundcolor}{white}
 
-\pgfplotsset{compat=1.18}
+%% Variante de innerblock, mais en vert
+\definecolor{colorFour}{HTML}{008000} %green
+\newcommand{\altinnerblock}[2]{
+ \colorlet{innerblocktitlebgcolor}{colorFour}
+ \innerblock{#1}{#2}
+ \colorlet{innerblocktitlebgcolor}{colorThree}
+}
 
-\usetikzlibrary{lindenmayersystems,shadings}% gives us fractals
-%\pgfdeclarelindenmayersystem{Koch curve}{
-%  \rule{F -> F-F++F-F}}
-%\pgfdeclarelindenmayersystem{Sierpinski triangle}{
-%  \rule{F -> G-F-G}
-%  \rule{G -> F+G+F}}
-%\pgfdeclarelindenmayersystem{Fractal plant}{
-%  \rule{X -> F-[[X]+X]+F[+FX]-X}
-%  \rule{F -> FF}}
-%\pgfdeclarelindenmayersystem{Hilbert curve}{
-%  \rule{L -> +RF-LFL-FR+}
-%  \rule{R -> -LF+RFR+FL-}}
+%% Logos encadrant le titre (merci StackOverflow)
+\usepackage{tikzposterlogo}
+\insertlogoi[width=9cm]{logo-irif.pdf}
+\insertlogoii[width=9cm]{logo-3tutelles.pdf}
 
 \title{\huge Some Curious Recursive Functions : Hostadter's G and After}
 \author{Pierre Letouzey (équipes ACS et Preuves)}
 \institute{IRIF, Université Paris Cité / Picube, INRIA / CNRS}
-
-\include{tikzposterlogo}
-
-\insertlogoi[width=9cm]{logo-irif.pdf}
-\insertlogoii[width=9cm]{logo-3tutelles.pdf}
 
 \begin{document}
 \maketitle
 
 \begin{columns}
 
-
-  \column{.33}%GAUCHE
+\column{.33}%GAUCHE
 \block{Nested Recursions}{
 
 From the book "Gödel,Escher,Bach" \cite{GEB} :
-%TODO Proper ref
 
-\medskip
-\defblock{Definition: Hofstadter's G function}{
+\myvspace
+
+\altinnerblock{Definition: Hofstadter's G function}{
 \begin{equation*}
 \begin{cases}
 G(0) = 0 \\
@@ -80,13 +71,13 @@ G(n) = n - G(G(n-1)) \hspace{4cm} \text{for all}\ n>0
 \end{equation*}
 }
 
-\medskip
+\myvspace
 
 More generally, with $k+1$ nested recursive calls:
 
-\medskip
+\myvspace
 
-\defblock{Definition: the $F_k$ functions}{
+\altinnerblock{Definition: the $F_k$ functions}{
 \begin{equation*}
 \begin{cases}
 F_k(0) = 0 \\
@@ -144,7 +135,7 @@ For any $k\ge 0$:
 
 \myvspace
 
-\defblock{Definition: the $A_k$ sequences}{
+\altinnerblock{Definition: the $A_k$ sequences}{
 \begin{equation*}
 \begin{cases}
 A^k_n = n+1 \hfill \text{when}\ n\le k \\
@@ -196,7 +187,7 @@ For instance for $k=2$ and $n=18$ :
 
 \myvspace
 
-\defblock{Definition: rank}{
+\altinnerblock{Definition: rank}{
 $\rank_k(n)$ : lowest index in the $k$-decomposition of $n$
 }
 
@@ -257,9 +248,6 @@ Now, with an ad-hoc trunk and node numbered via BFS:
 \myvspace
 
 \begin{tikzpicture}[grow'=up,level distance=2.5cm]
-
-\bigskip
-\bigskip
 
 \Tree
  [.1 [.2 [.3
@@ -350,7 +338,7 @@ We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
 \myvspace
 
-\defblock{Definition: the substitutions $\sigma_k$}{
+\altinnerblock{Definition: the substitutions $\sigma_k$}{
 \begin{equation*}
 \begin{cases}
 \mathcal{A} \to \mathcal{A}^* \\
@@ -362,7 +350,7 @@ We take $\mathcal{A}=\{0..k\}$ as alphabet.
 
 \myvspace
 
-\defblock{Definition: the morphic words $m_k$}{
+\altinnerblock{Definition: the morphic words $m_k$}{
 
 The substitution $\sigma_k$ is prolongeable at k. It hence admits
 an infinite word $m_k$ (called \emph{morphic}) as fixed point:
