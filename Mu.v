@@ -1,4 +1,4 @@
-From Coq Require Import Lia Reals Lra Ranalysis5.
+From Coq Require Import Lia Reals Lra Ranalysis5 QArith Qcanon.
 Require Import MoreReals.
 
 Local Open Scope R.
@@ -490,4 +490,121 @@ Proof.
  assert (H : Nat.Odd 5) by now rewrite <- Nat.odd_spec.
  split; [apply P_neg_lower|apply P_neg_upper];
    trivial; unfold P; simpl; lra.
+Qed.
+
+(* Irrationality of mu, tau, nu.
+   This is a specialized version of the rational root theorem *)
+
+Lemma Zdivide_pow_inv (n m : Z) (p:nat) :
+  Z.gcd n m = 1%Z -> Z.divide n (m^Z.of_nat p) -> Z.divide n m.
+Proof.
+ induction p as [|p IH]; intros G D.
+ - apply Z.divide_1_r in D. destruct D as [-> | ->].
+   apply Z.divide_1_l. apply Z.divide_opp_l, Z.divide_1_l.
+ - rewrite Nat2Z.inj_succ, Z.pow_succ_r in D by lia.
+   apply Z.gauss in D; auto.
+Qed.
+
+Lemma root_irrat k (q:Q) : k<>O -> (Q2R q)^(S k) <> (Q2R q)^k + 1.
+Proof.
+ intros Hk.
+ intro E.
+ assert (E1 : (Q2R q)^k * (Q2R q - 1) = 1) by (simpl in E; lra).
+ clear E.
+ rewrite <- (Qred_correct q) in E1.
+ destruct (Qred q) as (a,b) eqn:Q.
+ assert (P : (Z.gcd a (Zpos b) = 1)%Z).
+ { change (Z.gcd (Qnum (a#b)) (QDen (a#b)) = 1)%Z.
+   rewrite <- Qred_iff, <- Q. apply Qred_involutive. }
+ clear q Q.
+ unfold Q2R in E1. simpl in *.
+ rewrite Rpow_mult_distr, pow_inv in E1.
+ assert (E2 : IZR a ^k * (IZR a - IZR (Zpos b)) = IZR (Zpos b) ^ (S k)).
+ { rewrite <- (Rmult_1_r (_^S k)), <- E1. simpl. field. split.
+   - intro H. now apply eq_IZR in H.
+   - apply pow_nonzero. intro H. now apply eq_IZR in H. }
+ clear E1.
+ rewrite !pow_IZR, Z_R_minus, <- mult_IZR in E2. apply eq_IZR in E2.
+ assert (D : Z.divide a ((Zpos b)^(Z.of_nat (S k)))).
+ { rewrite <- E2.
+   replace (Z.of_nat k) with (Z.succ (Z.pred (Z.of_nat k))) at 1 by lia.
+   rewrite Z.pow_succ_r, <- Z.mul_assoc by lia.
+   now apply Z.divide_mul_l. }
+ apply Zdivide_pow_inv in D; trivial.
+ destruct (Z.le_gt_cases 0%Z a) as [Ha|Ha].
+ - rewrite Z.divide_gcd_iff, P in D; trivial.
+   subst a. clear Ha P.
+   rewrite Z.pow_1_l in E2 by lia.
+   assert (0 < (Zpos b)^(Z.of_nat (S k)))%Z;
+    try apply Z.pow_pos_nonneg; lia.
+ - rewrite <- Z.divide_opp_l, Z.divide_gcd_iff,Z.gcd_opp_l, P in D by lia.
+   replace a with (-1)%Z in * by lia.
+   clear Ha P D.
+   rewrite Nat2Z.inj_succ, Z.pow_succ_r in E2 by lia.
+   assert (D' : Z.divide (Z.pos b) 1%Z).
+   { replace 1%Z with ((1+Z.pos b)-Z.pos b)%Z by lia.
+     apply Z.divide_sub_r; try apply Z.divide_refl.
+     exists ((-1)*(-Z.pos b) ^Z.of_nat k)%Z.
+     replace (-Z.pos b)%Z with ((-1)*(Z.pos b))%Z by lia.
+     rewrite Z.pow_mul_l, <- !Z.mul_assoc.
+     rewrite <- (Z.mul_comm (Z.pos b)), <- E2.
+     rewrite (Z.mul_assoc (_^_)), <- Z.pow_mul_l.
+     change (-1 * -1)%Z with 1%Z. rewrite Z.pow_1_l; lia. }
+   apply Z.divide_1_r in D'. destruct D' as [D' | D']; try easy.
+   rewrite D' in *. rewrite Z.pow_1_l, Z.mul_1_l in E2 by lia.
+   assert (Z.abs 1 = Z.abs 2); try easy.
+   rewrite <- E2, Z.abs_mul, Z.abs_pow. simpl. rewrite Z.pow_1_l; lia.
+Qed.
+
+Lemma mu_rat k (q:Q) : mu k = Q2R q <-> k=O /\ q==2.
+Proof.
+ split.
+ - intros E. assert (C := mu_carac k). rewrite E in C.
+   destruct (Nat.eq_dec k O).
+   + split; trivial. subst k. rewrite pow_1, pow_0_r in C.
+     apply Qreals.eqR_Qeq. rewrite C. lra.
+   + exfalso. revert C. now apply root_irrat.
+ - intros (->,->). rewrite mu_0. lra.
+Qed.
+
+Lemma mu_irrat k : k<>O -> forall (q:Q), mu k <> Q2R q.
+Proof.
+ intros Hk q E. apply mu_rat in E. easy.
+Qed.
+
+Lemma nu_rat k (q:Q) : nu k = Q2R q <-> Nat.Even k /\ q==0. (* not a root *)
+Proof.
+ split.
+ - intros E. destruct (Nat.Even_Odd_dec k) as [Hk|Hk] eqn:D.
+   + split; trivial. unfold nu in E. rewrite D in E.
+     apply Qreals.eqR_Qeq; lra.
+   + exfalso.
+     assert (C := nu_carac k Hk). rewrite E in C. revert C. apply root_irrat.
+     destruct Hk; lia.
+ - intros (Hk, E).
+   unfold nu. destruct Nat.Even_Odd_dec.
+   + rewrite E; lra.
+   + now destruct (Nat.Even_Odd_False k).
+Qed.
+
+Lemma nu_irrat k : Nat.Odd k -> forall (q:Q), nu k <> Q2R q.
+Proof.
+ intros Hk q E. apply nu_rat in E. apply (Nat.Even_Odd_False k); tauto.
+Qed.
+
+Lemma tau_rat k (q:Q) : tau k = Q2R q <-> k=O /\ q==1#2.
+Proof.
+ split.
+ - intros E.
+   assert (E' : mu k = Q2R (/q)%Q).
+   { rewrite tau_inv, E. rewrite Qreals.Q2R_inv; trivial.
+     intros Hq. generalize (tau_itvl k). rewrite E, Hq. lra. }
+   apply mu_rat in E'. destruct E' as (Hk,E'). split; trivial.
+   now rewrite <- (Qinv_involutive q), E'.
+ - intros (->,->). rewrite tau_0. lra.
+Qed.
+
+Lemma tau_irrat k : k<>O -> forall (q:Q), tau k <> Q2R q.
+Proof.
+ intros Hk q E. apply tau_rat in E. easy.
 Qed.
