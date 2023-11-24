@@ -1093,6 +1093,18 @@ Proof.
  unfold kwords. now rewrite map_app, concat_app.
 Qed.
 
+Lemma kwords_cons k a l : kwords k (a::l) = kword k a ++ kwords k l.
+Proof.
+ change (a::l) with ([a]++l). now rewrite kwords_app, kwords_singl.
+Qed.
+
+Lemma ksubst_kwords k l :
+ apply (ksubst k) (kwords k l) = kwords k (map S l).
+Proof.
+ induction l; simpl; auto.
+ now rewrite !kwords_cons, apply_app, IHl, <- kword_S.
+Qed.
+
 Lemma decomp_prefix_kword k w n l :
  Prefix w (kword k n) -> l = rev (decomp k (length w)) -> w = kwords k l.
 Proof.
@@ -1591,6 +1603,80 @@ Proof.
  intros LE.
  rewrite count_nbocc. f_equal. now apply kseq_take.
 Qed.
+
+(** Is there a 0 at position n in [kseq k] ?
+    If so, there's a k at the previous position. *)
+
+Definition is_k0 k n := (kseq k n =? 0).
+
+Lemma rank_0_pred k n : rank k n = Some 0 -> bounded_rank k (pred n) = k.
+Proof.
+ unfold rank. destruct (decomp k n) as [|r l] eqn:E; try easy.
+ intros [= ->].
+ unfold bounded_rank, rank.
+ assert (D := decomp_delta k n).
+ rewrite E in D.
+ rewrite (@decomp_carac k (pred n) l).
+ 2:{ now apply Delta_inv in D. }
+ 2:{ now rewrite <- (decomp_sum k n), E. }
+ destruct l as [|r' l']; trivial. simpl.
+ inversion_clear D. lia.
+Qed.
+
+Lemma k0_pred_k k n : kseq k n = 0 -> kseq k (pred n) = k.
+Proof.
+ rewrite !kseq_bounded_rank.
+ unfold bounded_rank at 1, omin.
+ destruct (Nat.eq_dec k 0) as [->|Hk].
+ - unfold bounded_rank, omin. do 2 destruct rank; lia.
+ - destruct rank as [r|] eqn:E; try lia. intros Hr.
+   replace r with 0 in * by lia. now apply rank_0_pred.
+Qed.
+
+(** Given two consecutive prefixes of [kseq], one of the two is
+    a [ksubst] of a smaller prefix. *)
+
+Lemma kseq_take_inv k n : k<>0 ->
+  take (n + if is_k0 k n then 1 else 0) (kseq k) =
+  apply (ksubst k) (take (f k n) (kseq k)).
+Proof.
+ intros Hk.
+ set (l := rev (decomp k n)).
+ set (l' := map pred l).
+ assert (D' : DeltaRev k l').
+ { unfold l', l. rewrite map_rev, DeltaRev_rev.
+   apply Delta_map with (S k). lia. apply decomp_delta. }
+ assert (E : sumA k l' = f k n).
+ { unfold l', l. rewrite map_rev, sumA_rev. symmetry. apply f_decomp. }
+ rewrite (prefix_kseq_laxdecomp k (f k n) l') by trivial.
+ rewrite ksubst_kwords; auto.
+ apply prefix_kseq_laxdecomp.
+ - unfold l', l. rewrite map_map, map_rev, DeltaRev_rev.
+   apply Delta_map with (S k). lia. apply decomp_delta.
+ - unfold l', l. clear -Hk. rewrite map_map, map_rev, sumA_rev.
+   destruct (decomp k n) as [|r l] eqn:E.
+   + simpl. rewrite <- (decomp_sum k n), E. simpl.
+     unfold is_k0; rewrite kseq_bounded_rank. unfold bounded_rank.
+     replace (rank k 0) with (@None nat).
+     2:{symmetry. now rewrite rank_none. }
+     simpl. case Nat.eqb_spec; lia.
+   + unfold is_k0. rewrite kseq_bounded_rank. unfold bounded_rank.
+     unfold rank. rewrite E. simpl omin.
+     case Nat.eqb_spec; intros.
+     * replace r with 0 in * by lia. simpl.
+       rewrite map_ext_in with (g:=id), map_id.
+       2:{ intros a Ha. unfold id.
+           assert (D := decomp_delta k n).
+           rewrite E in D. apply Delta_nz' in D; try lia.
+           assert (a<>0); try lia. now intros ->. }
+       rewrite <- (decomp_sum k n), E. simpl. lia.
+     * rewrite map_ext_in with (g:=id), map_id.
+       now rewrite <- E, decomp_sum.
+       assert (D := decomp_delta k n).
+       rewrite E in D. apply Delta_nz in D; try lia.
+       intros a Ha. unfold id. assert (a<>0); try lia. now intros ->.
+Qed.
+
 
 (** Study of suffixes of kword : always exactly (k+1) different suffixes
     of the same length *)
