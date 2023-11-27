@@ -1040,6 +1040,4 @@ destruct (Nat.lt_ge_cases n 424).
 Qed.
 *)
 
-(* TODO: Conjecture : forall k n, f k n <= f (S k) n
-   Proof : ??
-*)
+(** General proof : cf Words.f_grows *)

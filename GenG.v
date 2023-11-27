@@ -543,8 +543,8 @@ Qed.
 (* Said otherwise : for any n, [f k n] will eventually be stationary
    when k grows. More precisely, for [n>=2], [f k n = n-1] as soon as
    [k>=n-3]. And for [n<2], we always have [f k n = n].
-   Conjecture: at fixed n and growing k, [f k n] will be increasing.
-   TODO, no full proof yet, more on that in [GenAdd].
+   Hard theorem : at fixed n and growing k, [f k n] will be increasing.
+   See [Words.f_grows].
 *)
 
 (*==============================================================*)
@@ -1595,8 +1595,8 @@ Proof.
            unfold t at 1 3. rewrite !steps_altspec; lia. }
 Qed.
 
-(* The conjecture [f k n <= f (S k) n] is hence true
-   when n is in this triangular zone. *)
+(* We hence have [f k n <= f (S k) n] when n is in
+   this triangular zone. *)
 
 Lemma f_triangle_diag_incr k n :
   n<>1 -> n <= triangle(k+4)-3 ->

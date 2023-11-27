@@ -2126,7 +2126,7 @@ Proof.
  rewrite !fs_count_k. apply countk_decreases.
 Qed.
 
-(** Let's now counting of letter 0 *)
+(** Let's now count letter 0 *)
 
 (** The substitution [(ksubst k)^(S k)] is also quite interesting :
     its infinite word is also [kseq k], but it produces it by
