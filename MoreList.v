@@ -363,3 +363,90 @@ Lemma map_decr_S k l :
 Proof.
  rewrite map_map. apply map_ext. intros. unfold decr. lia.
 Qed.
+
+(** take : the list of the n first elements of a infinite sequence
+    (given as a function over nat). *)
+
+Definition take {A} n (f:nat -> A) : list A := map f (seq 0 n).
+
+Lemma take_S {A} n (f:nat -> A) : take (S n) f = take n f ++ [f n].
+Proof.
+ unfold take. now rewrite seq_S, map_app.
+Qed.
+
+Lemma take_length {A} n (f:nat -> A) : length (take n f) = n.
+Proof.
+ unfold take. now rewrite map_length, seq_length.
+Qed.
+
+Lemma take_nth {A} f n m (a:A) : m < n -> nth m (take n f) a = f m.
+Proof.
+ apply nth_map_seq.
+Qed.
+
+Lemma take_carac {A} n (u:list A) (f:nat->A) :
+ length u = n ->
+ (forall m a, m<n -> nth m u a = f m) ->
+ take n f = u.
+Proof.
+ revert u f.
+ induction n.
+ - destruct u; simpl; easy.
+ - intros u f Hu H. rewrite take_S.
+   destruct (rev u) as [|a ru] eqn:E.
+   + apply rev_switch in E. now subst u.
+   + apply rev_switch in E. simpl in E. subst u.
+     rewrite app_length in Hu. simpl in Hu.
+     f_equal.
+     * apply IHn; try lia.
+       intros m b Hm.
+       specialize (H m b). rewrite app_nth1 in H; auto; lia.
+     * f_equal.
+       specialize (H n a). rewrite app_nth2 in H; auto; try lia.
+       replace (n - length (rev ru)) with 0 in H by lia. simpl in H.
+       symmetry. apply H; auto.
+Qed.
+
+(** cumul : the sum of the n first values of a [nat->nat] function *)
+
+Fixpoint cumul f n :=
+  match n with
+  | 0 => 0
+  | S n => f n + cumul f n
+  end.
+
+Lemma cumul_alt f n : cumul f n = listsum (take n f).
+Proof.
+ induction n. trivial. unfold take in *.
+ rewrite seq_S, map_app, listsum_app, <- IHn. simpl. lia.
+Qed.
+
+Lemma cumul_ext f g n :
+  (forall m, m < n -> f m = g m) ->
+  cumul f n = cumul g n.
+Proof.
+ revert f g. induction n; simpl; auto.
+ intros f g E. f_equal; auto.
+Qed.
+
+Lemma cumul_0 n : cumul (fun _ => 0) n = 0.
+Proof.
+ induction n; simpl; auto.
+Qed.
+
+Lemma cumul_add f g n :
+ cumul (fun m => f m + g m) n = cumul f n + cumul g n.
+Proof.
+ induction n; simpl; auto. rewrite IHn; lia.
+Qed.
+
+Lemma cumul_test a n : a < n ->
+ cumul (fun m : nat => if a =? m then 1 else 0) n = 1.
+Proof.
+ revert a. induction n; intros a Ha.
+ - lia.
+ - simpl. case Nat.eqb_spec.
+   + intros ->. simpl. f_equal. erewrite cumul_ext. apply cumul_0.
+     intros; simpl. case Nat.eqb_spec; lia.
+   + intros. simpl. apply IHn; lia.
+Qed.
