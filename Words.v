@@ -1952,7 +1952,176 @@ Proof.
      lia.
 Qed.
 
-(* TODO : link that to count of k and to count of 0 and to f *)
+Lemma roundk_grow k n : roundk k n <= roundk (S k) n.
+Proof.
+ rewrite !roundk_cumul.
+ destruct (Nat.le_gt_cases n 0) as [Hn|Hn].
+ - replace n with 0 by lia. trivial.
+ - assert (H := cumul_kseq_grow k n Hn). lia.
+Qed.
+
+Lemma count_0 f a n :
+  count f a n = 0 <-> (forall p, p<n -> f p <> a).
+Proof.
+ split.
+ - induction n; simpl; try lia. intros H p Hp.
+   inversion_clear Hp.
+   + intros E. rewrite E, Nat.eqb_refl in H. lia.
+   + apply IHn; try lia.
+ - induction n; simpl; trivial. intros H.
+   rewrite IHn by (intros p Hp; apply H; lia).
+   case Nat.eqb_spec; try lia. intros E. specialize (H n). lia.
+Qed.
+
+Lemma incr_mono f :
+  (forall p, f p < f (S p)) -> (forall p q, p < q -> f p < f q).
+Proof.
+ intros H. induction 1; auto. specialize (H m). lia.
+Qed.
+
+Lemma incr_le f :
+  (forall p, f p < f (S p)) -> (forall p q, p <= q -> f p <= f q).
+Proof.
+ intros H. induction 1; auto. specialize (H m). lia.
+Qed.
+
+Lemma incr_inj f :
+  (forall p, f p < f (S p)) -> (forall p q, f p = f q -> p = q).
+Proof.
+ intros H p q H'. destruct (Nat.lt_trichotomy p q) as [LT|[EQ|GT]]; trivial.
+ - apply (incr_mono f H) in LT. lia.
+ - apply (incr_mono f H) in GT. lia.
+Qed.
+
+Lemma incr_monoiff f :
+  (forall p, f p < f (S p)) -> (forall p q, p < q <-> f p < f q).
+Proof.
+ intros H p q. split. apply (incr_mono f H).
+ destruct (Nat.lt_trichotomy p q) as [LT|[EQ|GT]]; trivial.
+ - subst. lia.
+ - apply (incr_mono f H) in GT. lia.
+Qed.
+
+Definition IsPosition (f:sequence)(a:letter)(pos:nat->nat) :=
+  (forall p, pos p < pos (S p)) /\
+  (forall p, f (pos p) = a) /\
+  (forall n, f n = a -> exists p, n = pos p).
+
+Lemma pos_count0 f a pos :
+  IsPosition f a pos ->
+  forall n, n <= pos 0 -> count f a n = 0.
+Proof.
+ intros (P0 & P1 & P2) n Hn. apply count_0. intros m Hm E.
+ destruct (P2 _ E) as (p,Hp).
+ assert (pos p < pos 0) by lia.
+ generalize (incr_monoiff pos P0 p 0). lia.
+Qed.
+
+Lemma pos_count f a pos :
+ IsPosition f a pos ->
+ forall n p, pos p < n <= pos (S p) -> count f a n = S p.
+Proof.
+ intros (P0 & P1 & P2).
+ induction n.
+ - lia.
+ - intros p Hp. simpl.
+   destruct (Nat.eq_dec n (pos p)) as [EQ|NE].
+   + rewrite EQ at 2. rewrite P1, Nat.eqb_refl, Nat.add_1_r. f_equal.
+     destruct (Nat.eq_dec p 0).
+     * subst p.
+       apply (pos_count0 f a pos); try lia. split; auto.
+     * rewrite (IHn (p-1)); try lia.
+       rewrite EQ. replace p with (S (p-1)) at 2 3 by lia.
+       split. apply P0. easy.
+   + assert (Hp2 : pos p < n <= pos (S p)) by lia.
+     rewrite (IHn _ Hp2).
+     case Nat.eqb_spec; intros E; try lia.
+     exfalso.
+     destruct (P2 _ E) as (p',Hp').
+     rewrite Hp' in Hp2. destruct Hp2 as (Hp3,Hp4).
+     apply (incr_monoiff _ P0) in Hp3.
+     rewrite Nat.le_ngt, <- (incr_monoiff _ P0), <- Nat.le_ngt in Hp4.
+     replace p' with (S p) in *; lia.
+Qed.
+
+Lemma gen_pos_count f f' a a' pos pos' :
+  IsPosition f a pos ->
+  IsPosition f' a' pos' ->
+  (forall p, pos p <= pos' p) ->
+  forall n, count f' a' n <= count f a n.
+Proof.
+ intros (P0 & P1 & P2) (P0' & P1' & P2') LE.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n (pos' 0)) as [H0'|H0'].
+ replace (count f' a' n) with 0. lia.
+ { symmetry. apply count_0. intros p Hp E. destruct (P2' _ E) as (p',E').
+   assert (pos' p' < pos' 0) by lia.
+   generalize (incr_monoiff pos' P0' p' 0). lia. }
+ assert (H0 : pos 0 < n) by (generalize (LE 0); lia).
+ destruct (roundbis_by_incr_function pos P0 n H0) as (p & Hp).
+ destruct (roundbis_by_incr_function pos' P0' n H0') as (p' & Hp').
+ replace (count f a n) with (S p).
+ 2:{ symmetry. apply (pos_count f a pos); try lia. split; auto. }
+ replace (count f' a' n) with (S p').
+ 2:{ symmetry. apply (pos_count f' a' pos'); try lia. split; auto. }
+ apply -> Nat.succ_le_mono.
+ assert (pos p' < n).
+ { apply Nat.le_lt_trans with (pos' p'). apply LE. lia. }
+ apply Nat.le_ngt. unfold lt. intros Hpp'.
+ generalize (incr_le pos P0 _ _ Hpp'). lia.
+Qed.
+
+Lemma count_flat f a n m :
+  n <= m -> count f a n = count f a m ->
+  forall p, n<=p<m -> f p <> a.
+Proof.
+ induction 1. lia.
+ simpl. intros E p (Hp,Hp'). apply (count_mono f a) in H.
+ inversion_clear Hp'.
+ - intros E'. rewrite E', Nat.eqb_refl in E. lia.
+ - apply IHle; lia.
+Qed.
+
+Lemma roundk_only_kseq k n :
+ kseq k n = k -> exists p, n = roundk k p.
+Proof.
+ destruct (Nat.eq_dec n 0).
+ - subst. now exists 0.
+ - destruct (roundk_round k n) as (p, (Hp, HSp)). lia.
+   exists (S p).
+   apply Nat.le_lteq in HSp. destruct HSp; trivial.
+   exfalso.
+   assert (LE : S (roundk k p) <= roundk k (S p)).
+   { rewrite roundk_S. lia. }
+   assert (P := count_flat (kseq k) k (S (roundk k p)) (roundk k (S p)) LE).
+   rewrite countk_S_roundk, countk_roundk in P.
+   revert H. apply P; auto.
+Qed.
+
+Lemma roundk_is_position k : IsPosition (kseq k) k (roundk k).
+Proof.
+ repeat split; intros.
+ - rewrite roundk_S. lia.
+ - apply kseq_roundk.
+ - now apply roundk_only_kseq.
+Qed.
+
+Lemma count_k_decrease k n :
+  count (kseq (S k)) (S k) n <= count (kseq k) k n.
+Proof.
+  apply (gen_pos_count _ _ _ _ (roundk k) (roundk (S k))).
+  - apply roundk_is_position.
+  - apply roundk_is_position.
+  - apply roundk_grow.
+Qed.
+
+Lemma fs_k_Sk_antimono k n :
+ (f (S k) ^^ (S k)) n <= (f k ^^ k) n.
+Proof.
+ rewrite !fs_count_k. apply count_k_decrease.
+Qed.
+
+(* TODO : continue to count of 0 and to f *)
 
 (** Study of suffixes of kword : always exactly (k+1) different suffixes
     of the same length *)
