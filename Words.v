@@ -2346,7 +2346,111 @@ Proof.
  now apply Suffix_app_l.
 Qed.
 
-(* TODO: these k+1 are all different (and consequence of the last letter) *)
+(* TODO move *)
+Lemma last_cons {A} (a:A) l d : l<>[] -> last (a::l) d = last l d.
+Proof.
+ now destruct l.
+Qed.
+
+Definition lastn {A} n (l:list A) := skipn (length l - n) l.
+
+Lemma lastn_length_le {A} n (l:list A) :
+  n <= length l -> length (lastn n l) = n.
+Proof.
+ intros H. unfold lastn. rewrite skipn_length. lia.
+Qed.
+
+Lemma last_app {A} u v (d:A) : v<>[] -> last (u++v) d = last v d.
+Proof.
+ intros Hv.
+ assert (Hv' : length v <> 0) by now destruct v.
+ rewrite !last_nth, app_length, app_nth2 by lia. f_equal; lia.
+Qed.
+
+Lemma last_seq a n d : last (seq a (S n)) d = a+n.
+Proof.
+ rewrite seq_S. apply last_last.
+Qed.
+(* END move *)
+
+Lemma lastn_Suffix n u : Suffix (lastn n u) u.
+Proof.
+ unfold Suffix.
+ exists (firstn (length u - n) u).
+ unfold lastn. apply firstn_skipn.
+Qed.
+
+(* When n varies, the last letters of the successive [kword k n]
+   is k 0 1 ... k 0 *)
+
+Lemma kword_last k n : last (kword k n) 0 = (n+k) mod (S k).
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n k).
+ - rewrite kword_low by lia.
+   destruct n.
+   + rewrite Nat.mod_small; simpl; lia.
+   + replace (S n + k) with (n + 1 * S k) by lia.
+     rewrite Nat.mod_add, Nat.mod_small by lia.
+     now rewrite last_cons, last_seq.
+ - destruct n as [|n]; try lia.
+   replace (S n + k) with (n + 1 * S k) by lia.
+   rewrite Nat.mod_add by lia.
+   rewrite kword_alt by lia. rewrite last_app.
+   2:{ rewrite <- length_zero_iff_nil, kword_len.
+       generalize (A_nz k (n - k)). lia. }
+   destruct (Nat.eq_dec k n) as [->|NE].
+   + now rewrite Nat.sub_diag, Nat.mod_small by lia.
+   + replace (n-k) with (S (n-S k)) by lia.
+     rewrite IH by lia. f_equal. lia.
+Qed.
+
+(** Hence any group of (k+1) successive suffixes is without duplicate *)
+
+Lemma mod_diff a a' b :
+  b <> 0 -> a <= a' -> a mod b = a' mod b <-> (a'-a) mod b = 0.
+Proof.
+ intros Hb Ha.
+ split.
+ - rewrite (Nat.div_mod_eq a b) at 2.
+   rewrite (Nat.div_mod_eq a' b) at 2.
+   intros ->.
+   replace (_-_) with (b*(a'/b) - b*(a/b)) by lia.
+   rewrite <- Nat.mul_sub_distr_l, Nat.mul_comm.
+   now rewrite Nat.mod_mul.
+ - assert (E := Nat.div_mod_eq (a'-a) b).
+   intros E'.
+   replace a' with (a + b*((a'-a)/b)) by lia. rewrite Nat.mul_comm.
+   rewrite Nat.mod_add; trivial.
+Qed.
+
+Lemma kword_suffix_cycle_inv0 k u n m :
+  u<>[] -> Suffix u (kword k n) -> Suffix u (kword k m) ->
+  n mod (S k) = m mod (S k).
+Proof.
+ intros Hu. revert n m.
+ (* wlog *)
+ assert (forall n m, n <= m ->
+         Suffix u (kword k n) -> Suffix u (kword k m) ->
+         n mod (S k) = m mod (S k)).
+ { intros n m LE (v,Hn) (w,Hm).
+   rewrite mod_diff; try lia.
+   replace (m-n) with ((m+k)-(n+k)) by lia.
+   rewrite <- mod_diff; try lia.
+   rewrite <- !kword_last, <- Hn, <- Hm.
+   now rewrite !last_app. }
+ intros n m; destruct (Nat.le_gt_cases n m); intros; auto.
+ symmetry; apply H; auto. lia.
+Qed.
+
+Definition allsuffixes_after k p n0 :=
+  map (fun n => lastn p (kword k n)) (seq n0 (S k)).
+
+Definition allsuffixes k p := allsuffixes_after k p (invA_up k p).
+
+(* TODO : Nodup, Suffix, correct and complete,
+   suffix length bien p, liste entier len (S k),
+   Permut quand n0 monte (dès que >= invA_up k p) *)
 
 (** Complexity of infinite words : for each value of p,
     number of sub-words of length p *)
