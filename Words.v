@@ -2120,7 +2120,7 @@ Proof.
   - apply positionk_grows.
 Qed.
 
-Lemma fs_antimono k n :
+Lemma fs_decreases k n :
  (f (S k) ^^ (S k)) n <= (f k ^^ k) n.
 Proof.
  rewrite !fs_count_k. apply countk_decreases.
