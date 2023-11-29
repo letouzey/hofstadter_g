@@ -2507,10 +2507,12 @@ Proof.
  unfold allsuffixesAt. now rewrite map_length, seq_length.
 Qed.
 
+Definition SuffixWords u (f : nat -> word) := exists n, Suffix u (f n).
+
 Lemma allsuffixesAt_spec k p n0 :
   p <= A k n0 ->
   forall u, In u (allsuffixesAt k p n0) <->
-            length u = p /\ exists n, Suffix u (kword k n).
+            length u = p /\ SuffixWords u (kword k).
 Proof.
  intros Hn0 u. unfold allsuffixesAt. rewrite in_map_iff. split.
  - intros (n & <- & IN).
@@ -2608,7 +2610,7 @@ Qed.
 
 Lemma allsuffixes_spec k p :
   forall u, In u (allsuffixes k p) <->
-            length u = p /\ exists n, Suffix u (kword k n).
+            length u = p /\ SuffixWords u (kword k).
 Proof.
  apply allsuffixesAt_spec, invA_up_spec.
 Qed.
@@ -2623,15 +2625,77 @@ Qed.
 (** Complexity of infinite words : for each value of p,
     number of sub-words of length p *)
 
-Definition sub a n (f:sequence) := map f (seq a n).
+Definition sub q n (f:sequence) := map f (seq q n).
 
-Definition IsSub u (f:sequence) := exists a, u = sub a (length u) f.
+Definition SubSeq u (f:sequence) := exists q, u = sub q (length u) f.
 
-Definition IsSubp p u (f:sequence) := length u = p /\ IsSub u f.
+Definition SubpSeq p u (f:sequence) := length u = p /\ SubSeq u f.
 
-Definition AllSubp p l f := NoDup l /\ (forall w, In w l <-> IsSubp p w f).
+Definition AllSubp p l f := NoDup l /\ (forall w, In w l <-> SubpSeq p w f).
 
 Definition Complexity f p n := exists l, AllSubp p l f /\ length l = n.
+
+Lemma app_inv {A} (u u' v v':list A) :
+ length u = length v -> u++u' = v++v' -> u=v /\ u'=v'.
+Proof.
+ revert v. induction u; destruct v; simpl; try easy.
+ intros [= E] [= <- E']. apply IHu in E'; trivial. intuition congruence.
+Qed.
+
+Lemma SubSeq_alt0 u f : SubSeq u f <-> exists v, Suffix u v /\ PrefixSeq v f.
+Proof.
+ split.
+ - intros (q, E). remember (length u) as n.
+   exists (map f (seq 0 (q+n))).
+   split.
+   + exists (map f (seq 0 q)). subst u. unfold sub.
+     rewrite <- map_app. f_equal. symmetry. apply seq_app.
+   + unfold PrefixSeq. now rewrite map_length, seq_length.
+ - intros (v & (u' & <-) & PR). exists (length u').
+   red in PR. unfold take in PR. rewrite app_length in PR.
+   rewrite seq_app, map_app in PR.
+   apply app_inv in PR. apply PR. now rewrite map_length, seq_length.
+Qed.
+
+Lemma PrefixSeq_app_r u v f : PrefixSeq (u++v) f -> PrefixSeq u f.
+Proof.
+ unfold PrefixSeq, take. rewrite app_length, seq_app, map_app. intros E.
+ apply app_inv in E. apply E. now rewrite map_length, seq_length.
+Qed.
+
+Lemma Prefix_PrefixSeq u v f : Prefix u v -> PrefixSeq v f -> PrefixSeq u f.
+Proof.
+ intros (u' & <-). apply PrefixSeq_app_r.
+Qed.
+
+Lemma SubSeq_alt u f : SubSeq u f <-> exists v, Sub u v /\ PrefixSeq v f.
+Proof.
+ rewrite SubSeq_alt0.
+ split.
+ - intros (v & SU & PR). exists v; auto using Suffix_Sub.
+ - intros (v & (u1 & u2 & <-) & PR). exists (u1++u). split.
+   now exists u1. eapply Prefix_PrefixSeq; eauto.
+   exists u2; now rewrite app_assoc.
+Qed.
+
+(* TODO
+Lemma IsSub_kseq_carac k u :
+  SubSeq u (kseq k) <->
+  Sub u (kword k k) \/
+  exists u1 u2, u1<>[] /\ u2<>[] /\ u=u1++u2 /\
+     SuffixWords u1 (kword k) /\ PrefixSeq u2 (kseq k).
+Proof.
+ split.
+ - rewrite SubSeq_alt. intros (v & SU & PR).
+   admit.
+ - intros [SU|(u1 & u2 & Hu1 & Hu2 & E & SU & PR)].
+   + rewrite SubSeq_alt. exists (kword k k); split; trivial.
+     apply PrefixSeq_napply; try easy.
+     apply ksubst_noerase. apply ksubst_prolong.
+   + subst. destruct SU as (n & (u' & E)).
+     rewrite SubSeq_alt0. exists (u' ++ u1 ++ u2). split.
+     now exists u'. rewrite app_assoc, E.
+*)
 
 (*
 Lemma Complexity_kseq k : forall p, Complexity (kseq k) p (k*p+1).
