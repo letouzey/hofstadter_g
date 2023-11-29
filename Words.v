@@ -1,3 +1,4 @@
+From Coq Require Import Permutation.
 Require Import MoreList DeltaList FunG GenFib GenG.
 Import ListNotations.
 
@@ -2339,12 +2340,54 @@ Qed.
     of the same length *)
 
 Lemma kword_suffix_cycle k n u :
-  Suffix u (kword k n) -> Suffix u (kword k (n+k+1)).
+  Suffix u (kword k n) -> Suffix u (kword k (n+S k)).
 Proof.
  intros Su.
- rewrite Nat.add_1_r, kword_alt by lia. replace (n+k-k) with n by lia.
+ rewrite Nat.add_succ_r, kword_alt by lia. replace (n+k-k) with n by lia.
  now apply Suffix_app_l.
 Qed.
+
+Lemma kword_suffix_pcycle k n p u :
+  Suffix u (kword k n) -> Suffix u (kword k (n+p*S k)).
+Proof.
+ intros H.
+ induction p.
+ - simpl. now rewrite Nat.add_0_r.
+ - replace (n+S p * S k) with ((n+p*S k)+S k) by lia.
+   now apply kword_suffix_cycle.
+Qed.
+
+Lemma kword_suffix_cycle' k n u :
+  S k <= n ->
+  length u <= A k (n-S k) ->
+  Suffix u (kword k n) -> Suffix u (kword k (n-S k)).
+Proof.
+ intros Hn Hu Su.
+ replace n with (S (n-1)) in Su by lia.
+ rewrite kword_alt in Su by lia.
+ replace (n-1-k) with (n-S k) in Su by lia.
+ apply Suffix_app_inv in Su.
+ destruct Su as [Su|(u' & E & SU)]; trivial.
+ rewrite E, app_length, kword_len in Hu.
+ assert (Hu' : length u' = 0) by lia.
+ rewrite length_zero_iff_nil in Hu'. subst u'. subst u. now exists [].
+Qed.
+
+Lemma kword_suffix_pcycle' k n p u :
+  p*S k <= n ->
+  length u <= A k (n-p*S k) ->
+  Suffix u (kword k n) -> Suffix u (kword k (n-p*S k)).
+Proof.
+ intros Hn Hu SU. revert Hn Hu.
+ induction p.
+ - intros _ _. simpl. now replace (n-0) with n by lia.
+ - intros Hn Hu.
+   replace (n - _) with ((n-p*S k)-S k) in * by lia.
+   apply kword_suffix_cycle'. lia. trivial. apply IHp. lia.
+   etransitivity; [apply Hu| ]. apply A_mono. lia.
+Qed.
+
+
 
 (* TODO move *)
 Lemma last_cons {A} (a:A) l d : l<>[] -> last (a::l) d = last l d.
@@ -2378,6 +2421,15 @@ Proof.
  unfold Suffix.
  exists (firstn (length u - n) u).
  unfold lastn. apply firstn_skipn.
+Qed.
+
+Lemma Suffix_lastn u v : Suffix u v -> lastn (length u) v = u.
+Proof.
+ intros (u',<-).
+ unfold lastn. rewrite app_length, skipn_app.
+ replace (_+_-_) with (length u') by lia.
+ rewrite skipn_all.
+ now rewrite Nat.sub_diag.
 Qed.
 
 (* When n varies, the last letters of the successive [kword k n]
@@ -2443,14 +2495,129 @@ Proof.
  symmetry; apply H; auto. lia.
 Qed.
 
-Definition allsuffixes_after k p n0 :=
+Definition allsuffixesAt k p n0 :=
   map (fun n => lastn p (kword k n)) (seq n0 (S k)).
 
-Definition allsuffixes k p := allsuffixes_after k p (invA_up k p).
+Definition allsuffixes k p := allsuffixesAt k p (invA_up k p).
 
-(* TODO : Nodup, Suffix, correct and complete,
-   suffix length bien p, liste entier len (S k),
-   Permut quand n0 monte (dès que >= invA_up k p) *)
+Lemma allsuffixesAt_length k p n0 :
+  length (allsuffixesAt k p n0) = S k.
+Proof.
+ unfold allsuffixesAt. now rewrite map_length, seq_length.
+Qed.
+
+Lemma allsuffixesAt_spec k p n0 :
+  p <= A k n0 ->
+  forall u, In u (allsuffixesAt k p n0) <->
+            length u = p /\ exists n, Suffix u (kword k n).
+Proof.
+ intros Hn0 u. unfold allsuffixesAt. rewrite in_map_iff. split.
+ - intros (n & <- & IN).
+   rewrite in_seq in IN. split.
+   + rewrite lastn_length_le; auto. rewrite kword_len.
+     transitivity (A k n0); trivial. now apply A_mono.
+   + exists n. apply lastn_Suffix.
+ - intros (Hu,(n & SU)).
+   setoid_rewrite in_seq.
+   destruct (Nat.le_gt_cases n0 n).
+   + assert (NZ : S k <> 0) by lia.
+     assert (E := Nat.div_mod (n-n0) (S k) NZ).
+     set (r := (n-n0) mod S k) in *.
+     set (q := (n-n0) / S k) in *.
+     rewrite Nat.mul_comm in E.
+     assert (E' : n0+r = n-q*S k) by lia.
+     exists (n0+r). split.
+     2:{ split. lia. generalize (Nat.mod_upper_bound (n-n0) (S k)). lia. }
+     apply (kword_suffix_pcycle' k n q u) in SU; try lia.
+     * rewrite <- Hu. apply Suffix_lastn. now rewrite E'.
+     * rewrite <- E', Hu.
+       etransitivity; [apply Hn0| ]. apply A_mono; lia.
+   + assert (NZ : S k <> 0) by lia.
+     assert (E := Nat.div_mod (n0+k-n) (S k) NZ).
+     set (r := (n0+k-n) mod S k) in *.
+     set (q := (n0+k-n) / S k) in *.
+     assert (E' : n0+k-r = n+q*S k) by lia.
+     exists (n0+k-r). split.
+     2:{ generalize (Nat.mod_upper_bound (n0+k-n) (S k)). fold r. lia. }
+     apply (kword_suffix_pcycle k n q u) in SU.
+     rewrite <- Hu. apply Suffix_lastn. now rewrite E'.
+Qed.
+
+Lemma last_lastn {A} u n (d:A) : n <> 0 -> last (lastn n u) d = last u d.
+Proof.
+ intros Hn.
+ destruct u. trivial.
+ unfold lastn.
+ rewrite <- (firstn_skipn (length (a::u) - n) (a::u)) at 3.
+ symmetry. apply last_app. rewrite <- length_zero_iff_nil, skipn_length.
+ simpl length. lia.
+Qed.
+
+Lemma allsuffixesAt_nodup k p n0 :
+  p<>0 -> NoDup (allsuffixesAt k p n0).
+Proof.
+  intros Hp.
+  unfold allsuffixesAt. set (f := fun n => _).
+  apply NoDup_nth with (d:=f 0).
+  intros i j. rewrite map_length, seq_length. intros Hi Hj.
+  rewrite !map_nth, !seq_nth by lia.
+  unfold f; clear f.
+  intros E.
+  assert (E' : last (kword k (n0+i)) 0 = last (kword k (n0+j)) 0).
+  { rewrite <- last_lastn with (n:=p) by trivial.
+    rewrite <- (last_lastn (kword k (n0+j)) p) by trivial.
+    now f_equal. }
+  rewrite !kword_last in E'.
+  destruct (Nat.le_gt_cases i j).
+  - apply mod_diff in E'; try lia. replace (_-_) with (j-i) in E' by lia.
+    rewrite Nat.mod_small in E'; lia.
+  - symmetry in E'. apply mod_diff in E'; try lia.
+    replace (_-_) with (i-j) in E' by lia.
+    rewrite Nat.mod_small in E'; lia.
+Qed.
+
+Lemma seq_nshift len start n :
+  map (Nat.add n) (seq start len) = seq (n+start) len.
+Proof.
+ revert start.
+ induction n; simpl; intros.
+ - now rewrite map_id.
+ - now rewrite <- seq_shift, <- IHn, map_map.
+Qed.
+
+Lemma allsuffixesAt_permut k p n0 n0' :
+  p <= A k n0 -> p <= A k n0' ->
+  Permutation (allsuffixesAt k p n0) (allsuffixesAt k p n0').
+Proof.
+ intros H H'.
+ destruct (Nat.eq_dec p 0) as [->|Hp].
+ - unfold allsuffixesAt. apply eq_Permutation.
+   rewrite <- (Nat.add_0_r n0), <- (Nat.add_0_r n0').
+   rewrite <- !(seq_nshift (S k) 0), !map_map.
+   apply map_ext. intros a. unfold lastn.
+   now rewrite !Nat.sub_0_r, !skipn_all.
+ - apply NoDup_Permutation; auto using allsuffixesAt_nodup.
+   intros u. rewrite !allsuffixesAt_spec by trivial. reflexivity.
+Qed.
+
+Lemma allsuffixes_length k p : length (allsuffixes k p) = S k.
+Proof.
+ apply allsuffixesAt_length.
+Qed.
+
+Lemma allsuffixes_spec k p :
+  forall u, In u (allsuffixes k p) <->
+            length u = p /\ exists n, Suffix u (kword k n).
+Proof.
+ apply allsuffixesAt_spec, invA_up_spec.
+Qed.
+
+Lemma allsuffixes_nodup k p :
+  p<>0 -> NoDup (allsuffixes k p).
+Proof.
+  apply allsuffixesAt_nodup.
+Qed.
+
 
 (** Complexity of infinite words : for each value of p,
     number of sub-words of length p *)
