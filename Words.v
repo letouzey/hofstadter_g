@@ -2334,6 +2334,7 @@ Proof.
    lia.
 Qed.
 
+(* TODO: this inequality is actually strict except for a few low n *)
 
 
 (** Study of suffixes of kword : always exactly (k+1) different suffixes
