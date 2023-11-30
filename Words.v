@@ -2417,20 +2417,34 @@ Proof.
 Qed.
 (* END move *)
 
-Lemma lastn_Suffix n u : Suffix (lastn n u) u.
+Lemma skipn_Suffix n u : Suffix (skipn n u) u.
 Proof.
- unfold Suffix.
- exists (firstn (length u - n) u).
- unfold lastn. apply firstn_skipn.
+ unfold Suffix. exists (firstn n u). unfold lastn. apply firstn_skipn.
 Qed.
 
-Lemma Suffix_lastn u v : Suffix u v -> lastn (length u) v = u.
+Lemma lastn_Suffix n u : Suffix (lastn n u) u.
 Proof.
- intros (u',<-).
- unfold lastn. rewrite app_length, skipn_app.
- replace (_+_-_) with (length u') by lia.
- rewrite skipn_all.
- now rewrite Nat.sub_diag.
+ apply skipn_Suffix.
+Qed.
+
+Lemma Prefix_equiv u v : Prefix u v <-> u = firstn (length u) v.
+Proof.
+ split.
+ - intros (u' & <-). rewrite firstn_app.
+   replace (_-_) with 0 by lia.
+   now rewrite firstn_O, firstn_all, app_nil_r.
+ - intros ->. apply firstn_Prefix.
+Qed.
+
+Lemma Suffix_equiv u v : Suffix u v <-> u = lastn (length u) v.
+Proof.
+ split.
+ - intros (u' & <-). unfold lastn. rewrite app_length.
+   replace (_-_) with (length u') by lia.
+   rewrite skipn_app.
+   replace (_-_) with 0 by lia.
+   now rewrite skipn_O, skipn_all.
+ - intros ->. apply lastn_Suffix.
 Qed.
 
 (* When n varies, the last letters of the successive [kword k n]
@@ -2532,7 +2546,7 @@ Proof.
      exists (n0+r). split.
      2:{ split. lia. generalize (Nat.mod_upper_bound (n-n0) (S k)). lia. }
      apply (kword_suffix_pcycle' k n q u) in SU; try lia.
-     * rewrite <- Hu. apply Suffix_lastn. now rewrite E'.
+     * rewrite <- Hu. symmetry. apply Suffix_equiv. now rewrite E'.
      * rewrite <- E', Hu.
        etransitivity; [apply Hn0| ]. apply A_mono; lia.
    + assert (NZ : S k <> 0) by lia.
@@ -2543,7 +2557,7 @@ Proof.
      exists (n0+k-r). split.
      2:{ generalize (Nat.mod_upper_bound (n0+k-n) (S k)). fold r. lia. }
      apply (kword_suffix_pcycle k n q u) in SU.
-     rewrite <- Hu. apply Suffix_lastn. now rewrite E'.
+     rewrite <- Hu. symmetry. apply Suffix_equiv. now rewrite E'.
 Qed.
 
 Lemma last_lastn {A} u n (d:A) : n <> 0 -> last (lastn n u) d = last u d.
@@ -2625,9 +2639,9 @@ Qed.
 (** Complexity of infinite words : for each value of p,
     number of sub-words of length p *)
 
-Definition sub q n (f:sequence) := map f (seq q n).
+Definition subseq q n (f:sequence) := map f (seq q n).
 
-Definition SubSeq u (f:sequence) := exists q, u = sub q (length u) f.
+Definition SubSeq u (f:sequence) := exists q, u = subseq q (length u) f.
 
 Definition SubpSeq p u (f:sequence) := length u = p /\ SubSeq u f.
 
@@ -2648,7 +2662,7 @@ Proof.
  - intros (q, E). remember (length u) as n.
    exists (map f (seq 0 (q+n))).
    split.
-   + exists (map f (seq 0 q)). subst u. unfold sub.
+   + exists (map f (seq 0 q)). subst u. unfold subseq.
      rewrite <- map_app. f_equal. symmetry. apply seq_app.
    + unfold PrefixSeq. now rewrite map_length, seq_length.
  - intros (v & (u' & <-) & PR). exists (length u').
@@ -2678,24 +2692,231 @@ Proof.
    exists u2; now rewrite app_assoc.
 Qed.
 
-(* TODO
-Lemma IsSub_kseq_carac k u :
+Lemma kword_prefixseq k n : PrefixSeq (kword k n) (kseq k).
+Proof.
+ apply PrefixSeq_napply. apply ksubst_noerase. apply ksubst_prolong.
+ reflexivity.
+Qed.
+
+Lemma kword_le_prefix k n m : n <= m -> Prefix (kword k n) (kword k m).
+Proof.
+ induction 1. apply Prefix_id.
+ eapply Prefix_trans; eauto.
+ destruct (Nat.le_gt_cases m k).
+ - rewrite !kword_low by lia.
+   exists [m]. now rewrite seq_S.
+ - rewrite kword_alt by lia. now exists (kword k (m-k)).
+Qed.
+
+Lemma kword_Suffix_Prefix_Sub k u1 u2 n m :
+  Suffix u1 (kword k n) -> Prefix u2 (kword k m) ->
+  exists q, Sub (u1++u2) (kword k q).
+Proof.
+ intros SU PR.
+ destruct (Nat.le_gt_cases m n).
+ - exists (S (n + S k)). rewrite kword_alt by lia.
+   assert (HSn : Prefix u2 (kword k (S n))).
+   { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
+   apply kword_suffix_cycle in SU.
+   destruct SU as (u1' & E1).
+   destruct HSn as (u2' & E2).
+   exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
+   f_equal. f_equal. lia.
+ - set (m' := n + S ((m-n)/S k)*S k).
+   assert (Hm' : m < m').
+   { assert (Hk : S k <> 0) by lia.
+     assert (E := Nat.div_mod (m-n) (S k) Hk).
+     generalize (Nat.mod_upper_bound (m-n) (S k)). lia. }
+   apply kword_suffix_pcycle with (p := S ((m-n)/S k)) in SU.
+   fold m' in SU.
+   assert (HSm' : Prefix u2 (kword k (S m'))).
+   { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
+   exists (S (m' + S k)).
+   rewrite kword_alt by lia.
+   apply kword_suffix_cycle in SU.
+   destruct SU as (u1' & E1).
+   destruct HSm' as (u2' & E2).
+   exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
+   f_equal. f_equal. lia.
+Qed.
+
+Lemma Sub_Prefix_Sub u v w : Sub u v -> Prefix v w -> Sub u w.
+Proof.
+ intros (u1 & u2 & <-) (v' & <-). exists u1, (u2++v').
+ now rewrite !app_assoc.
+Qed.
+
+(* Some decidability functions *)
+
+Open Scope lazy_bool_scope.
+
+Fixpoint list_eqb {A} (eqb:A->A->bool) l l' :=
+  match l, l' with
+  | [], [] => true
+  | x::l, x'::l' => (eqb x x') &&& (list_eqb eqb l l')
+  | _, _ => false
+  end.
+
+Definition reflectEq {A} (eqb:A->A->bool) :=
+  forall a a', reflect (a=a') (eqb a a').
+
+Lemma list_eqb_spec {A} (eqb:A->A->bool) :
+ reflectEq eqb -> reflectEq (list_eqb eqb).
+Proof.
+ intros R. red.
+ induction a as [|a l IH]; destruct a' as [|a' l']; simpl;
+  try case R; try case IH; constructor; congruence.
+Qed.
+
+Definition listnat_eqb := list_eqb Nat.eqb.
+
+Definition listnat_eqb_spec := list_eqb_spec Nat.eqb Nat.eqb_spec.
+
+Definition prefixb u v := listnat_eqb u (firstn (length u) v).
+Definition suffixb u v := listnat_eqb u (lastn (length u) v).
+
+Lemma prefixb_spec u v : reflect (Prefix u v) (prefixb u v).
+Proof.
+ unfold prefixb.
+ case listnat_eqb_spec; constructor; now rewrite Prefix_equiv.
+Qed.
+
+Lemma suffixb_spec u v : reflect (Suffix u v) (suffixb u v).
+Proof.
+ unfold suffixb.
+ case listnat_eqb_spec; constructor; now rewrite Suffix_equiv.
+Qed.
+
+Definition sub {A} (l:list A) start len := firstn len (skipn start l).
+
+Lemma sub_alt {A} (l:list A) start len :
+ sub l start len = skipn start (firstn (start+len) l).
+Proof.
+ unfold sub. revert start.
+ induction l; destruct start; simpl; auto. now rewrite firstn_nil.
+Qed.
+
+Definition subb u v :=
+ let len := length u in
+ existsb (fun i => listnat_eqb u (sub v i len))
+         (seq 0 (S (length v - len))).
+
+Lemma Sub_carac u v : Sub u v <-> exists w, Suffix u w /\ Prefix w v.
+Proof.
+ split.
+ - intros (u1 & u2 & <-). exists (u1++u); split.
+   + now exists u1.
+   + exists u2. now rewrite app_assoc.
+ - intros (w & (u1 & <-) & (u2 & <-)). exists u1, u2.
+   now rewrite app_assoc.
+Qed.
+
+Lemma Sub_equiv u v :
+  Sub u v <->
+  exists i, i <= length v - length u /\ u = sub v i (length u).
+Proof.
+ rewrite Sub_carac. split.
+ - intros (w & SU & PR). exists (length w - length u).
+   assert (length u <= length w) by now apply Suffix_len.
+   assert (length w <= length v) by now apply Prefix_len.
+   split. lia. rewrite sub_alt.
+   apply Suffix_equiv in SU.
+   apply Prefix_equiv in PR. replace (_+_) with (length w) by lia.
+   rewrite <- PR. exact SU.
+ - intros (i & Hi & E). rewrite sub_alt in E.
+   set (w := firstn (i+length u) v) in *.
+   exists w; split; [|apply firstn_Prefix].
+   rewrite E. apply skipn_Suffix.
+Qed.
+
+Lemma subb_spec u v : reflect (Sub u v) (subb u v).
+Proof.
+ destruct (subb u v) eqn:E; unfold subb in *; constructor.
+ - apply existsb_exists in E. destruct E as (i & Hi & E).
+   rewrite Sub_equiv. exists i. split.
+   + rewrite in_seq in Hi. destruct Hi. simpl in *.
+     unfold letter in *; lia.
+   + revert E. now case listnat_eqb_spec.
+ - rewrite Sub_equiv. intros (i & Hi & E').
+   contradict E. rewrite not_false_iff_true, existsb_exists.
+   exists i. rewrite in_seq. unfold letter in *; split; try lia.
+   now case listnat_eqb_spec.
+Qed.
+
+Lemma SubSeq_kseq_Sub_kword k u :
+ SubSeq u (kseq k) <-> exists n, Sub u (kword k n).
+Proof.
+ rewrite SubSeq_alt.
+ split.
+ - intros (v & SU & PR).
+   set (n := invA_up k (length v)).
+   exists n.
+   eapply Sub_Prefix_Sub; eauto.
+   apply PrefixSeq_incl with (kseq k); trivial.
+   + rewrite kword_len; apply invA_up_spec.
+   + apply kword_prefixseq.
+ - intros (n & SU). exists (kword k n); split; trivial.
+   apply kword_prefixseq.
+Qed.
+
+Lemma Sub_kword_minimal k u n :
+ Sub u (kword k n) ->
+ exists n0, Sub u (kword k n0) /\ forall q, q<n0 -> ~Sub u (kword k q).
+Proof.
+ induction n; intros SU.
+ - exists 0. split; trivial. inversion 1.
+ - destruct (subb_spec u (kword k n)) as [SU'|NS].
+   + apply (IHn SU').
+   + exists (S n). split; trivial. intros q Hq SU'. apply NS.
+     eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
+Qed.
+
+Lemma SubSeq_kseq_carac k u :
   SubSeq u (kseq k) <->
   Sub u (kword k k) \/
   exists u1 u2, u1<>[] /\ u2<>[] /\ u=u1++u2 /\
      SuffixWords u1 (kword k) /\ PrefixSeq u2 (kseq k).
 Proof.
  split.
- - rewrite SubSeq_alt. intros (v & SU & PR).
-   admit.
- - intros [SU|(u1 & u2 & Hu1 & Hu2 & E & SU & PR)].
-   + rewrite SubSeq_alt. exists (kword k k); split; trivial.
+ - rewrite SubSeq_kseq_Sub_kword. intros (n & SU).
+   apply Sub_kword_minimal in SU. clear n.
+   destruct SU as (n & SU & NS).
+   destruct (Nat.le_gt_cases n k).
+   + left. eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
+   + right. destruct n as [|n]; try lia.
+     rewrite kword_alt in SU by lia.
+     apply Sub_app_inv in SU.
+     destruct SU as [SU|[SU|(u1 & u2 & E & SU & PR)]].
+     * exfalso. apply (NS n); auto.
+     * exfalso. apply (NS (n-k)); auto; lia.
+     * exists u1, u2; repeat split; trivial.
+       { intros ->. simpl in E. subst u2. apply Prefix_Sub in PR.
+         apply (NS (n-k)); auto; lia. }
+       { intros ->. simpl in E. rewrite app_nil_r in E.
+         subst u1. apply Suffix_Sub in SU. apply (NS n); auto. }
+       { now exists n. }
+       { eapply Prefix_PrefixSeq; eauto. apply kword_prefixseq. }
+ - rewrite SubSeq_alt.
+   intros [SU|(u1 & u2 & Hu1 & Hu2 & E & SU & PR)].
+   + exists (kword k k); split; trivial.
      apply PrefixSeq_napply; try easy.
      apply ksubst_noerase. apply ksubst_prolong.
-   + subst. destruct SU as (n & (u' & E)).
-     rewrite SubSeq_alt0. exists (u' ++ u1 ++ u2). split.
-     now exists u'. rewrite app_assoc, E.
-*)
+   + subst. destruct SU as (n & SU).
+     set (m := invA_up k (length u2)).
+     assert (Hm : Prefix u2 (kword k m)).
+     { apply PrefixSeq_incl with (kseq k); trivial.
+       - rewrite kword_len; apply invA_up_spec.
+       - apply kword_prefixseq. }
+     destruct (kword_Suffix_Prefix_Sub k u1 u2 n m) as (q & Hq); trivial.
+     exists (kword k q); split; auto using kword_prefixseq.
+Qed.
+
+Definition allsubs {A} p (u:list A) :=
+  map (fun i => sub u i p) (seq 0 (length u - pred p)).
+
+(* Il y en a length u - p + 1, qui sont
+   tous différents pour p<>0 et u=kword k k *)
+
 
 (*
 Lemma Complexity_kseq k : forall p, Complexity (kseq k) p (k*p+1).
