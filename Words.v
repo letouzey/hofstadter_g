@@ -2912,10 +2912,150 @@ Proof.
 Qed.
 
 Definition allsubs {A} p (u:list A) :=
-  map (fun i => sub u i p) (seq 0 (length u - pred p)).
+  map (fun i => sub u i p) (seq 0 (S (length u) - p)).
 
-(* Il y en a length u - p + 1, qui sont
-   tous différents pour p<>0 et u=kword k k *)
+Lemma allsubs_length {A} p (u:list A) :
+  length (allsubs p u) = S (length u) - p.
+Proof.
+ unfold allsubs. now rewrite map_length, seq_length.
+Qed.
+
+Lemma allsubs_ok p u :
+  forall w, In w (allsubs p u) <-> length w = p /\ Sub w u.
+Proof.
+ intros. unfold allsubs. rewrite in_map_iff.
+ setoid_rewrite in_seq.
+ split.
+ - intros (i & <- & Hi).
+   rewrite Sub_equiv.
+   replace (length (sub u i p)) with p.
+   2:{ unfold sub. rewrite firstn_length_le; auto.
+       rewrite skipn_length. lia. }
+   split; trivial. exists i. split; auto; lia.
+ - intros (L & S). assert (L' := Sub_len _ _ S).
+   rewrite Sub_equiv in S. destruct S as (i & Hi & E).
+   exists i. split. congruence. lia.
+Qed.
+
+Lemma skipn_seq a b n : skipn n (seq a b) = seq (n+a) (b-n).
+Proof.
+ revert a b.
+ induction n; intros; simpl.
+ - f_equal. lia.
+ - destruct b; simpl; auto.
+   rewrite IHn. f_equal. lia.
+Qed.
+
+Lemma firstn_seq a b n : n <= b -> firstn n (seq a b) = seq a n.
+Proof.
+ induction 1.
+ - rewrite <- (seq_length n a) at 1. apply firstn_all.
+ - rewrite seq_S, firstn_app, IHle.
+   rewrite seq_length. replace (n-m) with 0 by lia. simpl. apply app_nil_r.
+Qed.
+
+Lemma allsubs_kword_nodup k p : p<>0 -> NoDup (allsubs p (kword k k)).
+Proof.
+ intros Hp.
+ unfold allsubs.
+ rewrite kword_low by lia. simpl length. rewrite seq_length.
+ set (f := fun i => _).
+ rewrite NoDup_nth with (d:=f 0).
+ rewrite map_length, seq_length. intros i j Hi Hj.
+ rewrite !map_nth, !seq_nth; auto. unfold f; clear f. simpl.
+ assert (F0 : hd 0 (sub (k::seq 0 k) 0 p) = k).
+ { unfold hd, sub. simpl. destruct p; simpl; lia. }
+ assert (F : forall x, 0<S x<S (S k)-p ->
+             hd 0 (sub (k::seq 0 k) (S x) p) = x).
+ { intros x Hx. unfold hd, sub. simpl. rewrite skipn_seq.
+   rewrite firstn_seq by lia. destruct p; simpl; lia. }
+ intros E.
+ assert (E' : hd 0 (sub (k :: seq 0 k) i p) =
+              hd 0 (sub (k :: seq 0 k) j p)).
+ { unfold letter in E. now rewrite E. }
+ clear E.
+ destruct i, j; trivial.
+ - rewrite F0, (F j) in E'; lia.
+ - rewrite (F i), F0 in E'; lia.
+ - rewrite (F i), (F j) in E'; lia.
+Qed.
+
+Definition add_suffix l (v:word) := map (fun u => u++v) l.
+
+Definition kseq_prefix k n :=
+  let p := invA_up k n in
+  firstn n (kword k p).
+
+Lemma kseq_prefix_length k n : length (kseq_prefix k n) = n.
+Proof.
+ unfold kseq_prefix. rewrite firstn_length_le; auto.
+ rewrite kword_len. apply invA_up_spec.
+Qed.
+
+Lemma kseq_prefix_ok k n : PrefixSeq (kseq_prefix k n) (kseq k).
+Proof.
+ unfold kseq_prefix. eapply Prefix_PrefixSeq; eauto.
+ apply firstn_Prefix. apply kword_prefixseq.
+Qed.
+
+(* A first listing of factors, which is complete but may contain
+   a few duplicates *)
+
+Definition ksubsdups k p :=
+ allsubs p (kword k k) ++
+ concat (map (fun p1 =>
+                add_suffix (allsuffixes k p1) (kseq_prefix k (p-p1)))
+             (seq 1 (p-1))).
+
+Lemma ksubsdups_ok k p u :
+  In u (ksubsdups k p) <-> length u = p /\ SubSeq u (kseq k).
+Proof.
+ unfold ksubsdups. rewrite in_app_iff, allsubs_ok.
+ rewrite SubSeq_kseq_carac, in_concat. setoid_rewrite in_map_iff.
+ split.
+ - intros [(L,S)|(ll & (p1 & <- & IN) & IN')].
+   + split; auto.
+   + rewrite in_seq in IN. unfold add_suffix in IN'.
+     rewrite in_map_iff in IN'. destruct IN' as (u1 & <- & IN').
+     rewrite allsuffixes_spec in IN'. destruct IN' as (IN', SU).
+     destruct SU as (m & SU).
+     set (u2 := kseq_prefix k (p-p1)).
+     split.
+     * rewrite app_length, IN'. unfold u2.
+       rewrite kseq_prefix_length. lia.
+     * right. exists u1, u2; repeat split.
+       { rewrite <- length_zero_iff_nil, IN'. lia. }
+       { rewrite <- length_zero_iff_nil. unfold u2.
+         rewrite kseq_prefix_length. lia. }
+       { now exists m. }
+       { unfold u2. apply kseq_prefix_ok. }
+ - intros (L, [S|(u1 & u2 & Hu1 & Hu2 & -> & SU & PR)]).
+   + left; auto.
+   + right. setoid_rewrite in_seq.
+     rewrite app_length in L.
+     set (p1 := length u1) in *.
+     assert (E : u2 = kseq_prefix k (p-p1)).
+     { apply Prefix_antisym;
+       apply PrefixSeq_incl with (kseq k); auto using kseq_prefix_ok;
+       (rewrite kseq_prefix_length; lia). }
+     exists (add_suffix (allsuffixes k p1) u2).
+     split.
+     * exists p1. split. now rewrite E.
+       rewrite <- length_zero_iff_nil in Hu1, Hu2. lia.
+     * unfold add_suffix. set (f := fun u => _).
+       change (u1 ++ u2) with (f u1). apply in_map. clear f.
+       rewrite allsuffixes_spec; auto.
+Qed.
+
+(* Avec ça on peut déjà dire que la complexité est linéaire
+(* Mais ksubsdups k n contient n-(k+2) doublons en trop *)
+
+(* TODO: ksubsdups optimisé pour éviter tout calcul répétitif ?
+   application à la quasi-additivité ?
+   est-ce que ça donne -2..2 pour k=2 sans axiomes réels ?
+ *)
+
+(* Idee : left_special préservé par subst ? *)
 
 
 (*
