@@ -1,7 +1,8 @@
 From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex Polynomial Matrix.
-Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Mu ThePoly Approx.
+Require Import MoreFun MoreList MoreReals MoreComplex.
+Require Import MoreLim MorePoly MoreMatrix.
+Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
 Import Permutation.
 Local Open Scope Z.
 Local Open Scope R.

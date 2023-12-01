@@ -372,3 +372,17 @@ Proof.
  - intros (u & <- & IN). rewrite enum_delta_below_ok in IN by lia.
    split. now apply zeroshift_delta. now apply zeroshift_below.
 Qed.
+
+Lemma insert_delta x l a :
+ Delta 2 (Nat.pred a::l) -> ~In x l -> a < x -> Delta 1 (a::insert x l).
+Proof.
+ revert a.
+ induction l as [|b l IH]; simpl.
+ - constructor. lia. constructor.
+ - intro a. case Nat.leb_spec; intro.
+   + inversion 1; subst. intros.
+     constructor. lia. constructor; autoh.
+   + inversion 1; subst. intros.
+     constructor. lia. apply IH; auto.
+     apply Delta_low_hd with b. lia. auto.
+Qed.

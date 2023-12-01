@@ -1,5 +1,6 @@
 
-Require Import MoreList DeltaList FunG GenFib.
+Require Import MoreFun MoreList DeltaList GenFib.
+Require FunG.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -272,10 +273,10 @@ Qed.
 
 (** Particular case *)
 
-Lemma f_1_g n : f 1 n = g n.
+Lemma f_1_g n : f 1 n = FunG.g n.
 Proof.
 revert n.
-apply g_unique.
+apply FunG.g_unique.
 - reflexivity.
 - intros n. symmetry. now apply f_eqn.
 Qed.

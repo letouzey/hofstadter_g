@@ -6,6 +6,7 @@ Fib.v
 FunG.v
 FunG_prog.v
 FlipG.v
+MoreFun.v
 MoreList.v
 MoreReals.v
 Approx.v
@@ -16,6 +17,8 @@ GenAdd.v
 GenFlip.v
 Shift.v
 Words.v
+Words2.v
+Complexity.v
 Mu.v
 MoreLim.v
 MorePermut.v

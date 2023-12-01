@@ -1,7 +1,7 @@
 From Coq Require Import Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex.
-Require Import MoreList MoreReals MoreLim MoreComplex.
-Require Import DeltaList FunG GenFib GenG GenAdd Words Mu Approx.
+Require Import MoreFun MoreList MoreReals MoreLim MoreComplex.
+Require Import DeltaList GenFib GenG GenAdd Words Mu Approx.
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.

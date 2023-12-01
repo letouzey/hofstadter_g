@@ -1,6 +1,7 @@
 (** * FunG : Hofstadter's G function and tree *)
 
-Require Import DeltaList Fib.
+From Coq Require Import Program Program.Wf.
+Require Import MoreFun MoreList DeltaList Fib.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -737,17 +738,7 @@ Qed.
 (** The depth of a node in the [G] tree is the number of
     iteration of [g] needed before reaching node 1 *)
 
-Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).
-
-Lemma iter_S (f:nat->nat) n p : (f^^(S n)) p = (f^^n) (f p).
-Proof.
- revert p.
- induction n as [|n IH]; intros; trivial. simpl. now rewrite <- IH.
-Qed.
-
 (* Compute (g^^3) 13. *)
-
-Require Import Program Program.Wf.
 
 Program Fixpoint depth (n:nat) { measure n } : nat :=
  match n with
@@ -1467,47 +1458,11 @@ Qed.
 
 (** Auxiliary stuff for g_add_approx *)
 
-Fixpoint insert x l :=
- match l with
- | [] => [x]
- | y::l' => if x <=? y then x::l else y::insert x l'
- end.
-
 Lemma sumfib_insert x l :
  sumfib (insert x l) = fib x + sumfib l.
 Proof.
  induction l; simpl; auto.
  destruct (x <=? a); simpl; rewrite ?IHl; lia.
-Qed.
-
-Lemma insert_0 l : insert 0 l = 0 :: l.
-Proof.
- induction l; simpl; auto.
-Qed.
-
-Lemma map_pred_insert x l:
-  map Nat.pred (insert x l) = insert (Nat.pred x) (map Nat.pred l).
-Proof.
- induction l; simpl; auto.
- do 2 case Nat.leb_spec; intros; try lia; simpl; auto.
- - replace a with 0 in * by lia.
-   replace x with 1 in * by lia. simpl. f_equal.
-   rewrite IHl. simpl. apply insert_0.
- - f_equal; auto.
-Qed.
-
-Lemma insert_delta x l a :
- Delta 2 (Nat.pred a::l) -> ~In x l -> a < x -> Delta 1 (a::insert x l).
-Proof.
- revert a.
- induction l as [|b l IH]; simpl.
- - constructor. lia. constructor.
- - intro a. case Nat.leb_spec; intro.
-   + inversion 1; subst. intros.
-     constructor. lia. constructor; autoh.
-   + inversion 1; subst. intros.
-     constructor. lia. apply IH; auto.
-     apply Delta_low_hd with b. lia. auto.
 Qed.
 
 Lemma sub_succ n m :

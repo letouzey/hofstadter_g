@@ -1,5 +1,5 @@
 
-Require Import DeltaList FunG GenFib GenG.
+Require Import MoreFun MoreList DeltaList FunG GenFib GenG.
 Import ListNotations.
 Set Implicit Arguments.
 

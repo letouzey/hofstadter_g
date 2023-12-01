@@ -1,5 +1,6 @@
 From Coq Require Import List Arith Lia Reals Lra.
-Require Import MoreList MoreReals MoreLim GenFib GenG Words Mu ThePoly.
+Require Import MoreFun MoreList MoreReals MoreLim.
+Require Import GenFib GenG Words Mu ThePoly.
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.

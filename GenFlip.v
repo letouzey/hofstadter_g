@@ -1,9 +1,9 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import DeltaList FunG GenFib GenG.
+Require Import MoreFun DeltaList GenFib GenG.
 Set Implicit Arguments.
 
-(** See first the file [FunG] for the study of:
+(** See first the file [GenG] for the study of:
 
      - [fk (S n) + fk^(S k) (n) = S n]
      - [fk 0 = 0]
