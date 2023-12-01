@@ -20,16 +20,19 @@ Proof.
  rewrite <- !napply_add. f_equal. lia.
 Qed.
 
-Lemma ksubstk_kword k n : n <= k ->
-  ksubstk k n = kword k n.
+Lemma ksubstk_kword k n : n <= k -> ksubstk k n = kword k n.
 Proof.
  intros. now apply ksubst_pearl.
 Qed.
 
-Lemma ksubstk_alt k n : n <= k ->
-  ksubstk k n = k :: seq 0 n.
+Lemma ksubstk_alt k n : n <= k -> ksubstk k n = k :: seq 0 n.
 Proof.
  intros. rewrite <- kword_low by lia. now apply ksubstk_kword.
+Qed.
+
+Lemma ksubstk_len k n : n <= k -> length (ksubstk k n) = S n.
+Proof.
+ intros H. rewrite ksubstk_alt by trivial. simpl. f_equal. apply seq_length.
 Qed.
 
 Lemma ksubstk_noerase k : NoErase (ksubstk k).
@@ -83,15 +86,12 @@ Proof.
    f_equal. apply napply_ksubstk.
 Qed.
 
-(** Shuo Li / W. Steiner proof : the partial sums of kseq grow with k.
-    Applications :
-    - the count of letter k decreases with k
-    - the count of letter 0 decreases with k
-*)
+(** More on PrefixSeq *)
 
-Lemma ksubstk_len k n : n <= k -> length (ksubstk k n) = S n.
+Lemma PrefixSeq_incl w u v :
+  length u <= length v -> PrefixSeq u w -> PrefixSeq v w -> Prefix u v.
 Proof.
- intros H. rewrite ksubstk_alt by trivial. simpl. f_equal. apply seq_length.
+ unfold PrefixSeq. intros H -> ->. now apply Prefix_take.
 Qed.
 
 Lemma PrefixSeq_alt s a :
@@ -150,6 +150,8 @@ Proof.
   intros u Hu. simpl. apply IHn, PrefixSeq_apply; trivial.
 Qed.
 
+(** PrefixSeq and kseq : *)
+
 Lemma ksubst_prefix k u :
  PrefixSeq u (kseq k) -> PrefixSeq (apply (ksubst k) u) (kseq k).
 Proof.
@@ -165,15 +167,17 @@ Proof.
   apply ksubst_prolong.
 Qed.
 
+
+(** Shuo Li / W. Steiner proof : the partial sums of kseq grow with k.
+    Applications :
+    - the count of letter k decreases with k
+    - the count of letter 0 decreases with k
+*)
+
 (** Where is the p-th letter k in [kseq k] ?
     We count occurrences from 0 : the 0-th letter k is at position 0 *)
 
 Definition positionk k p := length (apply (ksubstk k) (take p (kseq k))).
-
-Record IsPosition (f:sequence)(a:letter)(pos:nat->nat) :=
-  { PosIncr : IncrFun pos;
-    PosCorrect : forall p, f (pos p) = a;
-    PosComplete : forall n, f n = a -> exists p, n = pos p }.
 
 Lemma positionk_S k p : positionk k (S p) = positionk k p + S (kseq k p).
 Proof.
@@ -195,11 +199,6 @@ Proof.
  rewrite app_nth2 by (unfold positionk; lia).
  replace (_-_) with 0 by (unfold positionk; lia). simpl.
  now rewrite app_nil_r, ksubstk_alt by apply kseq_letters.
-Qed.
-
-Lemma kseq_k_0 k : kseq k 0 = k.
-Proof.
-  now rewrite kseq_bounded_rank.
 Qed.
 
 Lemma count_k_nz k n : 0 < n -> 0 < count (kseq k) k n.
@@ -315,13 +314,6 @@ Proof.
  case Nat.eqb_spec; simpl; lia.
 Qed.
 
-Lemma PrefixSeq_incl w u v :
-  length u <= length v ->
-  PrefixSeq u w -> PrefixSeq v w -> Prefix u v.
-Proof.
- unfold PrefixSeq. intros H -> ->. now apply Prefix_take.
-Qed.
-
 Lemma listsum_ksubst k u :
   listsum (apply (ksubst k) u) + nbocc k u = listsum u + length u.
 Proof.
@@ -400,74 +392,10 @@ Proof.
  - assert (H := cumul_kseq_grows k n Hn). lia.
 Qed.
 
-Lemma pos_count0 f a pos :
-  IsPosition f a pos ->
-  forall n, n <= pos 0 -> count f a n = 0.
-Proof.
- intros (P0,P1,P2) n Hn. apply count_0. intros m Hm E.
- destruct (P2 _ E) as (p,Hp).
- assert (pos p < pos 0) by lia.
- generalize (incr_monoiff pos P0 p 0). lia.
-Qed.
-
-Lemma pos_count f a pos :
- IsPosition f a pos ->
- forall n p, pos p < n <= pos (S p) -> count f a n = S p.
-Proof.
- intros (P0,P1,P2).
- induction n.
- - lia.
- - intros p Hp. simpl.
-   destruct (Nat.eq_dec n (pos p)) as [EQ|NE].
-   + rewrite EQ at 2. rewrite P1, Nat.eqb_refl, Nat.add_1_r. f_equal.
-     destruct (Nat.eq_dec p 0).
-     * subst p.
-       apply (pos_count0 f a pos); try lia. split; auto.
-     * rewrite (IHn (p-1)); try lia.
-       rewrite EQ. replace p with (S (p-1)) at 2 3 by lia.
-       split. apply P0. easy.
-   + assert (Hp2 : pos p < n <= pos (S p)) by lia.
-     rewrite (IHn _ Hp2).
-     case Nat.eqb_spec; intros E; try lia.
-     exfalso.
-     destruct (P2 _ E) as (p',Hp').
-     rewrite Hp' in Hp2. destruct Hp2 as (Hp3,Hp4).
-     apply (incr_monoiff _ P0) in Hp3.
-     rewrite Nat.le_ngt, <- (incr_monoiff _ P0), <- Nat.le_ngt in Hp4.
-     replace p' with (S p) in *; lia.
-Qed.
-
-Lemma gen_pos_count f f' a a' pos pos' :
-  IsPosition f a pos ->
-  IsPosition f' a' pos' ->
-  (forall p, pos p <= pos' p) ->
-  forall n, count f' a' n <= count f a n.
-Proof.
- intros (P0,P1,P2) (P0',P1',P2') LE.
- induction n as [n IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases n (pos' 0)) as [H0'|H0'].
- replace (count f' a' n) with 0. lia.
- { symmetry. apply count_0. intros p Hp E. destruct (P2' _ E) as (p',E').
-   assert (pos' p' < pos' 0) by lia.
-   generalize (incr_monoiff pos' P0' p' 0). lia. }
- assert (H0 : pos 0 < n) by (generalize (LE 0); lia).
- destruct (incr_function_bounds' pos P0 n H0) as (p & Hp).
- destruct (incr_function_bounds' pos' P0' n H0') as (p' & Hp').
- replace (count f a n) with (S p).
- 2:{ symmetry. apply (pos_count f a pos); try lia. split; auto. }
- replace (count f' a' n) with (S p').
- 2:{ symmetry. apply (pos_count f' a' pos'); try lia. split; auto. }
- apply -> Nat.succ_le_mono.
- assert (pos p' < n).
- { apply Nat.le_lt_trans with (pos' p'). apply LE. lia. }
- apply Nat.le_ngt. unfold lt. intros Hpp'.
- generalize (incr_mono pos P0 _ _ Hpp'). lia.
-Qed.
-
 Lemma countk_decreases k n :
   count (kseq (S k)) (S k) n <= count (kseq k) k n.
 Proof.
-  apply (gen_pos_count _ _ _ _ (positionk k) (positionk (S k))).
+  apply (IsPosition_count_anti _ _ _ _ (positionk k) (positionk (S k))).
   - apply positionk_is_position.
   - apply positionk_is_position.
   - apply positionk_grows.
@@ -666,7 +594,7 @@ Proof.
  destruct (Nat.eq_dec k 0) as [->|Hk].
  - transitivity n. apply count_subid. rewrite count_all; trivial.
    intros m _. generalize (kseq_letters 0 m). lia.
- - apply (gen_pos_count _ _ _ _ (position0 k) (position0 (S k))).
+ - apply (IsPosition_count_anti _ _ _ _ (position0 k) (position0 (S k))).
    + now apply position0_is_position.
    + now apply position0_is_position.
    + intros. now apply position0_grows.

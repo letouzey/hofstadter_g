@@ -236,6 +236,11 @@ Proof.
  apply napply_alt.
 Qed.
 
+Lemma kseq_k_0 k : kseq k 0 = k.
+Proof.
+ reflexivity.
+Qed.
+
 (** kword letters are always in 0..k *)
 
 Lemma ksubst_letters k w :
