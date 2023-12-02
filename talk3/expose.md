@@ -153,6 +153,29 @@ Mêmes propriétés de base que $G$, sauf que:
  
    avec $\tau \approx 0.6823$ racine réelle de $X^3+X-1$
 
+## Surprise !
+
+Posons $\delta(n) = H(n) - \tau.n$
+
+Affichage des points $(\delta(i),\delta(H(i))$ avec i=0..10000
+
+\includegraphics[width=\linewidth]{fractal.png}
+
+## Fractale de Rauzy et variantes
+
+ - Fractale précédente déjà connue, mais obtenue différemment.
+
+ - Variante de la fractale de Rauzy, via une autre
+   variante de Fibonacci et un autre nombre de Pisot-Vijayaraghavan,
+   mais l'étude est similaire.
+
+Références:
+
+ - G. Rauzy, \emph{Nombres algébriques et substitutions}, 1982.
+ - N. Pytheas Fogg, \emph{Substitutions in Dynamics, Arithmetics and
+ Combinatorics}, 2002
+
+
 ## Généralisons encore : une famille de fonctions $f_k$
 
 Notons $k+1$ le nombre d'appels récursifs souhaités. On définit:
@@ -234,7 +257,7 @@ Bref, $f_0$ est partout en dessous de $G$, qui est en dessous de $H$, etc
  - Preuve par reformulation en un problème de mots infinis.
 
 ##
-\section{Arbres rationnels}
+\section{Partie 2 : G vu comme arbre infini}
 
 ## Un arbre infini rationnel
 
@@ -277,11 +300,9 @@ G & = &
 \pause
 Combien de noeuds par niveau ?
 
-## Numérotons !
+## Numérotons les noeuds !
 
 Parcours en largeur, de gauche à droite
-
-\bigskip
 
 \begin{tikzpicture}[grow'=up]
 \Tree
@@ -293,11 +314,11 @@ Parcours en largeur, de gauche à droite
                [.13 [.21 33 34 ]]]]]
 \end{tikzpicture}
 \pause
-Départ à 3 ? Pour expliciter les nombres de Fibonacci...
+Départ à 3 ? Pour faire apparaître les nombres de Fibonacci...
 
-Ainsi, le noeud $n$ a $G(n)$ comme parent.
+Théorème: le noeud $n$ a $G(n)$ comme ancêtre.
 
-## Ajout d'une racine ad-hoc : l'arbre de G
+## Ajout d'un tronc : l'arbre de G
 
 \begin{tikzpicture}[grow'=up]
 \Tree
@@ -325,7 +346,7 @@ $f_k$ & = &
 \pause
 \bigskip
 
-Et toujours une racine ad-hoc (1 puis $k+1$ segments)
+Et encore un tronc sur mesure (1 puis $k+1$ segments)
 
 ## Arbre pour $f_2$ (H de Hofstadter)
 
@@ -352,139 +373,163 @@ Et toujours une racine ad-hoc (1 puis $k+1$ segments)
 \end{tikzpicture}
 
 ##
-\section{Fibonacci généralisé et numération}
+\section{Partie 3 : Fibonacci généralisé et numération}
 
-## Fibonacci 
+## Les nombres de Fibonacci
 
-\begin{align*}
+\begin{equation*}
+\begin{cases}
 F_0 &= 1 \\
 F_1 &= 2 \\
-F_{n+2} &= F_n + F_{n+1}
-\end{align*}
+F_{n+2} &= F_n + F_{n+1} \spa\spa\spa
+\end{cases}
+\end{equation*}
 
+\ski
 \pause
-\bigskip
+ $(F_i)$ :  1  2  3  5  8  13  21  34  55  89 $\ldots$
 
-NB: indices décalés pour éviter 0 et un double 1
+\ski
+
+NB: définition inhabituelle, pas de 0, un seul 1.
 
 ## Théorème de Zeckendorf
 
-\newcommand{\fibrest}{\ensuremath{\Sigma F_i}}
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
+de nombres de Fibonacci tous différents et sans voisins. Cette
+décomposition est unique.
+\end{minipage}
+}
 
-Une décomposition $n = \fibrest$ est *canonique* si elle est :
+Par exemple: $17 = 13 + 3 + 1 = F_5 + F_2 + F_0$
 
- (1) sans doublons
- (2) sans termes consécutifs
+On écrit alors parfois $17 = {100101}_{F}$
 
-Décomposition *relachée* : (1) mais pas forcément (2)
-
-\pause
-\bigskip
-
-Thm: tout entier naturel a une unique décomposition canonique.
-
-## Zeckendorf, variante
-
-Def: le *rang* d'une décomposition est l'indice du plus petit terme.
-
-\bigskip
-
-Algo: canonisation d'une décomposition relachée de n
-
- - le nombre de termes décroît ou stagne
- - le rang augmente (par pas de 2) ou stagne
+\begin{tabular}{lcr@{\spa}|lcr}
+1 & = & ${1}_F$      & 7 & = & ${1010}_F$ \\
+2 & = & ${10}_F$     & 8 & = & ${10000}_F$ \\
+3 & = & ${100}_F$    & 9 & = & ${10001}_F$ \\
+4 & = & ${101}_F$    & 10 & = & ${10010}_F$ \\
+5 & = & ${1000}_F$   & 11 & = & ${10100}_F$ \\
+6 & = & ${1001}_F$   & 12 & = & ${10101}_F$ \\
+\end{tabular}
 
 ## G et Fibonacci
 
  - \ensuremath{G(F_i) = F_{i-1}} (avec la convention \ensuremath{F_{0-1}=F_0=1})
 \pause
- - Plus généralement: $G(\Sigma F_i) = \Sigma F_{i-1}$
+
+ - Et même, $G$ décale les décompositions:
+ $G(\Sigma F_i) = \Sigma F_{i-1}$
 \pause
- - Cela marche même pour des décompositions relachées
- - Preuve selon le rang de la décomposition (0, pair>0, impair).
- - Nombreuses conséquences concernant G et le rang.
 
+ - Propriété cruciale, preuve délicate
 
+ - Exemple: $G(17) = G(100101_F) = 10011_F = 11$
+
+ - Voisins possibles dans la décomposition obtenue, on
+   peut la \emph{renormaliser} ensuite, p.ex. $10011_F = 10100_F = 11$
+
+ 
 ## Fibonacci généralisé
 
-Soit $k$ un entier naturel.
+Soit $k$ un entier naturel. On définit:
+\begin{equation*}
+\begin{cases}
+A^k_n &= n+1 \hfill \text{pour}\ n\le k \spa \\
+A^k_{n+1} &= A^k_{n} + A^k_{n-k} \spa \text{pour}\ n\ge k \spa
+\end{cases}
+\end{equation*}
 
-\begin{align*}
-A^k_0 &= 1 \\
-A^k_1 &= 2 \\
-... \\
-A^k_{k} &= k+1 \\
-A^k_{n+1} &= A^k_{n} + A^k_{n-k} & \text{pour}\ n\ge k
-\end{align*}
+\ski
+\pause
 
-## Fibonacci généralisé
-
-- $A^0$ : 1  2  4  8  16  32  64  128  256  512
-- $A^1$ : 1  2  3  5  8  13  21  34  55  89
-- $A^2$ : 1  2  3  4  6  9  13  19  28  41
-- $A^3$ : 1  2  3  4  5  7  10  14  19  26
-
-NB: $A^2$ est nommé Narayana’s Cows, cf. OEIS A930
+- $A^0$ : \textcolor{red}{1}  2  4  8  16  32  64  128  256  512
+  $\ldots$ (Puissances de 2)
+  
+- $A^1$ : \textcolor{red}{1  2}  3  5  8  13  21  34  55  89 $\ldots$
+  (Fibonacci $F_i$)
+  
+- $A^2$ : \textcolor{red}{1  2  3}  4  6  9  13  19  28  41 $\ldots$
+  (Naryana's Cows)
+  
+- $A^3$ : \textcolor{red}{1  2  3  4}  5  7  10  14  19  26 $\ldots$
 
 ## Zeckendorf généralisé
 
-\newcommand{\Arest}{\ensuremath{\Sigma A^k_i}}
+Soit $k$ un entier naturel.
 
-Soit $k$ fixé.
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
+de nombres $A^k_i$ dont les indices diffèrent tous d'au moins $k+1$.
+Cette décomposition est unique.
+\end{minipage}
+}
 
-\bigskip
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème: $f_k$ décale cette décomposition :
+ $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
+(toujours avec la convention $A^k_{0-1} = A^k_0 = 1$)
+\end{minipage}
+}
 
-$k$-décomposition $n = \Arest$ est *canonique* : indices distants $\ge (k+1)$
+Là encore, $f_k$ dénormalise au passage certaines décompositions.
 
-$k$-décomposition *relachée* : indices distants d'au moins $k$
-
-\pause
-\bigskip
-
-Thm: tout entier naturel a une unique $k$-décomposition canonique.
-
-Algo: on peut "renormaliser" une $k$-décomposition relachée.
-
-## Un peu d'arithmétique avec ces décompositions
-
-La décomposition de $n+1$ et $n-1$ peut s'obtenir raisonnablement bien
-à partir de celle de $n$. 
-
-Par contre pas d'addition, multiplication, etc.
-
-
-
-## $f_k$ et Fibonacci généralisé
-
- - \ensuremath{f_k(A^k_i) = A^k_{i-1}} (avec la convention \ensuremath{A^k_{0-1}=A^k_0=1})
-\pause
- - Plus généralement: $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
-\pause
- - Cela marche pour des décompositions canoniques ou relachées
- - Important : $f_k$ "stagne" en $n$ lorsque le rang de $n$ est 0
-   (i.e. lorsque $n$ a 1 dans sa décomposition)
-
+Important: $f_k$ "stagne" en $n$ lorsque $n$ contient $A^k_0=1$ dans
+sa décomposition.
 
 ##
-\section{Lien avec des mots morphiques}
+\section{Partie 4 : Lien avec des mots infinis}
 
 ## Une substitution de lettres
 
 Soit k un entier naturel.
-On utilise $\mathcal{A}=[0..k]$ comme alphabet.
+On utilise $\mathcal{A}=[0..k]$ comme alphabet et on définit
+une \emph{substitution} $\sigma_k : \mathcal{A} \to \mathcal{A}^*$ ainsi:
 
-\begin{align*}
-            & \mathcal{A} \to \mathcal{A}^* \\
-\sigma_k(n) &= (n+1) & \text{pour}\ n<k \\
-\sigma_k(k) &= k.0
-\end{align*}
+\begin{equation*}
+\begin{cases}
+\sigma_k(n) = (n+1) \spa \text{pour}\ n<k \\
+\sigma_k(k) = k.0
+\end{cases}
+\end{equation*}
+
 
 Ceci engendre un mot infini $m_k$ à partir de la lettre $k$
 (on parle de mot \emph{morphique})
 
-Par exemple $m_2 = 20122020120122012202...$
+Par exemple:
 
-## Equation récursive
+ - $m_1 = 1011010110110...$ (dual du mot de Fibonacci)
+
+ - $m_2 = 20122020120122012202...$
+
+## Vision par blocs de lettres
+
+Si l'on découpe $m_k$ à chaque lettre $k$ et que l'on marque la taille
+des blocs entre ces $k$, on réobtient $m_i$.
+
+Exemple: 
+
+\begin{tabular}{ccccccc}
+$m_2$ & = & \textcolor{red}{2}01 &
+          \textcolor{red}{2} &
+          \textcolor{red}{2}0 & 
+          \textcolor{red}{2}01 & 
+          \textcolor{red}{2}01... \\
+    & = & 2 & 0 & 1 & 2 & 2...
+\end{tabular}
+
+\pause
+
+A contrario, ceci donne une méthode d'expansion de $m_k$
+(c'est en fait la substitution $(\sigma_k)^k$).
+
+## Equation récursive alternative
 
 $m_k$ est la limite de $\sigma_k^n(k)$ quand $n\to\infty$
 
@@ -498,105 +543,16 @@ Remarque : $|M_{k,n}| = A^k_n$
 
 ## Lien avec $f_k$
 
-La $n$-ième lettre $(m_k)_n$ du mot infini $m_k$ est le rang de la
-$k$-decomposition de $n$ (ou $k$ si ce rang est plus de $k$).
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Theorème : si l'on projette vers 1 chaque lettre non-nulle de $m_k$,
+on obtient le mot infini des montées et des plats de $f_k$
+\end{minipage}}
 
-En particulier cette lettre est 0 si $f_k(n)=f_k(n+1)$
+Autrement dit, $f_k$ stagne là il y a des $0$ dans $m_k$.
 
-En cumulant : le nombre de 0 dans $m_k$ entre 0 et $n$ est $n-f_k(n)$.
-
-Plus généralement, compter les lettres au dessus de $p$ donne
-$f_k^{(p)}$. En particulier le nombre de $k$ est $f_k^{(k)}$.
-
-## Fréquences ?
-
-Quelle limite pour $f_k(n)/n$ lorsque $n\to \infty$ ?
-
- - Si elle existe, facile à déterminer, racine positive de $X^{k+1}+X-1$.
- - Preuve d'existence non triviale
- 
-Cf. K. Saari, \emph{On the Frequency of Letters in Morphic Sequences}.
-
-En Coq, il fallait déjà parler de racines, et d'équivalent infini de
-suites linéaires comme $A^k$.
-
-De fil en aiguille, preuve de la formule de Leibniz du determinant et
-determinant des matrices de Vandermonde...
-
-Assure la croissance des $f_k$ pour $n$ suffisemment grand.
-
-##
-\section{Cas k=2 (i.e. H)}
-
-
-## Surprise il y a quelques années
-
-Affichage des points $(\delta(i),\delta(H(i))$ avec i=0..10000
-et $\delta(n) = H(n) - n.\tau_2$
-
-
-\includegraphics[width=\linewidth]{fractal.png}
-
-## Fractale de Rauzy et variante
-
-Apparemment, la factale précédente est nommée Jacobi-Perron, proche de
-la fractale de Rauzy.
-
-G. Rauzy, \emph{Nombres algébriques et substitutions}, 1982
-
-- Dans son cas, suites de Tribonacci additionnant les trois derniers
-termes
-- Ici on additionne dernier et avant-avant-dernier termes
-
-L'étude est très similaire.
-
-## Application ici
-
-On obtient finalement:
-
-- $|H(n) - n.\tau_2|<0.996<1$
-- Et donc $H(n) = \lfloor n.\tau_2 \rfloor + 0~\text{ou}~1$
-- Et quasi-additivité de $H$ :
-  $\forall n m, -2 \le H(n+m)-H(n)-H(m) \le 2$
-
-## Nombres de Pisot
-
-Dixit Wikipédia: En mathématiques, un nombre de Pisot-Vijayaraghavan
- est un entier algébrique réel strictement supérieur à 1, dont tous
- les éléments conjugués ont un module strictement inférieur à 1.
-
-Ici la limite $\tau_2$ de $H(n)/n$ est la racine positive de $X^3+X-1$
-mais aussi l'inverse de la racine positive de $X^3-X^2-1$ qui est le
-nombre de Pisot $P_3$.
-
-
-
-##
-\section{Cas k=3, Pisot sans jolie fractale...}
-
-## Résultat principal pour k=3
-
-En suivant le même cheminement (pas encore formalisé en Coq)
-
-- $|f_3(n) - n.\tau_3|<1.998$
-- Et donc $-1 \le f_3(n) - \lfloor n.\tau_3 \rfloor \le 2$
-- Et quasi-additivité de $f_3$ :
-  $\forall n m, -5 \le H(n+m)-H(n)-H(m) \le 5$
-
-
-##
-\section{Cas k>3, $f_k(n) - n.\tau_k$ diverge}
-
-
-## Et en Coq ?
-
-Cf `FunG.v FunG_prog.v GenG.v` :
-
-- Décroissance non structurelle : pas de `Fixpoint` Coq ainsi
-- Spécification via un prédicat inductif
-- `recf` : une définition remaniée avec un compteur `p`
-- Possibilité d'utiliser `Program Fixpoint` (mais lourd)
-- Plus rapide : `fopt` fonctionnant par table
+Et en cumulant: le nombre de 0 dans $m_k$ parmi ses $n$ premières
+lettres donne $n-f_k(n)$.
 
 
 
@@ -613,7 +569,7 @@ Cf `FunG.v FunG_prog.v GenG.v` :
 - Des questions restantes concernant l'irréductibilité des polynômes rencontrés
 
 
-## Code Coq + cet exposé + ancien rapport technique
+## Code de ces preuves sur machine
 
 <https://github.com/letouzey/hofstadter_g>
 
