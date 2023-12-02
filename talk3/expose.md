@@ -1,5 +1,5 @@
 % Fonction G de Hofstadter et au-delà: un exemple curieux mêlant calculs et preuves sur ordinateur
-% Pierre Letouzey
+% Pierre Letouzey (IRIF, UPC, Inria)
 % FSMP, 2 décembre 2023
 
 ## Avertissement : la préparation de cet exposé a subi...
@@ -257,7 +257,261 @@ Bref, $f_0$ est partout en dessous de $G$, qui est en dessous de $H$, etc
  - Preuve par reformulation en un problème de mots infinis.
 
 ##
-\section{Partie 2 : G vu comme arbre infini}
+\section{Partie 2 : Fibonacci généralisé et numération}
+
+## Les nombres de Fibonacci
+
+\begin{equation*}
+\begin{cases}
+F_0 &= 1 \\
+F_1 &= 2 \\
+F_{n+2} &= F_n + F_{n+1} \spa\spa\spa
+\end{cases}
+\end{equation*}
+
+\ski
+\pause
+ $(F_i)$ :  1  2  3  5  8  13  21  34  55  89 $\ldots$
+
+\ski
+
+NB: définition inhabituelle, pas de 0, un seul 1.
+
+## Théorème de Zeckendorf
+
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
+de nombres de Fibonacci tous différents et sans voisins. Cette
+décomposition est unique.
+\end{minipage}
+}
+
+Par exemple: $17 = 13 + 3 + 1 = F_5 + F_2 + F_0$
+
+On écrit alors parfois $17 = {100101}_{F}$
+
+\begin{tabular}{lcr@{\spa}|lcr}
+1 & = & ${1}_F$      & 7 & = & ${1010}_F$ \\
+2 & = & ${10}_F$     & 8 & = & ${10000}_F$ \\
+3 & = & ${100}_F$    & 9 & = & ${10001}_F$ \\
+4 & = & ${101}_F$    & 10 & = & ${10010}_F$ \\
+5 & = & ${1000}_F$   & 11 & = & ${10100}_F$ \\
+6 & = & ${1001}_F$   & 12 & = & ${10101}_F$ \\
+\end{tabular}
+
+## G et Fibonacci
+
+ - \ensuremath{G(F_i) = F_{i-1}} (avec la convention \ensuremath{F_{0-1}=F_0=1})
+\pause
+
+ - Et même, $G$ décale les décompositions:
+ $G(\Sigma F_i) = \Sigma F_{i-1}$
+\pause
+
+ - Propriété cruciale, preuve délicate
+
+ - Exemple: $G(17) = G(100101_F) = 10011_F = 11$
+
+ - Voisins possibles dans la décomposition obtenue, on
+   peut la \emph{renormaliser} ensuite, p.ex. $10011_F = 10100_F = 11$
+
+ 
+## Fibonacci généralisé
+
+Soit $k$ un entier naturel. On définit:
+\begin{equation*}
+\begin{cases}
+A^k_n &= n+1 \hfill \text{pour}\ n\le k \spa \\
+A^k_{n+1} &= A^k_{n} + A^k_{n-k} \spa \text{pour}\ n\ge k \spa
+\end{cases}
+\end{equation*}
+
+\ski
+\pause
+
+- $A^0$ : \textcolor{red}{1}  2  4  8  16  32  64  128  256  512
+  $\ldots$ (Puissances de 2)
+  
+- $A^1$ : \textcolor{red}{1  2}  3  5  8  13  21  34  55  89 $\ldots$
+  (Fibonacci $F_i$)
+  
+- $A^2$ : \textcolor{red}{1  2  3}  4  6  9  13  19  28  41 $\ldots$
+  (Naryana's Cows)
+  
+- $A^3$ : \textcolor{red}{1  2  3  4}  5  7  10  14  19  26 $\ldots$
+
+## Zeckendorf généralisé
+
+Soit $k$ un entier naturel.
+
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
+de nombres $A^k_i$ dont les indices diffèrent tous d'au moins $k+1$.
+Cette décomposition est unique.
+\end{minipage}
+}
+
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Théorème: $f_k$ décale cette décomposition :
+ $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
+(toujours avec la convention $A^k_{0-1} = A^k_0 = 1$)
+\end{minipage}
+}
+
+Là encore, $f_k$ dénormalise au passage certaines décompositions.
+
+Important: $f_k$ "stagne" en $n$ lorsque $n$ contient $A^k_0=1$ dans
+sa décomposition.
+
+##
+\section{Partie 3 : Lien avec des mots infinis}
+
+## Une substitution de lettres
+
+Soit k un entier naturel.
+On utilise $\mathcal{A}=[0..k]$ comme alphabet et on définit
+une \emph{substitution} $\sigma_k : \mathcal{A} \to \mathcal{A}^*$ ainsi:
+
+\begin{equation*}
+\begin{cases}
+\sigma_k(n) = (n+1) \spa \text{pour}\ n<k \\
+\sigma_k(k) = k.0
+\end{cases}
+\end{equation*}
+
+
+Ceci engendre un mot infini $m_k$ à partir de la lettre $k$
+(on parle de mot \emph{morphique})
+
+Par exemple:
+
+ - $m_1 = 1011010110110...$ (dual du mot de Fibonacci)
+
+ - $m_2 = 20122020120122012202...$
+
+## Vision par blocs de lettres
+
+Si l'on découpe $m_k$ à chaque lettre $k$ et que l'on marque la taille
+des blocs entre ces $k$, on réobtient $m_i$.
+
+Exemple: 
+
+\begin{tabular}{ccccccc}
+$m_2$ & = & \textcolor{red}{2}01 &
+          \textcolor{red}{2} &
+          \textcolor{red}{2}0 & 
+          \textcolor{red}{2}01 & 
+          \textcolor{red}{2}01... \\
+    & = & 2 & 0 & 1 & 2 & 2...
+\end{tabular}
+
+\pause
+
+A contrario, ceci donne une méthode d'expansion de $m_k$
+(c'est en fait la substitution $(\sigma_k)^k$).
+
+## Equation récursive alternative
+
+$m_k$ est la limite de $\sigma_k^n(k)$ quand $n\to\infty$
+
+Mais aussi la limite de préfixes finis $M_{k,n}$ définis ainsi:
+
+- $M_{k,n}=k.0...(n-1)$ pour $n\le k$
+- $M_{k,n+1}=M_{k,n}.M_{k,n-k}$ pour $k\le n$
+
+\pause
+Remarque : $|M_{k,n}| = A^k_n$
+
+## Lien avec $f_k$
+
+\fcolorbox{blue}{white}{
+\begin{minipage}{0.9\linewidth}
+Theorème : si l'on projette vers 1 chaque lettre non-nulle de $m_k$,
+on obtient le mot infini des montées et des plats de $f_k$
+\end{minipage}}
+
+Autrement dit, $f_k$ stagne là il y a des $0$ dans $m_k$.
+
+Et en cumulant: le nombre de 0 dans $m_k$ parmi ses $n$ premières
+lettres donne $n-f_k(n)$.
+
+##
+\section{Partie 4 : Formalisation sur machine}
+
+## Comment définir $f_k$ en Coq ?
+
+Voir <https://github.com/letouzey/hofstadter_g>
+
+\footnotesize
+```coq
+Fixpoint recf k p n :=
+ match p, n with
+ | S p, S n => S n - Nat.iter (S k) (recf k p) n
+ | _, _ => 0
+ end.
+
+Definition f k n := recf k n n.
+
+Lemma f_k_0 : forall k, f k 0 = 0.
+Proof.
+ intro. compute. reflexivity.
+Qed.
+
+Lemma f_pred : forall k n, f k n = n - Nat.iter (S k) (f k) (n-1).
+Proof.
+ ...
+Qed.
+```
+
+
+## Quelques énoncés prouvés en Coq
+
+Voir <https://github.com/letouzey/hofstadter_g>
+
+\footnotesize
+```coq
+(* Action de f_k sur la décomposition de n en sommes de k-bonacci *)
+Lemma f_decomp : forall k n, f k n = sumA k (map pred (decomp k n)).
+Proof.
+ ...
+Qed.
+
+(* Proximité entre H = f 2 et son approximation linéaire *)
+Lemma h_natpart_or :
+ forall n, h n = nat_part (tau*n) \/ h n = S (nat_part (tau*n)).
+Proof.
+ ...
+Qed.
+
+(* Monotonie de la famille de fonctions f_k *)
+Theorem f_grows : forall k n, f k n <= f (S k) n.
+Proof.
+ ...
+Qed.
+```
+
+## Bilan
+
+- Au tout début: une plage, un livre, du papier !
+
+- Il reste encore des territoires à défricher, même d'approche
+  élémentaire.
+
+- Le calcul sur machine est essentiel pour affiner ses intuitions
+
+- Des preuves rapidement trop longues/complexes pour être
+  totalement fiabilisées par relecture humaine.
+  
+- Preuve sur machines : ardu, coûteux, mais faisable et gratifiant
+
+##
+\section{Questions ?}
+
+##
+\section{Partie 5 : G vu comme arbre infini}
 
 ## Un arbre infini rationnel
 
@@ -371,205 +625,3 @@ Et encore un tronc sur mesure (1 puis $k+1$ segments)
          [.7 13 14 ]
          [.8 15 16 ]]]]
 \end{tikzpicture}
-
-##
-\section{Partie 3 : Fibonacci généralisé et numération}
-
-## Les nombres de Fibonacci
-
-\begin{equation*}
-\begin{cases}
-F_0 &= 1 \\
-F_1 &= 2 \\
-F_{n+2} &= F_n + F_{n+1} \spa\spa\spa
-\end{cases}
-\end{equation*}
-
-\ski
-\pause
- $(F_i)$ :  1  2  3  5  8  13  21  34  55  89 $\ldots$
-
-\ski
-
-NB: définition inhabituelle, pas de 0, un seul 1.
-
-## Théorème de Zeckendorf
-
-\fcolorbox{blue}{white}{
-\begin{minipage}{0.9\linewidth}
-Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
-de nombres de Fibonacci tous différents et sans voisins. Cette
-décomposition est unique.
-\end{minipage}
-}
-
-Par exemple: $17 = 13 + 3 + 1 = F_5 + F_2 + F_0$
-
-On écrit alors parfois $17 = {100101}_{F}$
-
-\begin{tabular}{lcr@{\spa}|lcr}
-1 & = & ${1}_F$      & 7 & = & ${1010}_F$ \\
-2 & = & ${10}_F$     & 8 & = & ${10000}_F$ \\
-3 & = & ${100}_F$    & 9 & = & ${10001}_F$ \\
-4 & = & ${101}_F$    & 10 & = & ${10010}_F$ \\
-5 & = & ${1000}_F$   & 11 & = & ${10100}_F$ \\
-6 & = & ${1001}_F$   & 12 & = & ${10101}_F$ \\
-\end{tabular}
-
-## G et Fibonacci
-
- - \ensuremath{G(F_i) = F_{i-1}} (avec la convention \ensuremath{F_{0-1}=F_0=1})
-\pause
-
- - Et même, $G$ décale les décompositions:
- $G(\Sigma F_i) = \Sigma F_{i-1}$
-\pause
-
- - Propriété cruciale, preuve délicate
-
- - Exemple: $G(17) = G(100101_F) = 10011_F = 11$
-
- - Voisins possibles dans la décomposition obtenue, on
-   peut la \emph{renormaliser} ensuite, p.ex. $10011_F = 10100_F = 11$
-
- 
-## Fibonacci généralisé
-
-Soit $k$ un entier naturel. On définit:
-\begin{equation*}
-\begin{cases}
-A^k_n &= n+1 \hfill \text{pour}\ n\le k \spa \\
-A^k_{n+1} &= A^k_{n} + A^k_{n-k} \spa \text{pour}\ n\ge k \spa
-\end{cases}
-\end{equation*}
-
-\ski
-\pause
-
-- $A^0$ : \textcolor{red}{1}  2  4  8  16  32  64  128  256  512
-  $\ldots$ (Puissances de 2)
-  
-- $A^1$ : \textcolor{red}{1  2}  3  5  8  13  21  34  55  89 $\ldots$
-  (Fibonacci $F_i$)
-  
-- $A^2$ : \textcolor{red}{1  2  3}  4  6  9  13  19  28  41 $\ldots$
-  (Naryana's Cows)
-  
-- $A^3$ : \textcolor{red}{1  2  3  4}  5  7  10  14  19  26 $\ldots$
-
-## Zeckendorf généralisé
-
-Soit $k$ un entier naturel.
-
-\fcolorbox{blue}{white}{
-\begin{minipage}{0.9\linewidth}
-Théorème (Zeckendorf): tout nombre entier peut s'écrire comme somme
-de nombres $A^k_i$ dont les indices diffèrent tous d'au moins $k+1$.
-Cette décomposition est unique.
-\end{minipage}
-}
-
-\fcolorbox{blue}{white}{
-\begin{minipage}{0.9\linewidth}
-Théorème: $f_k$ décale cette décomposition :
- $f_k(\Sigma A^k_i) = \Sigma A^k_{i-1}$
-(toujours avec la convention $A^k_{0-1} = A^k_0 = 1$)
-\end{minipage}
-}
-
-Là encore, $f_k$ dénormalise au passage certaines décompositions.
-
-Important: $f_k$ "stagne" en $n$ lorsque $n$ contient $A^k_0=1$ dans
-sa décomposition.
-
-##
-\section{Partie 4 : Lien avec des mots infinis}
-
-## Une substitution de lettres
-
-Soit k un entier naturel.
-On utilise $\mathcal{A}=[0..k]$ comme alphabet et on définit
-une \emph{substitution} $\sigma_k : \mathcal{A} \to \mathcal{A}^*$ ainsi:
-
-\begin{equation*}
-\begin{cases}
-\sigma_k(n) = (n+1) \spa \text{pour}\ n<k \\
-\sigma_k(k) = k.0
-\end{cases}
-\end{equation*}
-
-
-Ceci engendre un mot infini $m_k$ à partir de la lettre $k$
-(on parle de mot \emph{morphique})
-
-Par exemple:
-
- - $m_1 = 1011010110110...$ (dual du mot de Fibonacci)
-
- - $m_2 = 20122020120122012202...$
-
-## Vision par blocs de lettres
-
-Si l'on découpe $m_k$ à chaque lettre $k$ et que l'on marque la taille
-des blocs entre ces $k$, on réobtient $m_i$.
-
-Exemple: 
-
-\begin{tabular}{ccccccc}
-$m_2$ & = & \textcolor{red}{2}01 &
-          \textcolor{red}{2} &
-          \textcolor{red}{2}0 & 
-          \textcolor{red}{2}01 & 
-          \textcolor{red}{2}01... \\
-    & = & 2 & 0 & 1 & 2 & 2...
-\end{tabular}
-
-\pause
-
-A contrario, ceci donne une méthode d'expansion de $m_k$
-(c'est en fait la substitution $(\sigma_k)^k$).
-
-## Equation récursive alternative
-
-$m_k$ est la limite de $\sigma_k^n(k)$ quand $n\to\infty$
-
-Mais aussi la limite de préfixes finis $M_{k,n}$ définis ainsi:
-
-- $M_{k,n}=k.0...(n-1)$ pour $n\le k$
-- $M_{k,n+1}=M_{k,n}.M_{k,n-k}$ pour $k\le n$
-
-\pause
-Remarque : $|M_{k,n}| = A^k_n$
-
-## Lien avec $f_k$
-
-\fcolorbox{blue}{white}{
-\begin{minipage}{0.9\linewidth}
-Theorème : si l'on projette vers 1 chaque lettre non-nulle de $m_k$,
-on obtient le mot infini des montées et des plats de $f_k$
-\end{minipage}}
-
-Autrement dit, $f_k$ stagne là il y a des $0$ dans $m_k$.
-
-Et en cumulant: le nombre de 0 dans $m_k$ parmi ses $n$ premières
-lettres donne $n-f_k(n)$.
-
-
-
-
-## Conclusions & Perspectives
-
-- On trouve encore des conjectures "abordables" sur OEIS
-- Et aussi parfois des petites choses fausses...
-\pause
-- Des preuves étonnemment délicates pour de "simples" entiers.
-- Merci Coq !
-- Peut-on éviter ces "détours" via $\mathbb{R}$ et $\mathbb{C}$ ?
-- Quid de la conjecture ?
-- Des questions restantes concernant l'irréductibilité des polynômes rencontrés
-
-
-## Code de ces preuves sur machine
-
-<https://github.com/letouzey/hofstadter_g>
-
