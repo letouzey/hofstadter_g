@@ -108,11 +108,7 @@ Proof.
  assert (tau (S k) ^ (S (S k)) < tau k ^(S k)); try lra.
  { apply Rle_lt_trans with (tau k ^(S (S k))).
    - apply pow_incr. generalize (tau_itvl (S k)); lra.
-   - remember (S k) as k'. simpl.
-     rewrite <- (Rmult_1_l (tau k ^k')) at 2.
-     apply Rmult_lt_compat_r.
-     * apply pow_lt. generalize (tau_itvl k); lra.
-     * generalize (tau_itvl k); lra. }
+   - remember (S k) as k'. simpl. generalize (tau_itvl k); nra. }
 Qed.
 
 Lemma mu_decr k : mu (S k) < mu k.
