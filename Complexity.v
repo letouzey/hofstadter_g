@@ -1,4 +1,4 @@
-Require Import MoreFun MoreList DeltaList FunG GenFib GenG Words Words2.
+Require Import MoreFun MoreList DeltaList GenFib GenG Words Words2.
 Import ListNotations.
 
 (** * Follow-up of [Words.v] : Complexity of infinite word [kseq k] *)
