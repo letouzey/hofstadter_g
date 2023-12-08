@@ -390,17 +390,81 @@ Qed.
 
 (** Upper bound of the elements of a list *)
 
-Fixpoint listmax l :=
+Fixpoint minlist a l :=
  match l with
- | nil => O
- | n::l' => Nat.max n (listmax l')
+ | [] => a
+ | b::l => Nat.min b (minlist a l)
  end.
 
-Lemma listmax_above l : forall n, List.In n l -> n <= listmax l.
+Fixpoint maxlist a l :=
+ match l with
+ | [] => a
+ | b::l => Nat.max b (maxlist a l)
+ end.
+
+Definition extrems l :=
+  match l with
+  | [] => (0,0)
+  | a::l => (minlist a l, maxlist a l)
+  end.
+
+Lemma minlist_spec a l x : In x (a::l) -> minlist a l <= x.
 Proof.
- induction l; inversion 1; simpl; subst. apply Nat.le_max_l.
- transitivity (listmax l); auto. apply Nat.le_max_r.
+ induction l as [|b l IH].
+ - intros [->|[ ]]. simpl. auto.
+ - simpl in *. intuition; lia.
 Qed.
+
+Lemma minlist_in a l : In (minlist a l) (a::l).
+Proof.
+ induction l as [|b l IH].
+ - simpl; now left.
+ - simpl minlist.
+   destruct (Nat.min_spec b (minlist a l)) as [(_,->)|(_,->)];
+    simpl in *; intuition.
+Qed.
+
+Lemma maxlist_spec a l x : In x (a::l) -> x <= maxlist a l.
+Proof.
+ induction l as [|b l IH].
+ - intros [->|[ ]]. simpl. auto.
+ - simpl in *. intuition; lia.
+Qed.
+
+Lemma maxlist0_above l n : In n l -> n <= maxlist 0 l.
+Proof.
+ revert n.
+ induction l; inversion 1; simpl; subst. apply Nat.le_max_l.
+ transitivity (maxlist 0 l); auto. apply Nat.le_max_r.
+Qed.
+
+Lemma maxlist_in a l : In (maxlist a l) (a::l).
+Proof.
+ induction l as [|b l IH].
+ - simpl; now left.
+ - simpl maxlist.
+   destruct (Nat.max_spec b (maxlist a l)) as [(_,->)|(_,->)];
+    simpl in *; intuition.
+Qed.
+
+Lemma extrems_spec l a b x : In x l -> extrems l = (a,b) -> a<=x<=b.
+Proof.
+ intros IN.
+ destruct l as [|n l]; try easy.
+ simpl. intros [= <- <-]. split.
+ now apply minlist_spec. now apply maxlist_spec.
+Qed.
+
+Lemma extrems_in1 l : l<>[] -> In (fst (extrems l)) l.
+Proof.
+ destruct l. easy. intros _. simpl fst. apply minlist_in.
+Qed.
+
+Lemma extrems_in2 l : l<>[] -> In (snd (extrems l)) l.
+Proof.
+ destruct l. easy. intros _. simpl fst. apply maxlist_in.
+Qed.
+
 
 (** Decreasing all elements of a list *)
 

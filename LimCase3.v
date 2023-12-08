@@ -930,9 +930,9 @@ Lemma best_4packν l :
   Rabs (Rlistsum (List.map (pow ν) l)) <= max4packν / (1 - ν ^16).
 Proof.
  intros D.
- assert (B := listmax_above l).
+ assert (B := maxlist0_above l).
  setoid_rewrite <- Nat.lt_succ_r in B.
- set (N := S (listmax l)). change (Below l N) in B. clearbody N.
+ set (N := S (maxlist 0 l)). change (Below l N) in B. clearbody N.
  revert l D B.
  induction N as [N IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases N 16).
@@ -1130,9 +1130,9 @@ Lemma best_4packa l :
    max4packa / (1 - Cmod α ^16).
 Proof.
  intros D.
- assert (B := listmax_above l).
+ assert (B := maxlist0_above l).
  setoid_rewrite <- Nat.lt_succ_r in B.
- set (N := S (listmax l)). change (Below l N) in B. clearbody N.
+ set (N := S (maxlist 0 l)). change (Below l N) in B. clearbody N.
  revert l D B.
  induction N as [N IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases N 16).

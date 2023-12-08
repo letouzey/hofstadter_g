@@ -270,46 +270,6 @@ Proof.
  - rewrite Nat.add_succ_r. simpl. f_equal; auto.
 Qed.
 
-Fixpoint minlist a l :=
- match l with
- | [] => a
- | b::l => Nat.min b (minlist a l)
- end.
-
-Fixpoint maxlist a l :=
- match l with
- | [] => a
- | b::l => Nat.max b (maxlist a l)
- end.
-
-Definition extrems l :=
-  match l with
-  | [] => (0,0)
-  | a::l => (minlist a l, maxlist a l)
-  end.
-
-Lemma minlist_spec a l x : In x (a::l) -> minlist a l <= x.
-Proof.
- induction l as [|b l IH].
- - intros [->|[ ]]. simpl. auto.
- - simpl in *. intuition; lia.
-Qed.
-
-Lemma maxlist_spec a l x : In x (a::l) -> x <= maxlist a l.
-Proof.
- induction l as [|b l IH].
- - intros [->|[ ]]. simpl. auto.
- - simpl in *. intuition; lia.
-Qed.
-
-Lemma extrems_spec l a b x : In x l -> extrems l = (a,b) -> a<=x<=b.
-Proof.
- intros IN.
- destruct l as [|n l]; try easy.
- simpl. intros [= <- <-]. split.
- now apply minlist_spec. now apply maxlist_spec.
-Qed.
-
 Definition calc_additivity k p bound := extrems (all_diffs k p bound).
 
 Lemma decide_additivity k p a b : k<>0 ->
