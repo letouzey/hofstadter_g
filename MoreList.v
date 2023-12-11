@@ -28,6 +28,13 @@ Proof.
  intros [= E] [= <- E']. apply IHu in E'; trivial. intuition congruence.
 Qed.
 
+Lemma app_inv' {A} (u u' v v' : list A) :
+ length u' = length v' -> u ++ u' = v ++ v' -> u = v /\ u' = v'.
+Proof.
+ intros L E. apply app_inv; trivial.
+ apply (f_equal (@length A)) in E. rewrite !app_length in E. lia.
+Qed.
+
 Lemma split_inv {A} (x:A) u u' v v' :
  ~In x u -> ~In x u' -> u++x::v = u'++x::v' -> u=u' /\ v=v'.
 Proof.
@@ -694,6 +701,12 @@ Proof.
  split. lia. intros n a Hn. now rewrite P, P' by lia.
 Qed.
 
+Lemma Prefix_app_r {A} (u v w : list A) :
+  Prefix v w -> Prefix (u++v) (u++w).
+Proof.
+ intros (v' & <-). exists v'. now rewrite app_assoc.
+Qed.
+
 Lemma Prefix_app {A} (u v w : list A) :
  Prefix u (v++w) -> Prefix u v \/ exists u', u = v++u' /\ Prefix u' w.
 Proof.
@@ -752,6 +765,12 @@ Proof.
  now exists [].
 Qed.
 
+Lemma Suffix_trans {A} (u v w : list A) :
+  Suffix u v -> Suffix v w -> Suffix u w.
+Proof.
+ intros (u',<-) (v',<-). exists (v'++u'). now rewrite app_assoc.
+Qed.
+
 Lemma Suffix_len {A} (u v : list A) : Suffix u v -> length u <= length v.
 Proof.
  intros (w,<-). rewrite app_length. lia.
@@ -778,6 +797,13 @@ Proof.
  intros ([|a' w],E).
  - now left.
  - right. injection E as -> E. now exists w.
+Qed.
+
+Lemma Suffix_Suffix {A} (u v w : list A) : length u <= length v ->
+  Suffix u w -> Suffix v w -> Suffix u v.
+Proof.
+ rewrite <- !Prefix_rev_Suffix. intro. apply Prefix_Prefix.
+ now rewrite !rev_length.
 Qed.
 
 Lemma Suffix_app_inv {A} (u v w : list A) :
@@ -913,6 +939,12 @@ Proof.
  - rewrite <- (seq_length n a) at 1. apply firstn_all.
  - rewrite seq_S, firstn_app, IHle.
    rewrite seq_length. replace (n-m) with 0 by lia. simpl. apply app_nil_r.
+Qed.
+
+Lemma firstn_take {A} (f:nat -> A) n m :
+  n <= m -> firstn n (take m f) = take n f.
+Proof.
+ intros. unfold take. now rewrite firstn_map, firstn_seq.
 Qed.
 
 Lemma skipn_seq a b n : skipn n (seq a b) = seq (n+a) (b-n).

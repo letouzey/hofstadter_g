@@ -94,6 +94,12 @@ Proof.
  unfold PrefixSeq. intros H -> ->. now apply Prefix_take.
 Qed.
 
+Lemma PrefixSeq_unique w u v :
+  length u = length v -> PrefixSeq u w -> PrefixSeq v w -> u = v.
+Proof.
+ intros. apply Prefix_antisym; eapply PrefixSeq_incl; eauto; lia.
+Qed.
+
 Lemma PrefixSeq_alt s a :
   NoErase s -> Prolong s a ->
   forall u,
