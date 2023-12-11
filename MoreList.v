@@ -196,6 +196,12 @@ Proof.
  induction l; simpl; auto. rewrite map_app. now f_equal.
 Qed.
 
+Lemma flatmap_map {A B C} (f:A->B)(g:B -> list C) l :
+ flat_map g (map f l) = flat_map (compose g f) l.
+Proof.
+ rewrite !flat_map_concat_map. f_equal. apply map_map.
+Qed.
+
 (** More on Coq Permutation predicate *)
 
 Lemma eq_Permutation {A} (l l':list A) : l = l' -> Permutation l l'.

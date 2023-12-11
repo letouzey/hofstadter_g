@@ -778,7 +778,7 @@ Lemma diff0_decomp_eqn n :
                       (decomp 3 n)).
 Proof.
  unfold diff0.
- rewrite decomp_prefix_kseq. unfold kwords.
+ rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
  rewrite Diff0_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.

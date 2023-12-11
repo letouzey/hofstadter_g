@@ -27,17 +27,19 @@ Definition PrefixSeq (u:word) (f:sequence) := u = take (length u) f.
 
 Definition subst := letter -> word.
 
-Fixpoint apply (s:subst) w :=
-  match w with
-  | [] => []
-  | a::w => s a ++ apply s w
-  end.
+Definition apply : subst -> word -> word := @flat_map _ _.
 
 Fixpoint napply (s:subst) n w :=
   match n with
   | 0 => w
   | S n => napply s n (apply s w)
   end.
+
+Lemma napply_is_iter s n w : napply s n w = (apply s ^^n) w.
+Proof.
+ revert w.
+ induction n; auto. intros. now rewrite iter_S, <- IHn.
+Qed.
 
 Lemma napply_1 s u : napply s 1 u = apply s u.
 Proof.
@@ -46,13 +48,12 @@ Qed.
 
 Lemma apply_app s u v : apply s (u++v) = apply s u ++ apply s v.
 Proof.
- induction u; simpl; auto.
- now rewrite IHu, app_assoc.
+ apply flat_map_app.
 Qed.
 
 Lemma apply_alt s w : apply s w = concat (map s w).
 Proof.
- induction w; simpl; auto. now f_equal.
+ apply flat_map_concat_map.
 Qed.
 
 Lemma napply_nil s n : napply s n [] = [].
@@ -85,8 +86,8 @@ Proof.
  - now rewrite Nat.add_succ_l, !napply_alt, IHn.
 Qed.
 
-Lemma napply_concat s n w :
-  napply s n w = concat (map (fun a => napply s n [a]) w).
+Lemma napply_flat_map s n w :
+  napply s n w = flat_map (fun a => napply s n [a]) w.
 Proof.
  induction w; simpl; auto using napply_nil.
  rewrite napply_cons. now f_equal.
@@ -632,7 +633,7 @@ Qed.
 
 (** Full decomposition of any prefix of kword, then kseq (used in Lim) *)
 
-Definition kwords k (l:list nat) : word := concat (map (kword k) l).
+Definition kwords k (l:list nat) : word := flat_map (kword k) l.
 
 Lemma kwords_singl k n : kwords k [n] = kword k n.
 Proof.
@@ -641,7 +642,7 @@ Qed.
 
 Lemma kwords_app k l l' : kwords k (l++l') = kwords k l ++ kwords k l'.
 Proof.
- unfold kwords. now rewrite map_app, concat_app.
+ apply flat_map_app.
 Qed.
 
 Lemma kwords_cons k a l : kwords k (a::l) = kword k a ++ kwords k l.
@@ -652,8 +653,7 @@ Qed.
 Lemma ksubst_kwords k l :
  apply (ksubst k) (kwords k l) = kwords k (map S l).
 Proof.
- induction l; simpl; auto.
- now rewrite !kwords_cons, apply_app, IHl, <- kword_S.
+ induction l; simpl; auto. now rewrite apply_app, IHl, <- kword_S.
 Qed.
 
 Lemma decomp_prefix_kword k w n l :
@@ -670,12 +670,12 @@ Proof.
      rewrite E'. simpl length. unfold letter in *. set (p := length w') in *.
      rewrite decomp_low by lia.
      replace (S _ -1) with p by lia. intros ->. simpl.
-     rewrite kwords_singl, kword_low, <-P' by lia. trivial.
+     rewrite app_nil_r, kword_low, <-P' by lia. trivial.
  - assert (P' := P). destruct P' as ([|a u] & E).
    + rewrite app_nil_r in E. rewrite E. rewrite kword_len.
      replace (decomp k (A k n)) with [n].
      2:{ symmetry; apply decomp_carac; try constructor; simpl; auto. }
-     intros ->. simpl. now rewrite kwords_singl.
+     intros ->. simpl. now rewrite app_nil_r.
    + assert (LT : length w < A k n).
      { rewrite <- kword_len, <- E, app_length. simpl. lia. }
      clear  E.
@@ -686,7 +686,7 @@ Proof.
      * rewrite app_length, kword_len in *.
        rewrite Nat.add_comm, decomp_plus_A by (simpl in LT; lia).
        rewrite rev_app_distr. intros ->. rewrite kwords_app.
-       simpl. f_equal. now rewrite kwords_singl.
+       simpl. f_equal. now rewrite app_nil_r.
        apply (IH (n-k)); auto. lia.
 Qed.
 
@@ -746,7 +746,8 @@ Lemma count_kseq_decomp k n a :
   listsum (map (fun m => nbocc a (kword k m)) (decomp k n)).
 Proof.
  rewrite count_nbocc, decomp_prefix_kseq. unfold kwords.
- rewrite nbocc_concat. now rewrite map_map, map_rev, listsum_rev.
+ rewrite flat_map_concat_map, nbocc_concat.
+  now rewrite map_map, map_rev, listsum_rev.
 Qed.
 
 (** Occurrences of letters when applying ksubst *)
@@ -995,7 +996,7 @@ Lemma Saari_lemma4 s a n w G M1 MG : G<>0 -> n<>0 ->
  NoErase s ->
  Prefix w (napply s n [a]) ->
  exists l : list (nat * word), exists z,
-  w = concat (map (fun '(ni,ui) => napply s ni ui) l) ++ z
+  w = flat_map (fun '(ni,ui) => napply s ni ui) l ++ z
   /\ Forall (fun '(ni,ui) => length ui <= M1 /\ G <= ni < n) l
   /\ DeltaRev 1 (map fst l)
   /\ length z <= MG.
@@ -1044,7 +1045,7 @@ Lemma Saari_lemma4_bis s a n w G MG : G<>0 -> n<>0 ->
  NoErase s ->
  Prefix w (napply s n [a]) ->
  exists l : list (nat * letter), exists z,
-  w = concat (map (fun '(ni,ui) => napply s ni [ui]) l) ++ z
+  w = flat_map (fun '(ni,ui) => napply s ni [ui]) l ++ z
   /\ Forall (fun '(ni,ui) => G <= ni /\ Reachable s a ui) l
   /\ length z <= MG.
 Proof.
@@ -1064,7 +1065,8 @@ Proof.
      as (l & z & EQ & F & LE); auto; try lia. clear IH.
    exists (map (fun u => (n,u)) w1 ++ l), z; repeat split; auto.
    + simpl. rewrite H2, EQ. rewrite <- app_ass. f_equal.
-     now rewrite map_app, map_map, napply_concat, concat_app.
+     rewrite flat_map_app. f_equal.
+     now rewrite flatmap_map, napply_flat_map.
    + apply Forall_app; split.
      * rewrite Forall_forall. intros (p,c).
        rewrite in_map_iff. intros (x & [= <- <-] & IN). split. lia.
@@ -1096,7 +1098,7 @@ Qed.
 Lemma Saari_lemma4_ksubst k n w G : G<>0 -> n<>0 ->
  Prefix w (kword k n) ->
  exists l : list nat, exists z,
-  w = concat (map (kword k) l) ++ z
+  w = flat_map (kword k) l ++ z
   /\ Forall (Nat.le G) l
   /\ length z <= A k (k+G).
 Proof.
@@ -1106,7 +1108,7 @@ Proof.
  - apply Bound_A.
  - apply ksubst_noerase.
  - exists (map (fun '(ni,ui) => ni+ui-k) l); exists z; repeat split; trivial.
-   + rewrite E. f_equal. f_equal.
+   + rewrite E. f_equal. rewrite !flat_map_concat_map. f_equal.
      rewrite map_map. simpl. apply map_ext_in.
      intros (ni,ui) IN.
      rewrite Forall_forall in F. destruct (F _ IN) as (U,V).

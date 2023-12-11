@@ -198,10 +198,10 @@ Proof.
  rewrite <- (Rabs_right (S n)) at 1 by lra.
  rewrite <- R_dist_mult_l.
  unfold Rdiv. rewrite <- Rmult_assoc, Rinv_r_simpl_m by lra.
- rewrite E.
+ rewrite E, flat_map_concat_map.
  rewrite nbocc_app, nbocc_concat, map_map. rewrite plus_INR.
  rewrite <- Hw, E, app_length at 1. rewrite plus_INR, Rmult_plus_distr_r.
- rewrite length_concat, map_map.
+ rewrite flat_map_concat_map, length_concat, map_map.
  eapply Rle_lt_trans. apply R_dist_plus.
  replace eps with (eps/2 + eps/2) by field.
  rewrite Rmult_plus_distr_l.
@@ -228,7 +228,7 @@ Proof.
    rewrite Rmult_comm.
    apply Rlt_le. apply HG.
    rewrite <- Hw, E, app_length, plus_INR, Rmult_plus_distr_r.
-   rewrite length_concat, map_map.
+   rewrite flat_map_concat_map, length_concat, map_map.
    rewrite listsum_INR, Rlistsum_distr, !map_map.
    rewrite (map_ext (fun x => length _ * (eps/2))
                     (fun x => A k x * (eps/2))).

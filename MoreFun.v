@@ -4,7 +4,7 @@ From Coq Require Import Arith Lia.
 
 Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).
 
-Lemma iter_S (f:nat->nat) n p : (f^^(S n)) p = (f^^n) (f p).
+Lemma iter_S {A} (f:A->A) n p : (f^^(S n)) p = (f^^n) (f p).
 Proof.
  revert p.
  induction n as [|n IH]; intros; trivial. simpl. now rewrite <- IH.
