@@ -732,35 +732,87 @@ Proof.
 Time Qed. (* 50s *)
 *)
 
-(** Any kprefix u longer than (k+2) can be decomposed into
+(** Any kprefix u longer than (k+2) can be decomposed uniquely into
     - the larger possible kword which is a strict prefix of u.
-    - and then the only strict suffix of u which is also a kprefix.
+    - and then a strict suffix of u which is also a kprefix.
 *)
 
-Definition prevkword k q := kword k (pred (invA_up k q)).
+Definition invA_low k q := pred (invA_up k q).
+Definition prevkword k q := kword k (invA_low k q).
 Definition prevkprefix k q := kprefix k (q - length (prevkword k q)).
+
+(** [invA_low k q] is the largest index of A numbers strictly below q *)
+
+Lemma invA_low_spec k q :
+  2 <= q -> A k (invA_low k q) < q <= A k (S (invA_low k q)).
+Proof.
+ unfold invA_low, invA_up. cbn - [A]. generalize (invA_spec k (q-2)); lia.
+Qed.
+
+Lemma invA_low_spec' k q p :
+  A k p < q <= A k (S p) -> invA_low k q = p.
+Proof.
+ intros. unfold invA_low, invA_up. simpl. apply invA_spec'.
+ generalize (A_nz k p). lia.
+Qed.
+
+Lemma invA_low_pred k q :
+  invA_low k q = invA_low k (q-1) \/ invA_low k q = S (invA_low k (q-1)).
+Proof.
+ destruct (Nat.le_gt_cases q 2).
+ - unfold invA_low, invA_up. simpl.
+   replace (q-2) with 0; replace (q-1-2) with 0; lia.
+ - destruct (invA_low_spec k q); try lia.
+   destruct (invA_low_spec k (q-1)); try lia.
+   set (p := invA_low k q) in *.
+   set (p' := invA_low k (q-1)) in *.
+   assert (p' <= p). { apply Nat.lt_succ_r. apply (@A_lt_inv k). lia. }
+   assert (p <= S p'). { apply (@A_le_inv k). lia. }
+   lia.
+Qed.
+
+Lemma invA_low_flat k q :
+ 2 < q -> invA_low k q = invA_low k (q-1) <-> A k (invA_low k q) < q-1.
+Proof.
+ intros Q.
+ destruct (invA_low_spec k q); try lia.
+ destruct (invA_low_spec k (q-1)); try lia.
+ set (p := invA_low k q) in *.
+ set (p' := invA_low k (q-1)) in *.
+ split.
+ - now intros <-.
+ - intros. apply Nat.le_antisymm.
+   + apply Nat.lt_succ_r. apply (@A_lt_inv k). lia.
+   + apply Nat.lt_succ_r. apply (@A_lt_inv k). lia.
+Qed.
+
+Lemma invA_low_nonflat k q :
+ 2 < q -> invA_low k q <> invA_low k (q-1) <-> q = S (A k (invA_low k q)).
+Proof.
+ intros.
+ rewrite invA_low_flat by trivial. generalize (invA_low_spec k q). lia.
+Qed.
 
 Lemma prevkword_eqn k q :
   k+2 <= q -> prevkword k q ++ prevkprefix k q = kprefix k q.
 Proof.
  intros H. unfold prevkprefix, prevkword. rewrite kword_len.
- set (q' := pred _). unfold invA_up in q'. simpl in q'.
- destruct (invA_spec k (q-2)) as (Lo,Hi). fold q' in Lo, Hi.
- apply PrefixSeq_unique with (kseq k).
+ assert (H' : 2 <= q) by lia.
+ destruct (invA_low_spec k q H') as (Lo,Hi).
+ eapply PrefixSeq_unique; eauto using kprefix_ok.
  - rewrite app_length, kword_len, !kprefix_length. lia.
- - apply Prefix_PrefixSeq with (kword k (S q')); try apply kword_prefixseq.
+ - set (p := invA_low k q) in *.
+   apply Prefix_PrefixSeq with (kword k (S p)); try apply kword_prefixseq.
    rewrite kword_alt.
    2:{ apply Nat.succ_le_mono. apply (A_le_inv k).
        rewrite A_base by lia. lia. }
    apply Prefix_app_r.
    apply kprefix_prefix_kword. rewrite A_S in Hi. lia.
- - apply kprefix_ok.
 Qed.
 
 Lemma prevkword_length k q : 2 <= q -> length (prevkword k q) < q.
 Proof.
- unfold prevkword. rewrite kword_len.
- unfold invA_up. simpl. destruct (invA_spec k (q-2)). lia.
+ unfold prevkword. rewrite kword_len. intros. now apply invA_low_spec.
 Qed.
 
 Lemma prevkprefix_length k q : 2 <= q -> 0 < length (prevkprefix k q) < q.
@@ -769,15 +821,14 @@ Proof.
  unfold prevkprefix. rewrite kprefix_length. split.
  - generalize (prevkword_length k q H). lia.
  - unfold prevkword. rewrite kword_len.
-   set (q' := pred _). generalize (A_nz k q'). lia.
+   generalize (A_nz k (invA_low k q)). lia.
 Qed.
 
-Lemma prevkword_length_low k q :
-  2 <= q <= k+3 -> length (prevkword k q) = q-1.
+Lemma invA_low_low k q :
+  2 <= q <= k+3 -> A k (invA_low k q) = q-1.
 Proof.
  intros Hq.
- unfold prevkword. rewrite kword_len.
- unfold invA_up. simpl. destruct (invA_spec k (q-2)) as (Lo,Hi).
+ unfold invA_low, invA_up. simpl. destruct (invA_spec k (q-2)) as (Lo,Hi).
  set (p := invA k (q-2)) in *.
  assert (p <= q-2).
  { apply (A_le_inv k). rewrite <- (@A_base k) in Lo; lia. }
@@ -786,13 +837,18 @@ Proof.
  apply A_lt_inv in Hi. lia.
 Qed.
 
+Lemma prevkword_length_low k q :
+  2 <= q <= k+3 -> length (prevkword k q) = q-1.
+Proof.
+ intros Hq. unfold prevkword. rewrite kword_len. now apply invA_low_low.
+Qed.
+
 Lemma prevkword_low k q :
   2 <= q <= k+3 -> prevkword k q = kword k (q-2).
 Proof.
  intros Hq.
  assert (H := prevkword_length_low k q Hq).
  unfold prevkword in *. f_equal. rewrite kword_len in H.
- set (p := pred _) in *.
  apply (A_inj k). rewrite H. rewrite A_base; lia.
 Qed.
 
@@ -900,9 +956,12 @@ take 5
 201220201
 
 
-u0 kprefix donc u finit par k
+u0 kprefix donc u finit par k u =u'k
 et u = s(v) donc v finit par k-1, v = w.k-1
+s(w.k-1) = s(v) = u'k
 du coup s(w.k) = s(w).k0 = u0 et pas deux zero de suite donc wk prefix
+
+Mais pas suffix...x
 
 v'v est kword (p-1) qui finit donc par (k-1)
 
@@ -922,7 +981,6 @@ Il y a des kword finissant par k (un sur k+1)
 20122020120122012202012202012012202012012 --
 
 *)
-
 
 Lemma kprefix_suffixwords_kword k n :
  k<>0 -> n<>0 -> SuffixWords (kprefix k n) (kword k) -> exists p, n = A k p.
@@ -982,10 +1040,43 @@ Proof.
      now rewrite E, V, Q, kprefix_A_kword, <- kword_S, kword_len.
 Admitted.
 
+(*
+u++v  kprefix
+u suffix (et donc ici aussi prefix)
+v prefix donc commence par k<>0
+
+donc u=s(u') et u' aussi prefix
+distinguo :
+ - si u++v suivi par <>0
+   alors u++v=s(w') et w' aussi prefix et a u' comme prefix
+   donc exists v', w'=u'v' et s(v')=v
+
+   * soit kprefix v suivi par <>0
+     et alors v' aussi kprefix, IH sur u',v' ça devrait suivre
+   * soit kprefix v suivi par 0 (ie v Right-Special)
+     donc v' finit par (k-1)
+    ET ENSUITE ?
+
+ - si u++v suivi par 0
+   alors u++v.0 = s(w') et w' aussi prefix et a donc u' comme prefix
+   donc exists v', w'=u'v' et s(v')=v.0 (v et v' finissent par k)
+
+   * soit kprefix v suivi par 0 et donc v.0 prefix
+     donc v' aussi (pas deux 0 de suite) donc IH pour u',v'.0 (si tailles <)
+     puis ça roule
+
+   * soit kprefix v suivi par <> 0 (i.e. v Right-Special)
+     soit v'' =  v'-last+(k-1)
+     s(v'') = v et v'' prefix et s(u'v'') = uv
+
+     SOUCI
+*)
+
+
 Lemma prevk_unique k q u v :
   u<>[] -> v<>[] -> u++v = kprefix k q ->
   SuffixWords u (kword k) -> PrefixSeq v (kseq k) ->
-  k+2 <= q /\ u = prevkword k q /\ v = prevkprefix k q.
+  k+2 <= q /\ u = prevkword k q.
 Proof.
  revert u v. induction q as [q IH] using lt_wf_ind.
  intros u v Hu Hv E SU PR.
@@ -1008,7 +1099,6 @@ Proof.
  - (* q = k+2 *)
    clear IH. split; [lia| ].
    rewrite prevkword_low by lia.
-   rewrite prevkprefix_low by lia.
    replace (kprefix k q) with (kword k (S k)) in E.
    2:{ subst q.
        eapply PrefixSeq_unique; eauto using kword_prefixseq, kprefix_ok.
@@ -1031,40 +1121,42 @@ Proof.
    rewrite skipn_seq in Ev.
    destruct (k-length u) eqn:E.
    + simpl in Ev. injection Ev as ->.
-     replace (length u) with (q-2) in Eu by lia. split; now f_equal.
+     replace (length u) with (q-2) in Eu by lia. now f_equal.
    + injection Ev as Ev _. lia.
  - (* q > k+2 *)
+   split; [lia|].
    destruct (Nat.eq_dec (length v) 1) as [EQ|NE].
    + replace v with [k] in *.
      2:{ eapply PrefixSeq_unique; eauto. rewrite <- kword_0.
          apply kword_prefixseq. }
-     clear Hv PR EQ.
-
-(*
-** si 2 <= length u
-   alors IH: u sans sa derniere lettre est prevkprefix k (q-1)
-
-   prevkword k (q-1) ++ prevkprefix k (q-1) = kprefix k (q-1)
-                        u-derniere lettre
- on veut
-  prevkword k (q-1) = prevkword k q
-  i.e. invA k (q-1) = invA k q
-  i.e. q-1 n'est pas un nombre Ak (ou q n'est pas un 1+Ak)
-  ok car sinon u serait de taille 1
-
-** si length u = 1 c'est donc [k]
-   et q = 1+Ak
-   prevkword = kword
-   prevkprefix = [k]
-
-
-(* 
-Lemma kseq_take_inv k n : k<>0 ->
-  take (n + if is_k0 k n then 1 else 0) (kseq k) =
-  apply (ksubst k) (take (f k n) (kseq k)).
-*)
-*)
-
+     clear Hv PR EQ IH.
+     (* length u = q-1 est un Ak, tout va bien *)
+     admit.
+   + set (v' := firstn (length v - 1) v).
+     rewrite <- length_zero_iff_nil in Hv.
+     assert (Hq' : q-1 < q) by lia.
+     destruct (IH (q-1) Hq' u v') as (Q & U); clear IH; auto.
+     * rewrite <- length_zero_iff_nil. unfold v'.
+       rewrite firstn_length_le; lia.
+     * unfold v'. rewrite <- firstn_app_2, E, !kprefix_alt.
+       replace (_+_) with (length u + length v -1) by lia.
+       rewrite <- app_length, E, kprefix_length.
+       rewrite firstn_take; auto; lia.
+     * red. unfold v'. rewrite PR at 2.
+       rewrite firstn_take by lia.
+       rewrite firstn_length_le; auto; lia.
+     * destruct (invA_low_pred k q).
+       { subst u. unfold prevkword in *. now f_equal. }
+       { exfalso.
+         apply (f_equal (@length nat)) in E.
+         rewrite app_length, kprefix_length in E.
+         rewrite U in E. unfold prevkword in E. rewrite kword_len in E.
+         set (p := invA_low k (q-1)) in *.
+         assert (A k p + 2 <= q) by lia.
+         assert (Z : q = S (A k (invA_low k q)))
+          by (apply invA_low_nonflat; lia). rewrite H in Z.
+         admit. (* OUPS Probleme *)
+       }
 Admitted.
 
 
