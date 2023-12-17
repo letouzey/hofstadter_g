@@ -521,8 +521,24 @@ Proof.
        f_equal. rewrite kprefix_alt. rewrite PR. f_equal. lia.
 Qed.
 
-(** Similar to ksubsdups, but much more efficient.
-    Still with a few duplicates. *)
+(** Compared with the expected k*p+1 complexity, we have some duplicates
+    when p>k+2. More precisely (k+1)*(p-1)-(k*p+1) = p-k-2 duplicates.
+    This is still enough to say that the complexity is linear. *)
+
+Lemma kfactors0_length k p :
+ p<>0 -> length (kfactors0 k p) = if p <=? k+2 then k*p+1 else (k+1)*(p-1).
+Proof.
+ intros Hp.
+ unfold kfactors0.
+ rewrite app_length, allsubs_length, kword_len, A_base by lia.
+ rewrite flat_map_length with (k:=S k), seq_length.
+ 2:{ intros. unfold map_appr. rewrite map_length. apply allsuffixes_length. }
+ case Nat.leb_spec; nia.
+Qed.
+
+
+(** Similar to kfactors0, but much more efficient.
+    Still the same amount of duplicates. *)
 
 Definition kfactors0opt k p :=
   let p' := pred p in
@@ -594,6 +610,28 @@ Proof.
            rewrite !kprefix_length. lia. }
          destruct PR as (w & <-).
          exists v, w. now rewrite !app_assoc. }
+Qed.
+
+Lemma kfactors0opt_length k p :
+ p<>0 -> length (kfactors0opt k p) = if p <=? k+2 then k*p+1 else (k+1)*(p-1).
+Proof.
+ intros Hp.
+ unfold kfactors0opt.
+ set (p' := pred p).
+ set (q := invA_up k p').
+ set (pref := firstn p' (kword k q)).
+ set (suffs := allsuffixesAt k p' q).
+ rewrite app_length, allsubs_length, kword_len, A_base by lia.
+ rewrite flat_map_length with (k:=p').
+ 2:{ intros a. rewrite map_appr_in. intros (w & <- & IN).
+     rewrite allsubs_length, app_length.
+     apply allsuffixesAt_spec in IN. 2:apply invA_up_spec.
+     destruct IN as (->,_).
+     unfold pref. rewrite firstn_length_le. lia.
+     rewrite kword_len. apply invA_up_spec. }
+ unfold map_appr. rewrite map_length. unfold suffs.
+ rewrite allsuffixesAt_length.
+ case Nat.leb_spec; nia.
 Qed.
 
 Lemma kfactors0opt_nbocc0_le k p a b :
@@ -723,11 +761,73 @@ Proof.
 Time Qed. (* 50s *)
 *)
 
+(** kfactors : All factors of some length, without duplicates.
+    Obtained via cleanup of kfactors0opt from its duplicates.
+    Could be more efficient someday. *)
+
+Definition kfactors k p :=
+ nodup (list_eq_dec Nat.eq_dec) (kfactors0opt k p).
+
+Lemma kfactors_in k p u : In u (kfactors k p) <-> SubSeqLen p u (kseq k).
+Proof.
+ unfold kfactors. rewrite nodup_In. apply kfactors0opt_in.
+Qed.
+
+Lemma kfactors_nodup k p : NoDup (kfactors k p).
+Proof.
+ apply NoDup_nodup.
+Qed.
+
+Lemma kfactors_0_r k : kfactors k 0 = [[]].
+Proof.
+ assert (D := kfactors_nodup k 0).
+ assert (I : forall u, In u (kfactors k 0) <-> u=[]).
+ { intros u. unfold kfactors. rewrite nodup_In. apply kfactors0opt_0_r. }
+ destruct (kfactors k 0) as [|u [|v l]].
+ - specialize (I []). intuition.
+ - f_equal. rewrite <- I. now left.
+ - replace u with (@nil nat) in D by (symmetry; rewrite <- I; intuition).
+   replace v with (@nil nat) in D by (symmetry; rewrite <- I; intuition).
+   inversion_clear D. simpl in *. intuition.
+Qed.
+
+Lemma kfactors_0_l p : kfactors 0 p = [repeat 0 p].
+Proof.
+ assert (E : forall b a, subseq a b (kseq 0) = repeat 0 b).
+ { unfold subseq. induction b; simpl; auto. intros a. f_equal; auto.
+   generalize (kseq_letters 0 a). lia. }
+ assert (IN : In (repeat 0 p) (kfactors 0 p)).
+ { rewrite kfactors_in. split. now rewrite repeat_length.
+   exists 0. rewrite repeat_length. auto. }
+ apply Permutation_length_1_inv. symmetry. apply NoDup_Permutation_bis.
+ - apply kfactors_nodup.
+ - simpl. destruct (kfactors 0 p). easy. simpl. lia.
+ - intros x. rewrite kfactors_in. intros (L & q & ->).
+   simpl. left. now rewrite E, L.
+Qed.
+
+Lemma nodup_length_le {A}(dec : forall (a b:A),{a=b}+{a<>b}) l :
+  length (nodup dec l) <= length l.
+Proof.
+ induction l; simpl; auto. destruct in_dec; simpl; lia.
+Qed.
+
+Lemma kfactors_linear_length k p :
+  length (kfactors k p) <= if p <=? k+2 then k*p+1 else (k+1)*(p-1).
+Proof.
+ destruct (Nat.eq_dec p 0) as [->|Hp].
+ - rewrite kfactors_0_r. simpl; lia.
+ - rewrite <- kfactors0opt_length by trivial. apply nodup_length_le.
+Qed.
+
+Lemma kfactors_length k p : length (kfactors k p) = k*p+1.
+Proof.
+Admitted. (* No clue how to prove that, unless going through the whole
+             study of Left-Special extensions TODO *)
 
 Definition Complexity f p n :=
   exists l, NoDup l /\ length l = n /\ forall u, In u l <-> SubSeqLen p u f.
 
-(*
 Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
 Proof.
  intros p. exists (kfactors k p). split; [|split].
@@ -735,7 +835,7 @@ Proof.
  - apply kfactors_length.
  - apply kfactors_in.
 Qed.
-*)
+
 
 (* Idee: dilute the (nbocc 0) en dessous des concat *)
 
