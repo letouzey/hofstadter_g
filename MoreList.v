@@ -1142,3 +1142,21 @@ Proof.
    rewrite Sub_equiv in S. destruct S as (i & Hi & E).
    exists i. split. congruence. lia.
 Qed.
+
+(** [map_appr] : concatenating a suffix at the right of many words *)
+
+Definition appr {A} (u v:list A) := v++u.
+
+Definition map_appr {A} l (v:list A) := map (appr v) l.
+
+Lemma map_appr_nil {A} (l:list (list A)) : map_appr l [] = l.
+Proof.
+ unfold map_appr. rewrite map_ext with (g:=id). apply map_id.
+ intro. apply app_nil_r.
+Qed.
+
+Lemma map_appr_in {A} l (v u:list A) :
+ In u (map_appr l v) <-> exists w,  w++v = u /\ In w l.
+Proof.
+ apply in_map_iff.
+Qed.

@@ -268,7 +268,7 @@ Definition subseq q n (f:sequence) := map f (seq q n).
 
 Definition SubSeq u (f:sequence) := exists q, u = subseq q (length u) f.
 
-Definition SubpSeq p u (f:sequence) := length u = p /\ SubSeq u f.
+Definition SubSeqLen p u (f:sequence) := length u = p /\ SubSeq u f.
 
 Lemma SubSeq_alt0 u f : SubSeq u f <-> exists v, Suffix u v /\ PrefixSeq v f.
 Proof.
@@ -481,32 +481,23 @@ Proof.
 Qed.
 
 
-(* A first listing of factors, which is complete but may contain
-   a few duplicates *)
+(** A first listing of factors, which is complete but may contain
+    a few duplicates *)
 
-Definition map_app_r l (v:word) := map (fun u => u++v) l.
-
-Lemma map_app_r_nil l : map_app_r l [] = l.
-Proof.
- unfold map_app_r. rewrite map_ext with (g:=id). apply map_id.
- intro. apply app_nil_r.
-Qed.
-
-Definition ksubsdups k p :=
+Definition kfactors0 k p :=
  allsubs p (kword k k) ++
- flat_map (fun p1 => map_app_r (allsuffixes k p1) (kprefix k (p-p1)))
+ flat_map (fun p1 => map_appr (allsuffixes k p1) (kprefix k (p-p1)))
   (seq 1 (p-1)).
 
-Lemma ksubsdups_ok k p u :
-  In u (ksubsdups k p) <-> length u = p /\ SubSeq u (kseq k).
+Lemma kfactors0_in k p u : In u (kfactors0 k p) <-> SubSeqLen p u (kseq k).
 Proof.
- unfold ksubsdups. rewrite in_app_iff, allsubs_ok.
- rewrite SubSeq_kseq_carac, in_flat_map.
+ unfold kfactors0, SubSeqLen.
+ rewrite in_app_iff, allsubs_ok, SubSeq_kseq_carac, in_flat_map.
  split.
  - intros [(L,S)|(p1 & IN & IN')].
    + split; auto.
-   + rewrite in_seq in IN. unfold map_app_r in IN'.
-     rewrite in_map_iff in IN'. destruct IN' as (u1 & <- & IN').
+   + rewrite in_seq in IN.
+     rewrite map_appr_in in IN'. destruct IN' as (u1 & <- & IN').
      rewrite allsuffixes_spec in IN'. destruct IN' as (IN', SU).
      destruct SU as (m & SU).
      set (u2 := kprefix k (p-p1)).
@@ -526,22 +517,23 @@ Proof.
      set (p1 := length u1) in *.
      exists p1. split.
      * rewrite in_seq. rewrite <- length_zero_iff_nil in Hu1, Hu2. lia.
-     * apply in_map_iff. exists u1. rewrite allsuffixes_spec; split; auto.
+     * apply map_appr_in. exists u1. rewrite allsuffixes_spec; split; auto.
        f_equal. rewrite kprefix_alt. rewrite PR. f_equal. lia.
 Qed.
 
-(** Similar to ksubsdups, but much more efficient *)
+(** Similar to ksubsdups, but much more efficient.
+    Still with a few duplicates. *)
 
-Definition ksubsdups' k p :=
+Definition kfactors0opt k p :=
   let p' := pred p in
   let q := invA_up k p' in
   let pref := firstn p' (kword k q) in
   let suffs := allsuffixesAt k p' q in
-  allsubs p (kword k k) ++ flat_map (allsubs p) (map_app_r suffs pref).
+  allsubs p (kword k k) ++ flat_map (allsubs p) (map_appr suffs pref).
 
-Lemma ksubsdups_0_r k u : In u (ksubsdups' k 0) <-> u = [].
+Lemma kfactors0opt_0_r k u : In u (kfactors0opt k 0) <-> u = [].
 Proof.
- unfold ksubsdups'. rewrite in_app_iff.
+ unfold kfactors0opt. rewrite in_app_iff.
  split.
  - intros [IN|IN].
    + now rewrite allsubs_ok, length_zero_iff_nil in IN.
@@ -551,22 +543,21 @@ Proof.
  - intros ->. left. apply allsubs_ok. auto using Sub_nil_l.
 Qed.
 
-Lemma ksubsdups'_ok k p u :
-  In u (ksubsdups' k p) <-> length u = p /\ SubSeq u (kseq k).
+Lemma kfactors0opt_in k p u :
+  In u (kfactors0opt k p) <-> SubSeqLen p u (kseq k).
 Proof.
  destruct (Nat.eq_dec p 0) as [->|Hp].
- - rewrite ksubsdups_0_r. split.
+ - rewrite kfactors0opt_0_r. split.
    + intros ->. split; auto. now exists 0.
-   + now rewrite length_zero_iff_nil.
- - rewrite <- ksubsdups_ok.
-   unfold ksubsdups', ksubsdups.
+   + unfold SubSeqLen. now rewrite length_zero_iff_nil.
+ - rewrite <- kfactors0_in.
+   unfold kfactors0, kfactors0opt.
    set (p' := pred p).
    fold (allsuffixes k p').
    fold (kprefix k p').
-   rewrite !in_app_iff. apply or_iff_compat_l.
-   rewrite !in_flat_map. split.
+   rewrite !in_app_iff, !in_flat_map. apply or_iff_compat_l. split.
    + intros (w0 & Hw0 & Hu).
-     unfold map_app_r in Hw0. rewrite in_map_iff in Hw0.
+     rewrite map_appr_in in Hw0.
      destruct Hw0 as (w & <- & Hw).
      apply allsuffixes_spec in Hw. destruct Hw as (Hw,SF).
      rewrite allsubs_ok in Hu. destruct Hu as (Hu,SB).
@@ -580,7 +571,7 @@ Proof.
        { rewrite in_seq.
          apply Suffix_len in H1. apply Prefix_len in H2.
          rewrite kprefix_length in H2. lia. }
-       { apply in_map_iff. exists u1. split.
+       { apply map_appr_in. exists u1. split.
          - f_equal.
            assert (PR : PrefixSeq u2 (kseq k)).
            { eapply Prefix_PrefixSeq; eauto. apply kprefix_ok. }
@@ -588,12 +579,12 @@ Proof.
          - rewrite allsuffixes_spec. split; auto. unfold SuffixWords in *.
            destruct SF as (n & SF). exists n.
            apply Suffix_trans with w; auto. }
-   + intros (p1 & Hp1 & Hu). apply in_seq in Hp1. apply in_map_iff in Hu.
+   + intros (p1 & Hp1 & Hu). apply in_seq in Hp1. apply map_appr_in in Hu.
      destruct Hu as (u1 & <- & Hu1).
      destruct (allsuffixes_extend k p1 p' u1) as (u1' & Hu1');
       trivial; try lia.
      exists (u1' ++ kprefix k p'); split.
-     * apply in_map_iff. now eexists.
+     * apply map_appr_in. now eexists.
      * apply allsubs_ok; split.
        { rewrite app_length, kprefix_length.
          apply allsuffixes_spec in Hu1. lia. }
@@ -605,16 +596,16 @@ Proof.
          exists v, w. now rewrite !app_assoc. }
 Qed.
 
-Lemma ksubsdups'_nbocc0_le k p a b :
-  extrems (map (nbocc 0) (ksubsdups' k p)) = (a,b) -> a <= p /\ b <= p.
+Lemma kfactors0opt_nbocc0_le k p a b :
+  extrems (map (nbocc 0) (kfactors0opt k p)) = (a,b) -> a <= p /\ b <= p.
 Proof.
- set (l := map (nbocc 0) (ksubsdups' k p)).
+ set (l := map (nbocc 0) (kfactors0opt k p)).
  destruct (list_eq_dec Nat.eq_dec l []) as [->|NE].
  - inversion 1. lia.
  - intros E. generalize (extrems_in1 l NE) (extrems_in2 l NE).
    rewrite E. simpl. unfold l.
    rewrite !in_map_iff. intros (u & <- & Hu) (v & <- & Hv).
-   rewrite ksubsdups'_ok in Hu, Hv.
+   rewrite kfactors0opt_in in Hu, Hv.
    split.
    + destruct Hu as (<-,_); apply nbocc_le_length.
    + destruct Hv as (<-,_); apply nbocc_le_length.
@@ -624,7 +615,7 @@ Qed.
 
 Lemma f_additivity_via_factors k p a b :
  k<>0 ->
- extrems (map (nbocc 0) (ksubsdups' k p)) = (a,b) ->
+ extrems (map (nbocc 0) (kfactors0opt k p)) = (a,b) ->
  forall n, f k n + (p-b) <= f k (n+p) <= f k n + (p-a).
 Proof.
  intros Hk E n.
@@ -641,17 +632,17 @@ Proof.
  rewrite Hw, nbocc_app in Hnp.
  assert (a <= nbocc 0 v <= b).
  { eapply extrems_spec; eauto. apply in_map.
-   rewrite ksubsdups'_ok. split.
+   rewrite kfactors0opt_in. split.
    - unfold v. rewrite lastn_length_le; auto.
      unfold w. rewrite take_length; lia.
    - rewrite SubSeq_alt0. exists w. split. now exists u.
      unfold w. red. now rewrite take_length. }
- generalize (ksubsdups'_nbocc0_le k p a b E). lia.
+ generalize (kfactors0opt_nbocc0_le k p a b E). lia.
 Qed.
 
 Lemma f_additivity_via_factors' k p a b :
  k<>0 -> a <= p -> b <= p ->
- extrems (map (nbocc 0) (ksubsdups' k p)) = (p-b,p-a) ->
+ extrems (map (nbocc 0) (kfactors0opt k p)) = (p-b,p-a) ->
  forall n, f k n + a <= f k (n+p) <= f k n + b.
 Proof.
  intros Hk Ha Hb E n.
@@ -905,7 +896,7 @@ Qed.
 (** If the substitution of u is a kprefix which isn't followed by
     a 0 letter, then u is also a kprefix.
     The condition about the following 0 letter is mandatory:
-    a first counterexample is u=[k-1]. *)
+    otherwise a first counterexample is u=[k-1]. *)
 
 Lemma ksubst_prefix_inv k u :
   PrefixSeq (apply (ksubst k) u) (kseq k) ->
@@ -925,243 +916,48 @@ Proof.
    red. now rewrite take_length.
 Qed.
 
-(** Apparemment:
-    n<>1 -> is_k0 n = true ->
-    SuffixWords (kprefix k n) (kword k) -> False.
-
- decomps 5:[0;3] 7:[0;4] 10:[0;5] 14:[0;6] 18:[0;3;6]
-
-0 -> 2
-1 -> 20
-2 -> 201
-3 -> 2012
-
-take 5 
-
-
-1 5 7 10 14 18
-
-1; 2 20 201 2012 20 201 2012
- 2 20 201 2012
-
-
-2    n=1, is_k0 n = true   n=A2 0
-20
-201
-2012
-20122   n=5 is_k0 n = true  pas un A2, mais pas un prefix-suffix non plus
-201220
-2012202   n=7 is_k0 n = true
-20122020
-201220201
-
-
-u0 kprefix donc u finit par k u =u'k
-et u = s(v) donc v finit par k-1, v = w.k-1
-s(w.k-1) = s(v) = u'k
-du coup s(w.k) = s(w).k0 = u0 et pas deux zero de suite donc wk prefix
-
-Mais pas suffix...x
-
-v'v est kword (p-1) qui finit donc par (k-1)
-
-
-
-Il y a des kword finissant par k (un sur k+1)
-
-2  --
-20
-201
-2012  --
-201220
-201220201
-2012202012012 --
-2012202012012201220
-2012202012012201220201220201
-20122020120122012202012202012012202012012 --
-
-*)
-
-Lemma kprefix_suffixwords_kword k n :
- k<>0 -> n<>0 -> SuffixWords (kprefix k n) (kword k) -> exists p, n = A k p.
+Lemma ksubst_prefix_inv' k u :
+  k<>0 ->
+  PrefixSeq u (kseq k) ->
+  exists v w,
+    PrefixSeq v (kseq k) /\ (w=[]\/w=[k]) /\ u = apply (ksubst k) v ++ w.
 Proof.
- intros K.
- induction n as [n IH] using lt_wf_ind.
- intros N.
- destruct (Nat.le_gt_cases n (S k)) as [H|H].
- - destruct n as [|n]; try easy. exists n. rewrite A_base; lia.
- - set (u := kprefix k n) in *.
-   intros (p & u' & E).
-   assert (P : S k <= p).
-   { apply (A_le_inv k). rewrite A_base by lia.
-     transitivity n; try lia.
-     rewrite <- (kword_len k p), <- E, app_length. unfold u.
-     rewrite kprefix_length. lia. }
-   set (n' := length u').
-   assert (N' : n' < A k p).
-   { rewrite <- (@kword_len k p), <- E, app_length. unfold u.
-     rewrite kprefix_length. lia. }
-   generalize (@kseq_take_inv k n' K).
-   unfold is_k0. rewrite (kseq_alt k n' p 0) by trivial.
-   rewrite <- E, app_nth2 by lia. replace (n'-length u') with 0 by lia.
-   unfold u. rewrite kprefix_alt, take_nth, kseq_k_0 by lia.
-   case Nat.eqb_spec; try easy. intros _. rewrite Nat.add_0_r.
-   assert (U' : u' = take n' (kseq k)).
-   { change (PrefixSeq u' (kseq k)).
-     eapply Prefix_PrefixSeq; eauto using kword_prefixseq.
-     exists u. apply E. }
-   rewrite <- U'. set (v' := take _ _). intros E'.
-   assert (V' : Prefix v' (kword k (p-1))).
-   { unfold v'. rewrite <- kprefix_alt. apply kprefix_prefix_kword.
-     rewrite <- f_A. apply f_mono; lia. }
-   destruct V' as (v & V').
-   rewrite E' in E. replace p with (S (p-1)) in E by lia.
-   rewrite kword_S, <- V', apply_app in E.
-   apply app_inv_head in E.
-   set (m := length v).
-   assert (V : v = kprefix k m).
-   { rewrite kprefix_alt. change (PrefixSeq v (kseq k)).
-     apply ksubst_prefix_inv; auto.
-     - rewrite <- E. apply kprefix_ok.
-     - rewrite <- E. unfold u. rewrite kprefix_length.
-     admit. }
-   assert (M : m <> 0).
-   { intros ->. unfold kprefix in V. rewrite firstn_O in V. subst v.
-     simpl in E. apply length_zero_iff_nil in E. unfold u in E.
-     now rewrite kprefix_length in E. }
-   destruct (IH m) as (q & Q).
-   + rewrite <- (kprefix_length k). fold u. rewrite E, V, kprefix_alt.
-     rewrite length_apply_ksubst.
-     generalize (count_k_nz k m). lia.
-   + trivial.
-   + exists (p-1). rewrite <- V. now exists v'.
-   + clear IH.
-     exists (S q). rewrite <- (kprefix_length k n). fold u.
-     now rewrite E, V, Q, kprefix_A_kword, <- kword_S, kword_len.
-Admitted.
-
-(*
-u++v  kprefix
-u suffix (et donc ici aussi prefix)
-v prefix donc commence par k<>0
-
-donc u=s(u') et u' aussi prefix
-distinguo :
- - si u++v suivi par <>0
-   alors u++v=s(w') et w' aussi prefix et a u' comme prefix
-   donc exists v', w'=u'v' et s(v')=v
-
-   * soit kprefix v suivi par <>0
-     et alors v' aussi kprefix, IH sur u',v' ça devrait suivre
-   * soit kprefix v suivi par 0 (ie v Right-Special)
-     donc v' finit par (k-1)
-    ET ENSUITE ?
-
- - si u++v suivi par 0
-   alors u++v.0 = s(w') et w' aussi prefix et a donc u' comme prefix
-   donc exists v', w'=u'v' et s(v')=v.0 (v et v' finissent par k)
-
-   * soit kprefix v suivi par 0 et donc v.0 prefix
-     donc v' aussi (pas deux 0 de suite) donc IH pour u',v'.0 (si tailles <)
-     puis ça roule
-
-   * soit kprefix v suivi par <> 0 (i.e. v Right-Special)
-     soit v'' =  v'-last+(k-1)
-     s(v'') = v et v'' prefix et s(u'v'') = uv
-
-     SOUCI
-*)
+ intros K P.
+ assert (E := kseq_take_inv k (length u) K).
+ remember (length u) as n eqn:U.
+ unfold is_k0 in *.
+ destruct (Nat.eqb_spec (kseq k n) 0) as [N|N].
+ - rewrite Nat.add_1_r, take_S in E.
+   rewrite N in E.
+   destruct n.
+   + exfalso. now rewrite kseq_k_0 in N.
+   + rewrite take_S, <- app_assoc in E.
+     assert (f k (S n) <> 0).
+     { intros H. rewrite H in E. simpl in E.
+       apply (f_equal (@rev _)) in E. now rewrite rev_app_distr in E. }
+     replace (f k (S n)) with (S (f k (S n) - 1)) in E by lia.
+     rewrite take_S, apply_app in E. simpl in E. rewrite app_nil_r in E.
+     set (m := f k (S n) - 1) in *.
+     exists (take m (kseq k)), [k]; repeat split.
+     * red. f_equal. now rewrite take_length.
+     * now right.
+     * apply (f_equal (@rev _)) in E. rewrite !rev_app_distr in E.
+       simpl in E.
+       unfold ksubst in E at 1.
+       destruct (Nat.eqb_spec (kseq k m) k) as [M|M]; try easy.
+       simpl in E. injection E as N' E. apply rev_inj in E.
+       rewrite <- E, P, <- U, take_S. f_equal. now f_equal.
+ - rewrite Nat.add_0_r in E.
+   exists (take (f k n) (kseq k)), []; repeat split.
+   + red. f_equal. now rewrite take_length.
+   + now left.
+   + rewrite <- E, app_nil_r. rewrite P. now f_equal.
+Qed.
 
 
-Lemma prevk_unique k q u v :
-  u<>[] -> v<>[] -> u++v = kprefix k q ->
-  SuffixWords u (kword k) -> PrefixSeq v (kseq k) ->
-  k+2 <= q /\ u = prevkword k q.
-Proof.
- revert u v. induction q as [q IH] using lt_wf_ind.
- intros u v Hu Hv E SU PR.
- destruct (Nat.lt_trichotomy q (k+2)) as [Hq|[Hq|Hq]].
- - (* q < k+2 *)
-   exfalso. clear IH.
-   destruct q.
-   { unfold kprefix in E. rewrite firstn_O in E. now destruct u. }
-   replace (kprefix k (S q)) with (kword k q) in *.
-   2:{ eapply PrefixSeq_unique; eauto using kword_prefixseq, kprefix_ok.
-       rewrite kprefix_length, kword_len, A_base; lia. }
-   rewrite kword_low in E by lia.
-   destruct u as [|a u]; try easy. clear Hu. injection E as -> E.
-   assert (F : firstn 1 v = [k]).
-   { rewrite PR, firstn_take. easy. destruct v; simpl. easy. lia. }
-   destruct v as [|a v]; try easy. simpl in F. injection F as ->.
-   assert (In k (seq 0 q)).
-   { rewrite <- E, in_app_iff. simpl. now (right; left). }
-   rewrite in_seq in *; lia.
- - (* q = k+2 *)
-   clear IH. split; [lia| ].
-   rewrite prevkword_low by lia.
-   replace (kprefix k q) with (kword k (S k)) in E.
-   2:{ subst q.
-       eapply PrefixSeq_unique; eauto using kword_prefixseq, kprefix_ok.
-       rewrite kprefix_length, kword_len, A_base; lia. }
-   rewrite kword_alt, Nat.sub_diag, !kword_low in * by lia.
-   simpl in E.
-   destruct u as [|a u]; try easy. injection E as -> E. clear Hu.
-   assert (F : firstn 1 v = [k]).
-   { rewrite PR, firstn_take. easy. destruct v; simpl. easy. lia. }
-   destruct v as [|a v]; try easy. simpl in F. injection F as ->. clear Hv.
-   assert (L : length (u++k::v) = S k).
-   { unfold letter in *; rewrite E, app_length, seq_length; simpl; lia. }
-   rewrite app_length in L. simpl in L.
-   rewrite <- (firstn_skipn (length u) (seq 0 k)) in E.
-   rewrite <- app_assoc in E.
-   apply app_inv in E.
-   2:{ rewrite firstn_length_le; rewrite ?seq_length; lia. }
-   destruct E as (Eu,Ev).
-   rewrite firstn_seq in Eu by lia.
-   rewrite skipn_seq in Ev.
-   destruct (k-length u) eqn:E.
-   + simpl in Ev. injection Ev as ->.
-     replace (length u) with (q-2) in Eu by lia. now f_equal.
-   + injection Ev as Ev _. lia.
- - (* q > k+2 *)
-   split; [lia|].
-   destruct (Nat.eq_dec (length v) 1) as [EQ|NE].
-   + replace v with [k] in *.
-     2:{ eapply PrefixSeq_unique; eauto. rewrite <- kword_0.
-         apply kword_prefixseq. }
-     clear Hv PR EQ IH.
-     (* length u = q-1 est un Ak, tout va bien *)
-     admit.
-   + set (v' := firstn (length v - 1) v).
-     rewrite <- length_zero_iff_nil in Hv.
-     assert (Hq' : q-1 < q) by lia.
-     destruct (IH (q-1) Hq' u v') as (Q & U); clear IH; auto.
-     * rewrite <- length_zero_iff_nil. unfold v'.
-       rewrite firstn_length_le; lia.
-     * unfold v'. rewrite <- firstn_app_2, E, !kprefix_alt.
-       replace (_+_) with (length u + length v -1) by lia.
-       rewrite <- app_length, E, kprefix_length.
-       rewrite firstn_take; auto; lia.
-     * red. unfold v'. rewrite PR at 2.
-       rewrite firstn_take by lia.
-       rewrite firstn_length_le; auto; lia.
-     * destruct (invA_low_pred k q).
-       { subst u. unfold prevkword in *. now f_equal. }
-       { exfalso.
-         apply (f_equal (@length nat)) in E.
-         rewrite app_length, kprefix_length in E.
-         rewrite U in E. unfold prevkword in E. rewrite kword_len in E.
-         set (p := invA_low k (q-1)) in *.
-         assert (A k p + 2 <= q) by lia.
-         assert (Z : q = S (A k (invA_low k q)))
-          by (apply invA_low_nonflat; lia). rewrite H in Z.
-         admit. (* OUPS Probleme *)
-       }
-Admitted.
-
-
-(** Now, a list of factors without redundancy, for computing the complexity.
-    Not meant to be efficient. *)
+(** Now, a list of factors that was meant to be without duplicates,
+    for computing the complexixity.
+    But actually it only removes some of the duplicates but not all :-( *)
 
 Definition hacksuffixes k p q :=
   let suff := allsuffixes k p in
@@ -1177,51 +973,167 @@ Definition hacksuffixes k p q :=
     (* let's remove it *)
     filter (fun v => negb (listnat_eqb u v)) suff.
 
-Definition kfactors k p :=
+Definition kfactorsBUG k p :=
  if p =? 0 then [[]]
  else
    allsubs p (kword k k) ++
    flat_map
-    (fun p1 => map_app_r (hacksuffixes k p1 (p-p1)) (kprefix k (p-p1)))
+    (fun p1 => map_appr (hacksuffixes k p1 (p-p1)) (kprefix k (p-p1)))
     (seq 1 (p-1)).
 
-(*
-Lemma hacksuffixes_spec k p q u :
-  S k < q ->
-  In u (hacksuffixes k p q) <->
-  In u (allsuffixes k p) /\
-   forall n, u ++ kprefix k q <> autre_suffix_long ++ kprefix k q'
-
-  length (hacksuffixes k p q) = if q <=? S k then S k else k.
-*)
-
-Lemma hacksuffixes_length k p q :
-  length (hacksuffixes k p q) = if q <=? S k then S k else k.
-Admitted.
-
-Lemma kfactors_nodup k p : NoDup (kfactors k p).
-Admitted.
-
-Lemma kfactors_ok k p u :
-  In u (kfactors k p) <-> length u = p /\ SubSeq u (kseq k).
-Admitted.
-
-Lemma kfactors_length k p : length (kfactors k p) = k*p+1.
-Admitted.
-
-Definition AllSubp p l f := NoDup l /\ (forall w, In w l <-> SubpSeq p w f).
-
-Definition Complexity f p n := exists l, AllSubp p l f /\ length l = n.
-
-Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
+Lemma hacksuffixes_incl k p q u :
+ In u (hacksuffixes k p q) -> In u (allsuffixes k p).
 Proof.
- intros p. exists (kfactors k p). split.
- - split.
-   + apply kfactors_nodup.
-   + apply kfactors_ok.
- - apply kfactors_length.
+ unfold hacksuffixes. case Nat.leb; trivial. now rewrite filter_In.
 Qed.
 
+Lemma hacksuffixes_incl_inv k p q u :
+ In u (allsuffixes k p) ->
+ In u (hacksuffixes k p q) \/
+ k+2<=q /\
+  exists v,
+  firstn p v = u /\
+  skipn p v = prevkword k q /\
+  In v (allsuffixes k (p + length (prevkword k q))).
+Proof.
+ unfold hacksuffixes. case Nat.leb_spec; [now left|].
+ intros Lt Hu. rewrite filter_In.
+ set (w := prevkword k q).
+ set (n := length w).
+ remember (filter _ _) as l eqn:L.
+ assert (L' : forall v, In v l <-> In v (allsuffixes k (p+n)) /\ skipn p v = w).
+ { intro. rewrite L, filter_In. case listnat_eqb_spec; intuition. }
+ clear L. rename L' into L.
+ case listnat_eqb_spec; intros E; [right; split; try lia | now left].
+ destruct (allsuffixes_extend k n (p+n) w) as (v & SU & IN); try lia.
+ { rewrite allsuffixes_spec. split; trivial.
+   unfold prevkword in w. exists (invA_low k q). now exists []. }
+ assert (V : In v l).
+ { rewrite L. split; trivial.
+   rewrite Suffix_equiv in SU. rewrite SU. unfold lastn.
+   rewrite allsuffixes_spec in IN. replace (_-_) with p by lia. easy. }
+ (* actually v is the only element in l, but we don't prove that here. *)
+ destruct l as [|v' l]; try easy. clear v SU IN V. simpl in E.
+ exists v'. split. easy. apply and_comm. rewrite <- L. simpl. now left.
+Qed.
+
+(** At least kfactorsBUG exactly enumerates the factors
+    (just as kfactors0 et kfactors0opt). *)
+
+Lemma kfactorsBUG_in k p u :
+  In u (kfactorsBUG k p) <-> SubSeqLen p u (kseq k).
+Proof.
+ unfold kfactorsBUG.
+ case Nat.eqb_spec.
+ - intros ->. simpl. split.
+   + intros [<-|[ ]]. split; auto. now exists 0.
+   + unfold SubSeqLen. rewrite length_zero_iff_nil. now left.
+ - intros Hp.
+   rewrite <- kfactors0_in. unfold kfactors0.
+   rewrite !in_app_iff, !in_flat_map. apply or_iff_compat_l. split.
+   + intros (p1 & P1 & U). exists p1. split; trivial.
+     rewrite map_appr_in in *.
+     destruct U as (v & <- & V). exists v. split; trivial.
+     now apply hacksuffixes_incl in V.
+   + intros (p1 & P1 & U).
+     rewrite in_seq in P1. setoid_rewrite in_seq.
+     remember (p-p1) as p2 eqn:P2.
+     revert p1 P1 P2 U.
+     induction p2 as [p2 IH] using lt_wf_ind.
+     intros p1 P1 P2 U.
+     rewrite map_appr_in in U. destruct U as (v & <- & V).
+     destruct (hacksuffixes_incl_inv k p1 p2 v V)
+       as [V'|(LE & e & E & E' & V')].
+     * exists p1. split; trivial. rewrite <- P2, map_appr_in. now exists v.
+     * set (w := prevkword k p2) in *.
+       set (n := length w) in *.
+       assert (Ee : e = v++w).
+       { rewrite <- (firstn_skipn p1 e). now rewrite E, E'. }
+       assert (N : 1 <= n < p2).
+       { split.
+         - unfold n, w, prevkword. rewrite kword_len. apply A_nz.
+         - apply prevkword_length; lia. }
+       assert (P2' : p2-n < p2) by lia.
+       apply (IH (p2-n) P2' (p1+n)); clear IH; try lia.
+       assert (W := prevkword_eqn k p2 LE). fold w in W. rewrite <- W.
+       rewrite app_assoc, <- Ee, map_appr_in. now exists e.
+Qed.
+
+Definition find_dups (l : list word) :=
+  filter (fun u => negb (count_occ (list_eq_dec Nat.eq_dec) l u =? 1)) l.
+
+(** Finally, NoDup (kfactorsBUG k p) is actually False.
+    Some first counterexamples *)
+
+Compute find_dups (kfactorsBUG 1 7).
+Compute find_dups (kfactorsBUG 2 11).
+
+(** Post-mortem analysis : I thought we add exactly one duplicate
+   for each call to allsuffixes in kfactors0 (when p2>=k+2).
+   Hence the hacksuffixes function designed to remove this duplicate.
+   But actually we may have sometimes less, sometimes more duplicates.
+   For instance with k=2 p=11 the factors are:
+
+2202012012 2
+2012201220 2
+0201220201 2
+
+202012012 20
+012201220 20
+201220201 20
+
+02012012 201
+12201220 201
+01220201 201
+
+2012012 2012
+2201220 2012 : BUG No duplicate, 22021220 <> 0201220, but 1st occ, see below!
+1220201 2012
+
+012012 20122
+201220 20122
+220201 20122 : duplicate ok, see above 2202012012 2
+
+12012 201220
+01220 201220
+20201 201220 : duplicate ok, see above 202012012 20
+
+2012 2012202 : duplicate ok, see above 2012201220 2
+1220 2012202
+0201 2012202
+
+012 20122020 : duplicate ok, see above 012201220 20
+220 20122020
+201 20122020
+
+12 201220201 : duplicate ok, see above 12201220 201
+20 201220201
+01 201220201
+
+2 2012202012 : unexpected duplicate, see above 2201220 2012
+0 2012202012 : duplicate ok, see above 0201220201 2
+1 2012202012
+
+Conclusion: Finally, no obvious way to count these duplicates
+(even if there's a linear number of them).
+It seems easier to obtain complexity by proving there's only one Left-Special
+of each length.
+
+*)
+
+
+Definition Complexity f p n :=
+  exists l, NoDup l /\ length l = n /\ forall u, In u l <-> SubSeqLen p u f.
+
+(*
+Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
+Proof.
+ intros p. exists (kfactors k p). split; [|split].
+ - apply kfactors_nodup.
+ - apply kfactors_length.
+ - apply kfactors_in.
+Qed.
+*)
 
 (* Idee: dilute the (nbocc 0) en dessous des concat *)
 
