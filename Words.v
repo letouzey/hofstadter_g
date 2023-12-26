@@ -1209,3 +1209,92 @@ Proof.
        rewrite E in D. apply Delta_nz in D; try lia.
        intros a Ha. unfold id. assert (a<>0); try lia. now intros ->.
 Qed.
+
+Lemma PrefixSeq_0 u : PrefixSeq u (kseq 0) <-> u = repeat 0 (length u).
+Proof.
+ assert (E : forall n p, map (kseq 0) (seq p n) = repeat 0 n).
+ { induction n; simpl; intros; auto.
+   f_equal; auto. generalize (kseq_letters 0 p). lia. }
+ split.
+ - unfold PrefixSeq, take. now rewrite E.
+ - now rewrite <- (E (length u) 0).
+Qed.
+
+Lemma apply_ksubst_0 n : apply (ksubst 0) (repeat 0 n) = repeat 0 (2*n).
+Proof.
+ induction n; simpl; trivial.
+ rewrite Nat.add_succ_r. simpl. now rewrite IHn.
+Qed.
+
+Lemma ksubst_prefix_inv k u :
+  PrefixSeq u (kseq k) ->
+  exists v w,
+    u = apply (ksubst k) v ++ w /\ PrefixSeq v (kseq k) /\ (w=[]\/w=[k]).
+Proof.
+ destruct (Nat.eq_dec k 0) as [K|K].
+ { subst k. rewrite PrefixSeq_0. intros ->.
+   set (n := length u).
+   exists (repeat 0 (n/2)), (repeat 0 (n mod 2)); repeat split.
+   - rewrite apply_ksubst_0, <- repeat_app. f_equal. apply Nat.div_mod_eq.
+   - apply PrefixSeq_0. now rewrite repeat_length.
+   - generalize (Nat.mod_upper_bound n 2).
+     destruct (n mod 2) as [|[|q]]; try lia; simpl; intuition. }
+ intros P.
+ assert (E := kseq_take_inv k (length u) K).
+ remember (length u) as n eqn:U.
+ unfold is_k0 in *.
+ destruct (Nat.eqb_spec (kseq k n) 0) as [N|N].
+ - rewrite Nat.add_1_r, take_S in E.
+   rewrite N in E.
+   destruct n.
+   + exfalso. now rewrite kseq_k_0 in N.
+   + rewrite take_S, <- app_assoc in E.
+     assert (f k (S n) <> 0).
+     { intros H. rewrite H in E. simpl in E.
+       apply (f_equal (@rev _)) in E. now rewrite rev_app_distr in E. }
+     replace (f k (S n)) with (S (f k (S n) - 1)) in E by lia.
+     rewrite take_S, apply_app in E. simpl in E. rewrite app_nil_r in E.
+     set (m := f k (S n) - 1) in *.
+     exists (take m (kseq k)), [k]; repeat split.
+     * apply (f_equal (@rev _)) in E. rewrite !rev_app_distr in E.
+       simpl in E.
+       unfold ksubst in E at 1.
+       destruct (Nat.eqb_spec (kseq k m) k) as [M|M]; try easy.
+       simpl in E. injection E as N' E. apply rev_inj in E.
+       rewrite <- E, P, <- U, take_S. f_equal. now f_equal.
+     * red. f_equal. now rewrite take_length.
+     * now right.
+ - rewrite Nat.add_0_r in E.
+   exists (take (f k n) (kseq k)), []; repeat split.
+   + rewrite <- E, app_nil_r. rewrite P. now f_equal.
+   + red. f_equal. now rewrite take_length.
+   + now left.
+Qed.
+
+(** The preimage by ksubst is unique if it exists *)
+
+Lemma ksubst_inv k :
+  forall u v, apply (ksubst k) u = apply (ksubst k) v -> u = v.
+Proof.
+ assert (H : forall u v,
+             apply (ksubst k) (rev u) = apply (ksubst k) (rev v) -> u = v).
+ { induction u as [|a u]; destruct v as [|b v]; simpl; auto.
+   - rewrite apply_app. simpl. rewrite app_nil_r.
+     intros E. symmetry in E. apply length_zero_iff_nil in E.
+     rewrite app_length in E. unfold ksubst in E at 2.
+     destruct (Nat.eqb b k); simpl in E; lia.
+   - rewrite apply_app. simpl. rewrite app_nil_r.
+     intros E. apply length_zero_iff_nil in E.
+     rewrite app_length in E. unfold ksubst in E at 2.
+     destruct (Nat.eqb a k); simpl in E; lia.
+   - rewrite !apply_app.
+     unfold ksubst at 2 4. simpl.
+     do 2 case Nat.eqb_spec; intros; subst; rewrite !app_nil_r in *.
+     + apply app_inv' in H; trivial. f_equal. apply IHu, H.
+     + apply (f_equal (@rev nat)) in H. now rewrite !rev_app_distr in H.
+     + apply (f_equal (@rev nat)) in H. now rewrite !rev_app_distr in H.
+     + apply app_inv' in H; trivial.
+       destruct H as (H,[= ->]). f_equal. apply IHu, H. }
+ intros u v. rewrite <- (rev_involutive u), <- (rev_involutive v).
+ intros E. apply H in E. now f_equal.
+Qed.

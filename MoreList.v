@@ -179,6 +179,12 @@ Proof.
  destruct (h (f a)); simpl; f_equal; auto.
 Qed.
 
+Lemma filter_length_le {A} (f:A->bool) l :
+ length (filter f l) <= length l.
+Proof.
+ induction l; simpl; auto. destruct (f a); simpl; lia.
+Qed.
+
 (** More on flat_map *)
 
 Lemma flat_map_length {A B} (f:A->list B) l k :
