@@ -913,20 +913,24 @@ Qed.
 Lemma Sub_app_inv {A} (u l r : list A) :
  Sub u (l++r) ->
   Sub u l \/ Sub u r \/
-  exists u1 u2, u = u1++u2 /\ Suffix u1 l /\ Prefix u2 r.
+  exists u1 u2, u1<>[] /\ u2<>[] /\ u = u1++u2 /\ Suffix u1 l /\ Prefix u2 r.
 Proof.
  revert u. induction l as [|a l IH]; intros u H.
  - now (right; left).
  - simpl in H. apply Sub_cons_inv in H. destruct H as [H|(u' & E & H)].
-   + apply IH in H. clear IH. destruct H as [H|[H|(u1 & u2 & E & Su & Pr)]].
+   + apply IH in H. clear IH.
+     destruct H as [H|[H|(u1 & u2 & U1 & U2 & E & Su & Pr)]].
      * left. now apply (Sub_app_l [a]).
      * now (right; left).
      * right; right. exists u1, u2; repeat split; trivial.
        now apply (Suffix_app_l [a]).
    + subst u. apply Prefix_app in H. destruct H as [H|(u2 & E & Pr)].
      * left. destruct H as (w & <-). now exists [], w.
-     * right. right. exists (a::l), u2. repeat split; trivial.
-       simpl; now f_equal. apply Suffix_id.
+     * destruct u2 as [|a2 u2].
+       { rewrite app_nil_r in E. subst. left. apply Sub_id. }
+       { right. right. exists (a::l), (a2::u2).
+         repeat split; trivial; try easy.
+         simpl; now f_equal. apply Suffix_id. }
 Qed.
 
 Lemma Sub_seq (w : list nat) a n :

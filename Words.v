@@ -1298,3 +1298,55 @@ Proof.
  intros u v. rewrite <- (rev_involutive u), <- (rev_involutive v).
  intros E. apply H in E. now f_equal.
 Qed.
+
+(** A nonerasing substitution can be applied to an infinite word *)
+
+Definition SubstSeqSeq (s : subst)(f g : sequence) :=
+ forall u, PrefixSeq u f -> PrefixSeq (apply s u) g.
+
+Definition applyseq (s : subst) (f : sequence) :=
+  fun n => nth n (apply s (take (S n) f)) 0.
+
+Lemma applyseq_ok s f : NoErase s -> SubstSeqSeq s f (applyseq s f).
+Proof.
+ intros Hs u Hu. unfold PrefixSeq in *.
+ symmetry. apply take_carac; trivial.
+ intros m a Hm. unfold applyseq.
+ rewrite nth_indep with (d' := 0); trivial.
+ destruct (Nat.le_gt_cases (length u) (S m)) as [LE|GT].
+ - assert (PR: Prefix u (take (S m) f)).
+   { rewrite Hu. now apply Prefix_take. }
+   destruct PR as (v & <-).
+   rewrite apply_app, app_nth1; trivial.
+ - assert (PR: Prefix (take (S m) f) u).
+   { rewrite Hu. apply Prefix_take; lia. }
+   destruct PR as (v & E). rewrite <- E.
+   rewrite apply_app, app_nth1; trivial.
+   red. rewrite <- (take_length (S m) f) at 1.
+   now apply apply_grow.
+Qed.
+
+Lemma subst_seq_exists (s : subst)(f : sequence) :
+ NoErase s -> exists g, SubstSeqSeq s f g.
+Proof.
+ intros Hs. exists (applyseq s f). now apply applyseq_ok.
+Qed.
+
+Lemma subst_seq_unique s f g g' :
+ NoErase s -> SubstSeqSeq s f g -> SubstSeqSeq s f g' ->
+ forall n, g n = g' n.
+Proof.
+ intros Hs Hg Hg' n.
+ set (u := take (S n) f).
+ assert (Hu : PrefixSeq u f).
+ { red. unfold u. now rewrite take_length. }
+ assert (n < length (apply s u)).
+ { apply Nat.lt_le_trans with (length u).
+   - unfold u. rewrite take_length; lia.
+   - now apply apply_grow. }
+ specialize (Hg u Hu).
+ specialize (Hg' u Hu). red in Hg, Hg'.
+ rewrite <- (take_nth g (length (apply s u)) n 0); auto.
+ rewrite <- (take_nth g' (length (apply s u)) n 0); auto.
+ now rewrite <- Hg, <- Hg'.
+Qed.

@@ -396,14 +396,10 @@ Proof.
    + right. destruct n as [|n]; try lia.
      rewrite kword_alt in SU by lia.
      apply Sub_app_inv in SU.
-     destruct SU as [SU|[SU|(u1 & u2 & E & SU & PR)]].
+     destruct SU as [SU|[SU|(u1 & u2 & U1 & U2 & E & SU & PR)]].
      * exfalso. apply (NS n); auto.
      * exfalso. apply (NS (n-k)); auto; lia.
      * exists u1, u2; repeat split; trivial.
-       { intros ->. simpl in E. subst u2. apply Prefix_Sub in PR.
-         apply (NS (n-k)); auto; lia. }
-       { intros ->. simpl in E. rewrite app_nil_r in E.
-         subst u1. apply Suffix_Sub in SU. apply (NS n); auto. }
        { now exists n. }
        { eapply Prefix_PrefixSeq; eauto. apply kword_prefixseq. }
  - rewrite SubSeq_alt.
@@ -578,7 +574,7 @@ Proof.
      apply allsuffixes_spec in Hw. destruct Hw as (Hw,SF).
      rewrite allsubs_ok in Hu. destruct Hu as (Hu,SB).
      apply Sub_app_inv in SB.
-     destruct SB as [SB|[SB|(u1 & u2 & -> & H1 & H2)]].
+     destruct SB as [SB|[SB|(u1 & u2 & U1 & U2 & -> & H1 & H2)]].
      * apply Sub_len in SB. lia.
      * apply Sub_len in SB. rewrite kprefix_length in SB. lia.
      * rewrite app_length in Hu.

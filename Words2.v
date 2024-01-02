@@ -173,6 +173,13 @@ Proof.
   apply ksubst_prolong.
 Qed.
 
+Lemma kseq_fixpoint k n : applyseq (ksubst k) (kseq k) n = kseq k n.
+Proof.
+ apply (subst_seq_unique (ksubst k) (kseq k)).
+ - apply ksubst_noerase.
+ - apply applyseq_ok, ksubst_noerase.
+ - intro u. apply ksubst_prefix.
+Qed.
 
 (** Shuo Li / W. Steiner proof : the partial sums of kseq grow with k.
     Applications :

@@ -17,8 +17,16 @@ Definition LeftExt a u (f:sequence) := SubSeq (a::u) f.
 Definition LeftSpecial u (f:sequence) :=
   exists a a', a<>a' /\ LeftExt a u f /\ LeftExt a' u f.
 
+Definition RightExt u a (f:sequence) := SubSeq (u++[a]) f.
+
+Definition RightSpecial u (f:sequence) :=
+  exists a a', a<>a' /\ RightExt u a f /\ RightExt u a' f.
+
 Definition AllLeftExts l u (f:sequence) :=
   NoDup l /\ forall a, In a l <-> LeftExt a u f.
+
+Definition AllRightExts u l (f:sequence) :=
+  NoDup l /\ forall a, In a l <-> RightExt u a f.
 
 Lemma AllLeftExts_unique l l' u f :
  AllLeftExts l u f -> AllLeftExts l' u f -> Permutation l l'.
@@ -27,6 +35,59 @@ Proof.
  apply NoDup_Permutation; trivial.
  intros. now rewrite IN, IN'.
 Qed.
+
+Lemma AllRightExts_unique l l' u f :
+ AllRightExts u l f -> AllRightExts u l' f -> Permutation l l'.
+Proof.
+ intros (ND,IN) (ND',IN').
+ apply NoDup_Permutation; trivial.
+ intros. now rewrite IN, IN'.
+Qed.
+
+Lemma LeftExt_letter k a u : LeftExt a u (kseq k) -> a <= k.
+Proof.
+  unfold LeftExt, SubSeq. intros (q, E). unfold subseq in E.
+  simpl in E. injection E as E _.
+  generalize (kseq_letters k q). lia.
+Qed.
+
+Lemma RightExt_letter k u a : RightExt u a (kseq k) -> a <= k.
+Proof.
+  unfold RightExt, SubSeq. intros (q, E). revert E.
+  unfold subseq. rewrite app_length. simpl.
+  rewrite Nat.add_succ_r, seq_S, map_app. simpl. intros E.
+  apply app_inv' in E; trivial. destruct E as (_,[= ->]).
+  apply kseq_letters.
+Qed.
+
+Lemma LeftExt_Prefix a u v f :
+  Prefix v u -> LeftExt a u f -> LeftExt a v f.
+Proof.
+ unfold LeftExt. rewrite !SubSeq_alt.
+ intros PR (w & SU & PS). exists w. split; auto.
+ destruct PR as (v' & PR).
+ destruct SU as (w1 & w2 & <-). exists w1, (v'++w2).
+ rewrite <- PR. simpl. now rewrite app_assoc.
+Qed.
+
+Lemma RightExt_Suffix a u v f :
+  Suffix v u -> RightExt u a f -> RightExt v a f.
+Proof.
+ unfold RightExt. rewrite !SubSeq_alt.
+ intros SU (w & SU' & PS). exists w. split; auto.
+ destruct SU as (v' & SU).
+ destruct SU' as (w1 & w2 & <-). exists (w1++v'), w2.
+ rewrite <- SU. simpl. now rewrite !app_assoc.
+Qed.
+
+Lemma SubSeq_RightExt u f : SubSeq u f -> exists a, RightExt u a f.
+Proof.
+ unfold RightExt, SubSeq.
+ intros (q, ->). exists (f (q+length u)), q.
+ unfold subseq. rewrite app_length, map_length, seq_length. simpl.
+ rewrite Nat.add_succ_r, seq_S, map_app. simpl. repeat f_equal; lia.
+Qed.
+
 
 Definition wordmem u l := existsb (listnat_eqb u) l.
 
@@ -44,6 +105,12 @@ Definition kleftexts k u :=
 
 Definition klvalence k (u:word) := length (kleftexts k u).
 
+Definition krightexts k u :=
+ let l := kfactors0opt k (S (length u)) in
+ filter (fun a => wordmem (u++[a]) l) (seq 0 (S k)).
+
+Definition krvalence k (u:word) := length (krightexts k u).
+
 Lemma kleftexts_ok k u : AllLeftExts (kleftexts k u) u (kseq k).
 Proof.
  split.
@@ -58,6 +125,24 @@ Proof.
      injection E as E _. generalize (kseq_letters k q); lia.
 Qed.
 
+Lemma krightexts_ok k u : AllRightExts u (krightexts k u) (kseq k).
+Proof.
+ split.
+ - apply NoDup_filter, seq_NoDup.
+ - intros a.
+   unfold krightexts.
+   rewrite filter_In, in_seq, wordmem_spec, kfactors0opt_in.
+   split.
+   + intros (_ & _ & SU). apply SU.
+   + unfold RightExt. intros SU. split; [|split]; trivial.
+     2:{ rewrite app_length; simpl; lia. }
+     red in SU. destruct SU as (q & E). unfold subseq in E.
+     rewrite app_length in E. simpl in *.
+     rewrite Nat.add_succ_r, seq_S, map_app in E. simpl in E.
+     apply app_inv' in E; trivial. destruct E as (_,E).
+     injection E as E. generalize (kseq_letters k (q+(length u+0))); lia.
+Qed.
+
 Lemma klvalence_ok k l u :
   AllLeftExts l u (kseq k) -> klvalence k u = length l.
 Proof.
@@ -65,21 +150,17 @@ Proof.
  eapply AllLeftExts_unique; eauto using kleftexts_ok.
 Qed.
 
-Lemma LeftExt_letter k a u : LeftExt a u (kseq k) -> a <= k.
+Lemma krvalence_ok k u l :
+  AllRightExts u l (kseq k) -> krvalence k u = length l.
 Proof.
-  unfold LeftExt, SubSeq. intros (q, E). unfold subseq in E.
-  simpl in E. injection E as E _.
-  generalize (kseq_letters k q). lia.
+ intros A. rewrite (@Permutation_length _ l (krightexts k u)); try easy.
+ eapply AllRightExts_unique; eauto using krightexts_ok.
 Qed.
 
-Lemma LeftExt_Prefix a u v f :
-  Prefix v u -> LeftExt a u f -> LeftExt a v f.
+Lemma kword_nz k n : kword k n <> [].
 Proof.
- unfold LeftExt. rewrite !SubSeq_alt.
- intros PR (w & SU & PS). exists w. split; auto.
- destruct PR as (v' & PR).
- destruct SU as (w1 & w2 & <-). exists w1, (v'++w2).
- rewrite <- PR. simpl. now rewrite app_assoc.
+ unfold word,letter. rewrite <- length_zero_iff_nil,  kword_len.
+ generalize (A_nz k n); lia.
 Qed.
 
 Lemma kword_ls k p a : a <= k -> LeftExt a (kword k p) (kseq k).
@@ -102,8 +183,7 @@ Proof.
    rewrite Nat.add_succ_r, kword_alt in SU by lia.
    replace (q+2+k-k) with (q+2) in SU by lia.
    rewrite (@app_removelast_last _ (kword k (q+2+k)) 0) in SU.
-   2:{ rewrite <- length_zero_iff_nil, kword_len.
-       generalize (A_nz k (q+2+k)); lia. }
+   2:{ apply kword_nz. }
    rewrite <- app_assoc in SU.
    rewrite kword_last in SU.
    replace (q+2+k+k) with (q+2*(S k)) in SU by lia.
@@ -155,7 +235,7 @@ Proof.
    rewrite <- E, <- !app_assoc. simpl. now do 2 eexists.
 Qed.
 
-Lemma kseq_klvalence_nz k u : SubSeq u (kseq k) -> klvalence k u <> 0.
+Lemma klvalence_nz k u : SubSeq u (kseq k) -> klvalence k u <> 0.
 Proof.
  intros Hu.
  unfold klvalence. rewrite length_zero_iff_nil.
@@ -164,9 +244,24 @@ Proof.
  intros E. now rewrite E in Ha.
 Qed.
 
+Lemma krvalence_nz k u : SubSeq u (kseq k) -> krvalence k u <> 0.
+Proof.
+ intros Hu.
+ unfold krvalence. rewrite length_zero_iff_nil.
+ destruct (SubSeq_RightExt u _ Hu) as (a & Ha).
+ destruct (krightexts_ok k u) as (ND,H). rewrite <- H in Ha.
+ intros E. now rewrite E in Ha.
+Qed.
+
 Lemma klvalence_le_Sk k u : klvalence k u <= S k.
 Proof.
  unfold klvalence, kleftexts.
+ rewrite <- (seq_length (S k) 0) at 2. apply filter_length_le.
+Qed.
+
+Lemma krvalence_le_Sk k u : krvalence k u <= S k.
+Proof.
+ unfold krvalence, krightexts.
  rewrite <- (seq_length (S k) 0) at 2. apply filter_length_le.
 Qed.
 
@@ -184,6 +279,22 @@ Proof.
  - apply kleftexts_ok.
  - eapply prefix_incl_allleftexts; eauto using kleftexts_ok.
 Qed.
+
+Lemma suffix_incl_allrightexts k u u' l l' :
+  Suffix u u' -> AllRightExts u l (kseq k) -> AllRightExts u' l' (kseq k) ->
+  incl l' l.
+Proof.
+ intros P (ND,Hu) (ND',Hu') a Ha. rewrite Hu' in Ha. apply Hu.
+ eapply RightExt_Suffix; eauto.
+Qed.
+
+Lemma suffix_krvalence k u v : Suffix u v -> krvalence k v <= krvalence k u.
+Proof.
+ intros P. unfold krvalence. apply NoDup_incl_length.
+ - apply krightexts_ok.
+ - eapply suffix_incl_allrightexts; eauto using krightexts_ok.
+Qed.
+
 
 Definition next_letter k a := if a =? k then 0 else S a.
 Definition prev_letter k a := if a =? 0 then k else pred a.
@@ -501,6 +612,129 @@ Proof.
  apply kseq_letters.
 Qed.
 
+Lemma kseq_next_km1 k p : kseq k p = k-1 -> kseq k (S p) = k.
+Proof.
+ intros E.
+ destruct (Nat.eq_dec (kseq k (S p)) k) as [E'|E']; trivial.
+ rewrite kseq_next_letter, E; trivial.
+ unfold next_letter.
+ case Nat.eqb_spec; lia.
+Qed.
+
+Lemma AllRightExts_km1 k : AllRightExts [k-1] [k] (kseq k).
+Proof.
+ split.
+ - repeat constructor. intuition.
+ - intros a. simpl. split; [intros [<-|[ ]] | intros R; left].
+   + exists k. unfold subseq. simpl. symmetry. f_equal.
+     * destruct (Nat.eq_dec k 0) as [->|K]. easy.
+       replace k with (S (k-1)) at 2 by lia.
+       apply all_letters_occur; lia.
+     * f_equal. now apply all_letters_occur.
+   + destruct R as (q,R). unfold subseq in R. simpl in R.
+     injection R as R ->. symmetry. now apply kseq_next_km1.
+Qed.
+
+Lemma krvalence_km1 k : krvalence k [k-1] = 1.
+Proof.
+ change 1 with (length [k]) at 2. apply krvalence_ok. apply AllRightExts_km1.
+Qed.
+
+(** Hence the krvalence of any factor ending with (k-1) is 1 *)
+
+Lemma krvalence_last_km1 k u :
+  u<>[] -> SubSeq u (kseq k) -> last u 0 = k-1 -> krvalence k u = 1.
+Proof.
+ intros U U' L.
+ assert (SU : Suffix [k-1] u).
+ { exists (removelast u). symmetry. rewrite <- L.
+   now apply app_removelast_last. }
+ generalize (suffix_krvalence k _ _ SU) (krvalence_nz k u U').
+ rewrite krvalence_km1. lia.
+Qed.
+
+Lemma letters_LeftExt k a b : b<k ->
+ LeftExt a [b] (kseq k) <-> a = prev_letter k b.
+Proof.
+ intros B. split.
+ - intros (q, E). unfold subseq in E. simpl in E. injection E as Ea Eb.
+   subst. replace q with (S q - 1) at 1 by lia. apply kseq_prev_letter; lia.
+ - intros ->. exists b. unfold subseq. simpl. f_equal; symmetry.
+   + unfold prev_letter.
+     case Nat.eqb_spec.
+     * intros ->. apply kseq_k_0.
+     * intros B'. replace b with (S (pred b)) at 1 by lia.
+       apply all_letters_occur. lia.
+   + f_equal. apply all_letters_occur. lia.
+Qed.
+
+Lemma letters_RightExt k a b :
+  RightExt [a] b (kseq k) -> b = next_letter k a \/ b = k.
+Proof.
+ intros (q, E). unfold subseq in E. simpl in E. injection E as Ea Eb.
+ case (Nat.eq_dec b k) as [Eb'|Eb']. now right. left. subst.
+ now apply kseq_next_letter.
+Qed.
+
+Lemma letters_AllLeftExts k a l : a<k ->
+  AllLeftExts l [a] (kseq k) <-> l = [prev_letter k a].
+Proof.
+ split.
+ - intros (ND,A).
+   assert (IC :incl l [prev_letter k a]).
+   { intros x Hx. rewrite A in Hx. apply letters_LeftExt in Hx; try lia.
+     simpl; intuition. }
+   assert (length l <= 1).
+   { change 1 with (length [prev_letter k a]).
+     apply NoDup_incl_length; auto. }
+   destruct l as [|x [|y l]]; simpl in *; try lia.
+   + destruct (kseq_leftext k [a]) as (b & B).
+     { apply all_letters_subseq; lia. }
+     now rewrite <- A in B.
+   + f_equal. specialize (IC x). simpl in *; intuition.
+ - intros ->. split.
+   + now repeat constructor.
+   + intros b. rewrite letters_LeftExt; trivial. simpl; intuition.
+Qed.
+
+Lemma letters_AllRightExts_incl k a l :
+  AllRightExts [a] l (kseq k) -> incl l [next_letter k a; k].
+Proof.
+ intros (_,A) x Hx. rewrite A in Hx. apply letters_RightExt in Hx.
+ simpl; intuition.
+Qed.
+
+Lemma klvalence_letter k a : a<k -> klvalence k [a] = 1.
+Proof.
+ intros A. unfold klvalence.
+ replace (kleftexts k [a]) with [prev_letter k a]; trivial.
+ symmetry. apply letters_AllLeftExts; auto using kleftexts_ok.
+Qed.
+
+Lemma klvalence_letter_k k : klvalence k [k] = S k.
+Proof.
+ replace [k] with (kprefix k 1). apply kprefix_klvalence.
+ now rewrite kprefix_alt.
+Qed.
+
+Lemma krvalence_letter k a : krvalence k [a] <= 2.
+Proof.
+ unfold krvalence. change 2 with (length [next_letter k a; k]).
+ apply NoDup_incl_length. apply krightexts_ok.
+ apply letters_AllRightExts_incl. apply krightexts_ok.
+Qed.
+
+(** Actually, all letters have krvalence 2 except (k-1) which krvalence is 1. *)
+
+Lemma krvalence_le_2 k u : u<>[] -> krvalence k u <= 2.
+Proof.
+ intros Hu. transitivity (krvalence k [last u 0]).
+ - apply suffix_krvalence.
+   exists (removelast u). symmetry. now apply app_removelast_last.
+ - apply krvalence_letter.
+Qed.
+
+
 Lemma kseq_k_1 k : kseq k 1 = 0.
 Proof.
  rewrite kseq_bounded_rank. unfold bounded_rank, rank.
@@ -623,6 +857,392 @@ Proof.
        auto.
 Admitted.
 *)
+
+Definition InfiniteLeftSpecial (f g : sequence) :=
+ forall u, PrefixSeq u f -> LeftSpecial u g.
+
+Lemma remark_3_6 k : k<>0 -> InfiniteLeftSpecial (kseq k) (kseq k).
+Proof.
+ intros Hk u Hu. red in Hu. rewrite <- kprefix_alt in Hu. rewrite Hu.
+ rewrite ls_val. rewrite kprefix_klvalence. lia.
+Qed.
+
+Lemma infinitly_many_0_letters k :
+ forall n, { m | n <= m /\ kseq k m = 0 }.
+Proof.
+ intros n.
+ destruct (Nat.eq_dec k 0) as [->|K].
+ - exists n. split; trivial. generalize (kseq_letters 0 n). lia.
+ - set (p := invA_up k n).
+   exists (S (Nat.max (k+2) (A k p))). split.
+   + generalize (invA_up_spec k n). unfold p. lia.
+   + apply Nat.max_case_strong; intros LE.
+     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
+       rewrite decomp_S.
+       replace (decomp k (k+2)) with [S k].
+       2:{ symmetry. apply decomp_carac.
+           - constructor.
+           - replace (k+2) with (S (S k)) by lia.
+             rewrite <- (@A_base k (S k)) by lia. simpl; lia. }
+       unfold next_decomp. case Nat.leb_spec; simpl; lia.
+     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
+       replace (decomp k (S (A k p))) with [0;p]; trivial.
+       symmetry. apply decomp_carac; simpl; try lia.
+       constructor. 2:constructor. simpl. apply (A_le_inv k).
+       rewrite A_base; lia.
+Qed.
+
+Definition StrictPrefix {A} (u v : list A) := Prefix u v /\ u<>v.
+
+Definition limword (f : nat -> word) : sequence :=
+  fun (n:nat) => nth n (f (S n)) 0.
+
+Lemma limword_ok (f : nat -> word) :
+ (forall n, StrictPrefix (f n) (f (S n))) ->
+ forall n, PrefixSeq (f n) (limword f).
+Proof.
+ intros P n. red. symmetry. apply take_carac; trivial.
+ intros m a H. rewrite nth_indep with (d':=0) by trivial.
+ unfold limword.
+ assert (L : forall n, n <= length (f n)).
+ { clear - P. induction n; try lia.
+   apply Nat.le_lt_trans with (length (f n)); try lia.
+   destruct (P n) as ((u,<-),NE). rewrite app_length.
+   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
+ assert (P' : forall p q , p <= q -> Prefix (f p) (f q)).
+ { induction 1. apply Prefix_id. eapply Prefix_trans; eauto. apply P. }
+ destruct (Nat.le_ge_cases n (S m)) as [LE|GE].
+ - apply P' in LE. rewrite Prefix_nth in LE. now apply LE.
+ - apply P' in GE. rewrite Prefix_nth in GE. symmetry. apply GE. apply L.
+Qed.
+
+Lemma limword_unique (f : nat -> word) (g : sequence) :
+ (forall n, StrictPrefix (f n) (f (S n))) ->
+ (forall n, PrefixSeq (f n) g) ->
+ forall n, g n = limword f n.
+Proof.
+ intros P PR n.
+ assert (L : forall n, n <= length (f n)).
+ { clear - P. induction n; try lia.
+   apply Nat.le_lt_trans with (length (f n)); try lia.
+   destruct (P n) as ((u,<-),NE). rewrite app_length.
+   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
+ specialize (PR (S n)).
+ assert (PR' := limword_ok f P (S n)).
+ unfold PrefixSeq in *.
+ rewrite <- (take_nth g (length (f (S n))) n 0) by apply L.
+ rewrite <- PR, PR'. apply take_nth. apply L.
+Qed.
+
+Lemma proposition_3_8 k f :
+  InfiniteLeftSpecial f (kseq k) ->
+  exists g, InfiniteLeftSpecial g (kseq k) /\ SubstSeqSeq (ksubst k) f g.
+Proof.
+
+(* toujours un 0 un peu plus loin.
+   soit u_i ce prefix de f ne finissant pas par k et de taille >= i,
+   donc exists v_i, s(v_i) = u_i et LS v_i.
+
+   Or les u_i sont strictement imbriqués 2 à 2.
+   Idem pour les v_i, donc on a une limite
+
+
+ *)
+
+(* repeated use of:
+Lemma lemma_3_7_ii_ls k u :
+  last u 0 <> k -> LeftSpecial u (kseq k) ->
+  exists v, apply (ksubst k) v = u /\ LeftSpecial v (kseq k).
+*)
+
+(* Suite infini de mots finis strictement imbriqués --> un mot infini
+   dont les autres sont des prefix *)
+
+Admitted.
+
+Lemma theorem_3_9 k f :
+  InfiniteLeftSpecial f (kseq k) -> forall n, f n = kseq k n.
+Proof.
+Admitted.
+
+Definition MaxLeftSpecial u (f:sequence) :=
+  LeftSpecial u f /\ forall a, ~LeftSpecial (u++[a]) f.
+
+Lemma observation_4_2_contra u f : MaxLeftSpecial u f -> RightSpecial u f.
+Proof.
+ intros ((a & b & AB & A & B),H).
+ destruct (SubSeq_RightExt (a::u) f A) as (c & C).
+ destruct (SubSeq_RightExt (b::u) f B) as (d & D).
+ destruct (Nat.eq_dec c d).
+ - subst d. destruct (H c). exists a, b. repeat split; auto.
+ - exists c, d; repeat split; auto.
+   + eapply RightExt_Suffix; eauto. now exists [a].
+   + eapply RightExt_Suffix; eauto. now exists [b].
+Qed.
+
+Lemma observation_4_2 u f :
+  LeftSpecial u f -> ~RightSpecial u f -> ~MaxLeftSpecial u f.
+Proof.
+ intros H H'. contradict H'. now apply observation_4_2_contra.
+Qed.
+
+Lemma lemma_4_4 k n a : n<>0 ->
+  last (kword k n) 0 = a -> Suffix [prev_letter k a; a] (kword k n).
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ intros Hn Ha. destruct (Nat.le_gt_cases n (S k)).
+ - clear IH. rewrite kword_low in * by lia.
+   destruct n as [|[|n]]; try easy.
+   + simpl in *. subst a. now exists [].
+   + rewrite seq_S in Ha. simpl "+" in Ha.
+     change (k::_++[S n]) with ((k::seq 0 (S n))++[S n]) in Ha.
+     rewrite last_last in Ha. subst a.
+     rewrite !seq_S. exists (k::seq 0 n). simpl. f_equal.
+     now rewrite <- app_assoc.
+ - destruct n; try easy. rewrite kword_alt in * by lia.
+   rewrite last_app in Ha.
+   2:{ apply kword_nz. }
+   destruct (IH (n-k)) as (u & <-); trivial; try lia.
+   exists (kword k n ++ u). now rewrite app_assoc.
+Qed.
+
+Lemma Sub_app {A} (u1 u2 v1 v2 : list A) :
+  Suffix u1 v1 -> Prefix u2 v2 -> Sub (u1++u2) (v1++v2).
+Proof.
+ intros (u0, <-) (u3, <-). exists u0, u3. now rewrite !app_assoc.
+Qed.
+
+Lemma Suffix_last {A} (l:list A) (a:A) : l<>[] -> Suffix [last l a] l.
+Proof.
+ exists (removelast l). symmetry. now apply app_removelast_last.
+Qed.
+
+Lemma lemma_4_5 k r a b : a<>k -> b<>k ->
+  SubSeq ([a] ++ repeat k r ++ [b]) (kseq k) <->
+  (r=0 /\ a = b-1 /\ 0 < b < k) \/
+  (r=1 /\ a < k /\ b = 0) \/
+  (r=2 /\ a = k-1 /\ b = 0).
+Proof.
+ intros A B. split.
+ - rewrite SubSeq_kseq_Sub_kword. intros (n,SU). revert SU.
+   induction n as [n IH] using lt_wf_ind.
+   destruct (Nat.le_gt_cases n k) as [LE|GT].
+   + clear IH. rewrite kword_low by lia. intros (u & v & E). left.
+     rewrite <- !app_assoc in E.
+     destruct u; simpl in E; injection E as -> E; try easy.
+     assert (length u < n).
+     { rewrite <- (seq_length n 0). rewrite <- E. rewrite app_length.
+       simpl. lia. }
+     replace n with (length u + (n-length u)) in E by lia.
+     rewrite seq_app in E.
+     apply app_inv in E. destruct E as (_,E).
+     2:{ now rewrite seq_length. }
+     destruct (n-length u) as [|n'] eqn:N'; try lia.
+     simpl in E. injection E as E1 E2.
+     destruct r; destruct n'; simpl in E2; try easy;
+      injection E2 as E2 _; lia.
+   + destruct n; try easy.
+     rewrite kword_alt by lia. intros SU. apply Sub_app_inv in SU.
+     destruct SU as [SU|[SU|(u1 & u2 & U1 & U2 & E & SU & PR)]].
+     * apply (IH n); auto.
+     * apply (IH (n-k)); auto. lia.
+     * clear IH. right.
+       destruct u1 as [|x1 u1]; try easy. clear U1. simpl in E.
+       injection E as <- E.
+       rewrite <- (rev_involutive u2) in *.
+       destruct (rev u2) as [|x2 u2']; try easy. clear U2. simpl in *.
+       clear u2.
+       rewrite app_assoc in E.
+       apply app_inv' in E; trivial. destruct E as (E & [= <-]).
+       destruct (Nat.eq_dec n k) as [->|N].
+       { rewrite Nat.sub_diag, kword_0 in PR.
+         destruct PR as (u2, PR).
+         assert (L := f_equal (@length nat) PR).
+         rewrite !app_length, rev_length in L. simpl in L.
+         assert (length u2' = 0) by lia.
+         rewrite length_zero_iff_nil in *. subst u2'.
+         simpl in PR. now injection PR as -> ->. }
+       { assert (PR' : 1 <= n-k) by lia.
+         apply (kword_le_prefix k) in PR'. rewrite kword_1 in PR'.
+         destruct (rev u2') as [|x [|y u2]]; simpl in PR.
+         - assert (PR2 : Prefix [b] [k;0]).
+           { eapply Prefix_Prefix; simpl; eauto. }
+           now destruct PR2 as (v & [= -> _]).
+         - clear u2'. destruct PR as (v & PR).
+           destruct PR' as (v' & PR').
+           rewrite <- PR' in PR. apply app_inv in PR; auto.
+           destruct PR as ([= -> ->],_). clear PR'.
+           destruct r as [|r]; [now destruct u1| ].
+           rewrite <- Nat.add_1_r, repeat_app in E. simpl in E.
+           apply app_inv' in E; auto. destruct E as (<-,_). clear v v'.
+           destruct r as [|[|r]].
+           + left; repeat split; auto.
+             simpl in SU. destruct SU as (w & SU).
+             generalize (kword_letters k n). rewrite <- SU, Forall_app.
+             intros (_,F). inversion_clear F. lia.
+           + right; repeat split; auto.
+             simpl in SU.
+             destruct SU as (u & SU).
+             assert (N' : n <> 0) by lia.
+             assert (L : last (kword k n) 0 = k).
+             { now rewrite <- SU, last_app. }
+             assert (SU' := lemma_4_4 k n k N' L).
+             destruct SU' as (u' & SU'). rewrite <- SU' in SU.
+             apply app_inv' in SU; auto. destruct SU as (_,[= ->]).
+             unfold prev_letter.
+             case Nat.eqb_spec; lia.
+           + exfalso.
+             replace (S (S r)) with (r+2) in SU by lia.
+             rewrite repeat_app in SU. simpl in SU.
+             destruct SU as (u & SU).
+             change (a::_ ++ _) with ((a::repeat k r)++[k;k]) in SU.
+             rewrite app_assoc in SU.
+             assert (N' : n <> 0) by lia.
+             assert (L : last (kword k n) 0 = k).
+             { now rewrite <- SU, last_app. }
+             assert (SU' := lemma_4_4 k n k N' L).
+             destruct SU' as (u' & SU'). rewrite <- SU' in SU.
+             apply app_inv' in SU; auto. destruct SU as (_,[= E]).
+             revert E. unfold prev_letter. case Nat.eqb_spec; lia.
+         - exfalso.
+           assert (IN : In a (kword k n)).
+           { destruct SU as (u & <-). rewrite in_app_iff; right.
+             simpl; intuition. }
+           assert (LT : a < k).
+           { generalize (kword_letters k n). rewrite Forall_forall.
+             intros F. specialize (F a IN). lia. }
+           clear IN.
+           assert (PR2 : Prefix [k;0] (x::y::u2++[b])).
+           { eapply Prefix_Prefix; simpl; eauto; try lia. }
+           destruct PR2 as (u & [= <- <- PR2]).
+           assert (IN : In 0 (repeat k r)).
+           { rewrite E. rewrite in_app_iff. right. simpl; intuition. }
+           apply repeat_spec in IN. lia. }
+ - intros [(-> & -> & B')|[(-> & A' & ->)|(-> & -> & ->)]].
+   + simpl. exists b. unfold subseq. simpl.
+     assert (E : b = kseq k (S b)).
+     { symmetry. apply all_letters_occur. lia. }
+     f_equal; [|now f_equal].
+     symmetry. replace b with ((S b)-1) at 1 by lia.
+     rewrite kseq_prev_letter by lia. rewrite <- E.
+     unfold prev_letter. case Nat.eqb_spec; lia.
+   + simpl. apply SubSeq_kseq_Sub_kword. exists (S (k+a+2)).
+     rewrite kword_alt by lia.
+     assert (E : last (kword k (k+a+2)) 0 = a).
+     { rewrite kword_last. replace (k+a+2+k) with (a+2*(S k)) by lia.
+       rewrite Nat.mod_add, Nat.mod_small; lia. }
+     change [a;k;0] with ([a]++[k;0]).
+     apply Sub_app.
+     * rewrite <- E at 1. apply Suffix_last. apply kword_nz.
+     * replace [k;0] with (kword k 1).
+       2:{ rewrite kword_low; simpl; trivial; lia. }
+       apply kword_le_prefix; lia.
+   + simpl. apply SubSeq_kseq_Sub_kword. exists (S (k+1)).
+     rewrite kword_alt by lia.
+     assert (E : last (kword k (k+1)) 0 = k).
+     { rewrite kword_last. replace (k+1+k) with (k+1*(S k)) by lia.
+       rewrite Nat.mod_add, Nat.mod_small; lia. }
+     change [k-1;k;k;0] with ([k-1;k]++[k;0]).
+     apply Sub_app.
+     * replace (k-1) with (prev_letter k k).
+       apply lemma_4_4; try lia.
+       unfold prev_letter. case Nat.eqb_spec; lia.
+     * replace [k;0] with (kword k 1).
+       2:{ rewrite kword_low; simpl; trivial; lia. }
+       apply kword_le_prefix; lia.
+Qed.
+
+Lemma lemma_4_5_bis k r a :
+  k<>0 -> a<>k -> SubSeq ([a] ++ repeat k r) (kseq k) -> r <= 2.
+Proof.
+ intros K A (q,E).
+ rewrite app_length, repeat_length in E. simpl in E.
+ destruct (infinitly_many_0_letters k (q+S r)) as (n,(N,N')).
+ remember (n-(q+S r)) as m eqn:M.
+ revert r E N N' M.
+ induction m; intros.
+ - replace n with (q+S r) in N' by lia.
+   assert (SU : SubSeq ([a] ++ repeat k r ++ [0]) (kseq k)).
+   { exists q. rewrite !app_length, repeat_length, Nat.add_1_r. simpl.
+     unfold subseq in *. now rewrite seq_S, map_app, <- E, <- N'. }
+   apply lemma_4_5 in SU; trivial; lia.
+ - destruct (Nat.eq_dec (kseq k (q+S r)) k) as [E'|E'].
+   + assert (S r <= 2); try lia.
+     apply IHm; try lia. clear IHm.
+     rewrite <- (Nat.add_1_r r), repeat_app at 1. simpl.
+     unfold subseq in *. rewrite seq_S, map_app, <- E. simpl.
+     now repeat f_equal.
+   + set (b := kseq k (q+S r)) in *.
+     assert (SU : SubSeq ([a] ++ repeat k r ++ [b]) (kseq k)).
+     { exists q. rewrite !app_length, repeat_length, Nat.add_1_r. simpl.
+       unfold subseq in *. now rewrite seq_S, map_app, <- E. }
+     apply lemma_4_5 in SU; trivial; lia.
+Qed.
+
+Lemma lemma_4_5_ter k r : k<>0 -> SubSeq (repeat k r) (kseq k) -> r <= 2.
+Proof.
+ intros K (q,E). rewrite repeat_length in E. revert r E.
+ induction q; intros.
+ - unfold subseq in E. destruct r as [|[|r]]; try lia.
+   simpl in E. rewrite kseq_k_1 in E. now injection E as [= E _].
+ - destruct (Nat.eq_dec (kseq k q) k) as [E'|E'].
+   + assert (S r <= 2); try lia.
+     { apply IHq. unfold subseq in *. simpl. now rewrite E', E. }
+   + eapply lemma_4_5_bis; eauto. exists q.
+     rewrite app_length, repeat_length. simpl. now rewrite E.
+Qed.
+
+(* Lemma corollary_4_6 ? *)
+
+Lemma lemma_4_7 k r : r<>0 -> ~MaxLeftSpecial (repeat k r) (kseq k).
+Proof.
+ (* k=0 -> rien de Special car une seule lettre *)
+ (* SubSeq (repeat k r) (kseq k) donc r = 1 ou r = 2 dès que k<>0 *)
+ (* [k] est LeftSpecial mais pas MaxLeftSpecial
+    (car [k;0] encore LeftSpecial) *)
+ (* [k;k] n'est pas LeftSpecial : cf lemma 4.5, prev letter est k-1
+    forcément. *)
+
+Admitted.
+
+Lemma lemma_4_8 k u :
+  LeftSpecial u (kseq k) -> ~PrefixSeq u (kseq k) -> klvalence k u = 2.
+Proof.
+Admitted.
+
+Lemma lemma_4_9 k u a :
+  SubSeq u (kseq k) -> Suffix [k-1;a] u -> a = k.
+Proof.
+ intros SU SU'.
+ assert (R : RightExt [k-1] a (kseq k)).
+ { red. rewrite SubSeq_alt0 in *. destruct SU as (v,SU). exists v.
+   intuition. eapply Suffix_trans; eauto. }
+ apply letters_RightExt in R. destruct R as [R|R]; trivial.
+ revert R. unfold next_letter. case Nat.eqb_spec; try lia.
+Qed.
+
+Lemma lemma_4_10 k u a :
+  MaxLeftSpecial u (kseq k) -> a<>k -> In a u ->
+  exists v w, MaxLeftSpecial v (kseq k) /\ (w=[]\/w=[k]) /\
+              u = apply (ksubst k) v ++ w.
+Proof.
+Admitted.
+
+
+Lemma corollary_4_11 k u : ~MaxLeftSpecial u (kseq k).
+Proof.
+Admitted.
+
+Lemma LS_carac k u : LeftSpecial u (kseq k) <-> u = kprefix k (length u).
+Proof.
+Admitted.
+
+(* on a besoin de parler de l'unicité des InfiniteLeftSpecial
+
+   pas de MaxLeftSpecial signifie que tout LS est un prefix d'un ILS *)
+
+
+
 
 (* TODO: formule sur l'evolution du nombre de facteurs
    en fonction de la valence des left-special.
