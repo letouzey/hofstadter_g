@@ -306,6 +306,13 @@ Proof.
    exists u2; now rewrite app_assoc.
 Qed.
 
+Lemma Sub_SubSeq f u v : Sub u v -> SubSeq v f -> SubSeq u f.
+Proof.
+ rewrite !SubSeq_alt. intros (w1 & w2 & <-) (r & (w0 & w3 & E) & PR).
+ exists r; split; trivial. exists (w0++w1), (w2++w3).
+ now rewrite <-E, <- !app_assoc.
+Qed.
+
 Lemma kword_prefixseq k n : PrefixSeq (kword k n) (kseq k).
 Proof.
  apply PrefixSeq_napply. apply ksubst_noerase. apply ksubst_prolong.

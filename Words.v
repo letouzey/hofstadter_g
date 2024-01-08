@@ -242,6 +242,11 @@ Proof.
  reflexivity.
 Qed.
 
+Lemma kseq_k_1 k : kseq k 1 = 0.
+Proof.
+ unfold kseq, subst2seq, ksubst. simpl. now rewrite Nat.eqb_refl.
+Qed.
+
 (** kword letters are always in 0..k *)
 
 Lemma ksubst_letters k w :
