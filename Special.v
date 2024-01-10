@@ -771,7 +771,6 @@ Proof.
  exists v; split; auto. apply ls_val. lia.
 Qed.
 
-
 Lemma lemma_3_7_i_all_incl k u l l' :
   AllLeftExts l u (kseq k) ->
   AllLeftExts l' (apply (ksubst k) u) (kseq k) ->
@@ -888,136 +887,6 @@ Proof.
        auto.
 Admitted.
 *)
-
-Definition InfiniteLeftSpecial (f g : sequence) :=
- forall u, PrefixSeq u f -> LeftSpecial u g.
-
-Lemma remark_3_6 k : k<>0 -> InfiniteLeftSpecial (kseq k) (kseq k).
-Proof.
- intros Hk u Hu. red in Hu. rewrite <- kprefix_alt in Hu. rewrite Hu.
- rewrite ls_val. rewrite kprefix_klvalence. lia.
-Qed.
-
-Definition StrictPrefix {A} (u v : list A) := Prefix u v /\ u<>v.
-
-Definition limword (f : nat -> word) : sequence :=
-  fun (n:nat) => nth n (f (S n)) 0.
-
-Lemma limword_ok (f : nat -> word) :
- (forall n, StrictPrefix (f n) (f (S n))) ->
- forall n, PrefixSeq (f n) (limword f).
-Proof.
- intros P n. red. symmetry. apply take_carac; trivial.
- intros m a H. rewrite nth_indep with (d':=0) by trivial.
- unfold limword.
- assert (L : forall n, n <= length (f n)).
- { clear - P. induction n; try lia.
-   apply Nat.le_lt_trans with (length (f n)); try lia.
-   destruct (P n) as ((u,<-),NE). rewrite app_length.
-   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
- assert (P' : forall p q , p <= q -> Prefix (f p) (f q)).
- { induction 1. apply Prefix_id. eapply Prefix_trans; eauto. apply P. }
- destruct (Nat.le_ge_cases n (S m)) as [LE|GE].
- - apply P' in LE. rewrite Prefix_nth in LE. now apply LE.
- - apply P' in GE. rewrite Prefix_nth in GE. symmetry. apply GE. apply L.
-Qed.
-
-Lemma limword_unique (f : nat -> word) (g : sequence) :
- (forall n, StrictPrefix (f n) (f (S n))) ->
- (forall n, PrefixSeq (f n) g) ->
- forall n, g n = limword f n.
-Proof.
- intros P PR n.
- assert (L : forall n, n <= length (f n)).
- { clear - P. induction n; try lia.
-   apply Nat.le_lt_trans with (length (f n)); try lia.
-   destruct (P n) as ((u,<-),NE). rewrite app_length.
-   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
- specialize (PR (S n)).
- assert (PR' := limword_ok f P (S n)).
- unfold PrefixSeq in *.
- rewrite <- (take_nth g (length (f (S n))) n 0) by apply L.
- rewrite <- PR, PR'. apply take_nth. apply L.
-Qed.
-
-Lemma infinitly_many_0_letters k :
- forall n, { m | n <= m /\ kseq k m = 0 }.
-Proof.
- intros n.
- destruct (Nat.eq_dec k 0) as [->|K].
- - exists n. split; trivial. generalize (kseq_letters 0 n). lia.
- - set (p := invA_up k n).
-   exists (S (Nat.max (k+2) (A k p))). split.
-   + generalize (invA_up_spec k n). unfold p. lia.
-   + apply Nat.max_case_strong; intros LE.
-     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
-       rewrite decomp_S.
-       replace (decomp k (k+2)) with [S k].
-       2:{ symmetry. apply decomp_carac.
-           - constructor.
-           - replace (k+2) with (S (S k)) by lia.
-             rewrite <- (@A_base k (S k)) by lia. simpl; lia. }
-       unfold next_decomp. case Nat.leb_spec; simpl; lia.
-     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
-       replace (decomp k (S (A k p))) with [0;p]; trivial.
-       symmetry. apply decomp_carac; simpl; try lia.
-       constructor. 2:constructor. simpl. apply (A_le_inv k).
-       rewrite A_base; lia.
-Qed.
-(*
-Fixpoint nonk k n :=
- match n with
- | 0 => proj1_sig (infinitly_many_0_letters k 0)
- | S n => proj1_sig (infinitly_many_0_letters k (S (nonk k n)))
- end.
-
-Lemma nonk_ok k n : kseq k (nonk k n) = 0.
-Proof.
- destruct n; simpl; destruct infinitly_many_0_letters; simpl; intuition.
-Qed.
-
-Lemma nonk_incr k n : nonk k n < nonk k (S n).
-Proof.
- simpl. destruct infinitly_many_0_letters; simpl; intuition.
-Qed.
-*)
-
-Lemma proposition_3_8 k f :
-  InfiniteLeftSpecial f (kseq k) ->
-  exists g, InfiniteLeftSpecial g (kseq k) /\ SubstSeqSeq (ksubst k) f g.
-Proof.
-(*
- set (h := fun n => take (S (nonk k n)) f).
- assert (forall n, last (h n) 0 <> k).
- { intros n. unfold h. rewrite take_S. KO }
- assert (forall n, LeftSpecial (h n) (kseq k)).
-*)
-
-(* toujours un non-k un peu plus loin.
-   soit u_i ce prefix de f ne finissant pas par k et de taille >= i,
-   donc exists v_i, s(v_i) = u_i et LS v_i.
-
-   Or les u_i sont strictement imbriqués 2 à 2.
-   Idem pour les v_i, donc on a une limite
-
-
- *)
-
-(* repeated use of:
-Lemma lemma_3_7_ii_ls k u :
-  last u 0 <> k -> LeftSpecial u (kseq k) ->
-  exists v, apply (ksubst k) v = u /\ LeftSpecial v (kseq k).
-*)
-
-(* Suite infini de mots finis strictement imbriqués --> un mot infini
-   dont les autres sont des prefix *)
-
-Admitted.
-
-Lemma theorem_3_9 k f :
-  InfiniteLeftSpecial f (kseq k) -> forall n, f n = kseq k n.
-Proof.
-Admitted.
 
 Definition MaxLeftSpecial u (f:sequence) :=
   LeftSpecial u f /\ forall a, ~LeftSpecial (u++[a]) f.
@@ -1206,6 +1075,31 @@ Proof.
        apply kword_le_prefix; lia.
 Qed.
 
+Lemma infinitly_many_0_letters k :
+ forall n, { m | n <= m /\ kseq k m = 0 }.
+Proof.
+ intros n.
+ destruct (Nat.eq_dec k 0) as [->|K].
+ - exists n. split; trivial. generalize (kseq_letters 0 n). lia.
+ - set (p := invA_up k n).
+   exists (S (Nat.max (k+2) (A k p))). split.
+   + generalize (invA_up_spec k n). unfold p. lia.
+   + apply Nat.max_case_strong; intros LE.
+     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
+       rewrite decomp_S.
+       replace (decomp k (k+2)) with [S k].
+       2:{ symmetry. apply decomp_carac.
+           - constructor.
+           - replace (k+2) with (S (S k)) by lia.
+             rewrite <- (@A_base k (S k)) by lia. simpl; lia. }
+       unfold next_decomp. case Nat.leb_spec; simpl; lia.
+     * rewrite kseq_bounded_rank. unfold bounded_rank, rank.
+       replace (decomp k (S (A k p))) with [0;p]; trivial.
+       symmetry. apply decomp_carac; simpl; try lia.
+       constructor. 2:constructor. simpl. apply (A_le_inv k).
+       rewrite A_base; lia.
+Qed.
+
 Lemma lemma_4_5_bis k r a :
   k<>0 -> a<>k -> SubSeq ([a] ++ repeat k r) (kseq k) -> r <= 2.
 Proof.
@@ -1324,6 +1218,249 @@ Proof.
    { apply (lemma_4_5_bis k 3 b) in BR; trivial; lia. }
    apply (lemma_4_5 k 2 b d) in BR; trivial.
    lia.
+Qed.
+
+Definition InfiniteLeftSpecial (f g : sequence) :=
+ forall u, PrefixSeq u f -> LeftSpecial u g.
+
+Lemma remark_3_6 k : k<>0 -> InfiniteLeftSpecial (kseq k) (kseq k).
+Proof.
+ intros Hk u Hu. red in Hu. rewrite <- kprefix_alt in Hu. rewrite Hu.
+ rewrite ls_val. rewrite kprefix_klvalence. lia.
+Qed.
+
+Definition StrictPrefix {A} (u v : list A) := Prefix u v /\ u<>v.
+
+Definition limword (f : nat -> word) : sequence :=
+  fun (n:nat) => nth n (f (S n)) 0.
+
+Lemma limword_ok (f : nat -> word) :
+ (forall n, StrictPrefix (f n) (f (S n))) ->
+ forall n, PrefixSeq (f n) (limword f).
+Proof.
+ intros P n. red. symmetry. apply take_carac; trivial.
+ intros m a H. rewrite nth_indep with (d':=0) by trivial.
+ unfold limword.
+ assert (L : forall n, n <= length (f n)).
+ { clear - P. induction n; try lia.
+   apply Nat.le_lt_trans with (length (f n)); try lia.
+   destruct (P n) as ((u,<-),NE). rewrite app_length.
+   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
+ assert (P' : forall p q , p <= q -> Prefix (f p) (f q)).
+ { induction 1. apply Prefix_id. eapply Prefix_trans; eauto. apply P. }
+ destruct (Nat.le_ge_cases n (S m)) as [LE|GE].
+ - apply P' in LE. rewrite Prefix_nth in LE. now apply LE.
+ - apply P' in GE. rewrite Prefix_nth in GE. symmetry. apply GE. apply L.
+Qed.
+
+Lemma limword_unique (f : nat -> word) (g : sequence) :
+ (forall n, StrictPrefix (f n) (f (S n))) ->
+ (forall n, PrefixSeq (f n) g) ->
+ forall n, g n = limword f n.
+Proof.
+ intros P PR n.
+ assert (L : forall n, n <= length (f n)).
+ { clear - P. induction n; try lia.
+   apply Nat.le_lt_trans with (length (f n)); try lia.
+   destruct (P n) as ((u,<-),NE). rewrite app_length.
+   destruct u. now rewrite app_nil_r in NE. simpl; lia. }
+ specialize (PR (S n)).
+ assert (PR' := limword_ok f P (S n)).
+ unfold PrefixSeq in *.
+ rewrite <- (take_nth g (length (f (S n))) n 0) by apply L.
+ rewrite <- PR, PR'. apply take_nth. apply L.
+Qed.
+
+Definition nextnonk k (f:sequence) n :=
+ if Nat.eqb (f n) k then if Nat.eqb (f (S n)) k then S (S n) else S n else n.
+
+Lemma nextnonk_spec1 k f n : n <= nextnonk k f n <= n+2.
+Proof.
+ unfold nextnonk; repeat case Nat.eqb_spec; lia.
+Qed.
+
+Lemma nextnonk_spec2 k f :
+  k<>0 -> InfiniteLeftSpecial f (kseq k) -> forall n, f (nextnonk k f n) <> k.
+Proof.
+ intros K I n.
+ unfold nextnonk. repeat case Nat.eqb_spec; try lia.
+ intros E2 E1 E3.
+ specialize (I (take (S (S (S n))) f)). unfold PrefixSeq in I.
+ rewrite take_length in I. specialize (I eq_refl).
+ destruct I as (a & _ & _ & A & _).
+ rewrite !take_S, <- !app_assoc, E1, E2, E3 in A. simpl in A.
+ assert (SU : SubSeq (repeat k 3) (kseq k)).
+ { eapply Sub_SubSeq; eauto. apply Suffix_Sub. now exists (a::take n f). }
+ apply lemma_4_5_ter in SU; lia.
+Qed.
+
+Fixpoint iternext (next:nat->nat) n :=
+ match n with
+ | 0 => next 0
+ | S n => next (S (iternext next n))
+ end.
+
+Lemma iternext_incr next :
+  (forall n, n <= next n) -> forall n, iternext next n < iternext next (S n).
+Proof.
+ intros H n. simpl. apply (H (S (iternext next n))).
+Qed.
+
+Lemma iternext_spec next (P:nat -> Prop) :
+  (forall n, P (next n)) -> (forall n, P (iternext next n)).
+Proof.
+ induction n; simpl; auto.
+Qed.
+
+Lemma StrictPrefix_take {A} (w : nat -> A) n m :
+  n < m -> StrictPrefix (take n w) (take m w).
+Proof.
+ intros H; split. apply Prefix_take; lia.
+ intros E. apply (f_equal (@length _)) in E. rewrite !take_length in E; lia.
+Qed.
+
+Lemma StrictPrefix_len {A} (u v : list A) :
+  StrictPrefix u v -> length u < length v.
+Proof.
+ intros (P,N).
+ assert (length u <> length v).
+ { contradict N. now rewrite Prefix_equiv, N, firstn_all in P. }
+ apply Prefix_len in P. lia.
+Qed.
+
+Lemma before_0_is_k k u v :
+  u<>[] -> v<>[] -> SubSeq (u++v) (kseq k) -> hd 0 v = 0 -> last u 0 = k.
+Proof.
+ intros U V (q, SU) H.
+ destruct v as [|x v]; try easy. simpl in *. subst. clear V.
+ rewrite (app_removelast_last 0 U) in SU.
+ unfold letter in *.
+ set (u' := removelast u) in *. rewrite <- app_assoc, app_length in SU.
+ simpl in SU. unfold subseq in SU. rewrite seq_app, map_app in SU.
+ simpl in SU. apply app_inv in SU.
+ 2:{ now rewrite map_length, seq_length. }
+ destruct SU as (_,[= E1 E2 _]).
+ symmetry in E2. apply k0_pred_k in E2. simpl in E2. lia.
+Qed.
+
+Lemma Prefix_ksubst_inv k u u' v v' :
+  last u 0 <> k ->
+  last u' 0 <> k ->
+  SubSeq u' (kseq k) ->
+  u = apply (ksubst k) v ->
+  u' = apply (ksubst k) v' ->
+  Prefix u u' -> Prefix v v'.
+Proof.
+ intros L L' SU E E' (u2 & E2).
+ destruct (listnat_eqb_spec u []) as [->|N].
+ { change [] with (apply (ksubst k) []) in E. apply ksubst_inv in E.
+   subst v. now exists v'. }
+ destruct (listnat_eqb_spec u2 []) as [->|N2].
+ { exists []. rewrite app_nil_r in *. apply (ksubst_inv k).
+   now rewrite <- E, <- E', <- E2. }
+ destruct (lemma_3_7_ii_cor k u2) as (v2 & V2 & S2).
+ - clear v v' E E'. intros E. apply L. eapply before_0_is_k; eauto.
+   unfold letter in *. now rewrite E2.
+ - rewrite <- (last_app u u2), E2; trivial.
+ - eapply Sub_SubSeq; eauto. eapply Suffix_Sub. now exists u.
+ - exists v2. apply (ksubst_inv k). now rewrite apply_app, <- E, <- E', V2.
+Qed.
+
+(** Here, we assume FunctionalChoice (for the moment ?).
+    This avoid having to find "sig" version of many lemmas before. *)
+Require ChoiceFacts.
+Axiom choice : ChoiceFacts.FunctionalChoice.
+
+Lemma proposition_3_8 k f :
+  InfiniteLeftSpecial f (kseq k) ->
+  exists g, InfiniteLeftSpecial g (kseq k) /\ SubstSeqSeq (ksubst k) g f.
+Proof.
+ intros I.
+ assert (K : k<>0).
+ { intros ->. red in I. destruct (I [f 0]) as (a & b & AB & A & B).
+   - easy.
+   - apply LeftExt_letter in A,B. lia. }
+ set (h := fun n => take (S (iternext (nextnonk k f) n)) f).
+ assert (LA : forall n, last (h n) 0 <> k).
+ { intros n. unfold h. rewrite take_S, last_app; try easy. simpl.
+   apply iternext_spec. clear n. apply nextnonk_spec2; trivial. }
+ assert (LS : forall n, LeftSpecial (h n) (kseq k)).
+ { intros n. apply I. unfold h. red. now rewrite take_length. }
+ assert (EX : exists h', forall n,
+              h n = apply (ksubst k) (h' n) /\ LeftSpecial (h' n) (kseq k)).
+ { set (R := fun n w => h n = apply (ksubst k) w /\ LeftSpecial w (kseq k)).
+   change (exists h', forall n, R n (h' n)).
+   apply choice. intros n.
+   destruct (lemma_3_7_ii_ls k (h n) (LA n) (LS n)) as (v & E & V).
+   exists v; split; auto. }
+ destruct EX as (h', EX).
+ assert (IMB : forall n, StrictPrefix (h n) (h (S n))).
+ { intros n. unfold h. apply StrictPrefix_take. simpl.
+   set (m := S (iternext _ _)). generalize (nextnonk_spec1 k f m). lia. }
+ assert (IMB' : forall n, StrictPrefix (h' n) (h' (S n))).
+ { intros n. specialize (IMB n).
+   destruct (EX n) as (E1,LS1), (EX (S n)) as (E2,LS2).
+   split.
+   - eapply Prefix_ksubst_inv; eauto. 2:apply IMB.
+     destruct (LS (S n)) as (a & _ & _ & A & _). eapply Sub_SubSeq; eauto.
+     apply Sub_cons_r.
+   - intros E. rewrite <- E in E2. rewrite <- E2 in E1. rewrite <- E1 in IMB.
+     now apply IMB. }
+ assert (L : forall n, n <= length (h' n)).
+   { clear -IMB'.
+     induction n; simpl; try lia. specialize (IMB' n).
+     apply StrictPrefix_len in IMB'. lia. }
+ exists (limword h'). split.
+ - intros u U.
+   apply LeftSpecial_Prefix with (h' (length u)). 2:apply EX.
+   eapply PrefixSeq_incl; eauto. apply limword_ok; auto.
+ - intros u U.
+   assert (P : Prefix u (h' (length u))).
+   { eapply PrefixSeq_incl; eauto. apply limword_ok; auto. }
+   set (n := length u) in *. destruct (EX n) as (Ev,_).
+   apply Prefix_PrefixSeq with (h n).
+   + rewrite Ev. destruct P as (w & <-). rewrite apply_app. now eexists.
+   + unfold h. red. now rewrite take_length.
+Qed.
+
+Lemma theorem_3_9_aux k n f :
+  InfiniteLeftSpecial f (kseq k) -> PrefixSeq (take n f) (kseq k).
+Proof.
+ intros F.
+ assert (K : k<>0).
+ { intros ->. destruct (F [f 0]) as (a & b & AB & A & B).
+   - easy.
+   - apply LeftExt_letter in A,B. lia. }
+ revert f F.
+ induction n as [n IH] using lt_wf_ind. intros f F.
+ destruct (Nat.eq_dec n 0) as [->|N]; try easy.
+ destruct (proposition_3_8 k f F) as (g & G & G').
+ (* Is this helpful ? *)
+ assert (N' : n-1 < n) by lia.
+ assert (IH' := IH (n-1) N' f F).
+ (* Beware, the last letter of u is at position (n-1) *)
+ set (m := nextnonk k f (n-1)).
+ assert (M1 := nextnonk_spec1 k f (n-1)).
+ replace (n-1+2) with (S n) in M1 by lia.
+ assert (M2 := nextnonk_spec2 k f K F (n-1)). fold m in M1,M2.
+ apply Prefix_PrefixSeq with (take (S m) f).
+ - apply Prefix_take. lia.
+ - destruct (lemma_3_7_ii_ls k (take (S m) f)) as (v & V & V').
+   + now rewrite take_S, last_app.
+   + apply F. red. now rewrite take_length.
+   + rewrite <- V.
+     specialize (IH (n-1) N' g G).
+     apply ksubst_prefix.
+     red in G, G'.
+     (* v est un prefix de (take (n-1) g) ?? *)
+Admitted.
+
+Lemma theorem_3_9 k f :
+  InfiniteLeftSpecial f (kseq k) -> forall n, f n = kseq k n.
+Proof.
+ intros I n. apply (theorem_3_9_aux k (S n)) in I. red in I.
+ rewrite take_length in I. rewrite !take_S in I.
+ apply app_inv' in I; trivial. now destruct I as (_,[= <-]).
 Qed.
 
 (*
@@ -1488,3 +1625,59 @@ Admitted.
 (* TODO: formule sur l'evolution du nombre de facteurs
    en fonction de la valence des left-special.
 *)
+
+Compute kprefix 3 20.
+
+Definition test k l := wordmem (l++[k]) (kfactors0opt k (S (length l))).
+
+Definition moretest k n :=
+  let w := kprefix k (S n) in
+  if last w 0 =? k then false
+  else
+    let w' := removelast w in
+    if last w' 0 =? k then false
+    else test k w'.
+
+Compute filter (moretest 4) (seq 2 500).
+(*     = [2; 3; 4; 28; 37; 49; 273; 362; 480] *)
+
+Compute (kprefix 2 15).
+(*     = [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0] *)
+(* k=2 : 2;15;75;352 sont suffix les uns des autres *)
+
+Compute filter (moretest 3) (seq 2 500).
+(*     = [2; 3; 21; 29; 152; 210] *)
+
+Compute map (kprefix 3) [2; 3; 21; 29; 152; 210].
+(* k=3 suffix imbriqués un sur deux : 2 21 152 vs 3 29 210 *)
+
+Compute listnat_eqb (lastn 28 (kprefix 4 273)) (kprefix 4 28).
+       = [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0]
+
+
+Compute let k:=2 in map (fun n => kleftexts k (kprefix k n++[k]))
+                        (filter (moretest k) (seq 2 500)).
+(*      = [[2]; [0]; [1]; [2]] *)
+
+Compute let k:=3 in map (fun n => kleftexts k (kprefix k n++[k]))
+                        (filter (moretest k) (seq 2 500)).
+(*      = [[3]; [0]; [1]; [2]; [3]; [0]] *)
+
+Compute let k:=4 in map (fun n => kleftexts k (kprefix k n++[k]))
+                        (filter (moretest k) (seq 2 500)).
+(*     = [[4]; [0]; [1]; [2]; [3]; [4]; [0]; [1]; [2]] *)
+
+
+Compute map (fun n => kleftexts 5 (kprefix 5 n++[5])) [2; 3; 4; 5; 36; 46; 59; 76; 450].
+(*     = [[5]; [0]; [1]; [2]; [3]; [4]; [5]; [0]; [1]] *)
+
+
+
+Compute kprefix 2 76.
+
+Compute kleftexts 2 (kprefix 2 75 ++ [2]).
+
+
+Compute test 3 [3;0;1;2;3;3;0;3;0;1;3;0;1;2;3;0;1;2].
+
+Compute kleftexts 3 [3;0;1;3].

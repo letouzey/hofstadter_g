@@ -1233,14 +1233,15 @@ Qed.
 
 Lemma ksubst_prefix_inv k u :
   PrefixSeq u (kseq k) ->
-  exists v w,
-    u = apply (ksubst k) v ++ w /\ PrefixSeq v (kseq k) /\ (w=[]\/w=[k]).
+  { v & { w |
+      u = apply (ksubst k) v ++ w /\ PrefixSeq v (kseq k) /\ (w=[]\/w=[k]) }}.
 Proof.
  destruct (Nat.eq_dec k 0) as [K|K].
- { subst k. rewrite PrefixSeq_0. intros ->.
+ { intros P. subst k.
    set (n := length u).
    exists (repeat 0 (n/2)), (repeat 0 (n mod 2)); repeat split.
-   - rewrite apply_ksubst_0, <- repeat_app. f_equal. apply Nat.div_mod_eq.
+   - apply PrefixSeq_0 in P. rewrite P.
+     rewrite apply_ksubst_0, <- repeat_app. f_equal. apply Nat.div_mod_eq.
    - apply PrefixSeq_0. now rewrite repeat_length.
    - generalize (Nat.mod_upper_bound n 2).
      destruct (n mod 2) as [|[|q]]; try lia; simpl; intuition. }
