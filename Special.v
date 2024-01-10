@@ -1343,6 +1343,25 @@ Proof.
  symmetry in E2. apply k0_pred_k in E2. simpl in E2. lia.
 Qed.
 
+(* Note : SubSeq (apply (ksubst k) u) (kseq k) doesn't imply
+   SubSeq u (kseq k). Counterexemple: u=[k-1;k-1] not a factor but
+   its substitution [k;k] is. *)
+
+(* Note: hypothesis (last u 0 <> k) is mandatory below.
+   Counter-example otherwise: Prefix [k] [k;0] but ~Prefix [k-1] [k].
+
+   TODO: hypothesis (last u' 0 <> k) could be removed below.
+   If last u' = k, then u'0 or u'k0 factors.
+
+a) v' finit forcément par (k-1), soit v'' la fin changée en k, s(v'') = u'0
+   on obtient Prefix v v''. Si prefix strict on est bon.
+   Si égalité v=v'' alors s(v)=s(v'')=u'0 qui ne peut être prefix de u'
+
+b) on applique thm avant sur u (u'k0) v v'k.
+   on obtient Prefix v (v'k). Si Prefix strict on est bon.
+   Si égalité v=v'k alors s(v)=u'k0 ne peut être prefix de u'
+*)
+
 Lemma Prefix_ksubst_inv k u u' v v' :
   last u 0 <> k ->
   last u' 0 <> k ->
@@ -1435,9 +1454,10 @@ Proof.
  induction n as [n IH] using lt_wf_ind. intros f F.
  destruct (Nat.eq_dec n 0) as [->|N]; try easy.
  destruct (proposition_3_8 k f F) as (g & G & G').
- (* Is this helpful ? *)
  assert (N' : n-1 < n) by lia.
+(* (* Is this helpful ? *)
  assert (IH' := IH (n-1) N' f F).
+*)
  (* Beware, the last letter of u is at position (n-1) *)
  set (m := nextnonk k f (n-1)).
  assert (M1 := nextnonk_spec1 k f (n-1)).
@@ -1450,9 +1470,18 @@ Proof.
    + apply F. red. now rewrite take_length.
    + rewrite <- V.
      specialize (IH (n-1) N' g G).
+     red in G'.
+     assert (forall q, PrefixSeq (apply (ksubst k) (take q g)) f).
+     { intros q. apply G'. red. now rewrite take_length. }
+     (* donc si length (apply (ksubst k) (take q g)) >= S m
+        alors Prefix (take (S m) f) (apply (ksubst k) (take q g))
+        alors Prefix (apply (ksubst k) v) (apply (ksubst k) (take q g))
+        Peut-être peut-on en déduite Prefix v (take q g)
+        mais ce n'est pas certain, cf Prefix_ksubst_inv et ses conditions.
+        Si oui, v est bien un prefix de g. Reste à montrer qu'il est
+        assez petit pour IH. *)
      apply ksubst_prefix.
      red in G, G'.
-     (* v est un prefix de (take (n-1) g) ?? *)
 Admitted.
 
 Lemma theorem_3_9 k f :
@@ -1626,7 +1655,9 @@ Admitted.
    en fonction de la valence des left-special.
 *)
 
-Compute kprefix 3 20.
+(* WIP: existence de (kprefix k n) ne finissant pas par k et t.q.
+   (kprefix k n ++ [k]) est encore facteur mais <> kprefix k (n+1)).
+   Mais ces prefix ont tous klvalence 1 apparemment...
 
 Definition test k l := wordmem (l++[k]) (kfactors0opt k (S (length l))).
 
@@ -1652,7 +1683,7 @@ Compute map (kprefix 3) [2; 3; 21; 29; 152; 210].
 (* k=3 suffix imbriqués un sur deux : 2 21 152 vs 3 29 210 *)
 
 Compute listnat_eqb (lastn 28 (kprefix 4 273)) (kprefix 4 28).
-       = [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0]
+(*       = [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0] *)
 
 
 Compute let k:=2 in map (fun n => kleftexts k (kprefix k n++[k]))
@@ -1681,3 +1712,4 @@ Compute kleftexts 2 (kprefix 2 75 ++ [2]).
 Compute test 3 [3;0;1;2;3;3;0;3;0;1;3;0;1;2;3;0;1;2].
 
 Compute kleftexts 3 [3;0;1;3].
+*)
