@@ -451,7 +451,7 @@ Lemma Diff0_ksubst2 w :
   Diff0 (apply (ksubst 2) w) = tau * Diff2 w.
 Proof.
  unfold Diff0, Diff2.
- rewrite len_ksubst2, plus_INR.
+ rewrite len_ksubst, plus_INR.
  destruct (nbocc_ksubst2 w) as (-> & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
  rewrite tau3. lra.
@@ -463,7 +463,7 @@ Lemma Diff2_ksubst2 w :
 Proof.
  intros H.
  unfold Diff0, Diff2.
- rewrite len_ksubst2.
+ rewrite len_ksubst.
  destruct (nbocc_ksubst2 w) as (_ & _ & ->).
  rewrite !plus_INR.
  replace (nbocc 1 w + nbocc 2 w) with (length w - nbocc 0 w).

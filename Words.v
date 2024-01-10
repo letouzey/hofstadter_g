@@ -904,8 +904,8 @@ Proof.
  intros. rewrite nbocc_total_le with (k:=2); simpl; auto; lia.
 Qed.
 
-Lemma len_ksubst2 w :
- length (apply (ksubst 2) w) = length w + nbocc 2 w.
+Lemma len_ksubst k w :
+ length (apply (ksubst k) w) = length w + nbocc k w.
 Proof.
  induction w; simpl; auto.
  rewrite app_length, IHw.
@@ -958,15 +958,6 @@ Lemma len_nbocc_0123 w :
   length w = nbocc 0 w + nbocc 1 w + nbocc 2 w + nbocc 3 w.
 Proof.
  intros. rewrite nbocc_total_le with (k:=3); simpl; auto; lia.
-Qed.
-
-Lemma len_ksubst3 w :
- length (apply (ksubst 3) w) = length w + nbocc 3 w.
-Proof.
- induction w; simpl; auto.
- rewrite app_length, IHw.
- unfold ksubst at 1.
- case Nat.eqb_spec; simpl; lia.
 Qed.
 
 (* From a Prefix of napply of a word to a prefix of napply of a letter *)

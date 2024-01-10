@@ -376,7 +376,7 @@ Qed.
 Lemma Diff0_ksubst3 w : Diff0 (apply (ksubst 3) w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
- rewrite len_ksubst3, plus_INR.
+ rewrite len_ksubst, plus_INR.
  destruct (nbocc_ksubst3 w) as (-> & _ & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
  rewrite τ4. lra.
@@ -388,7 +388,7 @@ Lemma Diff3_ksubst3 w :
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_ksubst3.
+ rewrite len_ksubst.
  destruct (nbocc_ksubst3 w) as (_ & _ & _ & ->).
  rewrite !plus_INR.
  ring_simplify. rewrite τ6, τ5, τ4. ring_simplify.
@@ -401,7 +401,7 @@ Lemma Diff1_ksubst3 w :
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_ksubst3.
+ rewrite len_ksubst.
  destruct (nbocc_ksubst3 w) as (_ & -> & _ & _).
  rewrite !plus_INR.
  ring_simplify. replace (τ^8) with ((τ^4)^2) by ring.
