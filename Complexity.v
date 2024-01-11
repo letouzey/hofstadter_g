@@ -270,6 +270,9 @@ Definition SubSeq u (f:sequence) := exists q, u = subseq q (length u) f.
 
 Definition SubSeqLen p u (f:sequence) := length u = p /\ SubSeq u f.
 
+Definition Complexity f p n :=
+  exists l, NoDup l /\ length l = n /\ forall u, In u l <-> SubSeqLen p u f.
+
 Lemma SubSeq_alt0 u f : SubSeq u f <-> exists v, Suffix u v /\ PrefixSeq v f.
 Proof.
  split.
@@ -823,21 +826,10 @@ Proof.
  - rewrite <- kfactors0opt_length by trivial. apply nodup_length_le.
 Qed.
 
+(* LATER (see Special.v)
 Lemma kfactors_length k p : length (kfactors k p) = k*p+1.
-Proof.
-Admitted. (* No clue how to prove that, unless going through the whole
-             study of Left-Special extensions TODO *)
-
-Definition Complexity f p n :=
-  exists l, NoDup l /\ length l = n /\ forall u, In u l <-> SubSeqLen p u f.
-
 Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
-Proof.
- intros p. exists (kfactors k p). split; [|split].
- - apply kfactors_nodup.
- - apply kfactors_length.
- - apply kfactors_in.
-Qed.
+*)
 
 
 (* Idee: dilute the (nbocc 0) en dessous des concat *)
