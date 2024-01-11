@@ -317,6 +317,13 @@ Proof.
  - eapply suffix_incl_allrightexts; eauto using krightexts_ok.
 Qed.
 
+(* TODO MOVE *)
+Lemma lengthle1_carac {A}(a:A) l : In a l -> 1 <= length l.
+Proof.
+ destruct l as [|b l]. inversion 1. simpl. lia.
+Qed.
+
+(* TODO MOVE *)
 Lemma lengthle2_carac {A}(a b:A) l :
   a<>b -> In a l -> In b l -> 2 <= length l.
 Proof.
@@ -2065,7 +2072,7 @@ Qed.
 *)
 
 
-(** Now we count the different fators *)
+(** Now we count the different factors *)
 
 Definition next_kfactors k p :=
   let f := kprefix k p in
@@ -2073,36 +2080,135 @@ Definition next_kfactors k p :=
   map (fun x => x::f) (seq 0 (S k)) ++
   map (fun u => hd 0 (kleftexts k u) :: u) l.
 
-Lemma next_kfactors_iff k p u :
+Lemma next_kfactors_iff k p u : k<>0 ->
   In u (next_kfactors k p) <-> In u (kfactors k (S p)).
 Proof.
+ intros K.
  split.
-Admitted.
+ - rewrite kfactors_in.
+   unfold next_kfactors.
+   rewrite in_app_iff, !in_map_iff.
+   intros [(x & <- & IN)|(v & E & IN)].
+   + split.
+     * simpl. f_equal. apply kprefix_length.
+     * destruct (kprefix_allleftexts k p) as (_,H).
+       rewrite H in IN. apply IN.
+   + rewrite filter_In in IN. destruct IN as (IN,E').
+     revert E'. case listnat_eqb_spec; intros; try easy. clear E'.
+     rewrite kfactors_in in IN. destruct IN as (L,IN).
+     assert (NLS : ~LeftSpecial v (kseq k)).
+     { now rewrite LeftSpecial_carac', L. }
+     rewrite ls_val in NLS.
+     assert (N := klvalence_nz k v IN).
+     assert (E' : klvalence k v = 1) by lia. clear NLS N.
+     unfold klvalence in E'.
+     destruct (kleftexts_ok k v) as (_,LE).
+     destruct (kleftexts k v) as [|a [|b l]]; simpl in *; try easy.
+     rewrite <- E.
+     split.
+     * simpl. now f_equal.
+     * apply LE. now left.
+ - rewrite kfactors_in. intros (L,IN).
+   unfold next_kfactors. rewrite in_app_iff, !in_map_iff.
+   destruct u as [|a u]; try easy. simpl in L. injection L as L.
+   destruct (listnat_eqb_spec u (kprefix k p)) as [->|N].
+   + left. exists a; split; trivial.
+     apply in_seq. apply LeftExt_letter in IN. lia.
+   + right. exists u; split; trivial.
+     * f_equal.
+       assert (NLS : ~LeftSpecial u (kseq k)).
+       { now rewrite LeftSpecial_carac', L. }
+       rewrite ls_val in NLS.
+       assert (SU : SubSeq u (kseq k)).
+       { eapply Sub_SubSeq; eauto. apply Sub_cons_r. }
+       assert (N' := klvalence_nz k u SU).
+       assert (E : klvalence k u = 1) by lia. clear NLS N'.
+       unfold klvalence in E.
+       destruct (kleftexts_ok k u) as (_,LE).
+       rewrite <- (LE a) in IN. clear LE.
+       destruct (kleftexts k u) as [|b [|c ]]; simpl in *; try easy.
+       intuition.
+     * apply filter_In. split.
+       { rewrite kfactors_in. split; trivial.
+         eapply Sub_SubSeq; eauto. apply Sub_cons_r. }
+       { now case listnat_eqb_spec. }
+Qed.
 
 Lemma next_kfactors_nodup k p : NoDup (next_kfactors k p).
-Admitted.
+Proof.
+ apply app_nodup.
+ - apply FinFun.Injective_map_NoDup; try apply seq_NoDup.
+   now injection 1.
+ - apply FinFun.Injective_map_NoDup.
+   + now injection 1.
+   + apply NoDup_filter, kfactors_nodup.
+ - intros x. rewrite !in_map_iff.
+   intros ((a & <- & IN),(u & E & IN')).
+   rewrite filter_In in IN'. destruct IN' as (IN',E').
+   injection E as E1 E2.
+   revert E'. now case listnat_eqb_spec.
+Qed.
 
-Lemma next_kfactors_ok k p :
+Lemma next_kfactors_ok k p : k<>0 ->
   Permutation (next_kfactors k p) (kfactors k (S p)).
 Proof.
+ intros K.
  apply NoDup_Permutation.
  - apply next_kfactors_nodup.
  - apply kfactors_nodup.
- - apply next_kfactors_iff.
+ - intros u. now apply next_kfactors_iff.
 Qed.
 
-Lemma next_kfactor_length k p :
+Lemma filter_partition {A} (f : A -> bool) l :
+ Permutation (filter f l ++ filter (fun x => negb (f x)) l) l.
+Proof.
+ induction l as [|a l IH]; simpl; auto.
+ destruct (f a); simpl.
+ - now apply perm_skip.
+ - apply Permutation_sym.
+   eapply Permutation_trans. 2:apply Permutation_middle.
+   now apply perm_skip.
+Qed.
+
+Lemma filter_partition_length {A} (f : A -> bool) l :
+ length (filter f l) + length (filter (fun x => negb (f x)) l) = length l.
+Proof.
+ rewrite <- app_length. apply Permutation_length, filter_partition.
+Qed.
+
+Lemma next_kfactor_length k p : k<>0 ->
  length (next_kfactors k p) = length (kfactors k p) + k.
 Proof.
-Admitted.
+ intros K.
+ unfold next_kfactors. rewrite app_length, !map_length, seq_length.
+ set (f := fun u => listnat_eqb u (kprefix k p)).
+ change (fun u => _) with (fun u => negb (f u)).
+ rewrite <- (filter_partition_length f (kfactors k p)).
+ set (l2 := filter (fun x => _) _).
+ replace (filter f (kfactors k p)) with [kprefix k p]; simpl; try lia.
+ symmetry. apply Permutation_length_1_inv.
+ symmetry. apply NoDup_Permutation_bis.
+ - apply NoDup_filter, kfactors_nodup.
+ - simpl.
+   apply lengthle1_carac with (kprefix k p).
+   apply filter_In. split.
+   + rewrite kfactors_in. split. now rewrite kprefix_length.
+     eapply Sub_SubSeq. 2:apply (kprefix_leftext k p 0); try lia.
+     apply Sub_cons_r.
+   + unfold f. now case listnat_eqb_spec.
+ - intros u. rewrite filter_In. unfold f.
+   case listnat_eqb_spec; intros; subst; intuition.
+Qed.
 
 Lemma kfactors_length k p : length (kfactors k p) = k*p+1.
 Proof.
+ destruct (Nat.eq_dec k 0) as [->|K].
+ { now rewrite kfactors_0_l. }
  induction p.
  - rewrite kfactors_0_r. simpl. lia.
  - assert (E := next_kfactors_ok k p).
-   apply Permutation_length in E.
-   unfold letter in *. rewrite <- E, next_kfactor_length, IHp. lia.
+   apply Permutation_length in E; trivial.
+   unfold letter in *. rewrite <- E, next_kfactor_length, IHp; lia.
 Qed.
 
 Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
@@ -2117,7 +2223,7 @@ Qed.
 
 (* WIP: existence de (kprefix k n) ne finissant pas par k et t.q.
    (kprefix k n ++ [k]) est encore facteur mais <> kprefix k (n+1)).
-   Mais ces prefix ont tous klvalence 1 apparemment...
+   Mais ces prefix ont tous klvalence 1
 
 Definition test k l := wordmem (l++[k]) (kfactors0opt k (S (length l))).
 
