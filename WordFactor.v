@@ -60,7 +60,7 @@ Proof.
  destruct (Nat.le_gt_cases m k).
  - rewrite !kword_low by lia.
    exists [m]. now rewrite seq_S.
- - rewrite kword_alt by lia. now exists (kword k (m-k)).
+ - rewrite kword_eqn by lia. now exists (kword k (m-k)).
 Qed.
 
 Lemma kword_Suffix_Prefix_Sub k u1 u2 n m :
@@ -69,7 +69,7 @@ Lemma kword_Suffix_Prefix_Sub k u1 u2 n m :
 Proof.
  intros SU PR.
  destruct (Nat.le_gt_cases m n).
- - exists (S (n + S k)). rewrite kword_alt by lia.
+ - exists (S (n + S k)). rewrite kword_eqn by lia.
    assert (HSn : Prefix u2 (kword k (S n))).
    { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
    apply kword_suffix_cycle in SU.
@@ -87,7 +87,7 @@ Proof.
    assert (HSm' : Prefix u2 (kword k (S m'))).
    { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
    exists (S (m' + S k)).
-   rewrite kword_alt by lia.
+   rewrite kword_eqn by lia.
    apply kword_suffix_cycle in SU.
    destruct SU as (u1' & E1).
    destruct HSm' as (u2' & E2).
@@ -95,7 +95,7 @@ Proof.
    f_equal. f_equal. lia.
 Qed.
 
-Lemma SubSeq_kseq_Sub_kword k u :
+Lemma SubSeq_kseq_alt k u :
  SubSeq u (kseq k) <-> exists n, Sub u (kword k n).
 Proof.
  rewrite SubSeq_alt.
@@ -129,13 +129,13 @@ Lemma SubSeq_kseq_carac k u :
      SuffixWords u1 (kword k) /\ PrefixSeq u2 (kseq k).
 Proof.
  split.
- - rewrite SubSeq_kseq_Sub_kword. intros (n & SU).
+ - rewrite SubSeq_kseq_alt. intros (n & SU).
    apply Sub_kword_minimal in SU. clear n.
    destruct SU as (n & SU & NS).
    destruct (Nat.le_gt_cases n k).
    + left. eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
    + right. destruct n as [|n]; try lia.
-     rewrite kword_alt in SU by lia.
+     rewrite kword_eqn in SU by lia.
      apply Sub_app_inv in SU.
      destruct SU as [SU|[SU|(u1 & u2 & U1 & U2 & E & SU & PR)]].
      * exfalso. apply (NS n); auto.
@@ -175,7 +175,7 @@ Proof.
  intros E.
  assert (E' : hd 0 (sub (k :: seq 0 k) i p) =
               hd 0 (sub (k :: seq 0 k) j p)).
- { unfold letter in E. now rewrite E. }
+ { now rewrite E. }
  clear E.
  destruct i, j; trivial.
  - rewrite F0, (F j) in E'; lia.

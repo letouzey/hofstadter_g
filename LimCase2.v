@@ -447,8 +447,7 @@ Qed.
     Note : this could be stated via a matrix someday.
 *)
 
-Lemma Diff0_ksubst2 w :
-  Diff0 (apply (ksubst 2) w) = tau * Diff2 w.
+Lemma Diff0_ksubst2 w : Diff0 (ksubstw 2 w) = tau * Diff2 w.
 Proof.
  unfold Diff0, Diff2.
  rewrite len_ksubst, plus_INR.
@@ -459,7 +458,7 @@ Qed.
 
 Lemma Diff2_ksubst2 w :
   List.Forall (fun a => a <= 2)%nat w ->
-  Diff2 (apply (ksubst 2) w) = - tau^2 * Diff2 w - Diff0 w.
+  Diff2 (ksubstw 2 w) = - tau^2 * Diff2 w - Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff2.
@@ -470,7 +469,7 @@ Proof.
  2:{ apply len_nbocc_012 in H. rewrite H. rewrite !plus_INR. lra. }
  ring_simplify.
  replace (tau^4) with (1-tau^2-tau^3) by (generalize tau234; lra).
- unfold letter in *. lra.
+ lra.
 Qed.
 
 (** For [A 2] numbers, diff0 and diff2 have nice expressions via

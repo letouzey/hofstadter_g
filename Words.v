@@ -9,9 +9,10 @@ Import ListNotations.
     (fun n => f k (S n) - f k n)
 *)
 
-(** letters : here some natural numbers *)
+(** letters : here some natural numbers.
+    Most of the time, we'll only use 0..k for some parameter k. *)
 
-Definition letter := nat.
+Notation letter := nat (only parsing).
 
 (** Finite word : list of letters *)
 
@@ -207,9 +208,17 @@ Qed.
 (** Specific susbstitution for Hofstadter functions.
     Works on letters 0..k *)
 
-Definition ksubst k n := if n =? k then [k; 0] else [S n].
+Definition ksubst k (n:letter) := if n =? k then [k; 0] else [S n].
+
+(** After the substitution of letters, now the substitution of words *)
+
+Definition ksubstw k : word -> word := apply (ksubst k).
+
+(** Iterated substitution of word [k] *)
 
 Definition kword k n := napply (ksubst k) n [k].
+
+(** The corresponding infinite word (limit of the kword sequence) *)
 
 Definition kseq k := subst2seq (ksubst k) k.
 
@@ -232,7 +241,12 @@ Proof.
  apply substseq_exists. apply ksubst_noerase. apply ksubst_prolong.
 Qed.
 
-Lemma kword_S k n : kword k (S n) = apply (ksubst k) (kword k n).
+Lemma ksubstw_app k u v : ksubstw k (u++v) = ksubstw k u ++ ksubstw k v.
+Proof.
+ apply apply_app.
+Qed.
+
+Lemma kword_S k n : kword k (S n) = ksubstw k (kword k n).
 Proof.
  apply napply_alt.
 Qed.
@@ -251,7 +265,7 @@ Qed.
 
 Lemma ksubst_letters k w :
  Forall (fun a => a <= k) w ->
- Forall (fun a => a <= k) (apply (ksubst k) w).
+ Forall (fun a => a <= k) (ksubstw k w).
 Proof.
  induction w; simpl; auto.
  intros H; inversion_clear H. apply Forall_app. split; auto.
@@ -317,7 +331,7 @@ Qed.
 
 (** Alt equation : *)
 
-Lemma kword_alt k n : k<=n -> kword k (S n) = kword k n ++ kword k (n-k).
+Lemma kword_eqn k n : k<=n -> kword k (S n) = kword k n ++ kword k (n-k).
 Proof.
  induction n.
  - intros. replace k with 0 by lia. simpl; auto.
@@ -343,7 +357,7 @@ Proof.
  induction n as [[|n] IH] using lt_wf_ind.
  - now rewrite kword_0.
  - case (Nat.le_gt_cases k n) as [LE|GT].
-   + rewrite kword_alt; auto. rewrite app_length, !IH; try lia.
+   + rewrite kword_eqn; auto. rewrite app_length, !IH; try lia.
      simpl; auto.
    + rewrite kword_low by auto. simpl.
      rewrite seq_length. rewrite !A_base; lia.
@@ -351,7 +365,7 @@ Qed.
 
 Lemma kword_nz k n : kword k n <> [].
 Proof.
- unfold word,letter. rewrite <- length_zero_iff_nil,  kword_len.
+ unfold word. rewrite <- length_zero_iff_nil,  kword_len.
  generalize (A_nz k n); lia.
 Qed.
 
@@ -362,6 +376,8 @@ Proof.
  change (napply _ _ _) with (kword k m).
  rewrite kword_len, take_nth; auto.
 Qed.
+
+(** The kword are indeed prefixes of kseq *)
 
 Lemma kseq_take_A k n : take (A k n) (kseq k) = kword k n.
 Proof.
@@ -409,7 +425,7 @@ Proof.
      replace n with a by lia.
      rewrite seq_nth by lia. simpl.
      unfold bounded_rank, rank. rewrite decomp_low; simpl; lia.
-   + rewrite kword_alt by auto.
+   + rewrite kword_eqn by auto.
      rewrite app_nth2; rewrite kword_len; try lia.
      rewrite <- kseq_alt by (simpl in H; lia).
      rewrite IH by (generalize (@A_nz k a); lia).
@@ -662,9 +678,9 @@ Proof.
 Qed.
 
 Lemma ksubst_kwords k l :
- apply (ksubst k) (kwords k l) = kwords k (map S l).
+ ksubstw k (kwords k l) = kwords k (map S l).
 Proof.
- induction l; simpl; auto. now rewrite apply_app, IHl, <- kword_S.
+ induction l; simpl; auto. now rewrite ksubstw_app, IHl, kword_S.
 Qed.
 
 Lemma decomp_prefix_kword k w n l :
@@ -678,7 +694,7 @@ Proof.
    + simpl. now intros ->.
    + assert (LE := Prefix_len _ _ P'). rewrite seq_length in LE.
      apply Prefix_seq in P'.
-     rewrite E'. simpl length. unfold letter in *. set (p := length w') in *.
+     rewrite E'. simpl length. set (p := length w') in *.
      rewrite decomp_low by lia.
      replace (S _ -1) with p by lia. intros ->. simpl.
      rewrite app_nil_r, kword_low, <-P' by lia. trivial.
@@ -691,7 +707,7 @@ Proof.
      { rewrite <- kword_len, <- E, app_length. simpl. lia. }
      clear  E.
      destruct n; [lia|].
-     rewrite kword_alt in P by lia.
+     rewrite kword_eqn in P by lia.
      apply Prefix_app in P. destruct P as [P|(w' & -> & P)].
      * apply (IH n); auto.
      * rewrite app_length, kword_len in *.
@@ -733,7 +749,7 @@ Proof.
        2:{ apply Delta_S_cons. rewrite <- E.
            apply renorm_loop_delta; trivial. lia. }
        subst a. simpl. rewrite !kwords_app, !kwords_singl.
-       rewrite kword_alt by lia.
+       rewrite kword_eqn by lia.
        replace (i+k-k) with i by lia. rewrite <- app_ass. f_equal.
        rewrite <- (kwords_singl k (i+k)), <- kwords_app.
        change (_++_) with (rev (i+k::l')). rewrite <- E.
@@ -764,15 +780,14 @@ Qed.
 (** Occurrences of letters when applying ksubst *)
 
 Lemma nbocc_ksubst k : k<>0 ->
- let s := apply (ksubst k) in
  forall w,
- nbocc 0 (s w) = nbocc k w /\
- nbocc k (s w) = nbocc (k-1) w + nbocc k w /\
- forall p, p<k-1 -> nbocc (S p) (s w) = nbocc p w.
+ nbocc 0 (ksubstw k w) = nbocc k w /\
+ nbocc k (ksubstw k w) = nbocc (k-1) w + nbocc k w /\
+ forall p, p<k-1 -> nbocc (S p) (ksubstw k w) = nbocc p w.
 Proof.
  induction w; simpl.
  - repeat split; lia.
- - unfold s in *. simpl. rewrite !nbocc_app.
+ - simpl. rewrite !nbocc_app.
    destruct IHw as (IHw0 & IHwk & IHw).
    rewrite IHw0, IHwk. repeat split.
    + unfold ksubst. case Nat.eqb_spec; simpl; try lia.
@@ -841,7 +856,7 @@ Proof.
    2:{ rewrite in_seq; lia. }
    now replace (n-k) with 0 by lia.
  - destruct n; try lia.
-   rewrite kword_alt, nbocc_app by lia.
+   rewrite kword_eqn, nbocc_app by lia.
    rewrite IH by lia.
    rewrite IH by lia.
    now replace (S n - k) with (S (n-k)) by lia.
@@ -857,7 +872,7 @@ Proof.
    case Nat.eqb_spec; try lia.
    now replace (n-k) with 0 by lia.
  - destruct n; try lia.
-   rewrite kword_alt, nbocc_app by lia.
+   rewrite kword_eqn, nbocc_app by lia.
    rewrite IH by lia.
    destruct (Nat.le_gt_cases (S n) k).
    + replace (S n - k) with 0 by lia. replace (n-k) with 0 by lia. simpl.
@@ -882,10 +897,9 @@ Qed.
 *)
 
 Lemma nbocc_ksubst2 w :
- let s := apply (ksubst 2) in
- nbocc 0 (s w) = nbocc 2 w /\
- nbocc 1 (s w) = nbocc 0 w /\
- nbocc 2 (s w) = nbocc 1 w + nbocc 2 w.
+ nbocc 0 (ksubstw 2 w) = nbocc 2 w /\
+ nbocc 1 (ksubstw 2 w) = nbocc 0 w /\
+ nbocc 2 (ksubstw 2 w) = nbocc 1 w + nbocc 2 w.
 Proof.
  assert (H:2<>0) by lia.
  destruct (nbocc_ksubst 2 H w) as (H0 & H1 & Hp). repeat split; trivial.
@@ -897,7 +911,7 @@ Definition tripleocc w := (nbocc 0 w, nbocc 1 w, nbocc 2 w).
 Definition occurmatrix '(x,y,z) : nat*nat*nat := (z,x,y+z).
 
 Lemma nbocc_ksubst2_bis w :
- tripleocc (apply (ksubst 2) w) = occurmatrix (tripleocc w).
+ tripleocc (ksubstw 2 w) = occurmatrix (tripleocc w).
 Proof.
  unfold tripleocc.
  now destruct (nbocc_ksubst2 w) as (-> & -> & ->).
@@ -911,7 +925,7 @@ Proof.
 Qed.
 
 Lemma len_ksubst k w :
- length (apply (ksubst k) w) = length w + nbocc k w.
+ length (ksubstw k w) = length w + nbocc k w.
 Proof.
  induction w; simpl; auto.
  rewrite app_length, IHw.
@@ -936,11 +950,10 @@ Qed.
 *)
 
 Lemma nbocc_ksubst3 w :
- let s := apply (ksubst 3) in
- nbocc 0 (s w) = nbocc 3 w /\
- nbocc 1 (s w) = nbocc 0 w /\
- nbocc 2 (s w) = nbocc 1 w /\
- nbocc 3 (s w) = nbocc 2 w + nbocc 3 w.
+ nbocc 0 (ksubstw 3 w) = nbocc 3 w /\
+ nbocc 1 (ksubstw 3 w) = nbocc 0 w /\
+ nbocc 2 (ksubstw 3 w) = nbocc 1 w /\
+ nbocc 3 (ksubstw 3 w) = nbocc 2 w + nbocc 3 w.
 Proof.
  assert (H:3<>0) by lia.
  destruct (nbocc_ksubst 3 H w) as (H0 & H1 & Hp). repeat split; trivial.
@@ -953,7 +966,7 @@ Definition fourocc w := (nbocc 0 w, nbocc 1 w, nbocc 2 w, nbocc 3 w).
 Definition occurmatrix4 '(x,y,z,t) : nat*nat*nat*nat := (t,x,y,z+t).
 
 Lemma nbocc_ksubst3_bis w :
- fourocc (apply (ksubst 3) w) = occurmatrix4 (fourocc w).
+ fourocc (ksubstw 3 w) = occurmatrix4 (fourocc w).
 Proof.
  unfold fourocc.
  now destruct (nbocc_ksubst3 w) as (-> & -> & -> & ->).
@@ -1173,7 +1186,7 @@ Qed.
 
 Lemma kseq_take_inv k n : k<>0 ->
   take (n + if is_k0 k n then 1 else 0) (kseq k) =
-  apply (ksubst k) (take (f k n) (kseq k)).
+  ksubstw k (take (f k n) (kseq k)).
 Proof.
  intros Hk.
  set (l := rev (decomp k n)).
@@ -1222,7 +1235,7 @@ Proof.
  - now rewrite <- (E (length u) 0).
 Qed.
 
-Lemma apply_ksubst_0 n : apply (ksubst 0) (repeat 0 n) = repeat 0 (2*n).
+Lemma apply_ksubst_0 n : ksubstw 0 (repeat 0 n) = repeat 0 (2*n).
 Proof.
  induction n; simpl; trivial.
  rewrite Nat.add_succ_r. simpl. now rewrite IHn.
@@ -1231,7 +1244,7 @@ Qed.
 Lemma ksubst_prefix_inv k u :
   PrefixSeq u (kseq k) ->
   { v & { w |
-      u = apply (ksubst k) v ++ w /\ PrefixSeq v (kseq k) /\ (w=[]\/w=[k]) }}.
+      u = ksubstw k v ++ w /\ PrefixSeq v (kseq k) /\ (w=[]\/w=[k]) }}.
 Proof.
  destruct (Nat.eq_dec k 0) as [K|K].
  { intros P. subst k.
@@ -1256,7 +1269,7 @@ Proof.
      { intros H. rewrite H in E. simpl in E.
        apply (f_equal (@rev _)) in E. now rewrite rev_app_distr in E. }
      replace (f k (S n)) with (S (f k (S n) - 1)) in E by lia.
-     rewrite take_S, apply_app in E. simpl in E. rewrite app_nil_r in E.
+     rewrite take_S, ksubstw_app in E. simpl in E. rewrite app_nil_r in E.
      set (m := f k (S n) - 1) in *.
      exists (take m (kseq k)), [k]; repeat split.
      * apply (f_equal (@rev _)) in E. rewrite !rev_app_distr in E.
@@ -1276,23 +1289,23 @@ Qed.
 
 (** The preimage by ksubst is unique if it exists *)
 
-Lemma ksubst_inv k :
-  forall u v, apply (ksubst k) u = apply (ksubst k) v -> u = v.
+Lemma ksubstw_inv k :
+  forall u v, ksubstw k u = ksubstw k v -> u = v.
 Proof.
  assert (H : forall u v,
-             apply (ksubst k) (rev u) = apply (ksubst k) (rev v) -> u = v).
+             ksubstw k (rev u) = ksubstw k (rev v) -> u = v).
  { induction u as [|a u]; destruct v as [|b v]; simpl; auto.
-   - rewrite apply_app. simpl. rewrite app_nil_r.
+   - rewrite ksubstw_app. simpl. rewrite app_nil_r.
      intros E. symmetry in E. apply length_zero_iff_nil in E.
-     rewrite app_length in E. unfold ksubst in E at 2.
+     rewrite app_length in E. unfold ksubst in E.
      destruct (Nat.eqb b k); simpl in E; lia.
-   - rewrite apply_app. simpl. rewrite app_nil_r.
+   - rewrite ksubstw_app. simpl. rewrite app_nil_r.
      intros E. apply length_zero_iff_nil in E.
-     rewrite app_length in E. unfold ksubst in E at 2.
+     rewrite app_length in E. unfold ksubst in E.
      destruct (Nat.eqb a k); simpl in E; lia.
-   - rewrite !apply_app.
-     unfold ksubst at 2 4. simpl.
-     do 2 case Nat.eqb_spec; intros; subst; rewrite !app_nil_r in *.
+   - rewrite !ksubstw_app. simpl. rewrite !app_nil_r.
+     unfold ksubst. simpl.
+     do 2 case Nat.eqb_spec; intros; subst.
      + apply app_inv' in H; trivial. f_equal. apply IHu, H.
      + apply (f_equal (@rev nat)) in H. now rewrite !rev_app_distr in H.
      + apply (f_equal (@rev nat)) in H. now rewrite !rev_app_distr in H.
@@ -1383,8 +1396,8 @@ Proof.
   intros u Hu. simpl. apply IHn, PrefixSeq_apply; trivial.
 Qed.
 
-Lemma ksubst_prefix k u :
- PrefixSeq u (kseq k) -> PrefixSeq (apply (ksubst k) u) (kseq k).
+Lemma ksubstw_prefix k u :
+ PrefixSeq u (kseq k) -> PrefixSeq (ksubstw k u) (kseq k).
 Proof.
   apply PrefixSeq_apply. apply ksubst_noerase. apply ksubst_prolong.
 Qed.
@@ -1446,5 +1459,5 @@ Proof.
  apply (subst_seq_unique (ksubst k) (kseq k)).
  - apply ksubst_noerase.
  - apply applyseq_ok, ksubst_noerase.
- - intro u. apply ksubst_prefix.
+ - intro u. apply ksubstw_prefix.
 Qed.

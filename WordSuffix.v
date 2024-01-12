@@ -9,7 +9,7 @@ Lemma kword_suffix_cycle k n u :
   Suffix u (kword k n) -> Suffix u (kword k (n+S k)).
 Proof.
  intros Su.
- rewrite Nat.add_succ_r, kword_alt by lia. replace (n+k-k) with n by lia.
+ rewrite Nat.add_succ_r, kword_eqn by lia. replace (n+k-k) with n by lia.
  now apply Suffix_app_l.
 Qed.
 
@@ -30,7 +30,7 @@ Lemma kword_suffix_cycle' k n u :
 Proof.
  intros Hn Hu Su.
  replace n with (S (n-1)) in Su by lia.
- rewrite kword_alt in Su by lia.
+ rewrite kword_eqn in Su by lia.
  replace (n-1-k) with (n-S k) in Su by lia.
  apply Suffix_app_inv in Su.
  destruct Su as [Su|(u' & E & SU)]; trivial.
@@ -69,7 +69,7 @@ Proof.
  - destruct n as [|n]; try lia.
    replace (S n + k) with (n + 1 * S k) by lia.
    rewrite Nat.mod_add by lia.
-   rewrite kword_alt by lia. rewrite last_app.
+   rewrite kword_eqn by lia. rewrite last_app.
    2:{ rewrite <- length_zero_iff_nil, kword_len.
        generalize (A_nz k (n - k)). lia. }
    destruct (Nat.eq_dec k n) as [->|NE].

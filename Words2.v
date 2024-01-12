@@ -9,6 +9,8 @@ Import ListNotations.
 
 Definition ksubstk k n := napply (ksubst k) k [n].
 
+Definition ksubstkw k := apply (ksubstk k).
+
 (** Fun fact: for n <= k, ksubst^k(n) = ksubst^n(k) *)
 
 Lemma ksubst_pearl k n :
@@ -71,7 +73,7 @@ Proof.
  - (* We don't really care about k=0, but for the fun... *)
    intros n. unfold kseqk, subst2seq.
    assert (E : napply (ksubstk 0) n [0] = [0]) by now induction n.
-   unfold letter in *. rewrite E.
+   rewrite E.
    replace (nth n [0] 0) with 0.
    2:{ now destruct n as [|[|n]]. }
    generalize (kseq_letters 0 n). lia.
@@ -166,7 +168,7 @@ Proof.
  assert (Hu : PrefixSeq u (kseq k)).
  { red. unfold u. f_equal. now rewrite take_length. }
  apply ksubstk_prefix in Hu. red in Hu. unfold u at 2 in Hu.
- fold (positionk k p) in Hu. unfold letter in Hu. rewrite <- Hu.
+ fold (positionk k p) in Hu. rewrite <- Hu.
  rewrite nbocc_ksubstk. unfold u. apply take_length.
  apply take_kseq_letters.
 Qed.
@@ -234,26 +236,26 @@ Proof.
   replace p with (S p') by lia. simpl. rewrite Nat.sub_0_r. lia.
 Qed.
 
-Lemma length_apply_ksubst k m :
-  length (apply (ksubst k) (take m (kseq k))) = m + count (kseq k) k m.
+Lemma length_ksubstw k m :
+  length (ksubstw k (take m (kseq k))) = m + count (kseq k) k m.
 Proof.
  induction m; trivial.
- rewrite take_S, apply_app, app_length, IHm. simpl. unfold ksubst.
+ rewrite take_S, ksubstw_app, app_length, IHm. simpl. unfold ksubst.
  case Nat.eqb_spec; simpl; lia.
 Qed.
 
-Lemma listsum_ksubst k u :
-  listsum (apply (ksubst k) u) + nbocc k u = listsum u + length u.
+Lemma listsum_ksubstw k u :
+  listsum (ksubstw k u) + nbocc k u = listsum u + length u.
 Proof.
  induction u; trivial.
  simpl. rewrite listsum_app. unfold ksubst at 1.
  case Nat.eqb_spec; simpl; try lia.
 Qed.
 
-Lemma listsum_ksubst' k u :
-  listsum (apply (ksubst k) u) = listsum u + length u - nbocc k u.
+Lemma listsum_ksubstw' k u :
+  listsum (ksubstw k u) = listsum u + length u - nbocc k u.
 Proof.
- generalize (nbocc_le_length k u) (listsum_ksubst k u). lia.
+ generalize (nbocc_le_length k u) (listsum_ksubstw k u). lia.
 Qed.
 
 Lemma cumul_kseq_grows k n : 0<n -> cumul (kseq k) n < cumul (kseq (S k)) n.
@@ -289,20 +291,20 @@ Proof.
        { apply positionk_bounds'; trivial. }
        lia.
      }
-     assert (E1 : S n <= length (apply (ksubst k) (take m (kseq k)))).
-     { rewrite length_apply_ksubst. fold (a k m).
+     assert (E1 : S n <= length (ksubstw k (take m (kseq k)))).
+     { rewrite length_ksubstw. fold (a k m).
        transitivity (m + a (S k) m); try lia.
-       unfold a. now rewrite <- length_apply_ksubst, <- E, take_length. }
-     assert (P : Prefix (take (S n) (kseq k)) (apply (ksubst k) (take m (kseq k)))).
+       unfold a. now rewrite <- length_ksubstw, <- E, take_length. }
+     assert (P : Prefix (take (S n) (kseq k)) (ksubstw k (take m (kseq k)))).
      { apply (PrefixSeq_incl (kseq k)).
        - now rewrite take_length.
        - red. now rewrite take_length.
-       - apply ksubst_prefix. red. now rewrite take_length. }
+       - apply ksubstw_prefix. red. now rewrite take_length. }
      apply listsum_prefix in P.
      rewrite <- cumul_alt in P.
      eapply Nat.le_lt_trans; [ apply P | ].
-     rewrite cumul_alt. unfold letter in E. rewrite E.
-     rewrite !listsum_ksubst'.
+     rewrite cumul_alt. rewrite E.
+     rewrite !listsum_ksubstw'.
      generalize (nbocc_le_length k (take m (kseq k))).
      generalize (nbocc_le_length (S k) (take m (kseq (S k)))).
      rewrite <- !cumul_alt, !take_length, <- !count_nbocc.
@@ -344,7 +346,7 @@ Qed.
 Definition ksubstSk k n := napply (ksubst k) (S k) [n].
 
 Lemma ksubstSk_alt0 k n :
-  ksubstSk k n = apply (ksubst k) (apply (ksubstk k) [n]).
+  ksubstSk k n = ksubstw k (ksubstkw k [n]).
 Proof.
  unfold ksubstSk, ksubstk. rewrite napply_alt at 1. f_equal. simpl.
  now rewrite !app_nil_r.
@@ -364,7 +366,7 @@ Lemma ksubstSk_kword k n : n <= k ->
   ksubstSk k n = kword k (S n).
 Proof.
  intros H. rewrite ksubstSk_alt0.
- simpl (apply _ [n]). rewrite app_nil_r, ksubstk_kword by trivial.
+ simpl. rewrite app_nil_r, ksubstk_kword by trivial.
  now rewrite <- kword_S.
 Qed.
 
@@ -440,7 +442,7 @@ Proof.
  { red. unfold u. f_equal. now rewrite take_length. }
  apply ksubstSk_prefix in Hu. red in Hu. unfold u at 2 in Hu.
  unfold position0. rewrite take_S.
- unfold letter in *. rewrite <- Hu.
+ rewrite <- Hu.
  rewrite nbocc_app.
  rewrite nbocc_ksubstSk; trivial. 2:{ unfold u. apply take_kseq_letters. }
  unfold u. rewrite take_length.

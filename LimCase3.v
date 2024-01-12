@@ -373,7 +373,7 @@ Qed.
 
 (** Equations giving Diff0 and co after a substitution [ksubst 3]. *)
 
-Lemma Diff0_ksubst3 w : Diff0 (apply (ksubst 3) w) = τ * Diff3 w.
+Lemma Diff0_ksubst3 w : Diff0 (ksubstw 3 w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
  rewrite len_ksubst, plus_INR.
@@ -384,7 +384,7 @@ Qed.
 
 Lemma Diff3_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diff3 (apply (ksubst 3) w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
+  Diff3 (ksubstw 3 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
@@ -397,7 +397,7 @@ Qed.
 
 Lemma Diff1_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diff1 (apply (ksubst 3) w) = - τ^5 * Diff3 w + Diff0 w.
+  Diff1 (ksubstw 3 w) = - τ^5 * Diff3 w + Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
@@ -441,7 +441,7 @@ Qed.
 
 Lemma Diffs_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diffs (apply (ksubst 3) w) = B × Diffs w.
+  Diffs (ksubstw 3 w) = B × Diffs w.
 Proof.
  intro.
  apply Vect3_eq; auto with wf_db;
