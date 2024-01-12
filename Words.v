@@ -349,6 +349,12 @@ Proof.
      rewrite seq_length. rewrite !A_base; lia.
 Qed.
 
+Lemma kword_nz k n : kword k n <> [].
+Proof.
+ unfold word,letter. rewrite <- length_zero_iff_nil,  kword_len.
+ generalize (A_nz k n); lia.
+Qed.
+
 Lemma kseq_alt k n m a : n < A k m -> kseq k n = nth n (kword k m) a.
 Proof.
  intros LE.
@@ -1296,6 +1302,93 @@ Proof.
  intros E. apply H in E. now f_equal.
 Qed.
 
+(** More on PrefixSeq *)
+
+Lemma PrefixSeq_app_r u v f : PrefixSeq (u++v) f -> PrefixSeq u f.
+Proof.
+ unfold PrefixSeq, take. rewrite app_length, seq_app, map_app. intros E.
+ apply app_inv in E. apply E. now rewrite map_length, seq_length.
+Qed.
+
+Lemma Prefix_PrefixSeq u v f : Prefix u v -> PrefixSeq v f -> PrefixSeq u f.
+Proof.
+ intros (u' & <-). apply PrefixSeq_app_r.
+Qed.
+
+Lemma PrefixSeq_incl w u v :
+  length u <= length v -> PrefixSeq u w -> PrefixSeq v w -> Prefix u v.
+Proof.
+ unfold PrefixSeq. intros H -> ->. now apply Prefix_take.
+Qed.
+
+Lemma PrefixSeq_unique w u v :
+  length u = length v -> PrefixSeq u w -> PrefixSeq v w -> u = v.
+Proof.
+ intros. apply Prefix_antisym; eapply PrefixSeq_incl; eauto; lia.
+Qed.
+
+Lemma PrefixSeq_alt s a :
+  NoErase s -> Prolong s a ->
+  forall u,
+    PrefixSeq u (subst2seq s a) <-> Prefix u (napply s (length u) [a]).
+Proof.
+ intros NE PR u. unfold PrefixSeq.
+ split.
+ - generalize (length u). intros n Hu.
+   rewrite Prefix_nth_nat. intros m b Hm.
+   subst u. rewrite take_length in Hm.
+   rewrite take_nth by trivial.
+   rewrite <- subst2seq_indep; trivial; lia.
+ - set (n := length u). intros Hu.
+   symmetry. apply take_carac; trivial.
+   intros m b Hm. rewrite Prefix_nth_nat in Hu.
+   rewrite Hu by trivial. symmetry. apply subst2seq_indep; trivial. lia.
+Qed.
+
+Lemma PrefixSeq_alt' s a :
+  NoErase s -> Prolong s a ->
+  forall u,
+    PrefixSeq u (subst2seq s a) <-> exists m, Prefix u (napply s m [a]).
+Proof.
+ intros NE PR u. rewrite PrefixSeq_alt by trivial.
+ split.
+ - intros H. now exists (length u).
+ - intros (m,H). destruct (Nat.le_gt_cases m (length u)) as [L|L].
+   + eapply Prefix_trans; eauto. apply napply_prefix_mono; trivial.
+   + eapply Prefix_Prefix; eauto.
+     * apply Nat.lt_le_incl, noerase_prolong_napply_len; trivial.
+     * apply napply_prefix_mono; trivial; lia.
+Qed.
+
+Lemma PrefixSeq_apply s a :
+  NoErase s -> Prolong s a ->
+  forall u,
+   PrefixSeq u (subst2seq s a) ->
+   PrefixSeq (apply s u) (subst2seq s a).
+Proof.
+  intros NE PR u.
+  rewrite !PrefixSeq_alt' by trivial.
+  intros (m,(u',E)). exists (S m).
+  rewrite napply_alt, <- E, apply_app. now exists (apply s u').
+Qed.
+
+Lemma PrefixSeq_napply s a n :
+  NoErase s -> Prolong s a ->
+  forall u,
+   PrefixSeq u (subst2seq s a) ->
+   PrefixSeq (napply s n u) (subst2seq s a).
+Proof.
+  intros NE PR.
+  induction n; trivial.
+  intros u Hu. simpl. apply IHn, PrefixSeq_apply; trivial.
+Qed.
+
+Lemma ksubst_prefix k u :
+ PrefixSeq u (kseq k) -> PrefixSeq (apply (ksubst k) u) (kseq k).
+Proof.
+  apply PrefixSeq_apply. apply ksubst_noerase. apply ksubst_prolong.
+Qed.
+
 (** A nonerasing substitution can be applied to an infinite word *)
 
 Definition SubstSeqSeq (s : subst)(f g : sequence) :=
@@ -1346,4 +1439,12 @@ Proof.
  rewrite <- (take_nth g (length (apply s u)) n 0); auto.
  rewrite <- (take_nth g' (length (apply s u)) n 0); auto.
  now rewrite <- Hg, <- Hg'.
+Qed.
+
+Lemma kseq_fixpoint k n : applyseq (ksubst k) (kseq k) n = kseq k n.
+Proof.
+ apply (subst_seq_unique (ksubst k) (kseq k)).
+ - apply ksubst_noerase.
+ - apply applyseq_ok, ksubst_noerase.
+ - intro u. apply ksubst_prefix.
 Qed.

@@ -18,7 +18,8 @@ GenFlip.v
 Shift.v
 Words.v
 Words2.v
-Complexity.v
+WordSuffix.v
+WordFactor.v
 Special.v
 Mu.v
 MoreLim.v

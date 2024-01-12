@@ -21,6 +21,13 @@ Proof.
  intro H. now rewrite <- (rev_involutive l), H, rev_involutive.
 Qed.
 
+Lemma rev_repeat {A} (a:A) n : rev (repeat a n) = repeat a n.
+Proof.
+ induction n; trivial.
+ rewrite <- Nat.add_1_r at 1. rewrite repeat_app, rev_app_distr.
+ simpl. now f_equal.
+Qed.
+
 Lemma app_inv {A} (u u' v v':list A) :
  length u = length v -> u++u' = v++v' -> u=v /\ u'=v'.
 Proof.
@@ -889,6 +896,11 @@ Proof.
  intros (w & w' & <-). exists w, (w'++r). now rewrite !app_ass.
 Qed.
 
+Lemma Sub_cons_r {A} (a:A) u : Sub u (a::u).
+Proof.
+ apply (Sub_app_l [a]), Sub_id.
+Qed.
+
 Lemma Sub_cons_inv {A} (a:A) u v :
  Sub u (a::v) -> Sub u v \/ exists u', u = a::u' /\ Prefix u' v.
 Proof.
@@ -1169,4 +1181,18 @@ Lemma map_appr_in {A} l (v u:list A) :
  In u (map_appr l v) <-> exists w,  w++v = u /\ In w l.
 Proof.
  apply in_map_iff.
+Qed.
+
+(** Proving that a list has length >= 1 (resp. >= 2). *)
+
+Lemma lengthge1_carac {A}(a:A) l : In a l -> 1 <= length l.
+Proof.
+ destruct l as [|b l]. inversion 1. simpl. lia.
+Qed.
+
+Lemma lengthge2_carac {A}(a b:A) l :
+  a<>b -> In a l -> In b l -> 2 <= length l.
+Proof.
+ destruct l as [|c [|d l]]; simpl; try easy; try lia.
+ now intros ND [<-|[ ]] [<-|[ ]].
 Qed.
