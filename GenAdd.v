@@ -593,8 +593,9 @@ Proof.
  apply decide_additivity_k2. now vm_compute.
 Qed.
 
-(* TODO: experimentally, h(p+n)-h(p)-h(n) is in [-2..2] in general.
-   Proof: ??
+(* In general, h(p+n)-h(p)-h(n) is in [-2..2].
+   Proof: See LimCase2.h_quasiadd (via real frequencies, hence R axioms)
+   TODO: Constructive Proof ?
 *)
 
 (** At least, [h_addA] below proves that when p is a [A 2] number
