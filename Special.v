@@ -399,6 +399,11 @@ Proof.
  unfold ksubst. now rewrite Nat.eqb_refl.
 Qed.
 
+Lemma ksubst_km1 k : k<>0 -> ksubst k (k-1) = [k].
+Proof.
+ intros K. unfold ksubst. case Nat.eqb_spec; intros. lia. f_equal. lia.
+Qed.
+
 Lemma ksubst_next_letter k a : a<>k -> ksubst k a = [next_letter k a].
 Proof.
  intros A. unfold ksubst, next_letter. case Nat.eqb_spec; auto; lia.
@@ -971,8 +976,7 @@ Proof.
              assert (SU' := lemma_4_4 k n k N' L).
              destruct SU' as (u' & SU'). rewrite <- SU' in SU.
              apply app_inv' in SU; auto. destruct SU as (_,[= ->]).
-             unfold prev_letter.
-             case Nat.eqb_spec; lia.
+             unfold prev_letter. case Nat.eqb_spec; lia.
            + exfalso.
              replace (S (S r)) with (r+2) in SU by lia.
              rewrite repeat_app in SU. simpl in SU.
@@ -1224,6 +1228,25 @@ Proof.
  apply (SubSeq_kk k (b::u)), B.
 Qed.
 
+Lemma lemma_4_9 k u :
+  SubSeq (u++[k-1]) (kseq k) -> SubSeq (u++[k-1;k]) (kseq k).
+Proof.
+ intros (q,E). exists q. rewrite app_length in *.
+ unfold subseq in *. simpl in *.
+ rewrite !Nat.add_succ_r, !seq_S, !map_app in *. simpl in *.
+ set (n := length u) in *. rewrite Nat.add_0_r in *.
+ apply app_inv' in E; trivial. destruct E as (<-,[= E]).
+ now rewrite Nat.add_succ_r, kseq_next_km1, <- E, <- app_assoc.
+Qed.
+
+Lemma lemma_4_9_ls k u :
+  LeftSpecial (u++[k-1]) (kseq k) -> LeftSpecial (u++[k-1;k]) (kseq k).
+Proof.
+ intros (a & b & AB & A & B). exists a, b; repeat split; trivial.
+ now apply (lemma_4_9 k (a::u)).
+ now apply (lemma_4_9 k (b::u)).
+Qed.
+
 Lemma kseq_after_k k a : SubSeq [k;a] (kseq k) -> a = 0 \/ a = k.
 Proof.
  intros (q,SU). unfold subseq in *. simpl in *. injection SU as E1 E2.
@@ -1271,8 +1294,8 @@ Qed.
 
 (** Instead of proposition 3.8 and theorem 3.9 about Infinite Left Special,
     we use here an ad-hoc decreasing principle, that avoid the need for
-    infinitary objects (delicates in Coq). Moreover, this explicits the fact
-    that we need at most one right-extension of LeftSpecial words, no more. *)
+    infinitary objects (delicates in Coq). Moreover, it explicits the fact
+    that we may need to right-extend LeftSpecial words, but at most once. *)
 
 Lemma DecrLemma k u :
   1 < length u ->
@@ -1417,35 +1440,149 @@ Proof.
  case Nat.eqb_spec; simpl; intros; auto. now intros [= ->].
 Qed.
 
-(** A weaker version of lemma 4.10 (which is problematic,
-    even in its "corrigendum" version). We could actually prove
-    [MaxLeftSpecial v' (kseq k)] in the [u=u'] case, but not in
-    the other [u=u'++[k]] case. Fortunately the next proofs don't
-    need this maximality of v'. *)
+(* Two auxiliary lemmas for Proposition 4.10 : ante-image of right extensions *)
 
-(* BUG Dans preuve initiale de 4.10 :
- SI r=1 :
+Lemma inv_letter_for_4_10 k u v' b :
+  k <> 0 -> u <> [] ->
+  MaxLeftSpecial u (kseq k) ->
+  last u 0 <> k ->
+  ksubstw k v' = u ->
+  RightExt u b (kseq k) ->
+  exists b', RightExt v' b' (kseq k) /\
+             ~LeftSpecial (v'++[b']) (kseq k) /\
+             head (ksubst k b') = Some b.
+Proof.
+ intros K U (LS,NLS) L E B.
+ destruct (Nat.eq_dec b k) as [->|NB].
+ - destruct (SubSeq_RightExt _ _ B) as (b2 & B2).
+   red in B2. rewrite <- app_assoc in B2. simpl in B2.
+   assert (B2' : SubSeq [k;b2] (kseq k)).
+   { eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
+   destruct (kseq_after_k _ _ B2') as [-> | ->].
+   + destruct (lemma_3_7_ii_cor k (u++[k;0])) as (v & V & SU); trivial.
+     { destruct u; simpl; try easy. apply ls_head_k in LS; lia. }
+     { rewrite last_app; simpl; easy || lia. }
+     assert (E2 : v = v' ++ [k]).
+     { apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
+       cbn. now rewrite ksubst_k. }
+     exists k; repeat split.
+     { red. now rewrite <- E2. }
+     { rewrite <- E2. intro LS3.
+       apply lemma_3_7_i_ls in LS3. rewrite V in LS3.
+       apply (NLS k).
+       eapply LeftSpecial_Prefix; eauto.
+       exists [0]. now rewrite <- app_assoc. }
+     { now rewrite ksubst_k. }
+   + destruct (SubSeq_RightExt _ _ B2) as (b3 & B3).
+     red in B3. rewrite <- app_assoc in B3. simpl in B3.
+     assert (B3' : SubSeq [k;k;b3] (kseq k)).
+     { eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
+     rewrite (lemma_4_5_kk' _ _ B3') in *.
+     destruct (lemma_3_7_ii_cor k (u++[k;k;0])) as (v & V & SU); trivial.
+     { destruct u; simpl; try easy. apply ls_head_k in LS; lia. }
+     { rewrite last_app; simpl; easy || lia. }
+     assert (E2 : v = v' ++ [k-1;k]).
+     { apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
+       cbn. now rewrite ksubst_km1, ksubst_k by trivial. }
+     exists (k-1); repeat split; rewrite ?ksubst_km1 in *; trivial.
+     { red. apply Sub_SubSeq with v; auto. subst v.
+       exists [], [k]. now rewrite <- !app_assoc. }
+     { intro LS3. apply lemma_3_7_i_ls in LS3.
+       rewrite ksubstw_app, E in LS3. simpl in LS3.
+       rewrite app_nil_r in LS3. rewrite ksubst_km1 in LS3 by trivial.
+       now apply NLS in LS3. }
+ - assert (b<>0).
+   { intros ->.
+     red in B.
+     rewrite (app_removelast_last 0 U), <- app_assoc in B.
+     simpl in B.
+     eapply Sub_SubSeq in B; [|apply Sub_app_l, Sub_id].
+     apply letters_RightExt in B. destruct B as [B|B]; try lia.
+     revert B. unfold next_letter in *. case Nat.eqb_spec; lia. }
+   destruct (lemma_3_7_ii_cor k (u++[b])) as (v & V & SU); trivial.
+   { destruct u as [|x u]; simpl; try easy. apply ls_head_k in LS.
+     now subst x. }
+   { now rewrite last_last. }
+   assert (b <= k).
+   { eapply Sub_SubSeq in B; [|apply Sub_app_l, Sub_id].
+     now apply all_letters_subseq in B. }
+   assert (B2 : ksubst k (b-1) = [b]).
+   { unfold ksubst. case Nat.eqb_spec. lia. intros _. f_equal; lia. }
+   assert (E2 : v = v'++[b-1]).
+   { apply (ksubstw_inv k). rewrite ksubstw_app, E, V. f_equal.
+     simpl. now rewrite app_nil_r. }
+   exists (b-1); repeat split.
+   { red. now rewrite <- E2. }
+   { rewrite <- E2. intros LS3.
+     apply lemma_3_7_i_ls in LS3. rewrite V in LS3.
+     now apply NLS in LS3. }
+   { now rewrite B2. }
+Qed.
 
-   SI b<>k alors b=0 et u'++[k;0] a un antécédent
-                     donc v'++k facteur, k RightExt de v'
-   SI b=k alors u'++[k;k;0] facteur et a un antécédent
-          donc v'++[k-1;k] facteur donc (k-1) RightExt de v'
+Lemma inv_letter_bis_for_4_10 k u v' b :
+  k <> 0 -> u <> [] ->
+  MaxLeftSpecial (u++[k]) (kseq k) ->
+  ksubstw k v' = u ->
+  RightExt (u++[k]) b (kseq k) ->
+  exists b', RightExt v' b' (kseq k) /\
+             ~LeftSpecial (v'++[b']) (kseq k) /\
+             b' = prev_letter k b.
+Proof.
+ intros K U (LS,NLS) E B.
+ destruct (kseq_after_k k b) as [-> | ->].
+ { red in B. rewrite <- app_assoc in B. simpl in B.
+   eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
+ - exists k.
+   destruct (lemma_3_7_ii_cor k (u++[k;0])) as (v & V & SU); trivial.
+   { destruct u; simpl; try easy. apply ls_head_k in LS; lia. }
+   { rewrite last_app; simpl; easy || lia. }
+   { red in B. now rewrite <- app_assoc in B. }
+   replace v with (v' ++ [k]) in *.
+   2:{ apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
+       cbn. now rewrite ksubst_k. }
+   repeat split; trivial.
+   intros LS'. apply lemma_3_7_i_ls in LS'.
+   rewrite V in LS'. apply (NLS 0). now rewrite <- !app_assoc.
+ - exists (k-1).
+   destruct (SubSeq_RightExt _ _ B) as (b2 & B2).
+   red in B2. rewrite <- !app_assoc in B2. simpl in B2.
+   assert (B2' : SubSeq [k;k;b2] (kseq k)).
+   { eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
+   apply lemma_4_5_kk' in B2'. subst b2.
+   destruct (lemma_3_7_ii_cor k (u++[k;k;0])) as (v & V & SU); trivial.
+   { destruct u; simpl; try easy. apply ls_head_k in LS; lia. }
+   { rewrite last_app; simpl; easy || lia. }
+   replace v with (v' ++ [k-1;k]) in *.
+   2:{ apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
+     cbn. now rewrite ksubst_k, ksubst_km1. }
+   repeat split.
+   { red. eapply Sub_SubSeq; eauto.
+     exists [], [k]. now rewrite <- app_assoc. }
+   { intros LS'. apply lemma_4_9_ls in LS'. apply lemma_3_7_i_ls in LS'.
+     rewrite V in LS'. apply (NLS k).
+     eapply LeftSpecial_Prefix; eauto. exists [0].
+     now rewrite <- !app_assoc. }
+   { unfold prev_letter. case Nat.eqb_spec; lia. }
+Qed.
 
-   Idem pour c et on ne peut donc pas avoir b=c=k ou b=c=0 en même temps
-   Donc deux RightExt de v' : (k-1) et k
+(** Proposition 4.10 as proved in Corrigendum (as Proposition 2.2).
+    Some parts of the proofs were unecessary here :
+    - We are here in the case "t_1 > max(t_2...t_{m-1})" (t_1=t_m=1>0=t_i).
+    - The last paragraph is skipped since the the right valence cannot
+      be more than 2 for (kseq k).
 
-   et ~LeftSpecial (v'++[k]) sinon u'++[k;0] LS
-      ~LeftSpecial (v'++[k-1;k]) sinon u'++[k;k;0] LS et donc aussi u'++[k;k].
+    Moreover This proof of proposition 4.10 is left here for completeness
+    reasons, but a shorter approach is also possible (and was used in a
+    former version of this work) : just prove that v is LeftSpecial
+    instead of MaxLeftSpecial, and moreover that
+      [w=[k] -> ~RightSpecial (ksubstw k v) (kseq k)].
+    This is enough for completing [LeftSpecial_kprefix] below, and then
+    proving ~MaxLeftSpecial afterwards. *)
 
-   BUG ?? Rien ne garantit a<>k-1 en effet on peut avoir LS (v'++[k-1]) ...
-*)
-
-Lemma lemma_4_10_hack k u x :
+Lemma proposition_4_10 k u x :
   MaxLeftSpecial u (kseq k) -> x<>k -> In x u ->
-  exists v,
-    LeftSpecial v (kseq k) /\
-    (u = ksubstw k v \/
-     (u = ksubstw k v ++[k] /\ ~RightSpecial (ksubstw k v) (kseq k))).
+  exists v w,
+    MaxLeftSpecial v (kseq k) /\ u = ksubstw k v ++ w /\ (w=[] \/ w = [k]).
 Proof.
  destruct (Nat.eq_dec k 0) as [->|K].
  { intros ((b & c & BC & B & C),_). apply LeftExt_letter in B, C. lia. }
@@ -1477,36 +1614,93 @@ Proof.
    apply observation_4_2_contra; split; trivial. }
  assert (R' : r = 0 \/ r = 1) by lia. clear R R2.
  destruct (lemma_3_7_ii_ls k u' L LS') as (v' & V1 & V2).
- exists v'. split; trivial.
+ exists v', (repeat k r); repeat split; trivial; try congruence.
+ 2:{ destruct R'; subst; simpl; intuition. }
+ (* v' is Maximal Left Special *)
+ intros a A.
+ assert (RS: RightSpecial u (kseq k)).
+ { apply observation_4_2_contra; split; trivial. }
+ destruct RS as (b & c & BC & B & C). red in B,C.
+ assert (B' := NLS b).
+ assert (C' := NLS c).
  destruct R' as [-> | ->]; simpl in E'; rewrite ?app_nil_r in E'.
  - (* r=0 *)
-   left; congruence.
+   subst u'.
+   destruct (inv_letter_for_4_10 k u v' b) as (b' & B1 & B2 & B3);
+     try split; trivial.
+   destruct (inv_letter_for_4_10 k u v' c) as (c' & C1 & C2 & C3);
+     try split; trivial.
+   assert (D1 : b' <> c').
+   { intros <-. rewrite B3 in C3. now injection C3. }
+   assert (D2 : a <> b').
+   { intros <-. now apply B2. }
+   assert (D3 : a <> c').
+   { intros <-. now apply C2. }
+   assert (3 <= krvalence k v').
+   { apply LeftSpecial_SubSeq in A.
+     clear - B1 C1 A D1 D2 D3.
+     change 3 with (length [a;b';c']).
+     apply NoDup_incl_length.
+     - repeat constructor; simpl; intuition.
+     - destruct (krightexts_ok k v') as (_,RE).
+       intros x X. simpl in X. intuition; subst x; rewrite RE; auto. }
+   assert (krvalence k v' <= 2).
+   { apply krvalence_le_2. intros ->. simpl in *. now subst. }
+   lia.
  - (* r=1 *)
-   right. split; try congruence.
-   assert (last u' 0 = k-1).
-   { assert (E := app_removelast_last 0 U').
-     set (a := last u' 0) in *.
-     set (u2 := removelast u') in *. clearbody u2. rewrite E in *.
-     rewrite <- app_assoc in E'. simpl in E'.
-     apply (RS_ak k u2). rewrite <- E'.
-     apply observation_4_2_contra. split; trivial. }
-   rewrite V1, rs_val.
-   rewrite krvalence_last_km1; auto; try lia.
-   now apply LeftSpecial_SubSeq.
+   subst u.
+   destruct (inv_letter_bis_for_4_10 k u' v' b) as (b' & B1 & B2 & B3);
+     try split; trivial.
+   destruct (inv_letter_bis_for_4_10 k u' v' c) as (c' & C1 & C2 & C3);
+     try split; trivial.
+   assert (D1 : b' <> c').
+   { contradict BC.
+     rewrite <- (next_prev_letter k b), <- (next_prev_letter k c).
+     - congruence.
+     - apply all_letters_subseq. eapply Sub_SubSeq; [|exact C].
+       apply Sub_app_l, Sub_id.
+     - apply all_letters_subseq. eapply Sub_SubSeq; [|exact B].
+       apply Sub_app_l, Sub_id. }
+   assert (D2 : a <> b').
+   { intros <-. now apply B2. }
+   assert (D3 : a <> c').
+   { intros <-. now apply C2. }
+   assert (3 <= krvalence k v').
+   { apply LeftSpecial_SubSeq in A.
+     clear - B1 C1 A D1 D2 D3.
+     change 3 with (length [a;b';c']).
+     apply NoDup_incl_length.
+     - repeat constructor; simpl; intuition.
+     - destruct (krightexts_ok k v') as (_,RE).
+       intros x X. simpl in X. intuition; subst x; rewrite RE; auto. }
+   assert (krvalence k v' <= 2).
+   { apply krvalence_le_2. intros ->. simpl in *. now subst. }
+   lia.
 Qed.
 
 Lemma norepeat_exists (k:nat) u :
-  u <> [] -> u <> repeat k (length u) -> exists a, a<>k /\ In a u.
+  u <> repeat k (length u) -> exists a, a<>k /\ In a u.
 Proof.
- induction u.
- - easy.
- - intros _. simpl. intros N.
-   destruct (Nat.eq_dec a k) as [->|N'].
-   + destruct IHu as (a & A & IN).
-     { intros ->. simpl in *. easy. }
-     { intros E. now rewrite <- E in N. }
-     exists a. intuition.
-   + exists a. intuition.
+ induction u as [|a u IH]; simpl; intros N; try easy.
+ destruct (Nat.eq_dec a k) as [->|N']; [|exists a; tauto].
+ destruct IH as (a & A & IN).
+ { contradict N. now f_equal. }
+ exists a; tauto.
+Qed.
+
+Lemma corollary_4_11 k u : ~MaxLeftSpecial u (kseq k).
+Proof.
+ remember (length u) as n eqn:N. symmetry in N. revert u N.
+ induction n as [n IH] using lt_wf_ind. intros u N LS.
+ destruct (norepeat_exists k u) as (x & X & IN); trivial.
+ { rewrite N. intros ->. now apply (lemma_4_7 k n). }
+ destruct (proposition_4_10 k u x) as (v & w & V & E & W); trivial.
+ assert (L : length v < n).
+ { rewrite <- N, E, app_length, len_ksubst.
+   destruct V as (V,_). destruct v.
+   - simpl in *. intuition; subst; simpl. inversion IN. lia.
+   - apply ls_head_k in V. subst. simpl. rewrite Nat.eqb_refl. lia. }
+ apply (IH (length v) L v); auto.
 Qed.
 
 (** Major property : the only LeftSpecial factors of (kseq k) are
@@ -1521,40 +1715,9 @@ Proof.
  { now destruct u. }
  destruct (Nat.eq_dec n 1) as [->|N1].
  { destruct u as [|a [|b u]]; try easy. apply ls_head_k in LS. now subst a. }
- destruct (ismaxleftspecial k u) eqn:E.
- - rewrite <- ismaxleftspecial_ok in E.
-   destruct (norepeat_exists k u) as (x & X & IN).
-   { intros ->. simpl in *; easy. }
-   { intros E'. rewrite E' in E.
-     now apply lemma_4_7 in E. }
-   destruct (lemma_4_10_hack k u x) as
-       (v & V1 & [V2|(V2 & V3)]); trivial.
-   + apply (IH (length v)) in V1; auto.
-     2:{ rewrite N, V2, len_ksubst.
-         destruct v as [|a v]. simpl in *. subst u. simpl. easy.
-         apply ls_head_k in V1. subst a. simpl.
-         rewrite Nat.eqb_refl. lia. }
-     rewrite V2. now apply ksubstw_prefix.
-   + apply (IH (length v)) in V1; auto.
-     2:{ rewrite N, V2, app_length, len_ksubst. simpl. lia. }
-     apply ksubstw_prefix in V1.
-     rewrite V2. set (u' := ksubstw k v) in *. clearbody u'.
-     assert (P : PrefixSeq (u'++[kseq k (n-1)]) (kseq k)).
-     { red. rewrite app_length. simpl. rewrite Nat.add_1_r, take_S.
-       rewrite <- V1. f_equal. f_equal. f_equal.
-       apply (f_equal (@length nat)) in V2. rewrite app_length in V2.
-       simpl in V2. lia. }
-     set (a := kseq k (n-1)) in *. clearbody a.
-     destruct (Nat.eq_dec a k) as [E'|D'].
-     * now rewrite E' in P.
-     * exfalso. apply V3. exists a,k. repeat split; auto.
-       { exists 0. unfold subseq. rewrite app_length. simpl.
-         rewrite P. now rewrite app_length. }
-       { red. rewrite <- V2. now apply LeftSpecial_SubSeq. }
- - rewrite <- not_true_iff_false, <- ismaxleftspecial_ok in E.
-   apply NoMaxLS_exists in E; trivial.
-   destruct (DecrLemma k u) as (v & w & V & W & E' & L); lia||auto.
-   rewrite <- N in L.
+ destruct (DecrLemma k u) as (v & w & V & W & E' & L); lia||auto.
+ - intros _. apply NoMaxLS_exists; trivial. apply corollary_4_11.
+ - rewrite <- N in L.
    specialize (IH _ L v eq_refl V). apply ksubstw_prefix in IH.
    rewrite E' in IH. eapply Prefix_PrefixSeq; eauto. now exists w.
 Qed.
@@ -1572,22 +1735,6 @@ Lemma LeftSpecial_carac' k u : k<>0 ->
   LeftSpecial u (kseq k) <-> u = kprefix k (length u).
 Proof.
  intros K. rewrite <- kprefix_carac. now apply LeftSpecial_carac.
-Qed.
-
-Lemma corollary_4_11 k u : ~MaxLeftSpecial u (kseq k).
-Proof.
- intros (LS,NLS).
- assert (K : k <> 0).
- { now apply ls_knz in LS. }
- assert (u <> []).
- { intros ->. apply (NLS k). apply ls_val. simpl.
-   rewrite klvalence_letter_k. lia. }
- assert (LS' := LeftSpecial_kprefix _ _ LS).
- set (n := length u).
- assert (P : PrefixSeq (u++[kseq k n]) (kseq k)).
- { red. rewrite app_length. simpl. rewrite Nat.add_1_r, take_S.
-   now rewrite <- LS'. }
- apply (NLS (kseq k n)). now apply LeftSpecial_carac.
 Qed.
 
 (** Some leftover proofs that could only be obtained now : *)
