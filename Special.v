@@ -1440,19 +1440,18 @@ Proof.
  case Nat.eqb_spec; simpl; intros; auto. now intros [= ->].
 Qed.
 
-(* Two auxiliary lemmas for Proposition 4.10 : ante-image of right extensions *)
+(* Two auxiliary lemmas for Proposition 4.10 : ante-image of right
+   extensions *)
 
 Lemma inv_letter_for_4_10 k u v' b :
-  k <> 0 -> u <> [] ->
-  MaxLeftSpecial u (kseq k) ->
-  last u 0 <> k ->
-  ksubstw k v' = u ->
+  MaxLeftSpecial u (kseq k) -> last u 0 <> k -> ksubstw k v' = u ->
   RightExt u b (kseq k) ->
-  exists b', RightExt v' b' (kseq k) /\
-             ~LeftSpecial (v'++[b']) (kseq k) /\
+  exists b', RightExt v' b' (kseq k) /\ ~LeftSpecial (v'++[b']) (kseq k) /\
              head (ksubst k b') = Some b.
 Proof.
- intros K U (LS,NLS) L E B.
+ intros (LS,NLS) L E B.
+ assert (K : k<>0) by now apply ls_knz in LS.
+ assert (U : u<>[]). { intros ->. now apply (lemma_4_7 k 0). }
  destruct (Nat.eq_dec b k) as [->|NB].
  - destruct (SubSeq_RightExt _ _ B) as (b2 & B2).
    red in B2. rewrite <- app_assoc in B2. simpl in B2.
@@ -1520,15 +1519,14 @@ Proof.
 Qed.
 
 Lemma inv_letter_bis_for_4_10 k u v' b :
-  k <> 0 -> u <> [] ->
-  MaxLeftSpecial (u++[k]) (kseq k) ->
-  ksubstw k v' = u ->
+  MaxLeftSpecial (u++[k]) (kseq k) -> ksubstw k v' = u ->
   RightExt (u++[k]) b (kseq k) ->
-  exists b', RightExt v' b' (kseq k) /\
-             ~LeftSpecial (v'++[b']) (kseq k) /\
-             b' = prev_letter k b.
+  exists b', RightExt v' b' (kseq k) /\ ~LeftSpecial (v'++[b']) (kseq k) /\
+             ((b = k /\ b' = k-1) \/ (b = 0 /\ b' = k)).
 Proof.
- intros K U (LS,NLS) E B.
+ intros (LS,NLS) E B.
+ assert (K : k<>0) by now apply ls_knz in LS.
+ assert (U : u<>[]). { intros ->. now apply (lemma_4_7 k 1). }
  destruct (kseq_after_k k b) as [-> | ->].
  { red in B. rewrite <- app_assoc in B. simpl in B.
    eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
@@ -1540,7 +1538,7 @@ Proof.
    replace v with (v' ++ [k]) in *.
    2:{ apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
        cbn. now rewrite ksubst_k. }
-   repeat split; trivial.
+   repeat split; trivial; [|now right].
    intros LS'. apply lemma_3_7_i_ls in LS'.
    rewrite V in LS'. apply (NLS 0). now rewrite <- !app_assoc.
  - exists (k-1).
@@ -1555,21 +1553,20 @@ Proof.
    replace v with (v' ++ [k-1;k]) in *.
    2:{ apply (ksubstw_inv k). rewrite ksubstw_app, V, E. f_equal.
      cbn. now rewrite ksubst_k, ksubst_km1. }
-   repeat split.
-   { red. eapply Sub_SubSeq; eauto.
+   repeat split; try now left.
+   { eapply Sub_SubSeq; eauto.
      exists [], [k]. now rewrite <- app_assoc. }
    { intros LS'. apply lemma_4_9_ls in LS'. apply lemma_3_7_i_ls in LS'.
      rewrite V in LS'. apply (NLS k).
      eapply LeftSpecial_Prefix; eauto. exists [0].
      now rewrite <- !app_assoc. }
-   { unfold prev_letter. case Nat.eqb_spec; lia. }
 Qed.
 
 (** Proposition 4.10 as proved in Corrigendum (as Proposition 2.2).
     Some parts of the proofs were unecessary here :
     - We are here in the case "t_1 > max(t_2...t_{m-1})" (t_1=t_m=1>0=t_i).
-    - The last paragraph is skipped since the the right valence cannot
-      be more than 2 for (kseq k).
+    - The last paragraph is skipped since factors of (kseq k) cannot
+      have a right valence of 3>2.
 
     Moreover This proof of proposition 4.10 is left here for completeness
     reasons, but a shorter approach is also possible (and was used in a
@@ -1623,59 +1620,32 @@ Proof.
  destruct RS as (b & c & BC & B & C). red in B,C.
  assert (B' := NLS b).
  assert (C' := NLS c).
- destruct R' as [-> | ->]; simpl in E'; rewrite ?app_nil_r in E'.
- - (* r=0 *)
-   subst u'.
-   destruct (inv_letter_for_4_10 k u v' b) as (b' & B1 & B2 & B3);
-     try split; trivial.
-   destruct (inv_letter_for_4_10 k u v' c) as (c' & C1 & C2 & C3);
-     try split; trivial.
-   assert (D1 : b' <> c').
-   { intros <-. rewrite B3 in C3. now injection C3. }
-   assert (D2 : a <> b').
-   { intros <-. now apply B2. }
-   assert (D3 : a <> c').
-   { intros <-. now apply C2. }
-   assert (3 <= krvalence k v').
-   { apply LeftSpecial_SubSeq in A.
-     clear - B1 C1 A D1 D2 D3.
-     change 3 with (length [a;b';c']).
-     apply NoDup_incl_length.
-     - repeat constructor; simpl; intuition.
-     - destruct (krightexts_ok k v') as (_,RE).
-       intros x X. simpl in X. intuition; subst x; rewrite RE; auto. }
-   assert (krvalence k v' <= 2).
-   { apply krvalence_le_2. intros ->. simpl in *. now subst. }
-   lia.
- - (* r=1 *)
-   subst u.
-   destruct (inv_letter_bis_for_4_10 k u' v' b) as (b' & B1 & B2 & B3);
-     try split; trivial.
-   destruct (inv_letter_bis_for_4_10 k u' v' c) as (c' & C1 & C2 & C3);
-     try split; trivial.
-   assert (D1 : b' <> c').
-   { contradict BC.
-     rewrite <- (next_prev_letter k b), <- (next_prev_letter k c).
-     - congruence.
-     - apply all_letters_subseq. eapply Sub_SubSeq; [|exact C].
-       apply Sub_app_l, Sub_id.
-     - apply all_letters_subseq. eapply Sub_SubSeq; [|exact B].
-       apply Sub_app_l, Sub_id. }
-   assert (D2 : a <> b').
-   { intros <-. now apply B2. }
-   assert (D3 : a <> c').
-   { intros <-. now apply C2. }
-   assert (3 <= krvalence k v').
-   { apply LeftSpecial_SubSeq in A.
-     clear - B1 C1 A D1 D2 D3.
-     change 3 with (length [a;b';c']).
-     apply NoDup_incl_length.
-     - repeat constructor; simpl; intuition.
-     - destruct (krightexts_ok k v') as (_,RE).
-       intros x X. simpl in X. intuition; subst x; rewrite RE; auto. }
-   assert (krvalence k v' <= 2).
-   { apply krvalence_le_2. intros ->. simpl in *. now subst. }
-   lia.
+ assert (E : exists b' c', b'<>c' /\
+            RightExt v' b' (kseq k) /\ ~LeftSpecial (v'++[b']) (kseq k) /\
+            RightExt v' c' (kseq k) /\ ~LeftSpecial (v'++[c']) (kseq k)).
+ { destruct R'; subst r; simpl in E'; rewrite ?app_nil_r in E'; subst u.
+   - destruct (inv_letter_for_4_10 k u' v' b) as (b' & B1 & B2 & B3);
+     destruct (inv_letter_for_4_10 k u' v' c) as (c' & C1 & C2 & C3);
+       try split; trivial.
+     exists b', c'; repeat split; trivial; congruence.
+   - destruct (inv_letter_bis_for_4_10 k u' v' b) as (b' & B1 & B2 & B3);
+     destruct (inv_letter_bis_for_4_10 k u' v' c) as (c' & C1 & C2 & C3);
+       try split; trivial.
+     exists b',c'; repeat split; trivial; lia. }
+ clear b c BC B B' C C'.
+ destruct E as (b & c & BC & B & B' & C & C').
+ assert (AB : a <> b). { intros ->. now apply B'. }
+ assert (AC : a <> c). { intros ->. now apply C'. }
+ assert (3 <= krvalence k v').
+ { apply LeftSpecial_SubSeq in A.
+   change 3 with (length [a;b;c]).
+   apply NoDup_incl_length.
+   - clear -AB AC BC. repeat constructor; simpl; intuition.
+   - destruct (krightexts_ok k v') as (_,RE). clear - A B C RE.
+     intros x X. simpl in X. intuition; subst x; rewrite RE; auto. }
+ assert (krvalence k v' <= 2).
+ { apply krvalence_le_2. intros ->. simpl in *. now subst. }
+ lia.
 Qed.
 
 Lemma norepeat_exists (k:nat) u :
