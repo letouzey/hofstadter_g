@@ -1378,66 +1378,25 @@ Proof.
      apply ls_head_k in V'. subst a. rewrite Nat.eqb_refl. lia.
 Qed.
 
-Definition ismaxleftspecial k u :=
-  let letters := seq 0 (S k) in
-  Nat.leb 2 (klvalence k u) &&
-  negb (existsb (fun a => Nat.leb 2 (klvalence k (u++[a]))) letters).
-
-Lemma ismaxleftspecial_ok k u :
-  MaxLeftSpecial u (kseq k) <-> ismaxleftspecial k u = true.
-Proof.
- split.
- - intros (A,B). apply ls_val, Nat.leb_le in A.
-   unfold ismaxleftspecial. rewrite A. rewrite andb_true_l.
-   apply negb_true_iff, not_true_iff_false. rewrite existsb_exists.
-   intros (a & IN & LS). apply Nat.leb_le, ls_val in LS. now apply (B a).
- - unfold ismaxleftspecial. rewrite andb_true_iff, negb_true_iff.
-   intros (LS,E). apply Nat.leb_le, ls_val in LS. split; trivial.
-   intros a A.
-   assert (a <= k).
-   { destruct A as (b & _ & _ & B & _).
-     apply Sub_SubSeq with (u:=[a]) in B.
-     now apply all_letters_subseq in B.
-     now exists (b::u), []. }
-   apply ls_val, Nat.leb_le in A.
-   apply existsb_nth with (n:=a) (d:=0) in E.
-   2:{ rewrite seq_length; lia. }
-   rewrite seq_nth in E by lia. simpl "+" in E. now rewrite E in A.
-Qed.
+(** Turn the lack of MaxLeftSpecial into a positive fact about LeftSpecial. *)
 
 Lemma NoMaxLS_exists k u :
   LeftSpecial u (kseq k) ->
   ~MaxLeftSpecial u (kseq k) ->
   exists a, LeftSpecial (u++[a]) (kseq k).
 Proof.
- intros LS NM. rewrite ismaxleftspecial_ok, not_true_iff_false in NM.
- apply andb_false_iff in NM. destruct NM as [NM|NM].
- - rewrite <- not_true_iff_false, Nat.leb_le, <- ls_val in NM.
-   now destruct NM.
- - rewrite negb_false_iff, existsb_exists in NM. destruct NM as (a & _ & A).
-   exists a. now apply ls_val, Nat.leb_le.
-Qed.
-
-Fixpoint factorhead a u :=
-  match u with
-  | [] => (0,[])
-  | x::u => if x =? a then let (n,u') := factorhead a u in (S n,u')
-            else (0,x::u)
-  end.
-
-Lemma factorhead_ok a u :
-  let (n,u') := factorhead a u in u = repeat a n ++ u'.
-Proof.
- induction u; simpl; auto.
- destruct factorhead as (n,u').
- case Nat.eqb_spec; simpl; intros; auto. subst; auto.
-Qed.
-
-Lemma factorhead_max a u : hd_error (snd (factorhead a u)) <> Some a.
-Proof.
- induction u; simpl; try easy.
- destruct factorhead as (n,u'). simpl in *.
- case Nat.eqb_spec; simpl; intros; auto. now intros [= ->].
+ intros LS NM.
+ set (l := seq 0 (S k)).
+ destruct (existsb (fun a => Nat.leb 2 (klvalence k (u++[a]))) l) eqn:E.
+ - rewrite existsb_exists in E.
+   destruct E as (a & IN & LS'). exists a. now apply ls_val, Nat.leb_le.
+ - exfalso. apply NM. split; trivial. intros a LS'.
+   assert (a <= k).
+   { apply all_letters_subseq. apply LeftSpecial_SubSeq in LS'.
+     eapply Sub_SubSeq; eauto. apply Sub_app_l, Sub_id. }
+   apply ls_val, Nat.leb_le in LS'.
+   rewrite <- not_true_iff_false, existsb_exists in E. apply E. clear E.
+   exists a; split; trivial. apply in_seq. lia.
 Qed.
 
 (* Two auxiliary lemmas for Proposition 4.10 : ante-image of right
@@ -1584,35 +1543,28 @@ Proof.
  destruct (Nat.eq_dec k 0) as [->|K].
  { intros ((b & c & BC & B & C),_). apply LeftExt_letter in B, C. lia. }
  intros (LS,NLS) X IN.
- destruct (factorhead k (rev u)) as (r,u0) eqn:E.
- assert (E' := factorhead_ok k (rev u)).
- assert (F := factorhead_max k (rev u)).
- rewrite E in *. simpl in *.
- rewrite <- (rev_involutive (_++_)) in E'. apply rev_inj in E'.
- rewrite rev_app_distr, rev_repeat in E'.
- assert (U' : In x (rev u0)).
- { rewrite <- in_rev.
-   rewrite E', in_app_iff, <- in_rev in IN. destruct IN as [IN|IN]; trivial.
-   apply repeat_spec in IN; lia. }
- assert (L : last (rev u0) 0 <> k).
- { destruct u0 as [|y u']; simpl in *; try easy.
-   rewrite last_last. contradict F. now subst. }
- clear F. set (u' := rev u0) in *. clearbody u'.
+ assert (E : exists u' r, u = u' ++ repeat k r /\ last u' 0 <> k /\ (r=0\/r=1)).
+ { destruct (Nat.eq_dec (last u 0) k) as [E|N].
+   - assert (N : u <> []) by (intros ->; inversion IN).
+     assert (U' := app_removelast_last 0 N).
+     set (u' := removelast u) in *. clearbody u'. rewrite E in *. clear N E.
+     exists u', 1; repeat split; trivial; try now right. intros E'.
+     assert (N' : u' <> []). { intros ->. simpl in *. now apply K. }
+     rewrite (app_removelast_last 0 N'), E', <- app_assoc in U'. simpl in U'.
+     clear E' N'.
+     eapply (corollary_4_6 k _ 2); trivial.
+     apply observation_4_2_contra. simpl. rewrite <- U'. split; trivial.
+   - exists u, 0; repeat split; trivial; try now left. simpl.
+     now rewrite app_nil_r. }
+ destruct E as (u' & r & E & L & R).
  assert (LS' : LeftSpecial u' (kseq k)).
  { eapply LeftSpecial_Prefix; eauto. now exists (repeat k r). }
- assert (U2 : u' <> []) by now intros ->.
- clear u0 E x X IN U'. rename U2 into U'.
- assert (R : r <= 2).
- { apply (lemma_4_5_ter k); trivial.
-   rewrite E' in LS. destruct LS as (b & _ & _ & B & _).
-   red in B. eapply Sub_SubSeq; eauto. apply (Sub_app_l (b::u')), Sub_id. }
- assert (R2 : r <> 2).
- { intros R'. apply (corollary_4_6 k u' r); try lia. rewrite <- E'.
-   apply observation_4_2_contra; split; trivial. }
- assert (R' : r = 0 \/ r = 1) by lia. clear R R2.
+ assert (U' : u' <> []).
+ { intros ->. simpl in *. subst u. apply repeat_spec in IN; lia. }
+ clear x X IN.
  destruct (lemma_3_7_ii_ls k u' L LS') as (v' & V1 & V2).
  exists v', (repeat k r); repeat split; trivial; try congruence.
- 2:{ destruct R'; subst; simpl; intuition. }
+ 2:{ destruct R; subst; simpl; intuition. }
  (* v' is Maximal Left Special *)
  intros a A.
  assert (RS: RightSpecial u (kseq k)).
@@ -1620,10 +1572,10 @@ Proof.
  destruct RS as (b & c & BC & B & C). red in B,C.
  assert (B' := NLS b).
  assert (C' := NLS c).
- assert (E : exists b' c', b'<>c' /\
+ assert (E' : exists b' c', b'<>c' /\
             RightExt v' b' (kseq k) /\ ~LeftSpecial (v'++[b']) (kseq k) /\
             RightExt v' c' (kseq k) /\ ~LeftSpecial (v'++[c']) (kseq k)).
- { destruct R'; subst r; simpl in E'; rewrite ?app_nil_r in E'; subst u.
+ { destruct R; subst r; simpl in E; rewrite ?app_nil_r in E; subst u.
    - destruct (inv_letter_for_4_10 k u' v' b) as (b' & B1 & B2 & B3);
      destruct (inv_letter_for_4_10 k u' v' c) as (c' & C1 & C2 & C3);
        try split; trivial.
@@ -1633,7 +1585,7 @@ Proof.
        try split; trivial.
      exists b',c'; repeat split; trivial; lia. }
  clear b c BC B B' C C'.
- destruct E as (b & c & BC & B & B' & C & C').
+ destruct E' as (b & c & BC & B & B' & C & C').
  assert (AB : a <> b). { intros ->. now apply B'. }
  assert (AC : a <> c). { intros ->. now apply C'. }
  assert (3 <= krvalence k v').
