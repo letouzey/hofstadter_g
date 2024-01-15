@@ -575,10 +575,16 @@ Compute kleftexts 3 [3;0;1;3].
    of the article / corrigendum ??
 *)
 
+(* In this case where (ksubstw k u) ends with k, then u ends with (k-1)
+   and has only k as right extension, and we could show here that
+   (ksubstw k u ++ [k;0]) is LeftSpecial with the same valence as u.
+   But how to say the same for (ksubstw k u) itself ?
+*)
+
 Lemma lemma_3_7_i_all k u l :
   2 <= length l ->
   AllLeftExts l u (kseq k) ->
-  AllLeftExts (map (next_letter k) l) (apply (ksubst k) u) (kseq k).
+  AllLeftExts (map (next_letter k) l) (ksubstw k u) (kseq k).
 Proof.
  intros Hl (ND,A).
  split.
