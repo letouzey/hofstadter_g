@@ -1,5 +1,5 @@
 From Coq Require Import Lia Reals Lra Ranalysis5 QArith Qcanon.
-Require Import MoreReals.
+Require Import MoreReals MoreLim.
 
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
@@ -604,3 +604,46 @@ Lemma tau_irrat k : k<>O -> forall (q:Q), tau k <> Q2R q.
 Proof.
  intros Hk q E. apply tau_rat in E. easy.
 Qed.
+
+(** The limit of mu(k) and tau(k) is 1 when k tends to +∞ *)
+
+Lemma pow_lower_bound (k:nat)(x:R) : 0<=x -> 1 + k*x <= (1+x)^k.
+Proof.
+ induction k.
+ - simpl. lra.
+ - intros Hx. rewrite <- tech_pow_Rmult.
+   apply Rle_trans with ((1+x)*(1+k*x)).
+   + rewrite S_INR. generalize (pos_INR k). nra.
+   + apply Rmult_le_compat_l; lra.
+Qed.
+
+Lemma mu_upper_bound (k:nat) : let x := mu(k) - 1 in x + k * x^2 <= 1.
+Proof.
+ unfold mu. destruct mu_spec as (mu & M1 & M2). cbn -[pow].
+ unfold P in M2. rewrite <- tech_pow_Rmult in M2.
+ replace (_+_) with ((mu-1)*(1+k*(mu-1))) by lra.
+ replace 1 with ((mu-1)*mu^k) at 4 by lra.
+ apply Rmult_le_compat_l; try lra.
+ replace mu with (1+(mu-1)) at 2 by lra.
+ apply pow_lower_bound; lra.
+Qed.
+
+(*
+Lemma quadratic_upper_bound (k:nat)(x:R) :
+ (0<k)%nat -> 0<=x -> x+k*x^2 <= 1 -> x <= (-1+sqrt(4*k+1))/(2*k).
+Proof.
+ intros Hk Hx LE.
+ set (alpha := (-1+sqrt(4*k+1))/(2*k)) in *.
+ set (beta := (-1-sqrt(4*k+1))/(2*k)).
+Admitted.
+
+Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
+
+Lemma mu_limit : is_lim_seq mu 1.
+Proof.
+Admitted.
+
+Lemma tau_limit : is_lim_seq tau 1.
+Proof.
+Admitted.
+*)
