@@ -11,6 +11,11 @@ Definition ksubstk k n := napply (ksubst k) k [n].
 
 Definition ksubstkw k := apply (ksubstk k).
 
+Lemma ksubstkw_app k u v : ksubstkw k (u++v) = ksubstkw k u ++ ksubstkw k v.
+Proof.
+ apply apply_app.
+Qed.
+
 (** Fun fact: for n <= k, ksubst^k(n) = ksubst^n(k) *)
 
 Lemma ksubst_pearl k n :
@@ -89,8 +94,9 @@ Proof.
 Qed.
 
 Lemma ksubstk_prefix k u :
- PrefixSeq u (kseq k) -> PrefixSeq (apply (ksubstk k) u) (kseq k).
+ PrefixSeq u (kseq k) -> PrefixSeq (ksubstkw k u) (kseq k).
 Proof.
+  unfold ksubstkw.
   rewrite <- napply_1.
   rewrite napply_ksubstk. apply PrefixSeq_napply.
   apply ksubst_noerase.
@@ -107,12 +113,12 @@ Qed.
 (** Where is the p-th letter k in [kseq k] ?
     We count occurrences from 0 : the 0-th letter k is at position 0 *)
 
-Definition positionk k p := length (apply (ksubstk k) (take p (kseq k))).
+Definition positionk k p := length (ksubstkw k (take p (kseq k))).
 
 Lemma positionk_S k p : positionk k (S p) = positionk k p + S (kseq k p).
 Proof.
  unfold positionk.
- rewrite take_S, apply_app, app_length; simpl.
+ rewrite take_S, ksubstkw_app, app_length; simpl.
  now rewrite app_nil_r, ksubstk_len by apply kseq_letters.
 Qed.
 
@@ -125,7 +131,7 @@ Proof.
  { red. unfold u. f_equal. now rewrite take_length. }
  apply ksubstk_prefix in Hu. red in Hu. unfold u at 2 in Hu.
  fold (positionk k (S p)) in Hu. rewrite <- Hu.
- clear Hu. unfold u. rewrite take_S, apply_app.
+ clear Hu. unfold u. rewrite take_S, ksubstkw_app.
  rewrite app_nth2 by (unfold positionk; lia).
  replace (_-_) with 0 by (unfold positionk; lia). simpl.
  now rewrite app_nil_r, ksubstk_alt by apply kseq_letters.
@@ -141,7 +147,7 @@ Qed.
 
 Lemma nbocc_ksubstk k u :
   Forall (fun a => a <= k) u ->
-  nbocc k (apply (ksubstk k) u) = length u.
+  nbocc k (ksubstkw k u) = length u.
 Proof.
  induction u; trivial.
  simpl. intros Hu. inversion_clear Hu.
@@ -218,7 +224,7 @@ Lemma positionk_cumul k n :
 Proof.
  unfold positionk.
  induction n. trivial.
- rewrite take_S, apply_app, app_length, IHn. simpl.
+ rewrite take_S, ksubstkw_app, app_length, IHn. simpl.
  rewrite app_nil_r, ksubstk_len by apply kseq_letters. lia.
 Qed.
 
