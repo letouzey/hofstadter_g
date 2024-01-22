@@ -1,9 +1,18 @@
 Require Import MoreFun MoreList FunG GenFib GenG Words.
 Import ListNotations.
 
-(** Follow-up of [Words.v] *)
+(** * WordGrowth *)
 
-(** The substitution [(ksubst k)^k] is quite interesting :
+(** Follow-up of [Words.v] dedicated to the study of positions
+    of some letters in the infinite words [(kseq k)].
+    Main result : the partial sums of [kseq k] grow with k.
+    Applications :
+    - the count of letter k decreases with k
+    - the count of letter 0 decreases with k
+    - for all point n, [f k n <= f (S k) n]. *)
+
+(** First, we focus on the substitution [(ksubst k)^k] which is
+    quite interesting :
     as for [ksubst k], its infinite word is also [kseq k], but
     it produces it by blocks starting by all the [k] letters. *)
 

@@ -1,4 +1,4 @@
-Require Import MoreFun MoreList DeltaList GenFib GenG Words Words2 WordSuffix.
+Require Import MoreFun MoreList DeltaList GenFib GenG Words WordSuffix.
 Import ListNotations.
 
 (** * Factors of infinite word (kseq k) *)

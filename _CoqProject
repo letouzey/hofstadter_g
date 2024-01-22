@@ -17,7 +17,7 @@ GenAdd.v
 GenFlip.v
 Shift.v
 Words.v
-Words2.v
+WordGrowth.v
 WordSuffix.v
 WordFactor.v
 Special.v
