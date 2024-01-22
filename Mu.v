@@ -617,33 +617,55 @@ Proof.
    + apply Rmult_le_compat_l; lra.
 Qed.
 
-Lemma mu_upper_bound (k:nat) : let x := mu(k) - 1 in x + k * x^2 <= 1.
+Lemma mu_upper_bound_aux (k:nat) : k*(mu k -1)^2 <= 1.
 Proof.
  unfold mu. destruct mu_spec as (mu & M1 & M2). cbn -[pow].
  unfold P in M2. rewrite <- tech_pow_Rmult in M2.
- replace (_+_) with ((mu-1)*(1+k*(mu-1))) by lra.
- replace 1 with ((mu-1)*mu^k) at 4 by lra.
+ replace (k*_) with ((mu-1)*(k*(mu-1))) by lra.
+ replace 1 with ((mu-1)*mu^k) at 3 by lra.
  apply Rmult_le_compat_l; try lra.
  replace mu with (1+(mu-1)) at 2 by lra.
- apply pow_lower_bound; lra.
+ eapply Rle_trans; [|apply pow_lower_bound; lra]. lra.
 Qed.
 
-(*
-Lemma quadratic_upper_bound (k:nat)(x:R) :
- (0<k)%nat -> 0<=x -> x+k*x^2 <= 1 -> x <= (-1+sqrt(4*k+1))/(2*k).
+Lemma mu_upper_bound (k:nat) : (0<k)%nat -> mu k <= 1 + /sqrt k.
 Proof.
- intros Hk Hx LE.
- set (alpha := (-1+sqrt(4*k+1))/(2*k)) in *.
- set (beta := (-1-sqrt(4*k+1))/(2*k)).
-Admitted.
+ intros Hk.
+ apply lt_INR in Hk; simpl in Hk.
+ assert (mu k - 1 <= / sqrt k); try lra.
+ rewrite inv_sqrt_depr; try lra.
+ apply Rsqr_incr_0.
+ 2:{ generalize (mu_itvl k); lra. }
+ 2:{ apply sqrt_pos. }
+ rewrite Rsqr_sqrt.
+ 2:{ generalize (Rinv_0_lt_compat _ Hk). lra. }
+ rewrite Rsqr_pow2.
+ apply Rmult_le_reg_l with k; trivial. rewrite <- Rinv_r_sym; try lra.
+ apply mu_upper_bound_aux.
+Qed.
 
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Lemma mu_limit : is_lim_seq mu 1.
 Proof.
-Admitted.
+ apply is_lim_seq_incr_1.
+ apply is_lim_seq_le_le with (fun _ => 1) (fun k => 1 + /sqrt (S k)).
+ - split.
+    + generalize (mu_itvl (S n)); lra.
+    + apply mu_upper_bound. lia.
+ - apply is_lim_seq_const.
+ - replace (Rbar.Finite 1) with (Rbar.Finite (1+0)) by (f_equal; lra).
+   apply is_lim_seq_plus'; try apply is_lim_seq_const.
+   change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
+   apply is_lim_seq_inv; try easy.
+   rewrite <- is_lim_seq_incr_1 with (u:=fun n => sqrt n).
+   apply is_lim_seq_sqrt.
+Qed.
 
 Lemma tau_limit : is_lim_seq tau 1.
 Proof.
-Admitted.
-*)
+ unfold tau.
+ replace (Rbar.Finite 1) with (Rbar.Rbar_inv 1).
+ 2:{ simpl. f_equal. lra. }
+ apply is_lim_seq_inv. apply mu_limit. simpl. intros [= E]. lra.
+Qed.

@@ -34,3 +34,19 @@ Proof.
    + rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
    + red. red. simpl. now rewrite Rmult_0_r.
 Qed.
+
+Lemma is_lim_seq_sqrt : is_lim_seq (fun n : nat => sqrt n) Rbar.p_infty.
+Proof.
+ apply is_lim_seq_p_infty_Reals.
+ intros x.
+ exists ((2+nat_part x)^2)%nat.
+ intros n Hn.
+ destruct (Rle_or_lt 0 x) as [Hx|Hx].
+ 2:{ generalize (sqrt_pos n); lra. }
+ rewrite <- (sqrt_Rsqr x Hx).
+ apply sqrt_lt_1_alt. rewrite Rsqr_pow2. split. nra.
+ apply le_INR in Hn. rewrite pow_INR, plus_INR in Hn.
+ change (INR 2) with 2 in Hn.
+ eapply Rlt_le_trans; eauto. apply pow_lt_compat_l; try lia.
+ split; trivial. generalize (nat_part_INR x Hx). nra.
+Qed.
