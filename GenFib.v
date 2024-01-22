@@ -107,6 +107,11 @@ Proof.
  transitivity (A k m); trivial. apply Nat.lt_le_incl, A_lt_S.
 Qed.
 
+Lemma A_S_le_twice k n : A k (S n) <= 2 * A k n.
+Proof.
+ rewrite A_S. simpl. generalize (@A_mono k (n-k) n). lia.
+Qed.
+
 Lemma A_inj k n n' : A k n = A k n' -> n = n'.
 Proof.
  intros.

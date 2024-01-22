@@ -93,18 +93,6 @@ Proof.
  now apply is_lim_seq_incr_1 in Hlim.
 Qed.
 
-(* Unused currently (TODO) *)
-Lemma A_bound k n : 1 < A k (S n) / A k n <= 2.
-Proof.
- assert (NZ := A_pos k n).
- split.
- - apply Rmult_lt_reg_l with (A k n); try lra. field_simplify; try lra.
-   apply lt_INR. apply A_lt_S.
- - apply Rmult_le_reg_l with (A k n); try lra. field_simplify; try lra.
-   change 2 with (INR 2). rewrite <- mult_INR. apply le_INR.
-   simpl. generalize (@A_mono k (n-k)%nat n). lia.
-Qed.
-
 Lemma ratio_iter f (r:R) :
   (forall x, 0 < f x) ->
   is_lim_seq (fun n => f (S n) / f n) r ->
