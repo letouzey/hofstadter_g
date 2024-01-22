@@ -566,13 +566,7 @@ Proof.
  - rewrite <- kfactors0opt_length by trivial. apply nodup_length_le.
 Qed.
 
-(* LATER (see Special.v)
-Lemma kfactors_length k p : length (kfactors k p) = k*p+1.
-Lemma kseq_complexity k : forall p, Complexity (kseq k) p (k*p+1).
-*)
-
-
-(* Idee: dilute the (nbocc 0) en dessous des concat *)
-
-(* TODO: est-ce que ça donne -2..2 pour k=2 sans axiomes réels ?
- *)
+(** Next, we prove in [Special.v] that [length (kfactors k p) = k*p+1]
+    and hence the complexity of [kseq k] is [fun p => k*p+1].
+    For that, the key property is that the left special factors
+    of [kseq] are exactly its prefixes. *)

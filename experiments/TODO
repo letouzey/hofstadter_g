@@ -18,3 +18,10 @@ X croissance des fk quand k varie
 X Limite des racines à l'infini
 * croissance stricte des f_k ?
 * divergence des delta_k pour k>3 ?
+
+* kfactors0opt plus efficace ?
+* Dans WordFactor.f_additivity_via_factors', peut-être diluer
+  les (nbocc 0) en dessous des concat de kfactors0opt ?
+* L'enumération des facteurs peut-elle donner la quasi-additivité
+  -2..2 pour k=2 sans axiomes réels ?
+
