@@ -617,7 +617,7 @@ Proof.
    + apply Rmult_le_compat_l; lra.
 Qed.
 
-Lemma mu_upper_bound_aux (k:nat) : k*(mu k -1)^2 <= 1.
+Lemma mu_upper_bound_aux (k:nat) : k*(mu k - 1)^2 <= 1.
 Proof.
  unfold mu. destruct mu_spec as (mu & M1 & M2). cbn -[pow].
  unfold P in M2. rewrite <- tech_pow_Rmult in M2.
@@ -632,13 +632,11 @@ Lemma mu_upper_bound (k:nat) : (0<k)%nat -> mu k <= 1 + /sqrt k.
 Proof.
  intros Hk.
  apply lt_INR in Hk; simpl in Hk.
+ assert (M1 := mu_itvl k).
  assert (mu k - 1 <= / sqrt k); try lra.
  rewrite inv_sqrt_depr; try lra.
- apply Rsqr_incr_0.
- 2:{ generalize (mu_itvl k); lra. }
- 2:{ apply sqrt_pos. }
- rewrite Rsqr_sqrt.
- 2:{ generalize (Rinv_0_lt_compat _ Hk). lra. }
+ apply Rsqr_incr_0; try apply sqrt_pos; try lra.
+ rewrite Rsqr_sqrt by (generalize (Rinv_0_lt_compat _ Hk); lra).
  rewrite Rsqr_pow2.
  apply Rmult_le_reg_l with k; trivial. rewrite <- Rinv_r_sym; try lra.
  apply mu_upper_bound_aux.
@@ -650,9 +648,7 @@ Lemma mu_limit : is_lim_seq mu 1.
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_le_le with (fun _ => 1) (fun k => 1 + /sqrt (S k)).
- - split.
-    + generalize (mu_itvl (S n)); lra.
-    + apply mu_upper_bound. lia.
+ - split. generalize (mu_itvl (S n)); lra. apply mu_upper_bound; lia.
  - apply is_lim_seq_const.
  - replace (Rbar.Finite 1) with (Rbar.Finite (1+0)) by (f_equal; lra).
    apply is_lim_seq_plus'; try apply is_lim_seq_const.
@@ -665,7 +661,6 @@ Qed.
 Lemma tau_limit : is_lim_seq tau 1.
 Proof.
  unfold tau.
- replace (Rbar.Finite 1) with (Rbar.Rbar_inv 1).
- 2:{ simpl. f_equal. lra. }
+ replace (Rbar.Finite 1) with (Rbar.Rbar_inv 1) by (simpl; f_equal; lra).
  apply is_lim_seq_inv. apply mu_limit. simpl. intros [= E]. lra.
 Qed.
