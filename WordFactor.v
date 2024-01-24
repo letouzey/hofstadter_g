@@ -220,7 +220,7 @@ Proof.
      exists p1. split.
      * rewrite in_seq. rewrite <- length_zero_iff_nil in Hu1, Hu2. lia.
      * apply map_appr_in. exists u1. rewrite allsuffixes_spec; split; auto.
-       f_equal. unfold kprefix. rewrite PR. f_equal. lia.
+       rewrite PR. f_equal. f_equal. lia.
 Qed.
 
 (** Compared with the expected k*p+1 complexity, we have some duplicates
@@ -294,7 +294,7 @@ Proof.
          - f_equal.
            assert (PR : PrefixSeq u2 (kseq k)).
            { eapply Prefix_PrefixSeq; eauto. apply kprefix_ok. }
-           rewrite PR. unfold kprefix. f_equal. lia.
+           rewrite PR. f_equal. lia.
          - rewrite allsuffixes_spec. split; auto. unfold SuffixWords in *.
            destruct SF as (n & SF). exists n.
            apply Suffix_trans with w; auto. }

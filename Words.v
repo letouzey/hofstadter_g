@@ -659,7 +659,7 @@ Qed.
 
 (** Prefixes of kseq *)
 
-Definition kprefix k n := take n (kseq k).
+Notation kprefix k n := (take n (kseq k)).
 
 Lemma kprefix_length k n : length (kprefix k n) = n.
 Proof.
@@ -1219,8 +1219,8 @@ Qed.
     a [ksubst] of a smaller prefix. *)
 
 Lemma kseq_take_inv k n : k<>0 ->
-  take (n + if is_k0 k n then 1 else 0) (kseq k) =
-  ksubstw k (take (f k n) (kseq k)).
+  kprefix k (n + if is_k0 k n then 1 else 0) =
+  ksubstw k (kprefix k (f k n)).
 Proof.
  intros Hk.
  set (l := rev (decomp k n)).

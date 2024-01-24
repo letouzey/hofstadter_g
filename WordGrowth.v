@@ -122,7 +122,7 @@ Qed.
 (** Where is the p-th letter k in [kseq k] ?
     We count occurrences from 0 : the 0-th letter k is at position 0 *)
 
-Definition positionk k p := length (ksubstkw k (take p (kseq k))).
+Definition positionk k p := length (ksubstkw k (kprefix k p)).
 
 Lemma positionk_S k p : positionk k (S p) = positionk k p + S (kseq k p).
 Proof.
@@ -135,9 +135,8 @@ Lemma kseq_positionk k p : kseq k (positionk k p) = k.
 Proof.
  rewrite <- (take_nth (kseq k) (positionk k (S p)) _ k).
  2:{ rewrite positionk_S; lia. }
- set (u := take (S p) (kseq k)).
- assert (Hu : PrefixSeq u (kseq k)).
- { red. unfold u. f_equal. now rewrite take_length. }
+ set (u := kprefix k (S p)).
+ assert (Hu : PrefixSeq u (kseq k)) by apply kprefix_ok.
  apply ksubstk_prefix in Hu. red in Hu. unfold u at 2 in Hu.
  fold (positionk k (S p)) in Hu. rewrite <- Hu.
  clear Hu. unfold u. rewrite take_S, ksubstkw_app.
@@ -167,10 +166,10 @@ Proof.
 Qed.
 
 Lemma take_kseq_letters k n :
-  Forall (fun a => a <= k) (take n (kseq k)).
+  Forall (fun a => a <= k) (kprefix k n).
 Proof.
  induction n.
- - unfold take. simpl. constructor.
+ - constructor.
  - rewrite take_S. apply Forall_app. split; trivial.
    repeat constructor. apply kseq_letters.
 Qed.
@@ -179,12 +178,11 @@ Lemma countk_positionk k p :
  count (kseq k) k (positionk k p) = p.
 Proof.
  rewrite count_nbocc.
- set (u := take p (kseq k)).
- assert (Hu : PrefixSeq u (kseq k)).
- { red. unfold u. f_equal. now rewrite take_length. }
+ set (u := kprefix k p).
+ assert (Hu : PrefixSeq u (kseq k)) by apply kprefix_ok.
  apply ksubstk_prefix in Hu. red in Hu. unfold u at 2 in Hu.
  fold (positionk k p) in Hu. rewrite <- Hu.
- rewrite nbocc_ksubstk. unfold u. apply take_length.
+ rewrite nbocc_ksubstk. apply kprefix_length.
  apply take_kseq_letters.
 Qed.
 
@@ -252,7 +250,7 @@ Proof.
 Qed.
 
 Lemma length_ksubstw k m :
-  length (ksubstw k (take m (kseq k))) = m + count (kseq k) k m.
+  length (ksubstw k (kprefix k m)) = m + count (kseq k) k m.
 Proof.
  induction m; trivial.
  rewrite take_S, ksubstw_app, app_length, IHm. simpl. unfold ksubst.
@@ -307,25 +305,22 @@ Proof.
        { apply positionk_bounds'; trivial. }
        lia.
      }
-     assert (E1 : S n <= length (ksubstw k (take m (kseq k)))).
+     assert (E1 : S n <= length (ksubstw k (kprefix k m))).
      { rewrite length_ksubstw. fold (a k m).
        transitivity (m + a (S k) m); try lia.
-       unfold a. now rewrite <- length_ksubstw, <- E, take_length. }
-     assert (P : Prefix (take (S n) (kseq k)) (ksubstw k (take m (kseq k)))).
-     { apply (PrefixSeq_incl (kseq k)).
-       - now rewrite take_length.
-       - red. now rewrite take_length.
-       - apply ksubstw_prefix. red. now rewrite take_length. }
+       unfold a. now rewrite <- length_ksubstw, <- E, kprefix_length. }
+     assert (P : Prefix (kprefix k (S n)) (ksubstw k (kprefix k m))).
+     { apply (PrefixSeq_incl (kseq k)); auto using kprefix_ok, ksubstw_prefix.
+       now rewrite kprefix_length. }
      apply listsum_prefix in P.
      rewrite <- cumul_alt in P.
-     eapply Nat.le_lt_trans; [ apply P | ].
-     rewrite cumul_alt. rewrite E.
+     eapply Nat.le_lt_trans; [ apply P | ]. clear P.
+     rewrite cumul_alt, E. clear E.
+     generalize (nbocc_le_length k (kprefix k m)).
+     generalize (nbocc_le_length (S k) (kprefix (S k) m)).
      rewrite !listsum_ksubstw'.
-     generalize (nbocc_le_length k (take m (kseq k))).
-     generalize (nbocc_le_length (S k) (take m (kseq (S k)))).
      rewrite <- !cumul_alt, !take_length, <- !count_nbocc.
-     fold (a k m). fold (a (S k) m).
-     lia.
+     fold (a k m) (a (S k) m). lia.
 Qed.
 
 (** Application : counting letter k *)
@@ -567,6 +562,19 @@ Proof.
  - rewrite f_0_div2. rewrite f_1_g. apply g_Sdiv2_le.
  - generalize (count0_decreases k n) (f_count_0 k n) (f_count_0 (S k) n).
    lia.
+Qed.
+
+Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
+Proof.
+ intros K N. transitivity (f k' n); [ | now apply f_mono]. clear n' N.
+ induction K; trivial. generalize (f_grows m n); lia.
+Qed.
+
+Lemma fsp_grows k p n : ((f k)^^p) n <= ((f (S k))^^p) n.
+Proof.
+ revert n.
+ induction p as [|p IH]; intros n; try easy.
+ rewrite !iter_S. etransitivity; [apply IH|]. apply fs_mono, f_grows.
 Qed.
 
 (* TODO: this inequality is actually strict except for a few low n *)
