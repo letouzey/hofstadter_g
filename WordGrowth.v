@@ -353,6 +353,13 @@ Proof.
  rewrite !fs_count_k. apply countk_decreases.
 Qed.
 
+(** Hence rchild (a.k.a Shift.shift) decreases with k *)
+
+Lemma rchild_decreases k n : rchild (S k) n <= rchild k n.
+Proof.
+ unfold rchild. generalize (fs_decreases k n). lia.
+Qed.
+
 (** Let's now count letter 0 *)
 
 (** The substitution [(ksubst k)^(S k)] is also quite interesting :
