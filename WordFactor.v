@@ -184,7 +184,7 @@ Proof.
 Qed.
 
 (** A first listing of factors, which is complete but may contain
-    a few duplicates *)
+    a few duplicates. Not meant to be efficient. *)
 
 Definition kfactors0 k p :=
  allsubs p (kword k k) ++
