@@ -1455,32 +1455,6 @@ Proof.
  apply steps_altspec; auto. lia.
 Qed.
 
-(** Unused finally : an alternative tail-recursive definition. *)
-
-Fixpoint steploop n p :=
- match n with
- | 0 => p
- | S n => if n <? p then p else steploop (n-p) (S p)
- end.
-
-Lemma steploop_spec n p : steploop n p = steps (n + triangle p).
-Proof.
- revert p.
- induction n as [[|n] IH] using lt_wf_ind; intros p; simpl steploop.
- - symmetry. apply steps_triangle.
- - case Nat.ltb_spec.
-   + symmetry. rewrite Nat.add_comm. apply steps_altspec. auto.
-   + intros. rewrite IH; try lia.
-     f_equal. rewrite triangle_succ. lia.
-Qed.
-
-Definition steps_opt n := steploop n 0.
-
-Lemma steps_equiv n : steps_opt n = steps n.
-Proof.
- unfold steps_opt. rewrite steploop_spec. f_equal. now unfold triangle.
-Qed.
-
 (* The numbers below [A k (2*k+3) = triangle(k+4)-2] (cf A_2kp3_tri)
    have a decomposition of size at most 2, and have rank 0 only when
    they are 1 or a successor of a [A] number. That's the key for describing
