@@ -211,7 +211,7 @@ Qed.
 Lemma kprefix_leftext k n a : a <= k -> LeftExt a (kprefix k n) (kseq k).
 Proof.
  intros Ha.
- unfold kprefix.
+ rewrite kprefix_alt.
  set (p := invA_up k n).
  apply LeftExt_Prefix with (kword k p).
  - rewrite Prefix_equiv. f_equal. rewrite firstn_length_le; trivial.
@@ -242,7 +242,7 @@ Proof.
  destruct (rev v) as [|a v']; simpl in E.
  - exists 0. replace u with (kprefix k (length u)).
    + apply kprefix_leftext; lia.
-   + symmetry. rewrite kprefix_alt. change (PrefixSeq u (kseq k)).
+   + symmetry. change (PrefixSeq u (kseq k)).
      eapply Prefix_PrefixSeq.
      * now exists w.
      * rewrite E. apply kword_prefixseq.
@@ -575,8 +575,7 @@ Qed.
 
 Lemma klvalence_letter_k k : klvalence k [k] = S k.
 Proof.
- replace [k] with (kprefix k 1). apply kprefix_klvalence.
- now rewrite kprefix_alt.
+ change [k] with (kprefix k 1). apply kprefix_klvalence.
 Qed.
 
 Lemma krvalence_letter_le k a : krvalence k [a] <= 2.
@@ -1187,7 +1186,7 @@ Proof.
  - apply (NLS k). apply ls_val. rewrite klvalence_letter_k. lia.
  - apply (NLS 0). apply ls_val.
    assert (E : [k;0] = kprefix k 2).
-   { rewrite kprefix_alt. unfold take. simpl. now rewrite kseq_k_1. }
+   { cbn. now rewrite ksubst_k. }
    rewrite E, kprefix_klvalence. lia.
  - replace r with 0 in * by lia. simpl in *. clear NLS SU.
    destruct LS as (a & b & AB & A & B).
@@ -1649,14 +1648,14 @@ Lemma LeftSpecial_carac k u : k<>0 ->
 Proof.
  intros K. split.
  - apply LeftSpecial_kprefix.
- - intros P. rewrite kprefix_carac in P. rewrite P. clear P.
+ - intros P. rewrite P. fold (kprefix k (length u)).
    apply ls_val. rewrite kprefix_klvalence. lia.
 Qed.
 
 Lemma LeftSpecial_carac' k u : k<>0 ->
   LeftSpecial u (kseq k) <-> u = kprefix k (length u).
 Proof.
- intros K. rewrite <- kprefix_carac. now apply LeftSpecial_carac.
+ intros K. now rewrite LeftSpecial_carac.
 Qed.
 
 (** Some leftover proofs that could only be obtained now : *)

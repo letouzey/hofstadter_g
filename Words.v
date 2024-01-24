@@ -657,6 +657,49 @@ Proof.
  apply count_above_kseq_k.
 Qed.
 
+(** Prefixes of kseq *)
+
+Definition kprefix k n := take n (kseq k).
+
+Lemma kprefix_length k n : length (kprefix k n) = n.
+Proof.
+ apply take_length.
+Qed.
+
+Lemma kprefix_carac k u :
+  PrefixSeq u (kseq k) <-> u = kprefix k (length u).
+Proof.
+ reflexivity.
+Qed.
+
+Lemma kprefix_ok k n : PrefixSeq (kprefix k n) (kseq k).
+Proof.
+ red. now rewrite kprefix_length.
+Qed.
+
+Lemma kprefix_alt k n : kprefix k n = firstn n (kword k (invA_up k n)).
+Proof.
+ rewrite <- kseq_take_A. symmetry. apply firstn_take. apply invA_up_spec.
+Qed.
+
+Lemma kprefix_A_kword k p : kprefix k (A k p) = kword k p.
+Proof.
+ apply kseq_take_A.
+Qed.
+
+Lemma kprefix_prefix_kword k n p :
+  n <= A k p -> Prefix (kprefix k n) (kword k p).
+Proof.
+ intros H. rewrite <- kprefix_A_kword. now apply Prefix_take.
+Qed.
+
+Lemma kprefix_firstn_kword k n p :
+  n <= A k p -> kprefix k n = firstn n (kword k p).
+Proof.
+ intros H. rewrite <- (take_length n (kseq k)) at 2.
+ apply Prefix_equiv. now apply kprefix_prefix_kword.
+Qed.
+
 
 (** Full decomposition of any prefix of kword, then kseq (used in Lim) *)
 
@@ -1135,21 +1178,12 @@ Proof.
      rewrite Reachable_ksubst in V; try lia.
 Qed.
 
-Lemma kseq_take k n p : n <= A k p -> take n (kseq k) = firstn n (kword k p).
-Proof.
- intros LE.
- apply take_carac.
- - rewrite firstn_length, kword_len. lia.
- - intros m a LT.
-   rewrite nth_firstn by lia. symmetry. apply kseq_alt. lia.
-Qed.
-
 Lemma count_kseq k n p :
   n <= A k p ->
   count (kseq k) 0 n = nbocc 0 (firstn n (kword k p)).
 Proof.
  intros LE.
- rewrite count_nbocc. f_equal. now apply kseq_take.
+ rewrite count_nbocc. f_equal. now apply kprefix_firstn_kword.
 Qed.
 
 (** Is there a 0 at position n in [kseq k] ?

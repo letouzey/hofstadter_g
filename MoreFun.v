@@ -14,17 +14,17 @@ Qed.
 
 Definition IncrFun f := forall p, f p < f (S p).
 
-Lemma incr_strmono f : IncrFun f -> (forall p q, p < q -> f p < f q).
+Lemma incr_strmono f : IncrFun f -> forall p q, p < q -> f p < f q.
 Proof.
  intros H. induction 1; auto. specialize (H m). lia.
 Qed.
 
-Lemma incr_mono f : IncrFun f -> (forall p q, p <= q -> f p <= f q).
+Lemma incr_mono f : IncrFun f -> forall p q, p <= q -> f p <= f q.
 Proof.
  intros H. induction 1; auto. specialize (H m). lia.
 Qed.
 
-Lemma incr_monoiff f : IncrFun f -> (forall p q, p < q <-> f p < f q).
+Lemma incr_monoiff f : IncrFun f -> forall p q, p < q <-> f p < f q.
 Proof.
  intros H p q. split. apply (incr_strmono f H).
  destruct (Nat.lt_trichotomy p q) as [LT|[EQ|GT]]; trivial.

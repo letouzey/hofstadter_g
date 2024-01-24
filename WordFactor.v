@@ -183,50 +183,6 @@ Proof.
  - rewrite (F i), (F j) in E'; lia.
 Qed.
 
-Definition kprefix k n := firstn n (kword k (invA_up k n)).
-
-Lemma kprefix_length k n : length (kprefix k n) = n.
-Proof.
- unfold kprefix. rewrite firstn_length_le; auto.
- rewrite kword_len. apply invA_up_spec.
-Qed.
-
-Lemma kprefix_ok k n : PrefixSeq (kprefix k n) (kseq k).
-Proof.
- unfold kprefix. eapply Prefix_PrefixSeq; eauto.
- apply firstn_Prefix. apply kword_prefixseq.
-Qed.
-
-Lemma kprefix_alt k n : kprefix k n = take n (kseq k).
-Proof.
- generalize (kprefix_ok k n). unfold PrefixSeq.
- now rewrite kprefix_length.
-Qed.
-
-Lemma kprefix_carac k u :
-  PrefixSeq u (kseq k) <-> u = kprefix k (length u).
-Proof.
- split.
- - intros P. eapply PrefixSeq_unique; eauto using kprefix_ok.
-   now rewrite kprefix_length.
- - intros ->. apply kprefix_ok.
-Qed.
-
-Lemma kprefix_prefix_kword k n p :
-  n <= A k p -> Prefix (kprefix k n) (kword k p).
-Proof.
- intros. eapply PrefixSeq_incl; eauto using kprefix_ok, kword_prefixseq.
- now rewrite kprefix_length, kword_len.
-Qed.
-
-Lemma kprefix_A_kword k p : kprefix k (A k p) = kword k p.
-Proof.
- assert (P := kprefix_prefix_kword k (A k p) p (Nat.le_refl _)).
- rewrite Prefix_equiv in P. rewrite P, kprefix_length, <- kword_len.
- apply firstn_all.
-Qed.
-
-
 (** A first listing of factors, which is complete but may contain
     a few duplicates *)
 
@@ -264,7 +220,7 @@ Proof.
      exists p1. split.
      * rewrite in_seq. rewrite <- length_zero_iff_nil in Hu1, Hu2. lia.
      * apply map_appr_in. exists u1. rewrite allsuffixes_spec; split; auto.
-       f_equal. rewrite kprefix_alt. rewrite PR. f_equal. lia.
+       f_equal. unfold kprefix. rewrite PR. f_equal. lia.
 Qed.
 
 (** Compared with the expected k*p+1 complexity, we have some duplicates
@@ -323,6 +279,7 @@ Proof.
      destruct Hw0 as (w & <- & Hw).
      apply allsuffixes_spec in Hw. destruct Hw as (Hw,SF).
      rewrite allsubs_ok in Hu. destruct Hu as (Hu,SB).
+     rewrite <- kprefix_alt in SB.
      apply Sub_app_inv in SB.
      destruct SB as [SB|[SB|(u1 & u2 & U1 & U2 & -> & H1 & H2)]].
      * apply Sub_len in SB. lia.
@@ -337,7 +294,7 @@ Proof.
          - f_equal.
            assert (PR : PrefixSeq u2 (kseq k)).
            { eapply Prefix_PrefixSeq; eauto. apply kprefix_ok. }
-           rewrite kprefix_alt, PR. f_equal. lia.
+           rewrite PR. unfold kprefix. f_equal. lia.
          - rewrite allsuffixes_spec. split; auto. unfold SuffixWords in *.
            destruct SF as (n & SF). exists n.
            apply Suffix_trans with w; auto. }
@@ -345,7 +302,7 @@ Proof.
      destruct Hu as (u1 & <- & Hu1).
      destruct (allsuffixes_extend k p1 p' u1) as (u1' & Hu1');
       trivial; try lia.
-     exists (u1' ++ kprefix k p'); split.
+     exists (u1' ++ kprefix k p'); split; rewrite <- ?kprefix_alt.
      * apply map_appr_in. now eexists.
      * apply allsubs_ok; split.
        { rewrite app_length, kprefix_length.

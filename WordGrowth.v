@@ -293,7 +293,8 @@ Proof.
      set (a := fun k => count (kseq k) k).
      assert (LE : a (S k) m <= a k m).
      { rewrite Nat.le_ngt. intro.
-       assert (E1 : m <= positionk k (a k m)) by (apply positionk_bounds'; trivial).
+       assert (E1 : m <= positionk k (a k m))
+         by (apply positionk_bounds'; trivial).
        assert (E2 := positionk_cumul k (a k m)).
        assert (E3 : cumul (kseq k) (a k m) < cumul (kseq (S k)) (a k m)).
        { apply IH. apply Nat.le_lt_trans with m. apply count_subid. lia.
@@ -360,6 +361,13 @@ Qed.
 
 Definition ksubstSk k n := napply (ksubst k) (S k) [n].
 
+Definition ksubstSkw k := apply (ksubstSk k).
+
+Lemma ksubstSkw_app k u v : ksubstSkw k (u++v) = ksubstSkw k u ++ ksubstSkw k v.
+Proof.
+ apply apply_app.
+Qed.
+
 Lemma ksubstSk_alt0 k n :
   ksubstSk k n = ksubstw k (ksubstkw k [n]).
 Proof.
@@ -399,7 +407,7 @@ Qed.
 Lemma nbocc_ksubstSk k u :
   k<>0 ->
   Forall (fun a : nat => a <= k) u ->
-  nbocc 0 (apply (ksubstSk k) u) = length u.
+  nbocc 0 (ksubstSkw k u) = length u.
 Proof.
  intros Hk.
  induction u; trivial.
@@ -412,20 +420,21 @@ Proof.
 Qed.
 
 Lemma ksubstSk_prefix k u :
-  PrefixSeq u (kseq k) -> PrefixSeq (apply (ksubstSk k) u) (kseq k).
+  PrefixSeq u (kseq k) -> PrefixSeq (ksubstSkw k u) (kseq k).
 Proof.
+ unfold ksubstSkw.
  rewrite <- napply_1.
  rewrite napply_ksubstSk. apply PrefixSeq_napply.
  apply ksubst_noerase.
  apply ksubst_prolong.
 Qed.
 
-Definition position0 k p := S (length (apply (ksubstSk k) (take p (kseq k)))).
+Definition position0 k p := S (length (ksubstSkw k (take p (kseq k)))).
 
 Lemma position0_S k p : position0 k (S p) = position0 k p + kseq k p + 2.
 Proof.
  unfold position0.
- rewrite take_S, apply_app, app_length; simpl.
+ rewrite take_S, ksubstSkw_app, app_length; simpl.
  rewrite app_nil_r, ksubstSk_len by apply kseq_letters. lia.
 Qed.
 
@@ -440,7 +449,7 @@ Proof.
  replace (length _) with (position0 k (S p) - 1) in Hu.
  2:{ unfold position0. lia. }
  rewrite <- Hu.
- clear Hu. unfold u. rewrite take_S, apply_app.
+ clear Hu. unfold u. rewrite take_S, ksubstSkw_app.
  rewrite app_nth2 by (unfold position0; lia).
  replace (_-_) with 1 by (unfold position0; lia). simpl.
  now rewrite app_nil_r, ksubstSk_alt by apply kseq_letters.
@@ -517,7 +526,7 @@ Lemma position0_cumul k n :
 Proof.
  unfold position0.
  induction n; trivial.
- rewrite take_S, apply_app, app_length.
+ rewrite take_S, ksubstSkw_app, app_length.
  rewrite <- Nat.add_succ_l, IHn. simpl length.
  rewrite app_nil_r, ksubstSk_len by apply kseq_letters. simpl. lia.
 Qed.
