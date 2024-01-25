@@ -10,6 +10,11 @@ Proof.
  induction n as [|n IH]; intros; trivial. simpl. now rewrite <- IH.
 Qed.
 
+Lemma iter_add {A} (f:A->A) n m p : (f^^(n+m)) p = (f^^n) ((f^^m) p).
+Proof.
+ induction n as [|n IH]; simpl; intros; now rewrite ?IH.
+Qed.
+
 (** A few properties of strictly increasing [nat->nat] functions *)
 
 Definition IncrFun f := forall p, f p < f (S p).

@@ -564,17 +564,34 @@ Proof.
    lia.
 Qed.
 
+(* TODO: this inequality is actually strict except for a few low n *)
+
 Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
 Proof.
  intros K N. transitivity (f k' n); [ | now apply f_mono]. clear n' N.
  induction K; trivial. generalize (f_grows m n); lia.
 Qed.
 
-Lemma fsp_grows k p n : ((f k)^^p) n <= ((f (S k))^^p) n.
+Lemma fs_grows k p n : ((f k)^^p) n <= ((f (S k))^^p) n.
 Proof.
  revert n.
  induction p as [|p IH]; intros n; try easy.
  rewrite !iter_S. etransitivity; [apply IH|]. apply fs_mono, f_grows.
 Qed.
 
-(* TODO: this inequality is actually strict except for a few low n *)
+Lemma fs_bound k n :
+ (f (S k) ^^ (S k)) n <= (f k ^^k) n <= (f (S k) ^^k) n.
+Proof.
+ split. apply fs_decreases. apply fs_grows.
+Qed.
+
+Lemma fs_grows_gen k k' p p' n n' :
+  k <= k' -> p >= p' -> n <= n' -> (f k^^p) n <= (f k'^^p') n'.
+Proof.
+ intros K P N.
+ transitivity ((f k ^^p') n).
+ - replace p with ((p-p')+p') by lia. rewrite iter_add. apply fs_le.
+ - clear P p. rename p' into p.
+   transitivity ((f k'^^p) n); [ | now apply fs_mono]. clear n' N.
+   induction K; trivial. generalize (fs_grows m p n). lia.
+Qed.
