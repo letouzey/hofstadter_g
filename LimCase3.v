@@ -343,25 +343,25 @@ Proof.
  rewrite <- (f_count_0 3 n) at 1 by easy. rewrite plus_INR. lra.
 Qed.
 
-Lemma diff3_alt n : diff3 n = τ^3 * n - (f 3^^3) n.
+Lemma diff3_alt n : diff3 n = τ^3 * n - fs 3 3 n.
 Proof.
  unfold diff3, Diff3. rewrite take_length.
  rewrite <- count_nbocc.
  now rewrite fs_count_k.
 Qed.
 
-Lemma diff1_alt n : diff1 n = τ^5 * n + (f 3^^2) n - f 3 n.
+Lemma diff1_alt n : diff1 n = τ^5 * n + fs 3 2 n - f 3 n.
 Proof.
  unfold diff1, Diff1. rewrite take_length.
  rewrite <- count_nbocc.
- change (f 3 n) with ((f 3^^1) n).
+ change (f 3 n) with (fs 3 1 n).
  rewrite (fs_count_above 3 1) by lia.
  rewrite count_above_S.
  rewrite (fs_count_above 3 2) by lia.
  rewrite plus_INR. lra.
 Qed.
 
-Lemma diff2_alt n : diff2 n = τ^6 * n + (f 3^^3) n - (f 3^^2) n.
+Lemma diff2_alt n : diff2 n = τ^6 * n + fs 3 3 n - fs 3 2 n.
 Proof.
  unfold diff2, Diff2. rewrite take_length.
  rewrite <- count_nbocc.

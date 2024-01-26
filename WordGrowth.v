@@ -342,8 +342,7 @@ Proof.
   - apply positionk_grows.
 Qed.
 
-Lemma fs_decreases k n :
- (f (S k) ^^ (S k)) n <= (f k ^^ k) n.
+Lemma fs_decreases k n : fs (S k) (S k) n <= fs k k n.
 Proof.
  rewrite !fs_count_k. apply countk_decreases.
 Qed.
@@ -572,26 +571,25 @@ Proof.
  induction K; trivial. generalize (f_grows m n); lia.
 Qed.
 
-Lemma fs_grows k p n : ((f k)^^p) n <= ((f (S k))^^p) n.
+Lemma fs_grows k p n : fs k p n <= fs (S k) p n.
 Proof.
  revert n.
  induction p as [|p IH]; intros n; try easy.
  rewrite !iter_S. etransitivity; [apply IH|]. apply fs_mono, f_grows.
 Qed.
 
-Lemma fs_bound k n :
- (f (S k) ^^ (S k)) n <= (f k ^^k) n <= (f (S k) ^^k) n.
+Lemma fs_bound k n : fs (S k) (S k) n <= fs k k n <= fs (S k) k n.
 Proof.
  split. apply fs_decreases. apply fs_grows.
 Qed.
 
 Lemma fs_grows_gen k k' p p' n n' :
-  k <= k' -> p >= p' -> n <= n' -> (f k^^p) n <= (f k'^^p') n'.
+  k <= k' -> p >= p' -> n <= n' -> fs k p n <= fs k' p' n'.
 Proof.
  intros K P N.
- transitivity ((f k ^^p') n).
+ transitivity (fs k p' n).
  - replace p with ((p-p')+p') by lia. rewrite iter_add. apply fs_le.
  - clear P p. rename p' into p.
-   transitivity ((f k'^^p) n); [ | now apply fs_mono]. clear n' N.
+   transitivity (fs k' p n); [ | now apply fs_mono]. clear n' N.
    induction K; trivial. generalize (fs_grows m p n). lia.
 Qed.

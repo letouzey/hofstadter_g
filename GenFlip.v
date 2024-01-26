@@ -203,6 +203,7 @@ Qed.
 (** * The [ff] function corresponding to the flipped [f] tree *)
 
 Definition ff k n := flip k (f k (flip k n)).
+Notation ffs k p := (ff k ^^p).
 
 (* Compute map (ff 2) (seq 0 20). *)
 
@@ -250,7 +251,7 @@ Proof.
  - intros _. rewrite ff_SA. f_equal. f_equal. lia.
 Qed.
 
-Lemma ffs_A k m p : (ff k^^m) (A k p) = A k (p-m).
+Lemma ffs_A k m p : ffs k m (A k p) = A k (p-m).
 Proof.
  revert p.
  induction m as [|m IH]; intros p; simpl.
@@ -258,7 +259,7 @@ Proof.
  - rewrite IH, ff_A. f_equal. lia.
 Qed.
 
-Lemma ffs_SA k m p : m <= p -> (ff k^^m) (S (A k p)) = S (A k (p-m)).
+Lemma ffs_SA k m p : m <= p -> ffs k m (S (A k p)) = S (A k (p-m)).
 Proof.
  revert p.
  induction m as [|m IH]; intros p H; simpl.
@@ -427,7 +428,7 @@ Proof.
 Qed.
 
 Lemma ffs_flip k p n :
-  (ff k ^^p) n = flip k ((f k ^^p) (flip k n)).
+  ffs k p n = flip k (fs k p (flip k n)).
 Proof.
  revert n.
  induction p; simpl; intros.
@@ -435,12 +436,7 @@ Proof.
  - rewrite IHp. unfold ff. now rewrite flip_flip.
 Qed.
 
-Lemma subsub n m p : p <= m -> n - (m - p) = n + p - m.
-Proof.
- lia.
-Qed.
-
-Lemma ff_eqn k n : k+2 < n -> ff k n + (ff k^^k) (S (ff k (n-1))) = S n.
+Lemma ff_eqn k n : k+2 < n -> ff k n + ffs k k (S (ff k (n-1))) = S n.
 Proof.
  intros Hn.
  set (p := depth k n).
@@ -498,7 +494,7 @@ Proof.
      rewrite flip_S by lia.
      unfold ff at 2. rewrite flip_flip.
      rewrite flip_pred; try (unfold p in Hp; lia).
-     replace ((f k ^^ k) (f k (S (flip k n)) - 1)) with (flip k n - f k (flip k n))
+     replace (fs k k (f k (S (flip k n)) - 1)) with (flip k n - f k (flip k n))
      by (generalize (f_alt_eqn k (flip k n)); lia).
      rewrite Nat.add_sub_assoc by apply f_le.
      symmetry. apply Nat.add_sub_eq_r.
@@ -543,7 +539,7 @@ Proof.
    + rewrite ff_init, Hbase; lia.
  - assert (E := ff_eqn k Hn).
    specialize (Heqn n Hn).
-   assert (E' : forall p m, m < n -> (h^^p) m = (ff k^^p) m).
+   assert (E' : forall p m, m < n -> (h^^p) m = ffs k p m).
    { clear - IH.
      induction p; auto.
      intros.
@@ -554,7 +550,7 @@ Proof.
    assert (E'' : h (n-1) = ff k (n-1)) by (apply IH; lia).
    rewrite E'' in *.
    replace ((h ^^ k) (S (ff k (n - 1)))) with
-     ((ff k ^^ k) (S (ff k (n - 1)))) in Heqn.
+     (ffs k k (S (ff k (n - 1)))) in Heqn.
    lia.
    symmetry. apply E'.
    generalize (@ff_lt k (n-1)). lia.

@@ -32,7 +32,7 @@ Proof.
  - apply decomp_delta.
 Qed.
 
-Lemma fs_shifts k p n : ((f k)^^p) (((shift k)^^p) n) = n.
+Lemma fs_shifts k p n : fs k p ((shift k ^^p) n) = n.
 Proof.
  revert n. induction p; intros n; auto.
  rewrite (iter_S (shift k)). simpl. now rewrite IHp, f_shift.

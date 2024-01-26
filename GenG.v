@@ -25,22 +25,22 @@ Set Implicit Arguments.
 (** Coq representation of [F] as an inductive relation. This way,
     no need to convince Coq yet that [F] is indeed a function.
     - [F k n a] means that [Fk(n) = a].
-    - [Fs p k n a] means that [Fk^p (n) = a].
+    - [Fs k p n a] means that [Fk^p (n) = a].
 *)
 
-Inductive F : nat -> nat -> nat -> Prop :=
-| F0 k : F k 0 0
-| FS k n a b : Fs (S k) k n a -> S n = a+b -> F k (S n) b
+Inductive F (k:nat) : nat -> nat -> Prop :=
+| F0 : F k 0 0
+| FS n a b : Fs k (S k) n a -> S n = a+b -> F k (S n) b
 
-with Fs : nat -> nat -> nat -> nat -> Prop :=
-| Fs0 k n : Fs 0 k n n
-| FsS p k a b c : Fs p k a b -> F k b c -> Fs (S p) k a c.
+with Fs (k:nat) : nat -> nat -> nat -> Prop :=
+| Fs0 n : Fs k 0 n n
+| FsS p a b c : Fs k p a b -> F k b c -> Fs k (S p) a c.
 
 #[global] Hint Constructors F Fs : hof.
 
 (** The early behavior of [F] and [Fs] when [n<=3] doesn't depend on k *)
 
-Lemma Fs_0 p k : Fs p k 0 0.
+Lemma Fs_0 k p : Fs k p 0 0.
 Proof.
  induction p; eautoh.
 Qed.
@@ -52,7 +52,7 @@ Proof.
 Qed.
 #[global] Hint Resolve F_1 : hof.
 
-Lemma Fs_1 p k : Fs p k 1 1.
+Lemma Fs_1 k p : Fs k p 1 1.
 Proof.
  induction p; eautoh.
 Qed.
@@ -64,7 +64,7 @@ Proof.
 Qed.
 #[global] Hint Resolve F_2 : hof.
 
-Lemma Fs_2 p k : Fs p k 2 (1+(1-p)).
+Lemma Fs_2 k p : Fs k p 2 (1+(1-p)).
 Proof.
  induction p; eautoh.
  simpl.
@@ -78,7 +78,7 @@ Proof.
 Qed.
 #[global] Hint Resolve F_3 : hof.
 
-Lemma Fs_3 p k : Fs p k 3 (1+(2-p)).
+Lemma Fs_3 k p : Fs k p 3 (1+(2-p)).
 Proof.
  induction p; eautoh.
  eapply FsS; eauto. destruct p as [|[|p]]; simpl; autoh.
@@ -93,7 +93,7 @@ Proof.
 Qed.
 #[global] Hint Resolve F_le : hof.
 
-Lemma Fs_le p k n a : Fs p k n a -> a <= n.
+Lemma Fs_le k p n a : Fs k p n a -> a <= n.
 Proof.
  induction 1; trivial.
  transitivity b; eautoh.
@@ -107,17 +107,17 @@ Scheme F_ind2 := Induction for F Sort Prop
 
 Combined Scheme F_Fs_ind from F_ind2, Fs_ind2.
 
-Lemma F_Fs_fun :
- (forall k n a, F k n a -> forall a', F k n a' -> a = a') /\
- (forall p k n a, Fs p k n a -> forall a', Fs p k n a' -> a = a').
+Lemma F_Fs_fun k :
+ (forall n a, F k n a -> forall a', F k n a' -> a = a') /\
+ (forall p n a, Fs k p n a -> forall a', Fs k p n a' -> a = a').
 Proof.
 apply F_Fs_ind.
 - inversion_clear 1; auto.
-- intros k n a b HFs IH Hab a' HF.
+- intros n a b HFs IH Hab a' HF.
   inversion_clear HF; auto.
   apply IH in H; lia.
 - inversion_clear 1; auto.
-- intros p k a b c HFs IH HF IH' a' HFs'.
+- intros p a b c HFs IH HF IH' a' HFs'.
   inversion_clear HFs'; auto.
   apply IH in H; subst; auto.
 Qed.
@@ -127,7 +127,7 @@ Proof.
  intro. now apply F_Fs_fun.
 Qed.
 
-Lemma Fs_fun p k n a a' : Fs p k n a -> Fs p k n a' -> a = a'.
+Lemma Fs_fun k p n a a' : Fs p k n a -> Fs p k n a' -> a = a'.
 Proof.
  intro. now apply F_Fs_fun.
 Qed.
@@ -145,6 +145,7 @@ Fixpoint recf k p n :=
  end.
 
 Definition f k n := recf k n n.
+Notation fs k p := (f k ^^p).
 
 Lemma recf_le k p n : recf k p n <= n.
 Proof.
@@ -164,7 +165,7 @@ induction p.
 - destruct n.
   + simpl. constructor.
   + cbn - ["-" "^^"].
-    assert (IHq : forall q m, m <= p -> Fs q k m ((recf k p ^^ q) m)).
+    assert (IHq : forall q m, m <= p -> Fs k q m ((recf k p ^^ q) m)).
     { induction q; intros; simpl; econstructor; eauto.
       apply IHp. transitivity m; auto using recfs_le. }
     econstructor. apply IHq. lia.
@@ -186,9 +187,8 @@ Qed.
 
 (** A few examples *)
 
-Definition nums := List.seq 0 26.
-
 (*
+Definition nums := List.seq 0 26.
 Compute map (f 0) nums.
 Compute map (f 1) nums.
 Compute map (f 2) nums.
@@ -225,7 +225,7 @@ Qed.
 
 (** Basic equations over [f] : the same as [F] *)
 
-Lemma Fs_iter_f p k n : Fs p k n ((f k ^^p) n).
+Lemma Fs_iter_f p k n : Fs k p n (fs k p n).
 Proof.
 induction p.
 - simpl. autoh.
@@ -233,40 +233,40 @@ induction p.
   rewrite f_complete; autoh.
 Qed.
 
-Lemma fs_k_0 p k : (f k ^^p) 0 = 0.
+Lemma fs_k_0 p k : fs k p 0 = 0.
 Proof.
  induction p; simpl; auto.
  rewrite IHp. apply f_k_0.
 Qed.
 
-Lemma fs_k_1 p k : (f k ^^p) 1 = 1.
+Lemma fs_k_1 p k : fs k p 1 = 1.
 Proof.
  induction p; simpl; auto.
  rewrite IHp. apply f_k_1.
 Qed.
 
-Lemma f_eqn k n : f k (S n) + (f k ^^ S k) n = S n.
+Lemma f_eqn k n : f k (S n) + fs k (S k) n = S n.
 Proof.
  assert (H := f_sound k (S n)).
  inversion_clear H.
- assert ((f k ^^ S k) n = a).
+ assert (fs k (S k) n = a).
  { revert H0. apply Fs_fun. apply Fs_iter_f. }
  lia.
 Qed.
 
-Lemma f_eqn_pred k n : f k n + (f k ^^ S k) (pred n) = n.
+Lemma f_eqn_pred k n : f k n + fs k (S k) (pred n) = n.
 Proof.
 destruct n.
 - now rewrite fs_k_0.
 - apply f_eqn.
 Qed.
 
-Lemma f_S k n : f k (S n) = S n - (f k ^^ S k) n.
+Lemma f_S k n : f k (S n) = S n - fs k (S k) n.
 Proof.
  generalize (f_eqn k n). lia.
 Qed.
 
-Lemma f_pred k n : f k n = n - (f k ^^ S k) (pred n).
+Lemma f_pred k n : f k n = n - fs k (S k) (pred n).
 Proof.
  generalize (f_eqn_pred k n). lia.
 Qed.
@@ -315,7 +315,7 @@ Proof.
 intros h_0 h_S.
 induction n as [[|n] IH] using lt_wf_ind.
 - now rewrite h_0.
-- assert (forall p m, m <= n -> (h^^p) m = (f k ^^p) m).
+- assert (forall p m, m <= n -> (h^^p) m = fs k p m).
   { induction p.
     - now simpl.
     - intros. simpl.
@@ -332,8 +332,8 @@ Proof.
  - rewrite f_k_0, f_k_1. now right.
  - rewrite 2 f_S.
    assert (forall p m, m <= n ->
-           (f k ^^p) (S m) = (f k ^^p) m \/
-           (f k ^^p) (S m) = S ((f k ^^p) m)).
+           fs k p (S m) = fs k p m \/
+           fs k p (S m) = S (fs k p m)).
    { induction p.
      - simpl; now right.
      - intros; simpl.
@@ -345,8 +345,8 @@ Proof.
    specialize (H (S k) n). lia.
 Qed.
 
-Lemma fs_step k p n : (f k ^^p) (S n) = (f k ^^p) n \/
-                      (f k ^^p) (S n) = S ((f k ^^p) n).
+Lemma fs_step k p n : fs k p (S n) = fs k p n \/
+                      fs k p (S n) = S (fs k p n).
 Proof.
  induction p; simpl.
  - now right.
@@ -358,7 +358,7 @@ Proof.
  generalize (f_step k n). lia.
 Qed.
 
-Lemma fs_mono_S k p n : (f k ^^p) n <= (f k ^^p) (S n).
+Lemma fs_mono_S k p n : fs k p n <= fs k p (S n).
 Proof.
  generalize (fs_step k p n). lia.
 Qed.
@@ -376,11 +376,11 @@ induction 1.
 - transitivity (f k m); auto using f_mono_S.
 Qed.
 
-Lemma fs_mono k p n m : n <= m -> (f k^^p) n <= (f k^^p) m.
+Lemma fs_mono k p n m : n <= m -> fs k p n <= fs k p m.
 Proof.
 induction 1.
 - trivial.
-- transitivity ((f k ^^p) m); auto using fs_mono_S.
+- transitivity (fs k p m); auto using fs_mono_S.
 Qed.
 
 (** NB : in Coq, for natural numbers, 3-5 = 0 (truncated subtraction) *)
@@ -392,7 +392,7 @@ destruct (le_ge_dec n m) as [H|H].
 - generalize (f_mono k H). lia.
 Qed.
 
-Lemma fs_lipschitz k p n m : (f k^^p) m - (f k^^p) n <= m - n.
+Lemma fs_lipschitz k p n m : fs k p m - fs k p n <= m - n.
 Proof.
  revert n m. induction p; auto.
  intros. simpl. etransitivity. eapply f_lipschitz. eapply IHp.
@@ -413,12 +413,12 @@ Proof.
  generalize (@f_nz k n). lia.
 Qed.
 
-Lemma fs_nonzero k n p : 0 < n -> 0 < (f k ^^p) n.
+Lemma fs_nonzero k n p : 0 < n -> 0 < fs k p n.
 Proof.
  revert n. induction p; simpl; auto using f_nonzero.
 Qed.
 
-Lemma fs_0_inv k n p : (f k ^^p) n = 0 -> n = 0.
+Lemma fs_0_inv k n p : fs k p n = 0 -> n = 0.
 Proof.
  generalize (@fs_nonzero k n p). lia.
 Qed.
@@ -429,7 +429,7 @@ split.
 - destruct n; auto.
   assert (H := f_eqn k n).
   intros.
-  assert (H' : (f k ^^S k) n = 0) by lia.
+  assert (H' : fs k (S k) n = 0) by lia.
   apply fs_0_inv in H'.
   now subst.
 - inversion_clear 1. apply f_k_1.
@@ -441,7 +441,7 @@ Proof.
  eapply F_le; eautoh.
 Qed.
 
-Lemma fs_le k p n : (f k^^p) n <= n.
+Lemma fs_le k p n : fs k p n <= n.
 Proof.
  eapply Fs_le, Fs_iter_f.
 Qed.
@@ -511,26 +511,26 @@ Proof.
 Qed.
 
 Lemma fs_bound k n p :
-  1 < n -> 1 < (f k ^^p) n -> (f k ^^p) n <= n-p.
+  1 < n -> 1 < fs k p n -> fs k p n <= n-p.
 Proof.
  revert n.
  induction p.
  - simpl. intros. lia.
  - intros. simpl in *.
-   assert (LE : 1 <= (f k ^^p) n).
+   assert (LE : 1 <= fs k p n).
    { generalize (@fs_nonzero k n p). lia. }
-   assert (NE : (f k^^p) n <> 1).
+   assert (NE : fs k p n <> 1).
    { intros EQ; rewrite EQ, f_k_1 in *. lia. }
    specialize (IHp n H).
-   generalize (@f_lt k ((f k^^p) n)). lia.
+   generalize (@f_lt k (fs k p n)). lia.
 Qed.
 
-Lemma fs_init k n : 1 <= n <= k+2 -> (f k^^(S k)) n = 1.
+Lemma fs_init k n : 1 <= n <= k+2 -> fs k (S k) n = 1.
 Proof.
  intros.
  destruct (Nat.eq_dec n 1) as [->|NE].
  - now rewrite fs_k_1.
- - destruct (le_lt_dec ((f k^^S k) n) 1) as [LE|LT].
+ - destruct (le_lt_dec (fs k (S k) n) 1) as [LE|LT].
    + generalize (@fs_nonzero k n (S k)). lia.
    + apply fs_bound in LT; try lia.
      generalize (@fs_nonzero k n (S k)). lia.
@@ -593,7 +593,7 @@ Qed.
 
 (** With [ftabulate],  we will build at once the list
     [[f k n; f k (n-1); ... ; f k 0]].
-    And [fdescend] visits this list to compute [((f k)^^p) n].
+    And [fdescend] visits this list to compute [fs k p n].
     Even with nat values, doing this way is way faster than the current [f].
 *)
 
@@ -616,7 +616,7 @@ Fixpoint ftabulate k n :=
  end.
 
 Lemma fdescend_spec k stk p n :
- stk = map (f k) (countdown n) -> fdescend stk p n = ((f k)^^p) n.
+ stk = map (f k) (countdown n) -> fdescend stk p n = fs k p n.
 Proof.
  revert stk n.
  induction p; intros stk n E.
@@ -701,8 +701,8 @@ Qed.
 
 (** We even have an explicit expression of one antecedent *)
 
-Definition rchild k n := n + (f k ^^ k) n.
-Definition lchild k n := n + (f k ^^ k) n - 1. (** left son, if there's one *)
+Definition rchild k n := n + fs k k n.
+Definition lchild k n := n + fs k k n - 1. (** left son, if there's one *)
 
 Lemma rightmost_child_carac k a n : f k n = a ->
  (f k (S n) = S a <-> n = rchild k a).
@@ -757,7 +757,7 @@ Qed.
 (** This provides easily a first relationship between f and
     generalized Fibonacci numbers *)
 
-Lemma fs_A k n p : (f k ^^p) (A k n) = A k (n-p).
+Lemma fs_A k n p : fs k p (A k n) = A k (n-p).
 Proof.
 revert p.
 induction n; intros.
@@ -846,7 +846,7 @@ Proof.
 Qed.
 
 Lemma fs_decomp k p n :
-  p <= S k -> (f k^^p) n = sumA k (map (decr p) (decomp k n)).
+  p <= S k -> fs k p n = sumA k (map (decr p) (decomp k n)).
 Proof.
  intros.
  rewrite <- fsbis; auto.
@@ -861,7 +861,7 @@ Proof.
 Qed.
 
 Lemma fs_sumA k p l : p <= S k -> Delta (S k) l ->
- (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+ fs k p (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros. rewrite fs_decomp; auto. f_equal. f_equal. autoh.
 Qed.
@@ -875,7 +875,7 @@ Proof.
 Qed.
 
 Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
- (f k ^^p) (sumA k l) = sumA k (map (decr p) l).
+ fs k p (sumA k l) = sumA k (map (decr p) l).
 Proof.
  intros. rewrite <- renorm_sum.
  rewrite fs_sumA; auto with arith hof.
@@ -1234,7 +1234,7 @@ Proof.
 Qed.
 
 Lemma fs_flat_low_rank k p n : p <= S k ->
- (f k ^^p) (S n) = (f k ^^p) n <-> (rank k n < p)%onat.
+ fs k p (S n) = fs k p n <-> (rank k n < p)%onat.
 Proof.
  intros Hp.
  apply Nat.lt_eq_cases in Hp.
@@ -1261,7 +1261,7 @@ Proof.
 Qed.
 
 Lemma fs_nonflat_high_rank k p n : p <= S k ->
-  (f k ^^p) (S n) = S ((f k ^^p) n) <-> ~(rank k n < p)%onat.
+  fs k p (S n) = S (fs k p n) <-> ~(rank k n < p)%onat.
 Proof.
  intros Hp.
  rewrite <- fs_flat_low_rank by trivial.
@@ -1271,7 +1271,7 @@ Proof.
 Qed.
 
 Lemma fs_nonflat_high_rank' k p n : p <= S k ->
-  (f k ^^p) (S n) = S ((f k ^^p) n) <->
+  fs k p (S n) = S (fs k p n) <->
   match rank k n with
   | None => True
   | Some a => p <= a
@@ -1282,18 +1282,18 @@ Proof.
  destruct rank; simpl; intuition lia.
 Qed.
 
-(** [(f k)^^p] cannot have more than [p+1] consecutive flats *)
+(** [fs k p] cannot have more than [p+1] consecutive flats *)
 
 Lemma fs_maxflat k n p : p <= S k ->
- (f k^^p) n < (f k^^p) (n+p+1).
+ fs k p n < fs k p (n+p+1).
 Proof.
  intros Hp.
  destruct (rank k n) as [r|] eqn:Hr.
  - destruct (@rank_later_is_high k n r p Hp Hr) as (r' & q & H1 & H2 & H3).
-   assert (E : (f k ^^p) (S (q+n)) = S ((f k^^p) (q+n))).
+   assert (E : fs k p (S (q+n)) = S (fs k p (q+n))).
    { apply fs_nonflat_high_rank; auto. rewrite H2. simpl. lia. }
    unfold lt.
-   transitivity (S ((f k ^^p) (q+n))).
+   transitivity (S (fs k p (q+n))).
    + apply -> Nat.succ_le_mono. apply fs_mono. lia.
    + rewrite <- E. apply fs_mono. lia.
  - rewrite rank_none in *. subst.
@@ -1689,7 +1689,7 @@ Qed.
 
     This one will be used later when flipping [F] left/right. *)
 
-Lemma f_alt_eqn k n : f k n + (f k^^k) (f k (S n) - 1) = n.
+Lemma f_alt_eqn k n : f k n + fs k k (f k (S n) - 1) = n.
 Proof.
  destruct (Nat.eq_dec n 0) as [-> |Hn].
  - simpl. now rewrite fs_k_0.
@@ -1776,14 +1776,14 @@ Proof.
  - rewrite (depth_eqn k LT). lia.
 Qed.
 
-Lemma fs_depth k p n : depth k ((f k ^^ p) n) = depth k n - p.
+Lemma fs_depth k p n : depth k (fs k p n) = depth k n - p.
 Proof.
  induction p; simpl.
  - lia.
  - rewrite f_depth, IHp. lia.
 Qed.
 
-Lemma depth_correct k n : n <> 0 -> (f k^^(depth k n)) n = 1.
+Lemma depth_correct k n : n <> 0 -> fs k (depth k n) n = 1.
 Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec.
  - lia.
@@ -1794,7 +1794,7 @@ Proof.
    + apply f_nz. unfold n'; lia.
 Qed.
 
-Lemma depth_minimal k n : 1<n -> 1 < ((f k^^(depth k n - 1)) n).
+Lemma depth_minimal k n : 1<n -> 1 < fs k (depth k n - 1) n.
 Proof.
  induction n as [[|[|n]] IH] using lt_wf_rec.
  - lia.

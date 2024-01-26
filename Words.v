@@ -622,11 +622,11 @@ Proof.
        destruct k; simpl; auto; try lia.
 Qed.
 
-(** Similarly, counting all letters above [p] leads to [(f k)^^p],
+(** Similarly, counting all letters above [p] leads to [fs k p],
     the p-iterate of [f k]. *)
 
 Lemma fs_count_above k p n :
-  p <= k -> (f k ^^p) n = count_above (kseq k) p n.
+  p <= k -> fs k p n = count_above (kseq k) p n.
 Proof.
  intros Hp.
  induction n.
@@ -651,7 +651,7 @@ Proof.
  destruct (rank k n); simpl in *; case Nat.leb_spec; case Nat.eqb_spec; lia.
 Qed.
 
-Lemma fs_count_k k n : (f k ^^k) n = count (kseq k) k n.
+Lemma fs_count_k k n : fs k k n = count (kseq k) k n.
 Proof.
  rewrite fs_count_above by lia.
  apply count_above_kseq_k.
