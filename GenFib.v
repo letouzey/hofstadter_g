@@ -20,13 +20,11 @@ Fixpoint A (k n : nat) :=
  - k=3 : See OEIS A003269 (shifted)
 *)
 
-Definition test := List.seq 0 10.
-
 (*
-Compute map (A 0) test.
-Compute map (A 1) test.
-Compute map (A 2) test.
-Compute map (A 3) test.
+Compute take 10 (A 0).
+Compute take 10 (A 1).
+Compute take 10 (A 2).
+Compute take 10 (A 3).
 *)
 (*
 A 0 : [1; 2; 4; 8; 16; 32; 64; 128; 256; 512]

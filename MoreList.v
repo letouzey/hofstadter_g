@@ -101,14 +101,6 @@ Proof.
  - now rewrite <- seq_shift, <- IHn, map_map.
 Qed.
 
-(* Quite ad-hoc, but used several times *)
-Lemma nth_map_seq {A} (f:nat->A) k n d :
- k < n -> nth k (map f (seq 0 n)) d = f k.
-Proof.
- intros L. rewrite nth_map_indep with (d':=0) by now rewrite seq_length.
- f_equal. now apply seq_nth.
-Qed.
-
 Lemma map_repeat {A B}(f : A -> B) a n :
  map f (repeat a n) = repeat (f a) n.
 Proof.
@@ -513,13 +505,21 @@ Proof.
 Qed.
 
 (** take : the list of the n first elements of a infinite sequence
-    (given as a function over nat). *)
+    (given as a function over nat). A.k.a List.init in OCaml. *)
 
 Definition take {A} n (f:nat -> A) : list A := map f (seq 0 n).
+
+Notation list_init := take (only parsing).
 
 Lemma take_S {A} n (f:nat -> A) : take (S n) f = take n f ++ [f n].
 Proof.
  unfold take. now rewrite seq_S, map_app.
+Qed.
+
+Lemma take_S_shift {A} n (f:nat -> A) :
+ take (S n) f = f 0 :: take n (fun n => f (S n)).
+Proof.
+ cbn. f_equal. now rewrite <- seq_shift, map_map.
 Qed.
 
 Lemma take_length {A} n (f:nat -> A) : length (take n f) = n.
@@ -529,7 +529,15 @@ Qed.
 
 Lemma take_nth {A} f n m (a:A) : m < n -> nth m (take n f) a = f m.
 Proof.
- apply nth_map_seq.
+ intros L. unfold take.
+ rewrite nth_map_indep with (d':=0) by now rewrite seq_length.
+ f_equal. now apply seq_nth.
+Qed.
+
+Lemma in_take {A} (f:nat->A) n x :
+  In x (take n f) <-> exists i, f i = x /\ i < n.
+Proof.
+ unfold take. rewrite in_map_iff. setoid_rewrite in_seq. firstorder lia.
 Qed.
 
 Lemma take_carac {A} n (u:list A) (f:nat->A) :
@@ -1140,19 +1148,18 @@ Qed.
     In general this enumeration may contain duplicates. *)
 
 Definition allsubs {A} p (u:list A) :=
-  map (fun i => sub u i p) (seq 0 (S (length u) - p)).
+  take (S (length u) - p) (fun i => sub u i p).
 
 Lemma allsubs_length {A} p (u:list A) :
   length (allsubs p u) = S (length u) - p.
 Proof.
- unfold allsubs. now rewrite map_length, seq_length.
+ unfold allsubs. now rewrite take_length.
 Qed.
 
 Lemma allsubs_ok {A} p (u:list A) :
   forall w, In w (allsubs p u) <-> length w = p /\ Sub w u.
 Proof.
- intros. unfold allsubs. rewrite in_map_iff.
- setoid_rewrite in_seq.
+ intros. unfold allsubs. rewrite in_take.
  split.
  - intros (i & <- & Hi).
    rewrite Sub_equiv.
@@ -1160,8 +1167,8 @@ Proof.
    2:{ unfold sub. rewrite firstn_length_le; auto.
        rewrite skipn_length. lia. }
    split; trivial. exists i. split; auto; lia.
- - intros (L & S). assert (L' := Sub_len _ _ S).
-   rewrite Sub_equiv in S. destruct S as (i & Hi & E).
+ - intros (L & SU). assert (L' := Sub_len _ _ SU).
+   rewrite Sub_equiv in SU. destruct SU as (i & Hi & E).
    exists i. split. congruence. lia.
 Qed.
 

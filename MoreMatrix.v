@@ -132,7 +132,7 @@ Proof.
  induction n; simpl; intros; f_equal; auto.
 Qed.
 
-Definition Π (f : nat -> C) n := G_big_mult (List.map f (seq 0 n)).
+Definition Π (f : nat -> C) n := G_big_mult (take n f).
 
 
 (** Extensions about permutation and determinant *)
@@ -184,7 +184,7 @@ Proof.
  rewrite <- Gbigmult_app.
  apply Gbigmult_permut. simpl app.
  replace n with (x+(n-x))%nat by lia.
- rewrite <- Nat.add_succ_r.
+ rewrite <- Nat.add_succ_r. unfold take.
  rewrite !seq_app, !map_app.
  eapply perm_trans; [apply Permutation_middle; auto| ].
  apply Permutation_app; apply eq_Permutation.
@@ -257,7 +257,7 @@ Proof.
  assert (Pm := Permutation_map F Hl). apply Permutation_sym in Pm.
  eapply perm_trans; [apply Pm| ]. clear Pm.
  apply eq_Permutation.
- rewrite <- (perm2list_perm2fun n l) at 1; auto. unfold perm2list.
+ rewrite <- (perm2list_perm2fun n l) at 1; auto. unfold perm2list, take.
  rewrite map_map. apply map_ext_in. intros a Ha. rewrite in_seq in Ha.
  unfold F. f_equal.
  unfold linv. rewrite perm2fun_perm2list.

@@ -96,7 +96,7 @@ Extraction Inline G_rec lt_wf_rec induction_ltof2.
 Recursive Extraction g. (* TODO: des let-in parasites *)
 *)
 
-(* Compute map g (seq 0 10). *)
+(* Compute take 10 g. *)
 (*
   = 0 :: 1 :: 1 :: 2 :: 3 :: 3 :: 4 :: 4 :: 5 :: 6 :: nil
      : list nat

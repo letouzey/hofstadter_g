@@ -220,7 +220,7 @@ Definition kword k n := napply (ksubst k) n [k].
 
 Definition kseq k := subst2seq (ksubst k) k.
 
-(* Compute map (kseq 2) (List.seq 0 20). *)
+(* Compute take 20 (kseq 2). *)
 (* [2; 0; 1; 2; 2; 0; 2; 0; 1; 2; 0; 1; 2; 2; 0; 1; 2; 2; 0; 2] *)
 
 Lemma ksubst_noerase k : NoErase (ksubst k).

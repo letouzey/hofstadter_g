@@ -15,7 +15,7 @@ Definition kseqbis k := subst2seq (ksubstbis k) (S k).
 
 Compute kprefix 2 20.
 
-(* Compute map (kseqbis 2) (List.seq 0 20). *)
+(* Compute take 20 (kseqbis 2). *)
 (* [3; 0; 1; 2; 3; 0; 3; 0; 1; 3; 0; 1; 2; 3; 0; 1; 2; 3; 0; 3] *)
 
 Lemma ksubstbis_noerase k : NoErase (ksubstbis k).

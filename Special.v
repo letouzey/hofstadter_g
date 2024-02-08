@@ -1691,7 +1691,7 @@ Qed.
 Definition next_kfactors k p :=
   let f := kprefix k p in
   let l := filter (fun u => negb (listnat_eqb u f)) (kfactors k p) in
-  map (fun x => x::f) (seq 0 (S k)) ++
+  take (S k) (fun x => x::f) ++
   map (fun u => hd 0 (kleftexts k u) :: u) l.
 
 Lemma next_kfactors_iff k p u : k<>0 ->
@@ -1701,12 +1701,12 @@ Proof.
  split.
  - rewrite kfactors_in.
    unfold next_kfactors.
-   rewrite in_app_iff, !in_map_iff.
+   rewrite in_app_iff, in_take, in_map_iff.
    intros [(x & <- & IN)|(v & E & IN)].
    + split.
      * simpl. f_equal. apply kprefix_length.
-     * destruct (kprefix_allleftexts k p) as (_,H).
-       rewrite H in IN. apply IN.
+     * destruct (kprefix_allleftexts k p) as (_,(H,_)). apply H.
+       rewrite in_seq; lia.
    + rewrite filter_In in IN. destruct IN as (IN,E').
      revert E'. case listnat_eqb_spec; intros; try easy. clear E'.
      rewrite kfactors_in in IN. destruct IN as (L,IN).
@@ -1723,11 +1723,11 @@ Proof.
      * simpl. now f_equal.
      * apply LE. now left.
  - rewrite kfactors_in. intros (L,IN).
-   unfold next_kfactors. rewrite in_app_iff, !in_map_iff.
+   unfold next_kfactors. rewrite in_app_iff, in_take, in_map_iff.
    destruct u as [|a u]; try easy. simpl in L. injection L as L.
    destruct (listnat_eqb_spec u (kprefix k p)) as [->|N].
    + left. exists a; split; trivial.
-     apply in_seq. apply LeftExt_letter in IN. lia.
+     apply LeftExt_letter in IN. lia.
    + right. exists u; split; trivial.
      * f_equal.
        assert (NLS : ~LeftSpecial u (kseq k)).
@@ -1756,8 +1756,8 @@ Proof.
  - apply FinFun.Injective_map_NoDup.
    + now injection 1.
    + apply NoDup_filter, kfactors_nodup.
- - intros x. rewrite !in_map_iff.
-   intros ((a & <- & IN),(u & E & IN')).
+ - intros x. rewrite in_take, in_map_iff.
+   intros ((a & <- & LT),(u & E & IN')).
    rewrite filter_In in IN'. destruct IN' as (IN',E').
    injection E as E1 E2.
    revert E'. now case listnat_eqb_spec.
@@ -1794,7 +1794,7 @@ Lemma next_kfactor_length k p : k<>0 ->
  length (next_kfactors k p) = length (kfactors k p) + k.
 Proof.
  intros K.
- unfold next_kfactors. rewrite app_length, !map_length, seq_length.
+ unfold next_kfactors. rewrite app_length, take_length, map_length.
  set (f := fun u => listnat_eqb u (kprefix k p)).
  change (fun u => _) with (fun u => negb (f u)).
  rewrite <- (filter_partition_length f (kfactors k p)).

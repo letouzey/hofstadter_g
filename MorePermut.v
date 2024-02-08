@@ -13,7 +13,7 @@ Definition bEq n (f f':nat->nat) := forall x, x < n -> f x = f' x.
 
 (** Convert between permutation as list and permutation as functions *)
 
-Definition perm2list n (f:nat->nat) := map f (seq 0 n).
+Definition perm2list n (f:nat->nat) := take n f.
 
 Definition perm2fun (l:list nat) := fun k => nth k l O.
 
@@ -27,13 +27,13 @@ Proof.
  revert n.
  induction l.
  - simpl. intros n <-. now unfold perm2list, perm2fun.
- - simpl. intros n <-. unfold perm2list, perm2fun. simpl. f_equal.
-   rewrite <- seq_shift. rewrite map_map. now apply IHl.
+ - simpl. intros n <-. unfold perm2list, perm2fun.
+   rewrite take_S_shift. f_equal. now apply IHl.
 Qed.
 
 Lemma perm2fun_perm2list n f : bEq n (perm2fun (perm2list n f)) f.
 Proof.
- intros x Hx. unfold perm2fun, perm2list. now apply nth_map_seq.
+ intros x Hx. unfold perm2fun, perm2list. now apply take_nth.
 Qed.
 
 (** Three possible definition of n-permutations :
@@ -113,9 +113,8 @@ Lemma qinv_bfun n f : qpermutation n f -> bFun n (qinv n f).
 Proof.
  intros Hf x Hx.
  unfold qinv, lqinv, perm2list.
- set (l := map f (seq 0 n)).
- replace n with (length l).
- 2:{ unfold l. now rewrite map_length, seq_length. }
+ set (l := take n f).
+ rewrite <- (take_length n f). fold l.
  apply index_lt_len.
  { apply Permutation_in with (l:=seq 0 n).
    apply Permutation_sym. now apply q_l_permutation.
@@ -127,13 +126,11 @@ Lemma qinv_left_inverse n f :
 Proof.
  intros Hf x Hx.
  unfold qinv, lqinv, perm2list.
- set (l := map f (seq 0 n)).
- assert (length l = n).
- { unfold l. now rewrite map_length, seq_length. }
- replace (f x) with (nth x l 0) by now apply nth_map_seq.
- rewrite index_nth; try lia.
- apply Permutation_NoDup with (l:=seq 0 n); auto using seq_NoDup.
- apply Permutation_sym. now apply q_l_permutation.
+ rewrite <- (take_nth f n x 0) by trivial.
+ rewrite index_nth; trivial.
+ - apply Permutation_NoDup with (l:=seq 0 n); auto using seq_NoDup.
+   apply Permutation_sym. now apply q_l_permutation.
+ - now rewrite take_length.
 Qed.
 
 Lemma qinv_right_inverse n f :
@@ -141,16 +138,15 @@ Lemma qinv_right_inverse n f :
 Proof.
  intros Hf x Hx.
  unfold qinv, lqinv, perm2list.
- set (l := map f (seq 0 n)).
- assert (Hl : length l = n).
- { unfold l. now rewrite map_length, seq_length. }
+ set (l := take n f).
  assert (IN : In x l).
  { apply Permutation_in with (l:=seq 0 n).
    apply Permutation_sym. now apply q_l_permutation.
    apply in_seq; lia. }
  replace (f (index x l)) with (nth (index x l) l 0).
- 2:{ apply nth_map_seq. rewrite <- Hl. now apply index_lt_len. }
- now apply nth_index.
+ - now apply nth_index.
+ - apply take_nth. rewrite <- (take_length n f).
+   now apply index_lt_len.
 Qed.
 
 Lemma qinv_permutation n f :
@@ -298,8 +294,7 @@ Lemma qperms_ok2 n f :
 Proof.
  intros Hf. exists (perm2fun (perm2list n f)). split.
  - unfold qperms. now apply in_map, lperms_ok, q_l_permutation.
- - unfold bEq, perm2fun, perm2list. intros x Hx.
-   symmetry. now apply nth_map_seq.
+ - unfold bEq, perm2fun, perm2list. intros x Hx. now rewrite take_nth.
 Qed.
 
 (** [allinserts], [allperms], [lperms] produce lists without duplicates *)
@@ -477,7 +472,7 @@ Qed.
 
 Lemma qsign_id n : qsign n id = true.
 Proof.
- unfold qsign, perm2list. rewrite map_id. apply lsign_id.
+ unfold qsign, perm2list, take. rewrite map_id. apply lsign_id.
 Qed.
 
 (** incrpairs : all pairs [(i,j)] with [0<=i<j<n] *)
@@ -485,7 +480,7 @@ Qed.
 Fixpoint incrpairs n :=
   match n with
   | O => []
-  | S n => incrpairs n ++ map (fun k => (k,n)) (seq 0 n)
+  | S n => incrpairs n ++ take n (fun k => (k,n))
   end.
 
 (* Finally unused, a "symmetric" version of incrpairs :
@@ -505,14 +500,14 @@ Proof.
 Defined.
 
 Lemma mapincr_countocc n m i j :
-  count_occ natnatdec (map (fun k : nat => (k, m)) (seq 0 n)) (i, j) =
+  count_occ natnatdec (take n (fun k => (k, m))) (i, j) =
   if (i <? n) && (j =? m) then 1 else 0.
 Proof.
  revert m i j.
  induction n; intros.
  - simpl count_occ.
    case Nat.ltb_spec; simpl; auto. inversion 1.
- - rewrite seq_S, map_app, count_occ_app.
+ - rewrite take_S, count_occ_app.
    cbn -[natnatdec]. rewrite IHn.
    destruct natnatdec as [[= -> ->]|NE].
    + now rewrite Nat.eqb_refl, Nat.ltb_irrefl, Nat.leb_refl.
@@ -639,8 +634,9 @@ Lemma zsign_ok n f : bInjective n f ->
 Proof.
  unfold zsign, qsign, perm2list. rewrite lsign_equiv. revert f.
  induction n as [|n IH]; intros f Hf; trivial.
- rewrite seq_S, map_app. cbn. rewrite zPi_app. rewrite IH by firstorder.
- rewrite lsign'_alt. rewrite bigxor_map, zPi_map. unfold compose.
+ rewrite take_S. cbn. rewrite zPi_app. rewrite IH by firstorder.
+ rewrite lsign'_alt. unfold take at 2 4.
+ rewrite bigxor_map, zPi_map. unfold compose.
  rewrite zPi_bigxor with (g := fun x : nat => (f n <? f x)%nat).
  destruct lsign', bigxor; simpl; try lia.
  intros x. clear IH. rewrite in_seq. intros Hx.
@@ -957,7 +953,7 @@ Lemma perm2list_transpo0 n j :
   [j] ++ seq 1 (j-1) ++ [0] ++ seq (S j) (n-j-1).
 Proof.
  intros H.
- unfold perm2list.
+ unfold perm2list, take.
  replace n with (j+(n-j)) at 1 by lia.
  rewrite seq_app, map_app.
  replace j with (S (j-1)) at 2 by lia.

@@ -205,7 +205,7 @@ Qed.
 Definition ff k n := flip k (f k (flip k n)).
 Notation ffs k p := (ff k ^^p).
 
-(* Compute map (ff 2) (seq 0 20). *)
+(* Compute take 20 (ff 2). *)
 
 Lemma ff_k_0 k : ff k 0 = 0.
 Proof.

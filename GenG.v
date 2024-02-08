@@ -188,17 +188,16 @@ Qed.
 (** A few examples *)
 
 (*
-Definition nums := List.seq 0 26.
-Compute map (f 0) nums.
-Compute map (f 1) nums.
-Compute map (f 2) nums.
-Compute map (f 3) nums.
+Compute take 26 (f 0).
+Compute take 26 (f 1).
+Compute take 26 (f 2).
+Compute take 26 (f 3).
 *)
 (*
-f 0 = [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
-f 1 = [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
-f 2 = [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
-f 3 = [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
+f 0 : [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
+f 1 : [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
+f 2 : [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
+f 3 : [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
 *)
 
 (* The first values of [f] when [n<=3] do not depend on [k] *)

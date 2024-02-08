@@ -191,7 +191,7 @@ Qed.
 
 Definition fg n := flip (g (flip n)).
 
-(* Compute map fg (seq 0 10). *)
+(* Compute take 10 fg. *)
 
 Lemma fg_depth n : depth (fg n) = depth n - 1.
 Proof.

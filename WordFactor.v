@@ -19,11 +19,11 @@ Lemma SubSeq_alt0 u f : SubSeq u f <-> exists v, Suffix u v /\ PrefixSeq v f.
 Proof.
  split.
  - intros (q, E). remember (length u) as n.
-   exists (map f (seq 0 (q+n))).
+   exists (take (q+n) f).
    split.
-   + exists (map f (seq 0 q)). subst u. unfold subseq.
+   + exists (take q f). subst u. unfold subseq, take.
      rewrite <- map_app. f_equal. symmetry. apply seq_app.
-   + unfold PrefixSeq. now rewrite map_length, seq_length.
+   + unfold PrefixSeq. now rewrite take_length.
  - intros (v & (u' & <-) & PR). exists (length u').
    red in PR. unfold take in PR. rewrite app_length in PR.
    rewrite seq_app, map_app in PR.
@@ -164,8 +164,8 @@ Proof.
  rewrite kword_low by lia. simpl length. rewrite seq_length.
  set (f := fun i => _).
  rewrite NoDup_nth with (d:=f 0).
- rewrite map_length, seq_length. intros i j Hi Hj.
- rewrite !map_nth, !seq_nth; auto. unfold f; clear f. simpl.
+ rewrite take_length. intros i j Hi Hj.
+ rewrite !take_nth; auto. unfold f; clear f.
  assert (F0 : hd 0 (sub (k::seq 0 k) 0 p) = k).
  { unfold hd, sub. simpl. destruct p; simpl; lia. }
  assert (F : forall x, 0<S x<S (S k)-p ->
