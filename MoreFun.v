@@ -68,6 +68,11 @@ Fixpoint cumul f n :=
   | S n => f n + cumul f n
   end.
 
+Lemma cumul_mono f n m : n <= m -> cumul f n <= cumul f m.
+Proof.
+ induction 1; trivial. simpl. lia.
+Qed.
+
 Lemma cumul_ext f g n :
   (forall m, m < n -> f m = g m) ->
   cumul f n = cumul g n.
@@ -81,13 +86,18 @@ Proof.
  induction n; simpl; auto.
 Qed.
 
+Lemma cumul_cst c n : cumul (fun _ => c) n = c*n.
+Proof.
+ induction n; simpl; rewrite ?IHn; lia.
+Qed.
+
 Lemma cumul_add f g n :
  cumul (fun m => f m + g m) n = cumul f n + cumul g n.
 Proof.
  induction n; simpl; auto. rewrite IHn; lia.
 Qed.
 
-Lemma cumul_test a n : a < n ->
+Lemma cumul_eqb a n : a < n ->
  cumul (fun m : nat => if a =? m then 1 else 0) n = 1.
 Proof.
  revert a. induction n; intros a Ha.
@@ -98,9 +108,10 @@ Proof.
    + intros. simpl. apply IHn; lia.
 Qed.
 
-Lemma cumul_mono f n m : n <= m -> cumul f n <= cumul f m.
+Lemma cumul_ltb n p :
+  cumul (fun x => if x <? p then 1 else 0) n = Nat.min p n.
 Proof.
- induction 1; trivial. simpl. lia.
+ induction n; simpl; rewrite ?IHn; try lia. case Nat.ltb_spec; lia.
 Qed.
 
 (** [count f a n] is the number of [a] in [(f 0) .. (f (n-1))]. *)

@@ -595,7 +595,7 @@ Proof.
  induction u; simpl; intros H.
  - now rewrite cumul_0.
  - inversion_clear H. rewrite cumul_add. rewrite IHu by trivial.
-   rewrite cumul_test; simpl; lia.
+   rewrite cumul_eqb; simpl; lia.
 Qed.
 
 Lemma nbocc_total_le u k :

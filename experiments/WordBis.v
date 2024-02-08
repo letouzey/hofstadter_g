@@ -178,3 +178,8 @@ Qed.
 
 (** From (kseq k) to (kseqbis k) : change all k that are followed by 0
     into (S k), and leave intact the k followed by k. *)
+
+(** Other expressions:
+    kseqbis k n - kseq k n = fs k (S k) (S n) - fs k (S k) n
+                           = S (f k (n+1)) - f k (n+2)
+*)

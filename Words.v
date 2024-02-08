@@ -503,6 +503,42 @@ Proof.
  apply count_above_kseq_k.
 Qed.
 
+(** Another description of [kseq k n] :
+    sum for p=1..k of [fs k p (n+1) - fs k p n] *)
+
+Definition cumul_diff_fs k n :=
+ cumul (fun p => fs k (S p) (S n) - fs k (S p) n) k.
+
+Lemma kseq_is_cumul_diff_fs k n : kseq k n = cumul_diff_fs k n.
+Proof.
+ rewrite kseq_bounded_rank. unfold bounded_rank.
+ destruct (rank k n) as [r|] eqn:E; simpl.
+ - rewrite <- (cumul_ltb k r). unfold cumul_diff_fs.
+   apply cumul_ext.
+   intros m Hm.
+   case Nat.ltb_spec; intros L.
+   + destruct (@fs_nonflat_high_rank k (S m) n) as (_,->); try lia.
+     rewrite E; simpl; lia.
+   + destruct (@fs_flat_low_rank k (S m) n) as (_,->); try lia.
+     rewrite E; simpl; lia.
+ - rewrite rank_none in E. subst. unfold cumul_diff_fs.
+   erewrite cumul_ext, (cumul_cst 1); try lia.
+   intros x _. rewrite fs_k_0, fs_k_1. lia.
+Qed.
+
+(** Hence the sum of the n first letters of [kseq k] is
+    the sum for p=1..k of [fs k p n]. *)
+
+Lemma cumul_kseq_is_cumul_fs k n :
+  cumul (kseq k) n = cumul (fun p => fs k (S p) n) k.
+Proof.
+ induction n; cbn -[fs].
+ - erewrite cumul_ext; auto using cumul_0, fs_k_0.
+ - rewrite IHn, kseq_is_cumul_diff_fs. unfold cumul_diff_fs.
+   rewrite <- cumul_add. apply cumul_ext.
+   intros m Hm. generalize (fs_mono_S k (S m) n). lia.
+Qed.
+
 (** Prefixes of kseq *)
 
 Notation kprefix k n := (take n (kseq k)).
