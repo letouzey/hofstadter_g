@@ -15,131 +15,131 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
    function [h] (i.e. [f 2]).
 *)
 
-Definition mu := mu 2.
-Definition tau := tau 2.
+Definition μ := mu 2.
+Definition τ := tau 2.
 
-Definition re_alpha := (1 - mu)/2.
-Definition im_alpha := sqrt (tau * (3+tau))/2.
+Definition re_α := (1 - μ)/2.
+Definition im_α := sqrt (τ * (3+τ))/2.
 
-Definition alpha : C := (re_alpha, im_alpha).
-Definition alphabar : C := (re_alpha, - im_alpha).
+Definition α : C := (re_α, im_α).
+Definition αbar : C := (re_α, - im_α).
 
-Lemma tau3 : tau^3 = 1 - tau.
+Lemma τ3 : τ^3 = 1 - τ.
 Proof.
- generalize (tau_carac 2). fold tau. lra.
+ generalize (tau_carac 2). fold τ. lra.
 Qed.
 
-Lemma tau4 : tau^4 = tau - tau^2.
+Lemma τ4 : τ^4 = τ - τ^2.
 Proof.
- change (tau^4) with (tau*tau^3). rewrite tau3. ring.
+ change (τ^4) with (τ*τ^3). rewrite τ3. ring.
 Qed.
 
-Lemma tau234 : tau^2 + tau^3 + tau^4 = 1.
+Lemma τ234 : τ^2 + τ^3 + τ^4 = 1.
 Proof.
- rewrite tau3, tau4; ring.
+ rewrite τ3, τ4; ring.
 Qed.
 
-Lemma tau5 : tau^5 = tau + tau^2 - 1.
+Lemma τ5 : τ^5 = τ + τ^2 - 1.
 Proof.
- change (tau^5) with (tau*tau^4). rewrite tau4. ring_simplify.
- rewrite tau3. ring.
+ change (τ^5) with (τ*τ^4). rewrite τ4. ring_simplify.
+ rewrite τ3. ring.
 Qed.
 
-Lemma tau6 : tau^6 = (1-tau)^2.
+Lemma τ6 : τ^6 = (1-τ)^2.
 Proof.
- rewrite <- tau3. ring.
+ rewrite <- τ3. ring.
 Qed.
 
-#[local] Instance mu_approx : Approx 1.465571231876 mu 1.465571231877.
+#[local] Instance μ_approx : Approx 1.465571231876 μ 1.465571231877.
 Proof.
- red. unfold mu. generalize mu_2. lra.
+ red. unfold μ. generalize mu_2. lra.
 Qed.
 
-#[local] Instance tau_approx : Approx 0.6823278038280 tau 0.6823278038281.
+#[local] Instance τ_approx : Approx 0.6823278038280 τ 0.6823278038281.
 Proof.
- red. unfold tau. generalize tau_2. lra.
+ red. unfold τ. generalize tau_2. lra.
 Qed.
 
-#[local] Instance tau2_approx : Approx 0.465570 (tau^2) 0.465572.
+#[local] Instance τ2_approx : Approx 0.465570 (τ^2) 0.465572.
 Proof. approx. Qed.
 
-Lemma re_alpha_alt : re_alpha = - tau ^ 2 / 2.
+Lemma re_α_alt : re_α = - τ^2 / 2.
 Proof.
- unfold re_alpha. f_equal.
- unfold mu. rewrite tau_inv. fold tau.
- assert (tau <> 0) by approx.
- apply Rmult_eq_reg_l with tau; trivial.
- field_simplify; trivial. rewrite tau3. lra.
+ unfold re_α. f_equal.
+ unfold μ. rewrite tau_inv. fold τ.
+ assert (τ <> 0) by approx.
+ apply Rmult_eq_reg_l with τ; trivial.
+ field_simplify; trivial. rewrite τ3. lra.
 Qed.
 
-Lemma im_alpha_2 : im_alpha ^ 2 = tau * (3+tau) / 4.
+Lemma im_α_2 : im_α ^ 2 = τ * (3+τ) / 4.
 Proof.
- unfold im_alpha.
+ unfold im_α.
  unfold Rdiv.
  rewrite Rpow_mult_distr, pow2_sqrt; try lra. approx.
 Qed.
 
-Lemma alphamod2 : (Cmod alpha)^2 = tau.
+Lemma αmod2 : (Cmod α)^2 = τ.
 Proof.
  unfold Cmod.
  rewrite pow2_sqrt.
- 2: generalize (pow2_ge_0 (fst alpha)) (pow2_ge_0 (snd alpha)); lra.
- unfold alpha; simpl. ring_simplify.
- rewrite im_alpha_2. rewrite re_alpha_alt.
- field_simplify. rewrite tau4. field.
+ 2: generalize (pow2_ge_0 (fst α)) (pow2_ge_0 (snd α)); lra.
+ unfold α; simpl. ring_simplify.
+ rewrite im_α_2. rewrite re_α_alt.
+ field_simplify. rewrite τ4. field.
 Qed.
 
-#[local] Instance alphamod_approx :
-  Approx 0.8260313576541 (Cmod alpha) 0.8260313576543 |20.
+#[local] Instance αmod_approx :
+  Approx 0.8260313576541 (Cmod α) 0.8260313576543 |20.
 Proof.
  apply pow2_approx_inv; try qle; try apply Cmod_ge_0.
- rewrite alphamod2. approx.
+ rewrite αmod2. approx.
 Qed.
 
-Lemma mu_is_Croot : (mu ^3 = mu ^2 + 1)%C.
+Lemma μ_is_root : (μ ^3 = μ ^2 + 1)%C.
 Proof.
- rewrite !RtoC_pow, <- RtoC_plus. unfold mu. now rewrite (mu_carac 2).
+ rewrite !RtoC_pow, <- RtoC_plus. unfold μ. now rewrite (mu_carac 2).
 Qed.
 
-Lemma alpha_is_root : (alpha^3 = alpha^2 + 1)%C.
+Lemma α_is_root : (α^3 = α^2 + 1)%C.
 Proof.
- simpl. rewrite !Cmult_1_r. unfold alpha. unfold Cmult; simpl.
+ simpl. rewrite !Cmult_1_r. unfold α. unfold Cmult; simpl.
  unfold Cplus; simpl. f_equal; ring_simplify.
- - rewrite im_alpha_2, re_alpha_alt.
-   field_simplify. rewrite tau6, tau4, tau3. field.
- - change (im_alpha ^ 3) with (im_alpha * im_alpha^2).
-   rewrite im_alpha_2, re_alpha_alt.
-   field_simplify. rewrite tau4. field.
+ - rewrite im_α_2, re_α_alt.
+   field_simplify. rewrite τ6, τ4, τ3. field.
+ - change (im_α ^ 3) with (im_α * im_α^2).
+   rewrite im_α_2, re_α_alt.
+   field_simplify. rewrite τ4. field.
 Qed.
 
-Lemma alphabar_is_root : (alphabar^3 = alphabar^2 + 1)%C.
+Lemma αbar_is_root : (αbar^3 = αbar^2 + 1)%C.
 Proof.
- change alphabar with (Cconj alpha).
- rewrite <- !Cpow_conj. rewrite alpha_is_root.
+ change αbar with (Cconj α).
+ rewrite <- !Cpow_conj. rewrite α_is_root.
  rewrite Cconj_plus_distr. f_equal. compute; f_equal; lra.
 Qed.
 
-Lemma re_alpha_nz : re_alpha <> 0.
+Lemma re_α_nz : re_α <> 0.
 Proof.
- unfold re_alpha. approx.
+ unfold re_α. approx.
 Qed.
 
-Lemma im_alpha_nz : im_alpha <> 0.
+Lemma im_α_nz : im_α <> 0.
 Proof.
- assert (LE : 0 <= im_alpha).
- { unfold im_alpha. apply Rle_mult_inv_pos; try lra. apply sqrt_pos. }
- assert (LT : 0 < im_alpha ^2).
- { rewrite im_alpha_2. approx. }
+ assert (LE : 0 <= im_α).
+ { unfold im_α. apply Rle_mult_inv_pos; try lra. apply sqrt_pos. }
+ assert (LT : 0 < im_α ^2).
+ { rewrite im_α_2. approx. }
  nra.
 Qed.
 
 Lemma distinct_roots :
-  alpha <> mu /\ alphabar <> mu /\ alpha <> alphabar.
+  α <> μ /\ αbar <> μ /\ α <> αbar.
 Proof.
- unfold alpha, alphabar, RtoC; repeat split.
- - intros [= A B]. now destruct im_alpha_nz.
- - intros [= A B]. generalize im_alpha_nz. lra.
- - intros [= B]. generalize im_alpha_nz. lra.
+ unfold α, αbar, RtoC; repeat split.
+ - intros [= A B]. now destruct im_α_nz.
+ - intros [= A B]. generalize im_α_nz. lra.
+ - intros [= B]. generalize im_α_nz. lra.
 Qed.
 
 (** Explicit decomposition of [A 2 n] into a linear combination
@@ -147,143 +147,139 @@ Qed.
     This is less useful now that we have general results for any k,
     see ThePoly.coefs_LinCombA and Freq.A_ratio for instance.
     But these general results do not provide expressions for the
-    coefficients, unlike [coef_alpha] and [coef_mu] below.
+    coefficients, unlike [coef_α] and [coef_μ] below.
 *)
 
-Definition coef_alpha : C :=
- ((3-mu^2+(alphabar+mu)*(mu-2))/(alpha-mu)/(alpha-alphabar))%C.
+Definition coef_α : C := ((3-μ^2+(αbar+μ)*(μ-2))/(α-μ)/(α-αbar))%C.
 
-Definition coef_mu : R := 1 - 2 * Re coef_alpha.
+Definition coef_μ : R := 1 - 2 * Re coef_α.
 
 Local Hint Rewrite
  Ropp_0 Rplus_0_r Rplus_0_l Rminus_0_r
  Rmult_0_l Rmult_0_r Rmult_1_l Rmult_1_r : rbasic.
 
-Lemma misc_eqn : (re_alpha - mu)^2 + im_alpha^2 = 2*tau + mu^2.
+Lemma misc_eqn : (re_α - μ)^2 + im_α^2 = 2*τ + μ^2.
 Proof.
  rewrite <- !Rsqr_pow2, Rsqr_minus, !Rsqr_pow2.
- replace (2*tau) with (tau+tau) by lra.
- rewrite <- alphamod2 at 1. rewrite Cmod2_alt. simpl Re. simpl Im.
- rewrite re_alpha_alt at 2.
- simpl (tau^2). change tau with (/ mu) at 1. field.
- unfold mu. generalize mu_2. lra.
+ replace (2*τ) with (τ+τ) by lra.
+ rewrite <- αmod2 at 1. rewrite Cmod2_alt. simpl Re. simpl Im.
+ rewrite re_α_alt at 2.
+ simpl (τ^2). change τ with (/ μ) at 1. field.
+ unfold μ. generalize mu_2. lra.
 Qed.
 
-Lemma re_coef_alpha_alt : Re coef_alpha =
-  (-3 + mu^2 + tau^2 * (mu - 2)) / (2*(2*tau+mu^2)).
+Lemma re_coef_α_alt : Re coef_α = (-3 + μ^2 + τ^2 * (μ-2)) / (2*(2*τ+μ^2)).
 Proof.
- unfold coef_alpha.
+ unfold coef_α.
  set (u := Cplus _ _).
- set (v := (u / (alpha-mu))%C).
- change alphabar with (Cconj alpha); rewrite im_alt'.
+ set (v := (u / (α-μ))%C).
+ change αbar with (Cconj α); rewrite im_alt'.
  simpl Im.
- replace (v / _)%C with ((v / Ci) * (/ (2*im_alpha))%R)%C.
- 2:{ rewrite RtoC_inv, RtoC_mult. 2:generalize im_alpha_nz; lra.
-     field; repeat split; try cconst. negapply RtoC_inj; apply im_alpha_nz. }
+ replace (v / _)%C with ((v / Ci) * (/ (2*im_α))%R)%C.
+ 2:{ rewrite RtoC_inv, RtoC_mult. 2:generalize im_α_nz; lra.
+     field; repeat split; try cconst. negapply RtoC_inj; apply im_α_nz. }
  rewrite re_scal_r.
  unfold Cdiv. rewrite Ci_inv.
  replace (v * -Ci)%C with (-v * Ci)%C by ring.
  rewrite re_mult_Ci.
  rewrite im_opp, Ropp_involutive.
  unfold v, u; clear u v. cbn -[pow].
- autorewrite with rbasic. fold (mu-2). fold (re_alpha-mu).
+ autorewrite with rbasic. fold (μ-2). fold (re_α-μ).
  rewrite <- misc_eqn.
- set (mo := (re_alpha-mu)^2+im_alpha^2).
- rewrite re_alpha_alt. field; split; try apply im_alpha_nz.
+ set (mo := (re_α-μ)^2+im_α^2).
+ rewrite re_α_alt. field; split; try apply im_α_nz.
  unfold mo; clear mo. rewrite <-!Rsqr_pow2, Rplus_comm.
- negapply Rplus_sqr_eq_0_l. apply im_alpha_nz.
+ negapply Rplus_sqr_eq_0_l. apply im_α_nz.
 Qed.
 
-#[local] Instance re_coef_alpha_bound :
-  Approx (-0.16) (Re coef_alpha) (-0.15).
+#[local] Instance re_coef_α_bound : Approx (-0.16) (Re coef_α) (-0.15).
 Proof.
- rewrite re_coef_alpha_alt. approx.
+ rewrite re_coef_α_alt. approx.
 Qed.
 
-#[local] Instance coef_mu_bound : Approx 1.30 coef_mu 1.32.
+#[local] Instance coef_μ_bound : Approx 1.30 coef_μ 1.32.
 Proof.
- unfold coef_mu. approx.
+ unfold coef_μ. approx.
 Qed.
 
-(** These coefficients coef_alpha and coef_mu were found by manually
-    inverting the Vandermonde(mu,alpha,alphabar) matrix.
+(** These coefficients coef_α and coef_μ were found by manually
+    inverting the Vandermonde(μ,α,αbar) matrix.
     Let's first verify the corresponding equations: *)
 
-Lemma coefs_eqn1 : coef_mu + 2 * Re coef_alpha = 1.
+Lemma coefs_eqn1 : coef_μ + 2 * Re coef_α = 1.
 Proof.
- unfold coef_mu. lra.
+ unfold coef_μ. lra.
 Qed.
 
-Lemma coefs_eqn2 : coef_mu * mu + 2 * Re (coef_alpha * alpha) = 2.
+Lemma coefs_eqn2 : coef_μ * μ + 2 * Re (coef_α * α) = 2.
 Proof.
- unfold coef_mu. unfold Rminus.
+ unfold coef_μ. unfold Rminus.
  rewrite Rmult_plus_distr_r, Rmult_1_l.
  rewrite <- Ropp_mult_distr_l, Rmult_assoc.
  rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
  rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
  rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp. fold (Cminus alpha mu).
- unfold coef_alpha.
- change alphabar with (Cconj alpha); rewrite im_alt'.
+ rewrite Cplus_comm, RtoC_opp. fold (Cminus α μ).
+ unfold coef_α.
+ change αbar with (Cconj α); rewrite im_alt'.
  remember (_+_)%C as z eqn:EQ. simpl Im.
- replace (_*_)%C with (z/(2*im_alpha)/Ci)%C.
+ replace (_*_)%C with (z/(2*im_α)/Ci)%C.
  2:{ field; repeat split; try cconst.
      - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
-     - negapply RtoC_inj. apply im_alpha_nz. }
+     - negapply RtoC_inj. apply im_α_nz. }
  unfold Cdiv at 1. rewrite Ci_inv.
- replace (_*_)%C with ((-z/(2*im_alpha))*Ci)%C.
+ replace (_*_)%C with ((-z/(2*im_α))*Ci)%C.
  2: { field; repeat split; try cconst.
-      negapply RtoC_inj. apply im_alpha_nz. }
+      negapply RtoC_inj. apply im_α_nz. }
  rewrite re_mult_Ci.
  unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
- 2: { generalize im_alpha_nz. lra. }
+ 2: { generalize im_α_nz. lra. }
  rewrite im_scal_r, im_opp.
  rewrite EQ; clear EQ z.
  rewrite im_plus.
  rewrite RtoC_pow, <- RtoC_minus, im_RtoC.
  rewrite <- RtoC_minus, im_scal_r, im_plus, im_RtoC.
  rewrite im_conj. simpl Im.
- field. apply im_alpha_nz.
+ field. apply im_α_nz.
 Qed.
 
-Lemma coefs_eqn3 : coef_mu * mu ^2 + 2 * Re (coef_alpha * alpha^2) = 3.
+Lemma coefs_eqn3 : coef_μ * μ ^2 + 2 * Re (coef_α * α^2) = 3.
 Proof.
- unfold coef_mu. unfold Rminus.
+ unfold coef_μ. unfold Rminus.
  rewrite Rmult_plus_distr_r, Rmult_1_l.
  rewrite <- Ropp_mult_distr_l, Rmult_assoc.
  rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
  rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
  rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp, <- RtoC_pow. fold (alpha^2 - mu^2)%C.
- unfold coef_alpha.
- change alphabar with (Cconj alpha); rewrite im_alt'.
+ rewrite Cplus_comm, RtoC_opp, <- RtoC_pow. fold (α^2 - μ^2)%C.
+ unfold coef_α.
+ change αbar with (Cconj α); rewrite im_alt'.
  remember (_+_)%C as z eqn:EQ. simpl Im.
- replace (_*_)%C with ((z*(alpha+mu))/(2*im_alpha)/Ci)%C.
+ replace (_*_)%C with ((z*(α+μ))/(2*im_α)/Ci)%C.
  2:{ simpl Cpow. field; repeat split; try cconst.
      - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
-     - negapply RtoC_inj. apply im_alpha_nz. }
+     - negapply RtoC_inj. apply im_α_nz. }
  unfold Cdiv at 1. rewrite Ci_inv.
- replace (_*_)%C with (((-z*(alpha+mu))/(2*im_alpha))*Ci)%C.
+ replace (_*_)%C with (((-z*(α+μ))/(2*im_α))*Ci)%C.
  2: { field; repeat split; try cconst.
-      negapply RtoC_inj. apply im_alpha_nz. }
+      negapply RtoC_inj. apply im_α_nz. }
  rewrite re_mult_Ci.
  unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
- 2: { generalize im_alpha_nz. lra. }
+ 2: { generalize im_α_nz. lra. }
  rewrite im_scal_r.
  rewrite EQ; clear EQ z.
  rewrite im_mult.
- rewrite !im_plus, !re_plus, !re_RtoC, !im_RtoC. simpl (Im alpha).
- simpl (Re alpha).
- replace (im_alpha + 0) with im_alpha by ring.
+ rewrite !im_plus, !re_plus, !re_RtoC, !im_RtoC. simpl (Im α).
+ simpl (Re α).
+ replace (im_α + 0) with im_α by ring.
  rewrite re_opp, im_opp, re_plus, im_plus.
  rewrite !RtoC_pow, <- !RtoC_minus, re_RtoC, im_RtoC.
  rewrite re_scal_r, im_scal_r, re_plus, im_plus, re_RtoC, im_RtoC.
  rewrite re_conj, im_conj. simpl Re. simpl Im.
- field. apply im_alpha_nz.
+ field. apply im_α_nz.
 Qed.
 
-Lemma A2_eqn n :
- INR (A 2 n) = coef_mu * mu ^n + 2 * Re (coef_alpha * alpha^n).
+Lemma A2_eqn n : INR (A 2 n) = coef_μ * μ ^n + 2 * Re (coef_α * α^n).
 Proof.
  induction n as [n IH] using lt_wf_ind.
  destruct n.
@@ -298,8 +294,8 @@ Proof.
        replace (INR (2+1)) with 3 by (compute; lra).
        generalize coefs_eqn3. lra.
    + replace (S n) with (3+(n-2))%nat by lia.
-     rewrite pow_add. unfold mu. rewrite (mu_carac 2). fold mu.
-     rewrite Cpow_add_r. rewrite alpha_is_root.
+     rewrite pow_add. unfold μ. rewrite (mu_carac 2). fold μ.
+     rewrite Cpow_add_r. rewrite α_is_root.
      rewrite plus_INR.
      rewrite (IH n) by lia. rewrite (IH (n-2)%nat) by lia.
      rewrite Cmult_plus_distr_r, Cmult_plus_distr_l, re_plus.
@@ -310,66 +306,62 @@ Proof.
      rewrite Cmult_1_l. lra.
 Qed.
 
-Lemma A2_div_mu_n n :
- A 2 n / mu ^n = coef_mu + 2 * Re (coef_alpha * (alpha/mu)^n).
+Lemma A2_div_μ_n n : A 2 n / μ ^n = coef_μ + 2 * Re (coef_α * (α/μ)^n).
 Proof.
- assert (mu <> 0) by approx.
- assert (mu^n <> 0). { now apply pow_nonzero. }
+ assert (μ <> 0) by approx.
+ assert (μ^n <> 0). { now apply pow_nonzero. }
  unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by (negapply RtoC_inj; auto).
  rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
  rewrite A2_eqn. field; trivial.
 Qed.
 
-Lemma Cmod_alpha_mu : Cmod (alpha/mu) < 1.
+Lemma Cmod_α_μ : Cmod (α/μ) < 1.
 Proof.
- assert (0 < mu) by approx.
- assert (0 < tau) by approx.
+ assert (0 < μ) by approx.
+ assert (0 < τ) by approx.
  apply Rlt_pow2_inv; try lra.
  rewrite Cmod_div by (negapply RtoC_inj; lra).
  rewrite Cmod_R, Rabs_right by lra.
- unfold Rdiv. rewrite Rpow_mult_distr. rewrite alphamod2. approx.
+ unfold Rdiv. rewrite Rpow_mult_distr. rewrite αmod2. approx.
 Qed.
 
-Lemma Lim_A2_div_mu_n :
- is_lim_seq (fun n => A 2 n / mu ^ n) coef_mu.
+Lemma Lim_A2_div_μ_n : is_lim_seq (fun n => A 2 n / μ ^ n) coef_μ.
 Proof.
  apply is_lim_seq_ext with
-  (u := fun n => coef_mu + 2 * Re (coef_alpha * (alpha/mu)^n)).
- { intros n. now rewrite A2_div_mu_n. }
- replace (Rbar.Finite coef_mu) with (Rbar.Finite (coef_mu + 0))
+  (u := fun n => coef_μ + 2 * Re (coef_α * (α/μ)^n)).
+ { intros n. now rewrite A2_div_μ_n. }
+ replace (Rbar.Finite coef_μ) with (Rbar.Finite (coef_μ + 0))
    by (f_equal; lra).
  apply is_lim_seq_plus'; [apply is_lim_seq_const|].
  apply is_lim_seq_0_abs with
-  (v := fun n => 2 * Cmod coef_alpha * (Cmod (alpha/mu))^n).
+  (v := fun n => 2 * Cmod coef_α * (Cmod (α/μ))^n).
  - intros n.
    rewrite Rabs_mult. rewrite (Rabs_right 2) by lra.
    rewrite Rmult_assoc, <- Cmod_pow, <- Cmod_mult.
    apply Rmult_le_compat_l; try lra.
    apply re_le_Cmod.
- - replace 0 with ((2*Cmod coef_alpha) * 0) by lra.
+ - replace 0 with ((2*Cmod coef_α) * 0) by lra.
    apply is_lim_seq_mult'; [apply is_lim_seq_const|].
    apply is_lim_seq_geom.
    rewrite Rabs_right by (apply Rle_ge, Cmod_ge_0).
-   apply Cmod_alpha_mu.
+   apply Cmod_α_μ.
 Qed.
 
 (** See also Freq.A_ratio now: *)
 
-Lemma Lim_A2_ratio :
- is_lim_seq (fun n => A 2 (S n) / A 2 n) mu.
+Lemma Lim_A2_ratio : is_lim_seq (fun n => A 2 (S n) / A 2 n) μ.
 Proof.
- assert (mu_pos : 0 < mu ) by approx.
- assert (coef_mu <> 0) by approx.
+ assert (μ_pos : 0 < μ ) by approx.
+ assert (coef_μ <> 0) by approx.
  apply is_lim_seq_ext with
-     (u := fun n => mu * ((A 2 (S n) / mu ^ (S n))
-                          / (A 2 n / mu ^ n))).
+     (u := fun n => μ * ((A 2 (S n) / μ ^ (S n)) / (A 2 n / μ ^ n))).
  - intros n. simpl pow. field; repeat split; try lra.
    + change 0 with (INR 0). negapply INR_eq. generalize (A_nz 2 n). lia.
-   + generalize (pow_lt _ n mu_pos). lra.
- - replace (Rbar.Finite mu) with (Rbar.Rbar_mult mu (coef_mu / coef_mu)).
+   + generalize (pow_lt _ n μ_pos). lra.
+ - replace (Rbar.Finite μ) with (Rbar.Rbar_mult μ (coef_μ / coef_μ)).
    2:{ simpl. f_equal. field; auto. }
    apply is_lim_seq_scal_l.
-   assert (L := Lim_A2_div_mu_n).
+   assert (L := Lim_A2_div_μ_n).
    apply is_lim_seq_div'; auto.
    rewrite is_lim_seq_incr_1 in L. apply L.
 Qed.
@@ -386,14 +378,14 @@ Qed.
     ever-growing finite prefixes of the infinite word.
 
     Here for [Words.kseq 2], the frequencies of letters [0],[1],[2]
-    will be respectively [tau^3],[tau^4],[tau^2] (another numbering
+    will be respectively [τ^3],[τ^4],[τ^2] (another numbering
     of letters would make that more uniform). For proving that and
     even more, we now consider the following differences :
 *)
 
-Definition Diff0 w := tau^3 * length w - nbocc 0 w.
-Definition Diff1 w := tau^4 * length w - nbocc 1 w.
-Definition Diff2 w := tau^2 * length w - nbocc 2 w.
+Definition Diff0 w := τ^3 * length w - nbocc 0 w.
+Definition Diff1 w := τ^4 * length w - nbocc 1 w.
+Definition Diff2 w := τ^2 * length w - nbocc 2 w.
 
 Definition diff0 n := Diff0 (take n (kseq 2)).
 Definition diff1 n := Diff1 (take n (kseq 2)).
@@ -410,7 +402,7 @@ Proof.
  intros H.
  apply nbocc_total_le in H. simpl in H.
  unfold Diff0, Diff1, Diff2.
- rewrite tau3, tau4. ring_simplify.
+ rewrite τ3, τ4. ring_simplify.
  rewrite H, !plus_INR. change (INR 0) with 0. ring.
 Qed.
 
@@ -423,17 +415,15 @@ Qed.
 
 (** Expressing diff0 and diff2 in terms of [h] and [h^^2] *)
 
-Lemma diff0_alt n :
-  diff0 n = h n - tau * n.
+Lemma diff0_alt n : diff0 n = h n - τ * n.
 Proof.
  unfold diff0, Diff0. rewrite take_length.
  rewrite <- count_nbocc.
- rewrite tau3. rewrite Rmult_minus_distr_r.
+ rewrite τ3. rewrite Rmult_minus_distr_r.
  rewrite <- (f_count_0 2 n) at 1 by easy. fold h. rewrite plus_INR. lra.
 Qed.
 
-Lemma diff2_alt n :
-  diff2 n = tau^2 * n - (h^^2) n.
+Lemma diff2_alt n : diff2 n = τ^2 * n - (h^^2) n.
 Proof.
  unfold diff2, Diff2. rewrite take_length.
  rewrite <- count_nbocc.
@@ -444,18 +434,18 @@ Qed.
     Note : this could be stated via a matrix someday.
 *)
 
-Lemma Diff0_ksubst2 w : Diff0 (ksubstw 2 w) = tau * Diff2 w.
+Lemma Diff0_ksubst2 w : Diff0 (ksubstw 2 w) = τ * Diff2 w.
 Proof.
  unfold Diff0, Diff2.
  rewrite len_ksubst, plus_INR.
  destruct (nbocc_ksubst2 w) as (-> & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
- rewrite tau3. lra.
+ rewrite τ3. lra.
 Qed.
 
 Lemma Diff2_ksubst2 w :
   List.Forall (fun a => a <= 2)%nat w ->
-  Diff2 (ksubstw 2 w) = - tau^2 * Diff2 w - Diff0 w.
+  Diff2 (ksubstw 2 w) = - τ^2 * Diff2 w - Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff2.
@@ -465,60 +455,60 @@ Proof.
  replace (nbocc 1 w + nbocc 2 w) with (length w - nbocc 0 w).
  2:{ apply len_nbocc_012 in H. rewrite H. rewrite !plus_INR. lra. }
  ring_simplify.
- replace (tau^4) with (1-tau^2-tau^3) by (generalize tau234; lra).
+ replace (τ^4) with (1-τ^2-τ^3) by (generalize τ234; lra).
  lra.
 Qed.
 
 (** For [A 2] numbers, diff0 and diff2 have nice expressions via
-    powers of the [alpha] and [alphabar] roots (or some real part of
-    a power of [alpha]). Let's first describe the coefficients used
+    powers of the [α] and [αbar] roots (or some real part of
+    a power of [α]). Let's first describe the coefficients used
     in these expressions. *)
 
-Definition coefa2 := ((alpha*(tau^2-1)-tau^3)/(alpha-alphabar))%C.
-Definition coefa0 := (alphabar * coefa2)%C.
+Definition coefa2 := ((α*(τ^2-1)-τ^3)/(α-αbar))%C.
+Definition coefa0 := (αbar * coefa2)%C.
 
-Lemma re_coefa2 : 2*Re coefa2 = tau^2-1.
+Lemma re_coefa2 : 2*Re coefa2 = τ^2-1.
 Proof.
  unfold coefa2.
- change alphabar with (Cconj alpha). rewrite im_alt'.
- change (Im alpha) with im_alpha.
+ change αbar with (Cconj α). rewrite im_alt'.
+ change (Im α) with im_α.
  unfold Cdiv.
- replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
+ replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
  2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_alpha_nz. }
+     negapply RtoC_inj; apply im_α_nz. }
  rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
+ replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
  rewrite !Cmult_assoc.
  rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_alpha_nz; lra).
+  by (generalize im_α_nz; lra).
  rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_alpha_nz.
+ simpl. field. apply im_α_nz.
 Qed.
 
-Lemma re_coefa0 : 2*Re coefa0 = tau^3.
+Lemma re_coefa0 : 2*Re coefa0 = τ^3.
 Proof.
  unfold coefa0, coefa2. unfold Cdiv.
  rewrite Cmult_assoc.
- replace (alphabar * _)%C
-  with ((alpha * alphabar) * (tau^2-1) - alphabar * tau^3)%C by ring.
- rewrite <- Cmod2_conj, alphamod2.
- change alphabar with (Cconj alpha) at 2. rewrite im_alt'.
- change (Im alpha) with im_alpha.
- replace (/ (2*Ci*im_alpha))%C with (/Ci * /(2*im_alpha))%C.
+ replace (αbar * _)%C
+  with ((α * αbar) * (τ^2-1) - αbar * τ^3)%C by ring.
+ rewrite <- Cmod2_conj, αmod2.
+ change αbar with (Cconj α) at 2. rewrite im_alt'.
+ change (Im α) with im_α.
+ replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
  2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_alpha_nz. }
+     negapply RtoC_inj; apply im_α_nz. }
  rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_alpha)))%C by ring.
+ replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
  rewrite !Cmult_assoc.
  rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_alpha_nz; lra).
+  by (generalize im_α_nz; lra).
  rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_alpha_nz.
+ simpl. field. apply im_α_nz.
 Qed.
 
 Lemma diff_A n :
- diff0 (A 2 n) = 2 * Re(coefa0 * alpha^n) /\
- diff2 (A 2 n) = 2 * Re(coefa2 * alpha^n).
+ diff0 (A 2 n) = 2 * Re(coefa0 * α^n) /\
+ diff2 (A 2 n) = 2 * Re(coefa2 * α^n).
 Proof.
  induction n as [|n IH].
  - simpl A. simpl Cpow.
@@ -533,29 +523,29 @@ Proof.
    simpl Cpow.
    split.
    + rewrite Cmult_assoc. rewrite (Cmult_comm coefa0). unfold coefa0.
-     rewrite Cmult_assoc. change alphabar with (Cconj alpha).
-     rewrite <- Cmod2_conj, alphamod2.
+     rewrite Cmult_assoc. change αbar with (Cconj α).
+     rewrite <- Cmod2_conj, αmod2.
      rewrite <- Cmult_assoc, re_scal_l. lra.
    + unfold coefa0.
-     rewrite (Cmult_assoc coefa2), (Cmult_comm coefa2 alpha).
+     rewrite (Cmult_assoc coefa2), (Cmult_comm coefa2 α).
      rewrite <- !Cmult_assoc.
-     set (c := (coefa2 * alpha^n)%C).
-     replace (-tau^2*(2*Re c)-2*Re (alphabar * c)) with
-         (2 * ((-tau^2)*Re c + (-1)*(Re (alphabar * c)))) by ring.
+     set (c := (coefa2 * α^n)%C).
+     replace (-τ^2*(2*Re c)-2*Re (αbar * c)) with
+         (2 * ((-τ^2)*Re c + (-1)*(Re (αbar * c)))) by ring.
      f_equal.
      rewrite <-!re_scal_l, <-re_plus.
      f_equal.
      rewrite Cmult_assoc. rewrite <- Cmult_plus_distr_r. f_equal.
-     replace (-tau^2) with (2*re_alpha) by (rewrite re_alpha_alt; lra).
+     replace (-τ^2) with (2*re_α) by (rewrite re_α_alt; lra).
      rewrite RtoC_mult.
-     change re_alpha with (Re alpha).
+     change re_α with (Re α).
      rewrite re_alt.
-     change (Cconj alpha) with alphabar. field.
+     change (Cconj α) with αbar. field.
 Qed.
 
 (** Now, any arbitrary number [n] is a sum of [A 2] numbers by Zeckendorf
     theorem (cf. [GenFib.decomp]). So [diff0 n] will be a sum of powers
-    of [alpha]. *)
+    of [α]. *)
 
 Lemma Diff0_app u v : Diff0 (u++v) = Diff0 u + Diff0 v.
 Proof.
@@ -571,8 +561,7 @@ Proof.
 Qed.
 
 Lemma diff0_decomp_eqn n :
-  diff0 n =
-   Rlistsum (List.map (fun n => 2*Re(coefa0 * alpha^n)) (decomp 2 n)).
+  diff0 n = Rlistsum (List.map (fun n => 2*Re(coefa0 * α^n)) (decomp 2 n)).
 Proof.
  unfold diff0.
  rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
@@ -583,8 +572,7 @@ Proof.
 Qed.
 
 Lemma diff0_decomp_eqn' n :
-  diff0 n =
-   2*Re (coefa0 * Clistsum (List.map (Cpow alpha) (decomp 2 n))).
+  diff0 n = 2*Re (coefa0 * Clistsum (List.map (Cpow α) (decomp 2 n))).
 Proof.
  rewrite diff0_decomp_eqn.
  induction decomp; cbn -[Re].
@@ -598,7 +586,7 @@ Qed.
 
 Lemma diff0_decomp_le n :
  Rabs (diff0 n) <=
-  2 * Cmod coefa0 * Rlistsum (List.map (pow (Cmod alpha)) (decomp 2 n)).
+  2 * Cmod coefa0 * Rlistsum (List.map (pow (Cmod α)) (decomp 2 n)).
 Proof.
  rewrite diff0_decomp_eqn.
  induction decomp.
@@ -615,7 +603,7 @@ Proof.
 Qed.
 
 Lemma diff0_indep_bound n :
- Rabs (diff0 n) <= 2 * Cmod coefa0 / (1 - Cmod alpha^3).
+  Rabs (diff0 n) <= 2 * Cmod coefa0 / (1 - Cmod α^3).
 Proof.
  eapply Rle_trans. apply diff0_decomp_le.
  unfold Rdiv.
@@ -623,12 +611,12 @@ Proof.
  - generalize (Cmod_ge_0 coefa0). lra.
  - apply sum_pow; try lia; try apply decomp_delta.
    split; try apply Cmod_ge_0.
-   apply Rlt_pow2_inv; try lra. rewrite alphamod2. approx.
+   apply Rlt_pow2_inv; try lra. rewrite αmod2. approx.
 Qed.
 
 (** Experimentally, this first bound is around 1.112.
     Having this finite bound is enough to prove that the frequency
-    of letter 0 is [tau^3] and that [h n / n] converges towards tau.
+    of letter 0 is [τ^3] and that [h n / n] converges towards τ.
 *)
 
 Lemma lim_diff0_div_n : is_lim_seq (fun n => diff0 n / n) 0.
@@ -636,15 +624,14 @@ Proof.
  eapply is_lim_seq_bound. apply diff0_indep_bound.
 Qed.
 
-Lemma frequency_0 :
- is_lim_seq (fun n => count (kseq 2) 0 n / n) (tau^3).
+Lemma frequency_0 : is_lim_seq (fun n => count (kseq 2) 0 n / n) (τ^3).
 Proof.
  apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with (u := fun n => tau^3 - diff0 (S n) / S n).
+ apply is_lim_seq_ext with (u := fun n => τ^3 - diff0 (S n) / S n).
  - intros n.
    unfold diff0, Diff0. rewrite take_length.
    rewrite <- count_nbocc. field. apply RSnz.
- - replace (Rbar.Finite (tau^3)) with (Rbar.Finite (tau^3 + -0))
+ - replace (Rbar.Finite (τ^3)) with (Rbar.Finite (τ^3 + -0))
     by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
    change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
@@ -653,13 +640,12 @@ Proof.
    apply lim_diff0_div_n.
 Qed.
 
-Lemma Lim_h_div_n :
- is_lim_seq (fun n => h n / n) tau.
+Lemma Lim_h_div_n : is_lim_seq (fun n => h n / n) τ.
 Proof.
  apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with (u := fun n => tau + diff0 (S n) / S n).
+ apply is_lim_seq_ext with (u := fun n => τ + diff0 (S n) / S n).
  - intros n. rewrite diff0_alt. field. apply RSnz.
- - replace (Rbar.Finite tau) with (Rbar.Finite (tau + 0)) by (f_equal; lra).
+ - replace (Rbar.Finite τ) with (Rbar.Finite (τ + 0)) by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
    rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
    apply lim_diff0_div_n.
@@ -675,113 +661,113 @@ Qed.
 (** With some more sweat, we prove now a better bound, strictly
     below 1, with nice consequences :
 
-     - [h n = nat_part (tau*n)+{0,1}]
-     - [h] is quasi-additive [forall n p, -2 <= h (n+p) - h n - h p <= 2]
+     - [h n = nat_part (τ*n)+{0,1}]
+     - [h] is quasi-additive [forall n p, -2 <= h(n+p) - h(n) - h(p) <= 2]
 *)
 
-Lemma alphamod_lt : 0 < Cmod alpha < 1.
+Lemma αmod_lt : 0 < Cmod α < 1.
 Proof.
  split.
- - apply Cmod_gt_0. unfold alpha. injection 1 as H H'. now apply re_alpha_nz.
- - apply Rlt_pow2_inv; try lra. rewrite alphamod2. approx.
+ - apply Cmod_gt_0. unfold α. injection 1 as H H'. now apply re_α_nz.
+ - apply Rlt_pow2_inv; try lra. rewrite αmod2. approx.
 Qed.
 
-Lemma alphamod9_lt : 0 < Cmod alpha^9 < 1.
+Lemma αmod9_lt : 0 < Cmod α^9 < 1.
 Proof.
- assert (H := alphamod_lt).
+ assert (H := αmod_lt).
  split.
  - apply pow_lt; lra.
- - change ((Cmod alpha)^9) with ((Cmod alpha)*(Cmod alpha)^8).
-   apply Rle_lt_trans with (Cmod alpha * 1); try lra.
+ - change ((Cmod α)^9) with ((Cmod α)*(Cmod α)^8).
+   apply Rle_lt_trans with (Cmod α * 1); try lra.
    apply Rmult_le_compat_l; try lra.
    rewrite <- (pow1 8). apply pow_incr. lra.
 Qed.
 
-Lemma re_alpha2 : Re (alpha^2) = re_alpha^2 - im_alpha^2.
+Lemma re_α2 : Re (α^2) = re_α^2 - im_α^2.
 Proof.
  simpl. ring.
 Qed.
 
-Lemma re_alpha2_tau : Re (alpha^2) = -tau*(1+tau)/2.
+Lemma re_α2_τ : Re (α^2) = -τ*(1+τ)/2.
 Proof.
- rewrite re_alpha2. rewrite re_alpha_alt, im_alpha_2.
+ rewrite re_α2. rewrite re_α_alt, im_α_2.
  field_simplify.
- rewrite tau4. field.
+ rewrite τ4. field.
 Qed.
 
-Lemma im_alpha2 : Im (alpha^2) = 2*re_alpha*im_alpha.
+Lemma im_α2 : Im (α^2) = 2*re_α*im_α.
 Proof.
  simpl. ring.
 Qed.
 
-Ltac simpl_alpha := repeat (autorewrite with alpha; ring_simplify).
-#[local] Hint Rewrite alpha_is_root : alpha.
+Ltac simpl_α := repeat (autorewrite with α; ring_simplify).
+#[local] Hint Rewrite α_is_root : α.
 
-Lemma alpha4 : (alpha^4 = 1 + alpha + alpha^2)%C.
-Proof. rewrite Cpow_S. now simpl_alpha. Qed.
-#[local] Hint Rewrite alpha4 : alpha.
+Lemma α4 : (α^4 = 1 + α + α^2)%C.
+Proof. rewrite Cpow_S. now simpl_α. Qed.
+#[local] Hint Rewrite α4 : α.
 
-Lemma alpha5 : (alpha^5 = 1 + alpha + 2*alpha^2)%C.
-Proof. rewrite Cpow_S. now simpl_alpha. Qed.
-#[local] Hint Rewrite alpha5 : alpha.
+Lemma α5 : (α^5 = 1 + α + 2*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_α. Qed.
+#[local] Hint Rewrite α5 : α.
 
-Lemma alpha6 : (alpha^6 = 2 + alpha + 3*alpha^2)%C.
-Proof. rewrite Cpow_S. now simpl_alpha. Qed.
-#[local] Hint Rewrite alpha6 : alpha.
+Lemma α6 : (α^6 = 2 + α + 3*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_α. Qed.
+#[local] Hint Rewrite α6 : α.
 
-Lemma alpha7 : (alpha^7 = 3 + 2*alpha + 4*alpha^2)%C.
-Proof. rewrite Cpow_S. now simpl_alpha. Qed.
-#[local] Hint Rewrite alpha7 : alpha.
+Lemma α7 : (α^7 = 3 + 2*α + 4*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_α. Qed.
+#[local] Hint Rewrite α7 : α.
 
-Lemma alpha8 : (alpha^8 = 4 + 3*alpha + 6*alpha^2)%C.
-Proof. rewrite Cpow_S. now simpl_alpha. Qed.
-#[local] Hint Rewrite alpha8 : alpha.
+Lemma α8 : (α^8 = 4 + 3*α + 6*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_α. Qed.
+#[local] Hint Rewrite α8 : α.
 
-Lemma cmod2_trinom_alpha (a b c : R) :
- (Cmod (a*alpha^2 + b*alpha + c))^2 =
- (1/4)*((2*c - b*tau^2 - a*tau*(1+tau))^2 + tau*(3+tau)*(b-a*tau^2)^2).
+Lemma cmod2_trinom_α (a b c : R) :
+ (Cmod (a*α^2 + b*α + c))^2 =
+ (1/4)*((2*c - b*τ^2 - a*τ*(1+τ))^2 + τ*(3+τ)*(b-a*τ^2)^2).
 Proof.
  rewrite Cmod2_alt.
  rewrite !re_plus, !im_plus, re_RtoC, im_RtoC.
- rewrite !re_scal_l, !im_scal_l, re_alpha2_tau, im_alpha2.
+ rewrite !re_scal_l, !im_scal_l, re_α2_τ, im_α2.
  simpl Im. simpl Re.
- replace (_ + _ + 0) with (im_alpha * (b + a * (2*re_alpha))) by ring.
- rewrite Rpow_mult_distr, im_alpha_2, re_alpha_alt. field.
+ replace (_ + _ + 0) with (im_α * (b + a * (2*re_α))) by ring.
+ rewrite Rpow_mult_distr, im_α_2, re_α_alt. field.
 Qed.
 
-Ltac calc_alpha :=
+Ltac calc_α :=
   let c := fresh in
   let H := fresh in
   remember (Cplus _ _) as c eqn:H;
-  repeat (autorewrite with alpha in H; ring_simplify in H);
+  repeat (autorewrite with α in H; ring_simplify in H);
   rewrite H; clear c H;
- (* Hack : explicit 1*alpha and 1*alpha^2 if needed for easy
-    application of cmod2_trinom_alpha below *)
+ (* Hack : explicit 1*α and 1*α^2 if needed for easy
+    application of cmod2_trinom_α below *)
  match goal with
- | |- context [ (alpha^2 + _)%C ] => rewrite <- (Cmult_1_l (alpha^2))
+ | |- context [ (α^2 + _)%C ] => rewrite <- (Cmult_1_l (α^2))
  | _ => idtac
  end;
  match goal with
- | |- context [ (_ + alpha)%C ] => rewrite <- (Cmult_1_l alpha) at 2
+ | |- context [ (_ + α)%C ] => rewrite <- (Cmult_1_l α) at 2
  | _ => idtac
  end.
 
-Ltac calc_tau :=
-  field_simplify; rewrite ?tau6, ?tau5, ?tau4, ?tau3; field_simplify.
+Ltac calc_τ :=
+  field_simplify; rewrite ?τ6, ?τ5, ?τ4, ?τ3; field_simplify.
 
-Definition max3pack := Cmod (1+alpha^3+alpha^7).
+Definition max3pack := Cmod (1+α^3+α^7).
 
-Lemma max3pack_eqn : max3pack^2 = 15 - 11*tau - 10*tau^2.
+Lemma max3pack_eqn : max3pack^2 = 15 - 11*τ - 10*τ^2.
 Proof.
- unfold max3pack. calc_alpha. rewrite cmod2_trinom_alpha. calc_tau. field.
+ unfold max3pack. calc_α. rewrite cmod2_trinom_α. calc_τ. field.
 Qed.
 
-(* Curious note : all the trinoms we consider lead to N - M*tau - K*tau^2
-   except (Cmod (1+alpha^4+alpha^8))^2 = 8 + 2*tau - 17*tau^2. *)
+(* Curious note : all the trinoms we consider lead to N - M*τ - K*τ^2
+   except (Cmod (1+α^4+α^8))^2 = 8 + 2*τ - 17*τ^2. *)
 
 Lemma best_3pack_0 l :
   Delta 3 (O::l) -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) (O::l))) <= max3pack.
+  Cmod (Clistsum (List.map (Cpow α) (O::l))) <= max3pack.
 Proof.
  intros D B.
  apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
@@ -789,17 +775,17 @@ Proof.
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
  rewrite enum_delta_below_ok0 in H. compute in H;
  repeat destruct H as [<-|H]; try destruct H; cbn -[Cpow pow]; (* 13 cases *)
- calc_alpha; try rewrite cmod2_trinom_alpha; calc_tau; try approx.
+ calc_α; try rewrite cmod2_trinom_α; calc_τ; try approx.
  - lra. (* max3pack <= max3pack *)
- - (* special case without the alpha monom *)
-   replace C2 with (0*alpha+C2)%C by ring.
-   rewrite Cplus_assoc, cmod2_trinom_alpha; calc_tau; approx.
+ - (* special case without the α monom *)
+   replace C2 with (0*α+C2)%C by ring.
+   rewrite Cplus_assoc, cmod2_trinom_α; calc_τ; approx.
  - rewrite Cmod_1, pow1. approx.
 Qed.
 
 Lemma best_3pack_below l :
   Delta 3 l -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <= max3pack.
+  Cmod (Clistsum (List.map (Cpow α) l)) <= max3pack.
 Proof.
  intros D B.
  destruct l as [|a l].
@@ -813,12 +799,12 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 3 (S a) l); auto; try lia. }}
-     rewrite List.map_map, (Clistsum_pow_factor alpha 1), Cmod_mult, Cpow_1_r.
+     rewrite List.map_map, (Clistsum_pow_factor α 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
-       apply Rle_pow2_inv; try lra. rewrite alphamod2. approx.
+       apply Rle_pow2_inv; try lra. rewrite αmod2. approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
        { simpl; constructor. }
@@ -836,8 +822,7 @@ Qed.
 
 Lemma best_3pack l :
   Delta 3 l ->
-  Cmod (Clistsum (List.map (Cpow alpha) l)) <=
-   max3pack / (1 - Cmod alpha ^9).
+  Cmod (Clistsum (List.map (Cpow α) l)) <= max3pack / (1 - Cmod α ^9).
 Proof.
  intros D.
  assert (B := maxlist0_above l).
@@ -852,8 +837,8 @@ Proof.
    rewrite <- (Rmult_1_r max3pack) at 1. unfold Rdiv.
    apply Rmult_le_compat_l; try apply Cmod_ge_0.
    rewrite <- (Rmult_1_l (/ _)).
-   assert (P := Cmod_ge_0 alpha).
-   apply Rcomplements.Rle_div_r; generalize alphamod9_lt; lra.
+   assert (P := Cmod_ge_0 α).
+   apply Rcomplements.Rle_div_r; generalize αmod9_lt; lra.
  - intros l D B. destruct (cut_lt_ge 9 l) as (l1,l2) eqn:E.
    assert (D' := D).
    assert (E' := cut_app 9 l). rewrite E in E'. rewrite <- E' in D',B |- *.
@@ -865,11 +850,11 @@ Proof.
      generalize (cut_fst 9 l). now rewrite E.
    + assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 3 9 l); auto. now rewrite E. }
-     rewrite (Clistsum_pow_factor_above alpha 9 l2) by trivial.
+     rewrite (Clistsum_pow_factor_above α 9 l2) by trivial.
      set (l2' := List.map (decr 9) l2).
      rewrite Cmod_mult.
      replace (max3pack / _)
-       with (max3pack + Cmod (alpha^9) * (max3pack / (1 - Cmod alpha ^9))).
+       with (max3pack + Cmod (α^9) * (max3pack / (1 - Cmod α ^9))).
      * apply Rplus_le_compat_l.
        apply Rmult_le_compat_l; try apply Cmod_ge_0.
        apply (IH (N-9)%nat); try lia.
@@ -879,11 +864,11 @@ Proof.
          specialize (A y Hy).
          assert (y < N)%nat by (apply B; rewrite List.in_app_iff; now right).
          unfold decr. lia. }
-     * rewrite Cmod_pow. field. generalize alphamod9_lt; lra.
+     * rewrite Cmod_pow. field. generalize αmod9_lt; lra.
 Qed.
 
 Lemma diff0_better_bound n :
- Rabs (diff0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod alpha ^9).
+  Rabs (diff0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod α ^9).
 Proof.
  rewrite diff0_decomp_eqn'.
  rewrite Rabs_mult. rewrite Rabs_right by lra.
@@ -894,22 +879,22 @@ Proof.
 Qed.
 
 Lemma coefa2_inner_mod :
-  Cmod (alpha * (tau ^ 2 - 1) - tau ^ 3) ^ 2 = tau*(1-tau).
+  Cmod (α * (τ ^ 2 - 1) - τ ^ 3) ^ 2 = τ*(1-τ).
 Proof.
  rewrite !RtoC_pow, <- RtoC_minus.
  rewrite Cmod2_alt. unfold Cminus.
  rewrite re_plus, im_plus, re_scal_r, im_scal_r.
  rewrite <- !RtoC_opp, re_RtoC, im_RtoC, Rplus_0_r. simpl Re; simpl Im.
- rewrite re_alpha_alt.
- rewrite Rpow_mult_distr. rewrite im_alpha_2.
- rewrite tau3. field_simplify.
- replace (tau^8) with ((tau^4)^2) by ring.
- rewrite tau6, tau5, tau4, tau3. field_simplify.
- rewrite tau4, tau3. field.
+ rewrite re_α_alt.
+ rewrite Rpow_mult_distr. rewrite im_α_2.
+ rewrite τ3. field_simplify.
+ replace (τ^8) with ((τ^4)^2) by ring.
+ rewrite τ6, τ5, τ4, τ3. field_simplify.
+ rewrite τ4, τ3. field.
 Qed.
 
 Lemma Cmod2_coefa2 :
-  Cmod coefa2 ^2 = (1-tau)/(3+tau).
+  Cmod coefa2 ^2 = (1-τ)/(3+τ).
 Proof.
  unfold coefa2, Cdiv.
  rewrite !Cmod_mult, !Rpow_mult_distr, Cmod_inv.
@@ -920,7 +905,7 @@ Proof.
  rewrite Cmod_Ci, Rmult_1_r.
  simpl Im.
  rewrite pow_inv, Rpow_mult_distr.
- rewrite pow2_abs. rewrite im_alpha_2. field. approx.
+ rewrite pow2_abs. rewrite im_α_2. field. approx.
 Qed.
 
 (** And finally, we obtain that diff0 is always strictly less than 1.
@@ -929,16 +914,16 @@ Qed.
 Lemma diff0_lt_1 n : Rabs (diff0 n) < 1.
 Proof.
  eapply Rle_lt_trans. apply diff0_better_bound.
- assert (A9 := alphamod9_lt).
+ assert (A9 := αmod9_lt).
  apply -> Rcomplements.Rdiv_lt_1; try lra.
  apply Rlt_pow2_inv; try lra.
  clear A9.
  rewrite !Rpow_mult_distr.
  rewrite max3pack_eqn.
- replace (Cmod alpha^9) with (((Cmod alpha)^2)^4*Cmod alpha) by ring.
- rewrite alphamod2, tau4.
+ replace (Cmod α^9) with (((Cmod α)^2)^4*Cmod α) by ring.
+ rewrite αmod2, τ4.
  unfold coefa0. rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
- change alphabar with (Cconj alpha). rewrite Cmod_Cconj, alphamod2.
+ change αbar with (Cconj α). rewrite Cmod_Cconj, αmod2.
  approx.
 Qed.
 
@@ -946,25 +931,24 @@ Qed.
 
 (* Consequences for h : *)
 
-Lemma h_alt n : INR (h n) = tau*n + diff0 n.
+Lemma h_alt n : INR (h n) = τ*n + diff0 n.
 Proof.
  rewrite diff0_alt; lra.
 Qed.
 
-Lemma h_natpart_or (n:nat) :
- h n = nat_part (tau*n) \/ h n = S (nat_part (tau*n)).
+Lemma h_natpart_or n : h n = nat_part (τ*n) \/ h n = S (nat_part (τ*n)).
 Proof.
-assert (-1 < tau*n - h n < 1).
+assert (-1 < τ*n - h n < 1).
 { rewrite h_alt.
   assert (H := diff0_lt_1 n).
   rewrite Rcomplements.Rabs_lt_between in H. lra. }
-destruct (Rle_or_lt 0 (tau*n-h n)).
+destruct (Rle_or_lt 0 (τ*n-h n)).
 - left. symmetry. apply nat_part_carac; lra.
 - right.
   case (Nat.eq_dec n 0); intros Hn.
   + subst n. change (h 0) with O in *. simpl in *. lra.
   + assert (h n <> O). { contradict Hn. eapply f_0_inv; eauto. }
-    assert (nat_part (tau*n) = h n -1)%nat; try lia.
+    assert (nat_part (τ*n) = h n -1)%nat; try lia.
     apply nat_part_carac. rewrite minus_INR by lia. simpl. lra.
 Qed.
 
@@ -972,7 +956,7 @@ Qed.
    I've found no easy way to predict on which side will be some (h n). *)
 
 Lemma h_natpart_bound (n:nat) :
- (nat_part (tau*n) <= h n <= 1 + nat_part (tau*n))%nat.
+ (nat_part (τ*n) <= h n <= 1 + nat_part (τ*n))%nat.
 Proof.
  destruct (h_natpart_or n) as [-> | ->]; lia.
 Qed.
@@ -980,8 +964,7 @@ Qed.
 (* A quasi-additivity result for h = f 2 that I was unable to obtain
    directly on h. *)
 
-Lemma h_quasiadd p n :
- (h p + h n -2 <= h (p+n) <= h p + h n + 2)%nat.
+Lemma h_quasiadd p n : (h p + h n -2 <= h (p+n) <= h p + h n + 2)%nat.
 Proof.
   case (Nat.eq_dec p 0); intros Hp.
   - subst p. simpl. lia.
@@ -1023,8 +1006,7 @@ Proof.
 Qed.
 
 Lemma diff2_decomp_eqn n :
-  diff2 n =
-   Rlistsum (List.map (fun n => 2*Re(coefa2 * alpha^n)) (decomp 2 n)).
+  diff2 n = Rlistsum (List.map (fun n => 2*Re(coefa2 * α^n)) (decomp 2 n)).
 Proof.
  unfold diff2.
  rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
@@ -1035,8 +1017,7 @@ Proof.
 Qed.
 
 Lemma diff2_decomp_eqn' n :
-  diff2 n =
-   2*Re (coefa2 * Clistsum (List.map (Cpow alpha) (decomp 2 n))).
+  diff2 n = 2*Re (coefa2 * Clistsum (List.map (Cpow α) (decomp 2 n))).
 Proof.
  rewrite diff2_decomp_eqn.
  induction decomp; cbn -[Re].
@@ -1050,7 +1031,7 @@ Qed.
 
 Lemma diff2_decomp_le n :
  Rabs (diff2 n) <=
-  2 * Cmod coefa2 * Rlistsum (List.map (pow (Cmod alpha)) (decomp 2 n)).
+  2 * Cmod coefa2 * Rlistsum (List.map (pow (Cmod α)) (decomp 2 n)).
 Proof.
  rewrite diff2_decomp_eqn.
  induction decomp.
@@ -1067,7 +1048,7 @@ Proof.
 Qed.
 
 Lemma diff2_indep_bound n :
- Rabs (diff2 n) <= 2 * Cmod coefa2 / (1 - Cmod alpha^3).
+ Rabs (diff2 n) <= 2 * Cmod coefa2 / (1 - Cmod α^3).
 Proof.
  eapply Rle_trans. apply diff2_decomp_le.
  unfold Rdiv.
@@ -1081,7 +1062,7 @@ Proof.
  eapply Rle_lt_trans. apply diff2_indep_bound.
  replace 2 with (2*1) at 2 by lra.
  unfold Rdiv. rewrite Rmult_assoc. apply Rmult_lt_compat_l; try lra.
- assert (Cmod alpha^3 < 1) by approx.
+ assert (Cmod α^3 < 1) by approx.
  apply Rcomplements.Rlt_div_l; try lra.
  rewrite Rmult_1_l.
  apply Rlt_pow2_inv; try lra. rewrite Cmod2_coefa2. approx.
@@ -1092,7 +1073,7 @@ Qed.
     improved significantly (unlike the first bound 1.112 for diff0 improved
     to 0.996 later).
     Anyway, having this finite bound is enough to prove that the frequency
-    of letter 2 is [tau^2] and that [(h^^2)(n) / n] converges towards [tau^2].
+    of letter 2 is [τ^2] and that [(h^^2)(n) / n] converges towards [τ^2].
 *)
 
 Lemma lim_diff2_div_n : is_lim_seq (fun n => diff2 n / n) 0.
@@ -1100,16 +1081,15 @@ Proof.
  eapply is_lim_seq_bound. apply diff2_indep_bound.
 Qed.
 
-Lemma frequency_2 :
- is_lim_seq (fun n => count (kseq 2) 2 n / n) (tau^2).
+Lemma frequency_2 : is_lim_seq (fun n => count (kseq 2) 2 n / n) (τ^2).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with
-  (u := fun n => tau^2 - diff2 (S n) / INR (S n)).
+  (u := fun n => τ^2 - diff2 (S n) / INR (S n)).
  - intros n.
    unfold diff2, Diff2. rewrite take_length.
    rewrite <- count_nbocc. field. apply RSnz.
- - replace (Rbar.Finite (tau^2)) with (Rbar.Finite (tau^2 + -0))
+ - replace (Rbar.Finite (τ^2)) with (Rbar.Finite (τ^2 + -0))
     by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
    change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
@@ -1118,12 +1098,11 @@ Proof.
    apply lim_diff2_div_n.
 Qed.
 
-Lemma frequency_1 :
- is_lim_seq (fun n => count (kseq 2) 1 n / n) (tau^4).
+Lemma frequency_1 : is_lim_seq (fun n => count (kseq 2) 1 n / n) (τ^4).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with
-  (u := fun n => tau^4 + diff0 (S n) / INR (S n) + diff2 (S n) / INR (S n)).
+  (u := fun n => τ^4 + diff0 (S n) / INR (S n) + diff2 (S n) / INR (S n)).
  - intros n.
    field_simplify; try apply RSnz. f_equal.
    rewrite Rplus_assoc.
@@ -1131,7 +1110,7 @@ Proof.
      by (generalize (diff012 (S n)); lra).
    unfold diff1, Diff1. rewrite take_length.
    rewrite <- count_nbocc. field.
- - replace (Rbar.Finite (tau^4)) with (Rbar.Finite (tau^4 + 0 + 0))
+ - replace (Rbar.Finite (τ^4)) with (Rbar.Finite (τ^4 + 0 + 0))
     by (f_equal; lra).
    apply is_lim_seq_plus'. apply is_lim_seq_plus'. apply is_lim_seq_const.
    rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
@@ -1140,15 +1119,14 @@ Proof.
    apply lim_diff2_div_n.
 Qed.
 
-Lemma Lim_h2_div_n :
- is_lim_seq (fun n => (h^^2) n / n) (tau^2).
+Lemma Lim_h2_div_n : is_lim_seq (fun n => (h^^2) n / n) (τ^2).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with
-  (u := fun n => tau^2 - diff2 (S n) / INR (S n)).
+  (u := fun n => τ^2 - diff2 (S n) / INR (S n)).
  - intros n. rewrite diff2_alt. field. rewrite S_INR.
    generalize (pos_INR n). lra.
- - replace (Rbar.Finite (tau^2)) with (Rbar.Finite (tau^2 - 0))
+ - replace (Rbar.Finite (τ^2)) with (Rbar.Finite (τ^2 - 0))
     by (f_equal; lra).
    eapply is_lim_seq_plus'. apply is_lim_seq_const.
    change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
@@ -1157,28 +1135,28 @@ Proof.
    apply lim_diff2_div_n.
 Qed.
 
-Lemma h2_alt n : INR ((h^^2) n) = tau^2 * n - diff2 n.
+Lemma h2_alt n : INR ((h^^2) n) = τ^2 * n - diff2 n.
 Proof.
  rewrite diff2_alt; lra.
 Qed.
 
 
-(** Distance between [h^^2] and [nat_part (tau^2 * n)].
+(** Distance between [h^^2] and [nat_part (τ^2 * n)].
     This distance may be "+2", for instance for n=1235.
     But the theoretical "-1" does not seem to happen
     (TODO: how to prove it ?) *)
 
 Lemma h2_natpart_bound (n:nat) :
- (nat_part (tau^2 * n) -1 <= (h^^2) n <= 2 + nat_part (tau^2 * n))%nat.
+ (nat_part (τ^2 * n) -1 <= (h^^2) n <= 2 + nat_part (τ^2 * n))%nat.
 Proof.
  split.
- - assert (nat_part (tau^2 * n) < 2 + (h^^2) n)%nat; try lia.
+ - assert (nat_part (τ^2 * n) < 2 + (h^^2) n)%nat; try lia.
    { apply nat_part_lt. split.
      - apply Rmult_le_pos. approx. apply pos_INR.
      - rewrite plus_INR. replace (INR 2) with 2 by auto.
        assert (LT := diff2_lt_2 n). apply Rcomplements.Rabs_lt_between in LT.
        generalize (diff2_alt n). lra. }
- - assert ((h^^2) n - 2 <= nat_part (tau^2 * n))%nat; try lia.
+ - assert ((h^^2) n - 2 <= nat_part (τ^2 * n))%nat; try lia.
    { apply nat_part_le.
      - apply Rmult_le_pos. approx. apply pos_INR.
      - destruct (Nat.le_gt_cases 4 n) as [LE|LT].
@@ -1203,7 +1181,7 @@ For k=3, see LimCase3.v
 
 For k=4, no Coq proofs yet.
  four complex roots : j and (Cconj j) of modulus 1, and
-  some alpha and (Cconj alpha) of modulus < 1. Note that alpha can be
+  some α and (Cconj α) of modulus < 1. Note that α can be
   expressed in function of (tau 4). Apparently, no more finite bound to
   (f 4 n - tau 4 * n).
 
