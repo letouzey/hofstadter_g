@@ -89,6 +89,12 @@ Proof.
  field_simplify. rewrite τ4. field.
 Qed.
 
+Lemma τ_as_μ : τ = μ*(μ-1).
+Proof.
+ change τ with (/μ). apply Rmult_eq_reg_l with μ. 2:approx.
+ field_simplify. 2:approx. unfold μ. rewrite mu_carac. ring.
+Qed.
+
 #[local] Instance αmod_approx :
   Approx 0.8260313576541 (Cmod α) 0.8260313576543 |20.
 Proof.
@@ -124,13 +130,15 @@ Proof.
  unfold re_α. approx.
 Qed.
 
+Lemma im_α_pos : 0 < im_α.
+Proof.
+ unfold im_α. apply Rlt_mult_inv_pos; try lra.
+ apply sqrt_lt_R0. approx.
+Qed.
+
 Lemma im_α_nz : im_α <> 0.
 Proof.
- assert (LE : 0 <= im_α).
- { unfold im_α. apply Rle_mult_inv_pos; try lra. apply sqrt_pos. }
- assert (LT : 0 < im_α ^2).
- { rewrite im_α_2. approx. }
- nra.
+ generalize im_α_pos; lra.
 Qed.
 
 Lemma distinct_roots :
@@ -141,6 +149,30 @@ Proof.
  - intros [= A B]. generalize im_α_nz. lra.
  - intros [= B]. generalize im_α_nz. lra.
 Qed.
+
+(** Elementary symmetric functions between roots *)
+
+Lemma roots_sum : (μ+α+αbar = 1)%C.
+Proof.
+ unfold Cplus. simpl. change 1%C with (1,0).
+ f_equal; unfold re_α; field.
+Qed.
+
+Lemma roots_prod : (μ*α*αbar = 1)%C.
+Proof.
+ rewrite <- Cmult_assoc, <- Cmod2_conj, αmod2, <- RtoC_mult.
+ unfold μ, τ, tau. f_equal. apply Rinv_r. approx.
+Qed.
+
+Lemma sigma2_nul : (μ*α + μ*αbar + α*αbar = 0)%C.
+Proof.
+ rewrite <- Cmod2_conj, αmod2.
+ replace (μ * α + μ * αbar)%C with (μ*(α+αbar))%C by ring.
+ replace (α+αbar)%C with (1-μ)%C by (rewrite <- roots_sum; ring).
+ rewrite <- RtoC_minus, <- RtoC_mult, <- RtoC_plus. f_equal.
+ rewrite τ_as_μ. ring.
+Qed.
+
 
 (** Explicit decomposition of [A 2 n] into a linear combination
     of root powers.
@@ -192,12 +224,12 @@ Proof.
  negapply Rplus_sqr_eq_0_l. apply im_α_nz.
 Qed.
 
-#[local] Instance re_coef_α_bound : Approx (-0.16) (Re coef_α) (-0.15).
+#[local] Instance re_coef_α_bound : Approx (-0.157) (Re coef_α) (-0.156).
 Proof.
  rewrite re_coef_α_alt. approx.
 Qed.
 
-#[local] Instance coef_μ_bound : Approx 1.30 coef_μ 1.32.
+#[local] Instance coef_μ_bound : Approx 1.31 coef_μ 1.32.
 Proof.
  unfold coef_μ. approx.
 Qed.
@@ -365,6 +397,57 @@ Proof.
    apply is_lim_seq_div'; auto.
    rewrite is_lim_seq_incr_1 in L. apply L.
 Qed.
+
+(** Also note that the coefficients coef_α and coef_μ and (Cconj coef_μ)
+    are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31] *)
+
+Definition det : C := ((μ-α)*(μ-αbar)*(α-αbar))%C.
+
+Lemma det2 : (det^2 = -31)%C.
+Proof.
+ unfold det.
+ replace ((μ - α) * (μ - αbar))%C with (μ*(3*μ-2))%C.
+ 2:{ ring_simplify. rewrite <- Cmod2_conj, αmod2.
+     replace (_+-1*μ*α+-1*μ*αbar)%C with (μ^2-μ*(1-μ))%C
+       by (rewrite <- roots_sum; ring).
+     rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring. }
+ rewrite im_alt'. change (Im α) with im_α. unfold im_α.
+ rewrite !Cpow_mul_l.
+ rewrite <- !RtoC_mult, <- RtoC_minus, !RtoC_pow, <- !RtoC_mult.
+ unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
+ rewrite pow_inv.
+ replace (2^2) with 4 by lra.
+ simpl (Ci^2)%C. rewrite Cmult_1_r, Ci2.
+ rewrite <- RtoC_opp, <- !RtoC_mult. f_equal.
+ change τ with (/μ). field_simplify. 2:approx.
+ unfold μ. rewrite mu_carac. field.
+Qed.
+
+Lemma det_eqn : (det = Ci * sqrt 31)%C.
+Proof.
+ assert (0 <= Im det).
+ { unfold det.
+   replace (μ-αbar)%C with (Cconj (μ-α))%C.
+   2:{ now rewrite Cconj_minus_distr, Cconj_R. }
+   rewrite <- Cmod2_conj, im_scal_l, im_alt'.
+   replace (2*Ci*Im α)%C with ((2*Im α)*Ci)%C by ring.
+   rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1.
+   rewrite Rmult_1_r. change (Im α) with im_α.
+   apply Rmult_le_pos.
+   - rewrite <- Rsqr_pow2. apply Rle_0_sqr.
+   - generalize im_α_pos. nra. }
+ generalize det2.
+ destruct det as (x,y). simpl in *. rewrite Cmult_1_r.
+ unfold Ci. unfold Cmult; simpl. rewrite !Rmult_0_l, !Rmult_1_l.
+ intros [= RE IM].
+ ring_simplify in IM. rewrite Rmult_assoc in IM.
+ apply Rmult_integral in IM. destruct IM as [IM|IM]; [lra| ].
+ apply Rmult_integral in IM. destruct IM; subst; try nra.
+ f_equal; try ring. ring_simplify. symmetry. apply sqrt_lem_1; lra.
+Qed.
+
+(* TODO: Nicer expression for coef_μ :
+   (3-2*(α+αbar)+α*αbar)/(μ-α)/(μ-αbar) *)
 
 
 (** ** Occurrences of letters in morphic word [Words.kseq 2]
