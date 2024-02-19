@@ -19,13 +19,28 @@ Si k impair, Pk croissant avant 0 (atteint -1) puis décroit,
 puis croit de nouveau après 1-1/k. Une unique racine réelle,
 dans ]1..2[.
 
-Ces racines réelles positives sont décroissantes quand k augmente.
+Ces racines réelles positives sont décroissantes quand k augmente
+(Borne en 1 + 1/sqrt(k), cf. Mu.mu_upper_bound).
 
 k=2  P2(x)=x^2-x-1  racine=phi=1.618   (et -0.618)
 k=3  P3(x)=x^3-x^2-1 racine=1.4655
 k=4  P4(x)=x^4-x^3-1 racine=1.3802     (et -0.82)
 k=5  P5(x)=x^5-x^4-1 racine=1.3247 (nombre plastique, racine de x^3-x-1) 
 k=6  P6(x)=x^6-x^5-1 racine=1.28       (et -0.88)
+
+A partir de k=6, on est strictement inférieur au nombre plastique,
+qui est le plus petit nombre Pisot. Donc on aura des racines
+secondaires de norme >= 1. 
+
+## Refs importantes, donnnat l'irreductibilité en général 
+
+Selmer, On the Irreducibility of Certain Trinomials, Math. Scand. 4
+(1956)
+
+Et plus simple:
+
+https://kconrad.math.uconn.edu/blurbs/ringtheory/irredselmerpoly.pdf
+
 
 ## Factorisable quand k = 5 mod 6
 
@@ -45,7 +60,8 @@ Restes :
  k = 11   x^9-x^7-x^6+x^4+x^3-x-1
  k = 17   x^15-x^13-x^12+x^10+x^9-x^7-x^6+x^4+x^3-x-1
 
-Ces restes sont-ils toujours irréductibles ??
+Ces restes sont-ils toujours irréductibles ? Il semble que oui,
+cf Selmer 1956
 
 
 (x^p+a_(p-1).x^(p-1)+...a_0)(x^q+b_(q-1).x^(q-1)+...b_0)
@@ -85,7 +101,9 @@ Nb: Pour p<>0 :
 
 Nb: x^5-x^3-x^2+1 = (x-1)^2*(x+1)*(x^2+x+1)
 
-## Irreductibilité sur Q (ou Z) sinon ?
+## Irreductibilité sur Q (ou Z) sinon
+
+**Cf Selmer 1956 et la note de K. Conrad.**
 
 Nb: factorisation dans Z <-> factorisation dans Q.
 
@@ -170,7 +188,7 @@ P(-1) =
 
 Bref, facteur strict de degré 3 possible seulement pour k=5
 
-### Et ensuite ??
+### Et ensuite ?
 
 Pk irreductible pour k<8 (hormis k=5) car sinon il y aura au
 moins un facteur de degré 3. Ensuite ?
@@ -197,8 +215,6 @@ Si Pk = Q*R, on peut juste dire:
 Ensuite ?
  En 2 on obtient un 2^(k-1)-1 mais qui n'est que rarement premier.
  
-??
-
 
 ### Dual
 
