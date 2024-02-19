@@ -283,7 +283,8 @@ Qed.
 (** Note about A3_eqn_exists : if someday precise estimates of coefficients
     a b c d are needed, they can be obtained by inversing the Vandermonde
     matrix of roots3. And if we just need that a is real and >=1, then
-    see Freq.A_gt_mu_pow. *)
+    see Freq.A_gt_mu_pow. Interestingly, these coefficients are also roots
+    of [X^4-X^3-(162/283)*X^2-(24/283)*X-1/283] (not proved here). *)
 
 (** ** Occurrences of letters in morphic word [Words.kseq 3]
 
