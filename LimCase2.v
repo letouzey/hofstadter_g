@@ -102,6 +102,12 @@ Proof.
  rewrite αmod2. approx.
 Qed.
 
+#[local] Instance im_α_approx : Approx 0.79255199 im_α 0.792552.
+Proof.
+ apply pow2_approx_inv; try qle. rewrite im_α_2. approx.
+ unfold im_α. generalize (sqrt_pos (τ*(3+τ))). lra.
+Qed.
+
 Lemma μ_is_root : (μ ^3 = μ ^2 + 1)%C.
 Proof.
  rewrite !RtoC_pow, <- RtoC_plus. unfold μ. now rewrite (mu_carac 2).
@@ -173,6 +179,57 @@ Proof.
  rewrite τ_as_μ. ring.
 Qed.
 
+Lemma roots_sum2 : (μ^2 + α^2 + αbar^2 = 1)%C.
+Proof.
+ replace 1%C with (1^2-2*0)%C by lca.
+ rewrite <- roots_sum, <- sigma2_nul. ring.
+Qed.
+
+(** More root powers *)
+
+Ltac simpl_root := repeat (autorewrite with root; ring_simplify).
+#[local] Hint Rewrite μ_is_root α_is_root αbar_is_root : root.
+
+Lemma μ4 : (μ^4 = 1 + μ + μ^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma α4 : (α^4 = 1 + α + α^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma αbar4 : (αbar^4 = 1 + αbar + αbar^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+#[local] Hint Rewrite μ4 α4 αbar4 : root.
+
+Lemma μ5 : (μ^5 = 1 + μ + 2*μ^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma α5 : (α^5 = 1 + α + 2*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma αbar5 : (αbar^5 = 1 + αbar + 2*αbar^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+#[local] Hint Rewrite μ5 α5 αbar5 : root.
+
+Lemma μ6 : (μ^6 = 2 + μ + 3*μ^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma α6 : (α^6 = 2 + α + 3*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+Lemma αbar6 : (αbar^6 = 2 + αbar + 3*αbar^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+
+#[local] Hint Rewrite μ6 α6 αbar6 : root.
+
+Lemma α7 : (α^7 = 3 + 2*α + 4*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+#[local] Hint Rewrite α7 : root.
+
+Lemma α8 : (α^8 = 4 + 3*α + 6*α^2)%C.
+Proof. rewrite Cpow_S. now simpl_root. Qed.
+#[local] Hint Rewrite α8 : root.
 
 (** Explicit decomposition of [A 2 n] into a linear combination
     of root powers.
@@ -180,135 +237,134 @@ Qed.
     see ThePoly.coefs_LinCombA and Freq.A_ratio for instance.
     But these general results do not provide expressions for the
     coefficients, unlike [coef_α] and [coef_μ] below.
-*)
+    For that, we manually invert the Vandermonde(μ,α,αbar) matrix,
+    and first compute its determinant. *)
 
-Definition coef_α : C := ((3-μ^2+(αbar+μ)*(μ-2))/(α-μ)/(α-αbar))%C.
+Definition det : C := ((μ-α)*(μ-αbar)*(α-αbar))%C.
 
-Definition coef_μ : R := 1 - 2 * Re coef_α.
-
-Local Hint Rewrite
- Ropp_0 Rplus_0_r Rplus_0_l Rminus_0_r
- Rmult_0_l Rmult_0_r Rmult_1_l Rmult_1_r : rbasic.
-
-Lemma misc_eqn : (re_α - μ)^2 + im_α^2 = 2*τ + μ^2.
+Lemma det2 : (det^2 = -31)%C.
 Proof.
- rewrite <- !Rsqr_pow2, Rsqr_minus, !Rsqr_pow2.
- replace (2*τ) with (τ+τ) by lra.
- rewrite <- αmod2 at 1. rewrite Cmod2_alt. simpl Re. simpl Im.
- rewrite re_α_alt at 2.
- simpl (τ^2). change τ with (/ μ) at 1. field.
- unfold μ. generalize mu_2. lra.
+ unfold det.
+ replace ((μ - α) * (μ - αbar))%C with (μ*(3*μ-2))%C.
+ 2:{ ring_simplify. rewrite <- Cmod2_conj, αmod2.
+     replace (_+-1*μ*α+-1*μ*αbar)%C with (μ^2-μ*(1-μ))%C
+       by (rewrite <- roots_sum; ring).
+     rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring. }
+ rewrite im_alt'. change (Im α) with im_α. unfold im_α.
+ rewrite !Cpow_mul_l.
+ rewrite <- !RtoC_mult, <- RtoC_minus, !RtoC_pow, <- !RtoC_mult.
+ unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
+ rewrite pow_inv.
+ replace (2^2) with 4 by lra.
+ simpl (Ci^2)%C. rewrite Cmult_1_r, Ci2.
+ rewrite <- RtoC_opp, <- !RtoC_mult. f_equal.
+ change τ with (/μ). field_simplify. 2:approx.
+ unfold μ. rewrite mu_carac. field.
 Qed.
 
-Lemma re_coef_α_alt : Re coef_α = (-3 + μ^2 + τ^2 * (μ-2)) / (2*(2*τ+μ^2)).
+Lemma det_eqn : (det = Ci * sqrt 31)%C.
 Proof.
- unfold coef_α.
- set (u := Cplus _ _).
- set (v := (u / (α-μ))%C).
- change αbar with (Cconj α); rewrite im_alt'.
- simpl Im.
- replace (v / _)%C with ((v / Ci) * (/ (2*im_α))%R)%C.
- 2:{ rewrite RtoC_inv, RtoC_mult. 2:generalize im_α_nz; lra.
-     field; repeat split; try cconst. negapply RtoC_inj; apply im_α_nz. }
- rewrite re_scal_r.
- unfold Cdiv. rewrite Ci_inv.
- replace (v * -Ci)%C with (-v * Ci)%C by ring.
- rewrite re_mult_Ci.
- rewrite im_opp, Ropp_involutive.
- unfold v, u; clear u v. cbn -[pow].
- autorewrite with rbasic. fold (μ-2). fold (re_α-μ).
- rewrite <- misc_eqn.
- set (mo := (re_α-μ)^2+im_α^2).
- rewrite re_α_alt. field; split; try apply im_α_nz.
- unfold mo; clear mo. rewrite <-!Rsqr_pow2, Rplus_comm.
- negapply Rplus_sqr_eq_0_l. apply im_α_nz.
+ assert (0 <= Im det).
+ { unfold det.
+   replace (μ-αbar)%C with (Cconj (μ-α))%C.
+   2:{ now rewrite Cconj_minus_distr, Cconj_R. }
+   rewrite <- Cmod2_conj, im_scal_l, im_alt'.
+   replace (2*Ci*Im α)%C with ((2*Im α)*Ci)%C by ring.
+   rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1.
+   rewrite Rmult_1_r. change (Im α) with im_α.
+   apply Rmult_le_pos.
+   - rewrite <- Rsqr_pow2. apply Rle_0_sqr.
+   - generalize im_α_pos. nra. }
+ generalize det2.
+ destruct det as (x,y). simpl in *. rewrite Cmult_1_r.
+ unfold Ci. unfold Cmult; simpl. rewrite !Rmult_0_l, !Rmult_1_l.
+ intros [= RE IM].
+ ring_simplify in IM. rewrite Rmult_assoc in IM.
+ apply Rmult_integral in IM. destruct IM as [IM|IM]; [lra| ].
+ apply Rmult_integral in IM. destruct IM; subst; try nra.
+ f_equal; try ring. ring_simplify. symmetry. apply sqrt_lem_1; lra.
 Qed.
 
-#[local] Instance re_coef_α_bound : Approx (-0.157) (Re coef_α) (-0.156).
+Lemma det_nz : det <> 0.
 Proof.
- rewrite re_coef_α_alt. approx.
+ rewrite det_eqn. rewrite Cmult_integral. intros [[= E] | E]; try lra.
+ apply RtoC_inj in E. apply sqrt_eq_0 in E; lra.
 Qed.
 
-#[local] Instance coef_μ_bound : Approx 1.31 coef_μ 1.32.
+Definition coef_μ : R := 2 * μ^4 * im_α / sqrt 31.
+
+Definition coef_α : C := α^4 * (αbar - μ) / det.
+Definition coef_αbar := Cconj coef_α.
+
+#[local] Instance sqrt_31 : Approx 5.5677 (sqrt 31) 5.5678.
+Proof.
+ eapply pow2_approx_inv; try lra; try apply sqrt_pos.
+ rewrite <-Rsqr_pow2, Rsqr_sqrt; approx.
+Qed.
+
+#[local] Instance coef_μ_bound : Approx 1.3134 coef_μ 1.3135.
 Proof.
  unfold coef_μ. approx.
 Qed.
 
-(** These coefficients coef_α and coef_μ were found by manually
-    inverting the Vandermonde(μ,α,αbar) matrix.
-    Let's first verify the corresponding equations: *)
+Lemma coef_μ_alt1 : (RtoC coef_μ = μ^4 * (α-αbar) / det)%C.
+Proof.
+ unfold coef_μ. rewrite det_eqn. change im_α with (Im α).
+ rewrite im_alt'. rewrite RtoC_div, !RtoC_mult, RtoC_pow by approx.
+ field. split. negapply RtoC_inj. approx. intros [= E]; lra.
+Qed.
+
+Lemma coef_μ_alt2 : coef_μ = μ^3 * sqrt ((3*μ+1)/31).
+Proof.
+ unfold coef_μ. rewrite sqrt_div_alt by lra.
+ unfold Rdiv. rewrite <- Rmult_assoc. f_equal.
+ replace (2*μ^4*im_α) with (μ^3*(μ*2*im_α)) by ring. f_equal.
+ unfold im_α. field_simplify.
+ apply Rsqr_inj; try apply sqrt_pos.
+ - apply Rmult_le_pos. approx. apply sqrt_pos.
+ - rewrite Rsqr_mult, !Rsqr_sqrt by approx. rewrite Rsqr_pow2.
+   unfold τ, tau. fold μ. field. approx.
+Qed.
+
+Lemma coef_αbar_alt : (coef_αbar = αbar^4 * (μ-α) / det)%C.
+Proof.
+ unfold coef_αbar, coef_α.
+ rewrite Cdiv_conj by apply det_nz.
+ rewrite Cconj_mult_distr, Cpow_conj, Cconj_minus_distr, Cconj_R.
+ change (Cconj α) with αbar.
+ replace (Cconj αbar) with α.
+ 2:{ symmetry. change αbar with (Cconj α). apply Cconj_involutive. }
+ replace (Cconj det) with (- det)%C.
+ 2:{ rewrite det_eqn. rewrite Cconj_mult_distr, Cconj_R, Ci_conj. lca. }
+ field. apply det_nz.
+Qed.
+
+(** Verification of the desired equations about the coefficients *)
 
 Lemma coefs_eqn1 : coef_μ + 2 * Re coef_α = 1.
 Proof.
- unfold coef_μ. lra.
+ apply RtoC_inj. rewrite RtoC_plus, RtoC_mult, re_alt.
+ fold coef_αbar. rewrite coef_αbar_alt, coef_μ_alt1. unfold coef_α.
+ apply Cmult_eq_reg_l with det; try field_simplify; try apply det_nz.
+ apply Ceq_minus. unfold det. rewrite μ4, α4, αbar4. ring.
 Qed.
 
 Lemma coefs_eqn2 : coef_μ * μ + 2 * Re (coef_α * α) = 2.
 Proof.
- unfold coef_μ. unfold Rminus.
- rewrite Rmult_plus_distr_r, Rmult_1_l.
- rewrite <- Ropp_mult_distr_l, Rmult_assoc.
- rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
- rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
- rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp. fold (Cminus α μ).
- unfold coef_α.
- change αbar with (Cconj α); rewrite im_alt'.
- remember (_+_)%C as z eqn:EQ. simpl Im.
- replace (_*_)%C with (z/(2*im_α)/Ci)%C.
- 2:{ field; repeat split; try cconst.
-     - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
-     - negapply RtoC_inj. apply im_α_nz. }
- unfold Cdiv at 1. rewrite Ci_inv.
- replace (_*_)%C with ((-z/(2*im_α))*Ci)%C.
- 2: { field; repeat split; try cconst.
-      negapply RtoC_inj. apply im_α_nz. }
- rewrite re_mult_Ci.
- unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
- 2: { generalize im_α_nz. lra. }
- rewrite im_scal_r, im_opp.
- rewrite EQ; clear EQ z.
- rewrite im_plus.
- rewrite RtoC_pow, <- RtoC_minus, im_RtoC.
- rewrite <- RtoC_minus, im_scal_r, im_plus, im_RtoC.
- rewrite im_conj. simpl Im.
- field. apply im_α_nz.
+ apply RtoC_inj. rewrite RtoC_plus, !RtoC_mult, re_alt.
+ rewrite Cconj_mult_distr. change (Cconj α) with αbar.
+ fold coef_αbar. rewrite coef_αbar_alt, coef_μ_alt1. unfold coef_α.
+ apply Cmult_eq_reg_l with det; try field_simplify; try apply det_nz.
+ apply Ceq_minus. unfold det. rewrite μ5, α5, αbar5. ring.
 Qed.
 
-Lemma coefs_eqn3 : coef_μ * μ ^2 + 2 * Re (coef_α * α^2) = 3.
+Lemma coefs_eqn3 : coef_μ * μ^2 + 2 * Re (coef_α * α^2) = 3.
 Proof.
- unfold coef_μ. unfold Rminus.
- rewrite Rmult_plus_distr_r, Rmult_1_l.
- rewrite <- Ropp_mult_distr_l, Rmult_assoc.
- rewrite !Ropp_mult_distr_r. rewrite <- re_scal_r.
- rewrite Rplus_assoc, <- Rmult_plus_distr_l, <- re_plus.
- rewrite <- Cmult_plus_distr_l.
- rewrite Cplus_comm, RtoC_opp, <- RtoC_pow. fold (α^2 - μ^2)%C.
- unfold coef_α.
- change αbar with (Cconj α); rewrite im_alt'.
- remember (_+_)%C as z eqn:EQ. simpl Im.
- replace (_*_)%C with ((z*(α+μ))/(2*im_α)/Ci)%C.
- 2:{ simpl Cpow. field; repeat split; try cconst.
-     - destruct distinct_roots as (H & _ & _). now apply Cminus_eq_contra.
-     - negapply RtoC_inj. apply im_α_nz. }
- unfold Cdiv at 1. rewrite Ci_inv.
- replace (_*_)%C with (((-z*(α+μ))/(2*im_α))*Ci)%C.
- 2: { field; repeat split; try cconst.
-      negapply RtoC_inj. apply im_α_nz. }
- rewrite re_mult_Ci.
- unfold Cdiv. rewrite <- RtoC_mult, <- RtoC_inv.
- 2: { generalize im_α_nz. lra. }
- rewrite im_scal_r.
- rewrite EQ; clear EQ z.
- rewrite im_mult.
- rewrite !im_plus, !re_plus, !re_RtoC, !im_RtoC. simpl (Im α).
- simpl (Re α).
- replace (im_α + 0) with im_α by ring.
- rewrite re_opp, im_opp, re_plus, im_plus.
- rewrite !RtoC_pow, <- !RtoC_minus, re_RtoC, im_RtoC.
- rewrite re_scal_r, im_scal_r, re_plus, im_plus, re_RtoC, im_RtoC.
- rewrite re_conj, im_conj. simpl Re. simpl Im.
- field. apply im_α_nz.
+ apply RtoC_inj. rewrite RtoC_plus, !RtoC_mult, <- !RtoC_pow, re_alt.
+ rewrite Cconj_mult_distr, !Cpow_conj. change (Cconj α) with αbar.
+ fold coef_αbar. rewrite coef_αbar_alt, coef_μ_alt1. unfold coef_α.
+ apply Cmult_eq_reg_l with det; try field_simplify; try apply det_nz.
+ apply Ceq_minus. unfold det. rewrite μ6, α6, αbar6. ring.
 Qed.
 
 Lemma A2_eqn n : INR (A 2 n) = coef_μ * μ ^n + 2 * Re (coef_α * α^n).
@@ -398,56 +454,91 @@ Proof.
    rewrite is_lim_seq_incr_1 in L. apply L.
 Qed.
 
-(** Also note that the coefficients coef_α and coef_μ and (Cconj coef_μ)
-    are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31] *)
+(** Note: the coefficients coef_μ and coef_α and coef_αbar
+    are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31].
+    For proving that, we need first some more identities about
+    these coefficients. *)
 
-Definition det : C := ((μ-α)*(μ-αbar)*(α-αbar))%C.
-
-Lemma det2 : (det^2 = -31)%C.
+Lemma coef_sum : (coef_μ+coef_α+coef_αbar = 1)%C.
 Proof.
- unfold det.
- replace ((μ - α) * (μ - αbar))%C with (μ*(3*μ-2))%C.
- 2:{ ring_simplify. rewrite <- Cmod2_conj, αmod2.
-     replace (_+-1*μ*α+-1*μ*αbar)%C with (μ^2-μ*(1-μ))%C
-       by (rewrite <- roots_sum; ring).
-     rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring. }
- rewrite im_alt'. change (Im α) with im_α. unfold im_α.
- rewrite !Cpow_mul_l.
- rewrite <- !RtoC_mult, <- RtoC_minus, !RtoC_pow, <- !RtoC_mult.
- unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
- rewrite pow_inv.
- replace (2^2) with 4 by lra.
- simpl (Ci^2)%C. rewrite Cmult_1_r, Ci2.
- rewrite <- RtoC_opp, <- !RtoC_mult. f_equal.
- change τ with (/μ). field_simplify. 2:approx.
- unfold μ. rewrite mu_carac. field.
+ rewrite <- coefs_eqn1, RtoC_plus, RtoC_mult, re_alt.
+ unfold coef_αbar. field.
 Qed.
 
-Lemma det_eqn : (det = Ci * sqrt 31)%C.
+Lemma coef_prod : (coef_μ * coef_α * coef_αbar = 1/31)%C.
 Proof.
- assert (0 <= Im det).
- { unfold det.
-   replace (μ-αbar)%C with (Cconj (μ-α))%C.
-   2:{ now rewrite Cconj_minus_distr, Cconj_R. }
-   rewrite <- Cmod2_conj, im_scal_l, im_alt'.
-   replace (2*Ci*Im α)%C with ((2*Im α)*Ci)%C by ring.
-   rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1.
-   rewrite Rmult_1_r. change (Im α) with im_α.
-   apply Rmult_le_pos.
-   - rewrite <- Rsqr_pow2. apply Rle_0_sqr.
-   - generalize im_α_pos. nra. }
- generalize det2.
- destruct det as (x,y). simpl in *. rewrite Cmult_1_r.
- unfold Ci. unfold Cmult; simpl. rewrite !Rmult_0_l, !Rmult_1_l.
- intros [= RE IM].
- ring_simplify in IM. rewrite Rmult_assoc in IM.
- apply Rmult_integral in IM. destruct IM as [IM|IM]; [lra| ].
- apply Rmult_integral in IM. destruct IM; subst; try nra.
- f_equal; try ring. ring_simplify. symmetry. apply sqrt_lem_1; lra.
+ rewrite coef_μ_alt1, coef_αbar_alt. unfold coef_α.
+ replace (_*_)%C with (-(μ*α*αbar)^4* det/det^3)%C.
+ 2:{ unfold det at 1. field. apply det_nz. }
+ rewrite roots_prod. field_simplify. rewrite det2. lca. apply det_nz.
 Qed.
 
-(* TODO: Nicer expression for coef_μ :
-   (3-2*(α+αbar)+α*αbar)/(μ-α)/(μ-αbar) *)
+Lemma coef_μ2 : (31 * coef_μ^2 = 15*μ^2 + 7*μ + 11)%C.
+Proof.
+ rewrite coef_μ_alt2.
+ rewrite RtoC_pow, Rpow_mult_distr, pow2_sqrt by approx.
+ rewrite RtoC_mult, RtoC_div, <- !RtoC_pow, RtoC_plus, RtoC_mult by lra.
+ field_simplify. rewrite Cpow_S. now simpl_root.
+Qed.
+
+Lemma coef_α2 : (31 * coef_α^2 = 15*α^2 + 7*α + 11)%C.
+Proof.
+ unfold coef_α. rewrite (Cpow_S _ 3). rewrite α_is_root.
+ unfold Cdiv.
+ assert (α <> 0). { unfold α. intros [= E _]. revert E. approx. }
+ rewrite !Cpow_mul_l, Cpow_inv, det2 by apply det_nz.
+ replace ((αbar-μ)^2)%C with ((1-α^2)-2*(1/α))%C.
+ 2:{ rewrite <- roots_sum2 at 1. rewrite <- roots_prod at 1. now field. }
+ field_simplify; trivial. simpl_root. field.
+Qed.
+
+Lemma coef_αbar2 : (31 * coef_αbar^2 = 15*αbar^2 + 7*αbar + 11)%C.
+Proof.
+ unfold coef_αbar.
+ rewrite <- Cpow_conj. rewrite <- (Cconj_R 31).
+ rewrite <- Cconj_mult_distr, coef_α2.
+ now rewrite !Cconj_plus_distr, !Cconj_mult_distr, Cpow_conj, !Cconj_R.
+Qed.
+
+Lemma coef_squares : (coef_μ^2+coef_α^2+coef_αbar^2 = 55/31)%C.
+Proof.
+ apply Cmult_eq_reg_l with (RtoC 31); [|negapply RtoC_inj; lra].
+ field_simplify.
+ rewrite coef_μ2, coef_α2, coef_αbar2.
+ replace (RtoC 55) with (15*1+7*1+33)%C by lca.
+ rewrite <- roots_sum2 at 1. rewrite <- roots_sum at 1. ring.
+Qed.
+
+Lemma coef_sigma2 :
+  (coef_μ * coef_α + coef_α * coef_αbar + coef_αbar * coef_μ = -12/31)%C.
+Proof.
+ replace (_+_)%C with ((1^2-(55/31))/2)%C; try lca.
+ rewrite <- coef_sum, <- coef_squares. field.
+Qed.
+
+Lemma poly_coefs (X:C) :
+  ((X - coef_μ)*(X - coef_α)*(X - coef_αbar) = X^3-X^2-(12/31)*X-1/31)%C.
+Proof.
+ rewrite <- coef_prod.
+ rewrite <- (Cmult_1_l (X^2)), <- coef_sum.
+ unfold Cminus at 5.
+ replace (-X^2)%C with (- (1*X^2))%C by field.
+ replace (-(12/31 * X))%C with ((-12/31) * X)%C by field.
+ rewrite <- coef_sigma2.
+ field.
+Qed.
+
+Lemma coef_μ_poly : coef_μ^3 - coef_μ^2 - (12/31)*coef_μ - 1/31 = 0.
+Proof.
+ apply RtoC_inj.
+ rewrite !RtoC_minus, !RtoC_mult, !RtoC_div, <- !RtoC_pow by lra.
+ rewrite <- poly_coefs. ring.
+Qed.
+
+Lemma coef_α_poly : (coef_α^3 - coef_α^2 - (12/31)*coef_α - 1/31 = 0)%C.
+Proof.
+ rewrite <- poly_coefs. ring.
+Qed.
 
 
 (** ** Occurrences of letters in morphic word [Words.kseq 2]
@@ -783,29 +874,6 @@ Proof.
  simpl. ring.
 Qed.
 
-Ltac simpl_α := repeat (autorewrite with α; ring_simplify).
-#[local] Hint Rewrite α_is_root : α.
-
-Lemma α4 : (α^4 = 1 + α + α^2)%C.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α4 : α.
-
-Lemma α5 : (α^5 = 1 + α + 2*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α5 : α.
-
-Lemma α6 : (α^6 = 2 + α + 3*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α6 : α.
-
-Lemma α7 : (α^7 = 3 + 2*α + 4*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α7 : α.
-
-Lemma α8 : (α^8 = 4 + 3*α + 6*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α8 : α.
-
 Lemma cmod2_trinom_α (a b c : R) :
  (Cmod (a*α^2 + b*α + c))^2 =
  (1/4)*((2*c - b*τ^2 - a*τ*(1+τ))^2 + τ*(3+τ)*(b-a*τ^2)^2).
@@ -822,7 +890,7 @@ Ltac calc_α :=
   let c := fresh in
   let H := fresh in
   remember (Cplus _ _) as c eqn:H;
-  repeat (autorewrite with α in H; ring_simplify in H);
+  repeat (autorewrite with root in H; ring_simplify in H);
   rewrite H; clear c H;
  (* Hack : explicit 1*α and 1*α^2 if needed for easy
     application of cmod2_trinom_α below *)
