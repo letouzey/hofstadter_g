@@ -255,6 +255,15 @@ Proof.
  now apply multdiffs_nodup.
 Qed.
 
+(** Conjecture (TODO?) : the square of this determinant seems to be
+    [+/- ((k+1)^(k+1)+k^k)].
+    For instance +5 for k=1, -31 for k=2, -283 for k=3, +3381 for k=4
+    See OEIS A056788.
+    At least, this square is clearly an integer, since it's a symmetric
+    polynomial of the roots (determinant is alternating) with coefficients
+    in Z, hence it is a Z polynomial of the elementary symmetric polynomials
+    that here are -1 or 0 or 1 (coefficients of ThePoly). *)
+
 Lemma VdmRoots_invertible : invertible vdmroot.
 Proof.
  apply lin_indep_invertible. apply WF_Vandermonde.

@@ -25,3 +25,4 @@ X Limite des racines à l'infini
 * L'enumération des facteurs peut-elle donner la quasi-additivité
   -2..2 pour k=2 sans axiomes réels ?
 
+* det(VDM(roots(ThePoly)))^2 =+/- A056788  ?
