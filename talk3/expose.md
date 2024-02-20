@@ -337,7 +337,7 @@ A^k_{n+1} &= A^k_{n} + A^k_{n-k} \spa \text{pour}\ n\ge k \spa
   (Fibonacci $F_i$)
   
 - $A^2$ : \textcolor{red}{1  2  3}  4  6  9  13  19  28  41 $\ldots$
-  (Naryana's Cows)
+  (Narayana's Cows)
   
 - $A^3$ : \textcolor{red}{1  2  3  4}  5  7  10  14  19  26 $\ldots$
 
