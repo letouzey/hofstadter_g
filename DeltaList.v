@@ -5,8 +5,9 @@ Require Import MoreList.
 Import ListNotations.
 Set Implicit Arguments.
 
-Ltac autoh := lia || auto with hof.
-Ltac eautoh := lia || eauto with hof.
+Ltac autoh := lia || auto with hof datatypes.
+Ltac eautoh := lia || eauto with hof datatypes.
+Ltac intuith := intuition autoh.
 
 (** * Increasing lists *)
 
@@ -41,7 +42,7 @@ Qed.
 
 Lemma Delta_inv p x l : Delta p (x::l) -> Delta p l.
 Proof.
- rewrite Delta_alt. intuition.
+ now rewrite Delta_alt.
 Qed.
 
 Lemma Delta_inv2 p x y l :
@@ -100,7 +101,7 @@ Qed.
 Lemma Delta_pred p l :
  ~In 0 l -> Delta p l -> Delta p (map pred l).
 Proof.
- induction 2; simpl in *; constructor; intuition; autoh.
+ induction 2; simpl in *; constructor; autoh.
 Qed.
 
 Lemma Delta_seq n k : Delta 1 (seq n k).
@@ -118,8 +119,7 @@ Proof.
  induction l.
  - intros _ Hl' H. simpl. eautoh.
  - intros Hl Hl' H. simpl. apply Delta_alt. split.
-   + apply IHl; eautoh.
-     intros y Hy. apply H. now right.
+   + eautoh.
    + intros y Hy. rewrite in_app_iff in Hy.
      destruct Hy as [Hy|Hy].
      * rewrite Delta_alt in Hl. now apply Hl.
@@ -135,10 +135,10 @@ Lemma Delta_app_iff p l l':
   (forall x x' : nat, In x l -> In x' l' -> x + p <= x').
 Proof.
  induction l; simpl.
- - intuition.
+ - intuith.
  - rewrite !Delta_alt, IHl. split.
    + intros ((D & D' & H) & H'). repeat split; auto.
-     * intuition.
+     * intuith.
      * intros x x' [<-|IN] IN'; auto.
        apply H'. rewrite in_app_iff; now right.
    + intros ((D,H) & D' & H'). repeat split; auto.
@@ -230,8 +230,8 @@ Lemma DeltaRev_app_inv p l l' :
  forall x x', In x l -> In x' l' -> x'+p <= x.
 Proof.
  induction l; simpl.
- - split. constructor. intuition.
- - rewrite !DeltaRev_alt. intuition.
+ - split. constructor. intuith.
+ - rewrite !DeltaRev_alt. intuith.
    subst. apply H1. rewrite in_app_iff. now right.
 Qed.
 
@@ -248,7 +248,7 @@ Proof.
      intros y Hy. apply DeltaRev_app_inv in IHDelta.
      destruct IHDelta as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition; autoh.
+     rewrite in_app_iff in Hy. simpl in *. intuith.
  - induction 1.
    + constructor.
    + constructor.
@@ -257,7 +257,7 @@ Proof.
      intros y Hy. apply Delta_app_inv in IHDeltaRev.
      destruct IHDeltaRev as (_ & _ & IH).
      specialize (IH y n).
-     rewrite in_app_iff in Hy. simpl in *. intuition; autoh.
+     rewrite in_app_iff in Hy. simpl in *. intuith.
 Qed.
 
 Lemma DeltaRev_rev p l : DeltaRev p (rev l) <-> Delta p l.
