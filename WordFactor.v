@@ -487,10 +487,10 @@ Proof.
  assert (I : forall u, In u (kfactors k 0) <-> u=[]).
  { intros u. unfold kfactors. rewrite nodup_In. apply kfactors0opt_0_r. }
  destruct (kfactors k 0) as [|u [|v l]].
- - specialize (I []). intuition.
+ - now destruct (I []) as (_,[ ]).
  - f_equal. rewrite <- I. now left.
- - replace u with (@nil nat) in D by (symmetry; rewrite <- I; intuition).
-   replace v with (@nil nat) in D by (symmetry; rewrite <- I; intuition).
+ - replace u with (@nil nat) in D by (symmetry; rewrite <- I; intuith).
+   replace v with (@nil nat) in D by (symmetry; rewrite <- I; intuith).
    inversion_clear D. simpl in *. intuition.
 Qed.
 
