@@ -810,12 +810,12 @@ Qed.
 
 Lemma Suffix_app_l {A} (l u v : list A) : Suffix u v -> Suffix u (l++v).
 Proof.
- intros (w,<-). exists (l++w). now rewrite app_ass.
+ intros (w,<-). exists (l++w). now rewrite app_assoc.
 Qed.
 
 Lemma Suffix_app_r {A} (u v r : list A) : Suffix u v -> Suffix (u++r) (v++r).
 Proof.
- intros (w,<-). exists w. now rewrite app_ass.
+ intros (w,<-). exists w. now rewrite app_assoc.
 Qed.
 
 Lemma Suffix_cons_inv {A} (a:A) u v :
@@ -896,12 +896,12 @@ Qed.
 
 Lemma Sub_app_l {A} (l u v : list A) : Sub u v -> Sub u (l++v).
 Proof.
- intros (w & w' & <-). exists (l++w), w'. now rewrite app_ass.
+ intros (w & w' & <-). exists (l++w), w'. now rewrite <- app_assoc.
 Qed.
 
 Lemma Sub_app_r {A} (u v r : list A) : Sub u v -> Sub u (v++r).
 Proof.
- intros (w & w' & <-). exists w, (w'++r). now rewrite !app_ass.
+ intros (w & w' & <-). exists w, (w'++r). now rewrite !app_assoc.
 Qed.
 
 Lemma Sub_cons_r {A} (a:A) u : Sub u (a::u).
