@@ -14,7 +14,7 @@ A first technical report is on HAL: http://hal.inria.fr/hal-01195587
 
 A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
 
-Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk/expose.pdf)
+Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk3/expose.pdf)
 
 
 Usage
