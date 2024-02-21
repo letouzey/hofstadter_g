@@ -1,5 +1,5 @@
 % Un problème d'Hofstadter pour ses lecteurs curieux
-% Pierre Letouzey
+% Pierre Letouzey (CC-BY)
 % 9 novembre 2018
 
 ## Avertissement : la préparation de cet exposé a subi...

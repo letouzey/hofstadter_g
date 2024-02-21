@@ -1,5 +1,5 @@
 % A propos d'une curieuse famille de fonctions récursives imbriquées dues à Hofstadter
-% Pierre Letouzey
+% Pierre Letouzey (CC-BY)
 % 9 octobre 2023
 
 ## Avertissement : la préparation de cet exposé a subi...

@@ -1,5 +1,5 @@
 % Fonction G de Hofstadter et au-delà: un exemple curieux mêlant calculs et preuves sur ordinateur
-% Pierre Letouzey (IRIF, UPC, Inria)
+% Pierre Letouzey (IRIF, UPC, Inria) CC-BY
 % FSMP, 2 décembre 2023
 
 ## Avertissement : la préparation de cet exposé a subi...
