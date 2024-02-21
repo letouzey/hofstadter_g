@@ -31,7 +31,11 @@ Definition g n := let (a,_) := g_spec n in a.
 
 (*Eval lazy in g 55.*) (* Compute is very slow... *)
 
-(*Recursive Extraction g.*) (* TODO: des let-in parasites *)
+(*
+Require Import Extraction.
+Extraction Inline g_spec.
+Recursive Extraction g.
+*)
 
 (** This is just an alternative presentation... *)
 
