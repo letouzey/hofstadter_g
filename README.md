@@ -20,9 +20,9 @@ Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [t
 Usage
 -----
 
-Use "make" to compile the Coq files.
-Use "make gallinahtml" to generate the short html documentation.
-Use "cd reports/g && pdflatex report" to generate the pdf of the technical report.
+- Use `make` to compile the Coq files.
+- Use `make gallinahtml` to generate the short html documentation.
+- Use `cd reports/g && pdflatex report` to generate the pdf of the technical report.
 
 Some recent files depend on Coq >= 8.16 and external libraries Coquelicot >= 3.3.0
 and QuantumLib. I advise to fetch them via opam :
