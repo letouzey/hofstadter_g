@@ -1225,11 +1225,11 @@ Proof.
  - simpl.
    case Nat.leb_spec; intros.
    + assert (Hd := renormS_head k a l).
-     destruct renormS. intuition.
+     destruct renormS. intuith.
      destruct Hd as (m,Hd); simpl in Hd.
      split; auto with arith.
      intros _. injection 1 as ->. discriminate.
-   + intuition lia.
+   + intuith.
 Qed.
 
 Lemma fs_flat_low_rank k p n : p <= S k ->

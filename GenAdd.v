@@ -230,8 +230,8 @@ Proof.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
  rewrite !f_sumA_lax; autoh.
  - rewrite !map_app, !sumA_app. lia.
- - rewrite Delta_app_iff in D. intuition.
- - rewrite Delta_app_iff in D'. intuition.
+ - rewrite Delta_app_iff in D. intuith.
+ - rewrite Delta_app_iff in D'. intuith.
 Qed.
 
 Lemma additivity_bounded k p : k<>0 ->
@@ -481,8 +481,8 @@ Proof.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
  unfold h. rewrite !f_sumA_lax; autoh.
  - rewrite !map_app, !sumA_app. lia.
- - rewrite Delta_app_iff in D. intuition.
- - rewrite Delta_app_iff in D'. intuition.
+ - rewrite Delta_app_iff in D. intuith.
+ - rewrite Delta_app_iff in D'. intuith.
 Qed.
 
 Lemma additivity_bounded_k2 p :

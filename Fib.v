@@ -215,7 +215,7 @@ Lemma decomp_exists_rev n :
 Proof.
  induction n as [n IH] using lt_wf_rec.
  destruct (eq_nat_dec n 0) as [EQ|NE].
- - subst. exists (@nil nat). simpl; intuition.
+ - subst. exists (@nil nat). simpl; intuith.
  - destruct (fib_inv n) as (k,Hk).
    assert (Hk' : k<>0). { intro; subst k; compute in Hk; lia. }
    assert (Hk'' : k<>1). { intro; subst k; compute in Hk; lia. }
@@ -1077,7 +1077,7 @@ Lemma EvenHigh_pred_ThreeOdd n :
 Proof.
  intros (k,L) H H'.
  assert (2<k).
- { destruct k as [|[|[|k]]]; intuition; destruct L; intuition; lia. }
+ { destruct k as [|[|[|k]]]; intuith; destruct L; intuith. }
  clear H H'.
  destruct L as (l & E & D & _).
  exists 2. exists (map (fun n=>4+n) (odds (k-3)) ++ l).

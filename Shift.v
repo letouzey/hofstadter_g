@@ -46,7 +46,7 @@ Proof.
  assert (D := decomp_delta k n).
  assert (NZ : ~In 0 (decomp k n)).
  { destruct (decomp k n) as [|a l]; auto.
-   apply Delta_nz with (S k); auto. destruct a; intuition. }
+   apply Delta_nz with (S k); auto. destruct a; intuith. }
  clear Hrank.
  rewrite <- E. rewrite f_sumA; auto.
  rewrite shift_sum by auto using Delta_pred with hof.
