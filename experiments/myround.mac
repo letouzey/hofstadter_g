@@ -1,7 +1,0 @@
-/* Rounding small enough numbers to zero
-   Cf https://stackoverflow.com/questions/67117780/round-off-to-zero-behavior-in-maxima-float-coefficients
-*/
-matchdeclare(somefloat,floatnump);
-defrule(myround_rule,somefloat,if abs(somefloat) <= myround_epsilon then 0 else somefloat);
-myround_epsilon : 1e-10;
-myround(x) := applyb1(x,myround_rule);
