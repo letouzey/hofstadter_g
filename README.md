@@ -3,10 +3,19 @@ Investigation of Hofstadter's G function, tree, and mirror
 ==========================================================
 
 A Coq development by Pierre Letouzey, started in summer 2015.
+It now extends to a whole family of functions generalizing G,
+and it also considers related infinite morphic words extending
+the Fibonacci word.
 
-http://www.pps.univ-paris-diderot.fr/~letouzey/hofstadter_g
+Documentation:
+--------------
 
 A first technical report is on HAL: http://hal.inria.fr/hal-01195587
+
+A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
+
+Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk/expose.pdf)
+
 
 Usage
 -----
