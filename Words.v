@@ -691,7 +691,7 @@ Proof.
            apply renorm_loop_delta; trivial. lia. }
        subst a. simpl. rewrite !kwords_app, !kwords_singl.
        rewrite kword_eqn by lia.
-       replace (i+k-k) with i by lia. rewrite <- app_ass. f_equal.
+       replace (i+k-k) with i by lia. rewrite app_assoc. f_equal.
        rewrite <- (kwords_singl k (i+k)), <- kwords_app.
        change (_++_) with (rev (i+k::l')). rewrite <- E.
        apply IH; trivial; try lia.
@@ -941,7 +941,7 @@ Proof.
      * destruct (IHv u' NE' Pr) as (w & t & b & Hv & E' & Ht).
        exists (a::w), t, b. repeat split; auto.
        { simpl. now apply Prefix_cons. }
-       { now rewrite napply_cons, app_ass, <- E', <- E. }
+       { now rewrite napply_cons, <- app_assoc, <- E', <- E. }
 Qed.
 
 (** Saari's Lemma 4 : decomposition of a prefix of s^n(a),
@@ -972,7 +972,7 @@ Proof.
    destruct (IH n (Nat.lt_succ_diag_r n) b w2)
      as (l & z & EQ & F & D & LE); auto; try lia.
    exists ((n,w1)::l), z; repeat split; auto.
-   + simpl. now rewrite app_ass, <-EQ.
+   + simpl. now rewrite <- app_assoc, <-EQ.
    + constructor; try split; auto; try lia.
      * rewrite <- (B1 a). simpl. rewrite app_nil_r.
        apply Prefix_len in H1. rewrite app_length in H1. simpl in H1. lia.
@@ -1020,7 +1020,7 @@ Proof.
    destruct (IH n (Nat.lt_succ_diag_r n) b w2)
      as (l & z & EQ & F & LE); auto; try lia. clear IH.
    exists (map (fun u => (n,u)) w1 ++ l), z; repeat split; auto.
-   + simpl. rewrite H2, EQ. rewrite <- app_ass. f_equal.
+   + simpl. rewrite H2, EQ. rewrite app_assoc. f_equal.
      rewrite flat_map_app. f_equal.
      now rewrite flatmap_map, napply_flat_map.
    + apply Forall_app; split.
@@ -1031,7 +1031,7 @@ Proof.
      * rewrite Forall_forall in *. intros (p,c) IN.
        destruct (F (p,c) IN). split; trivial. eapply Reachable_trans; eauto.
        exists 1. simpl. rewrite app_nil_r. destruct H1 as (w3 & <-).
-       rewrite !in_app_iff; intuition.
+       rewrite !in_app_iff; intuith.
 Qed.
 
 Lemma Reachable_ksubst k p :
