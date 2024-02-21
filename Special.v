@@ -1705,7 +1705,7 @@ Proof.
    intros [(x & <- & IN)|(v & E & IN)].
    + split.
      * simpl. f_equal. apply kprefix_length.
-     * destruct (kprefix_allleftexts k p) as (_,(H,_)). apply H.
+     * destruct (kprefix_allleftexts k p) as (_,H). apply H.
        rewrite in_seq; lia.
    + rewrite filter_In in IN. destruct IN as (IN,E').
      revert E'. case listnat_eqb_spec; intros; try easy. clear E'.

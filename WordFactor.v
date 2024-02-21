@@ -233,7 +233,7 @@ Proof.
  intros Hp.
  unfold kfactors0.
  rewrite app_length, allsubs_length, kword_len, A_base by lia.
- rewrite flat_map_length with (k:=S k), seq_length.
+ rewrite MoreList.flat_map_length with (k:=S k), seq_length.
  2:{ intros. unfold map_appr. rewrite map_length. apply allsuffixes_length. }
  case Nat.leb_spec; nia.
 Qed.
@@ -325,7 +325,7 @@ Proof.
  set (pref := firstn p' (kword k q)).
  set (suffs := allsuffixesAt k p' q).
  rewrite app_length, allsubs_length, kword_len, A_base by lia.
- rewrite flat_map_length with (k:=p').
+ rewrite MoreList.flat_map_length with (k:=p').
  2:{ intros a. rewrite map_appr_in. intros (w & <- & IN).
      rewrite allsubs_length, app_length.
      apply allsuffixesAt_spec in IN. 2:apply invA_up_spec.

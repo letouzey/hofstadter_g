@@ -797,7 +797,7 @@ Proof.
  simpl in *.
  rewrite <- IHn.
  destruct (renorm_loop k l n) eqn:E; simpl; trivial.
- case Nat.eqb_spec; intros; trivial. apply IHn.
+ case Nat.eqb_spec; intros. apply IHn. trivial.
 Qed.
 
 Lemma renorm_mapS k l : map S (renorm k l) = renorm k (map S l).

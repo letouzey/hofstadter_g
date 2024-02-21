@@ -403,7 +403,7 @@ Fixpoint bigxor {A} (f:A->bool) l :=
 Lemma bigxor_app {A} (f:A->bool) l1 l2 :
  bigxor f (l1++l2) = xorb (bigxor f l1) (bigxor f l2).
 Proof.
- induction l1; simpl; trivial.
+ induction l1; simpl.
  - now destruct bigxor.
  - now rewrite IHl1, xorb_assoc.
 Qed.
