@@ -49,8 +49,9 @@ References:
 License
 -------
 
+The documents in all subdirectories (especially reports/ talk/ talk2/
+talk3/ poster/) are released under the CC-BY 4.0 license,
+see http://creativecommons.org/licenses/by/4.0/.
+
 The Coq files of this development are released in the Public Domain,
 see the LICENSE file in the current directory.
-
-The technical report report.tex is released under the CC-BY 4.0 license,
-see http://creativecommons.org/licenses/by/4.0/

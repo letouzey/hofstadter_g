@@ -1,1 +1,7 @@
-I, Pierre Letouzey, waive my copyright over this development, and place it into the Public Domain.
+
+
+I, Pierre Letouzey, waive my copyright over this Coq development,
+and place it into the Public Domain, with the exception of documents
+in all subdirectories (especially reports/ talk/ talk2/ talk3/ poster/)
+that are released under the CC-BY 4.0 license,
+see http://creativecommons.org/licenses/by/4.0/.
