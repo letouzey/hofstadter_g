@@ -1811,7 +1811,9 @@ Proof.
      apply Sub_cons_r.
    + unfold f. now case listnat_eqb_spec.
  - intros u. rewrite filter_In. unfold f.
-   case listnat_eqb_spec; intros; subst; intuition.
+   case listnat_eqb_spec.
+   + intros ->. simpl. now left.
+   + intros _ (_,[=]).
 Qed.
 
 Lemma kfactors_length k p : length (kfactors k p) = k*p+1.

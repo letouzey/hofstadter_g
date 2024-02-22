@@ -94,10 +94,10 @@ Qed.
 
 Lemma Peq0_carac' p : p≅[] <-> Forall (eq C0) p.
 Proof.
- induction p.
- - intuition.
- - rewrite Peq0_cons, IHp. clear IHp. intuition.
-   now inversion H. now inversion H.
+ induction p; try easy.
+ rewrite Peq0_cons, IHp. clear IHp. split.
+ - now constructor.
+ - now inversion 1.
 Qed.
 
 Lemma prune_last (c:C) p :
