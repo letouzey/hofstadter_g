@@ -362,7 +362,7 @@ Proof.
  rewrite Rlistsum_app, IHl. simpl; lra.
 Qed.
 
-Lemma listsum_INR (l:list nat) : INR (listsum l) = Rlistsum (map INR l).
+Lemma listsum_INR (l:list nat) : INR (list_sum l) = Rlistsum (map INR l).
 Proof.
  induction l; simpl; trivial. rewrite plus_INR. now f_equal.
 Qed.

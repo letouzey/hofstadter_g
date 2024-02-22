@@ -229,28 +229,21 @@ Proof.
  - econstructor; eauto.
 Qed.
 
-(** Sum of a [nat list] *)
+(** More about [list_sum], the sum of a [nat list] *)
 
-Definition listsum l := List.fold_right Nat.add 0 l.
-
-Lemma listsum_cons x l : listsum (x::l) = x + listsum l.
+Lemma list_sum_cons x l : list_sum (x::l) = x + list_sum l.
 Proof.
  reflexivity.
 Qed.
 
-Lemma listsum_app l l' : listsum (l++l') = listsum l + listsum l'.
-Proof.
- induction l; simpl; rewrite ?IHl; lia.
-Qed.
-
-Lemma listsum_rev l : listsum (rev l) = listsum l.
+Lemma list_sum_rev l : list_sum (rev l) = list_sum l.
 Proof.
  induction l; simpl; auto.
- rewrite listsum_app, IHl. simpl; lia.
+ rewrite list_sum_app, IHl. simpl; lia.
 Qed.
 
 Lemma length_concat {A} (l:list (list A)) :
- length (concat l) = listsum (map (@length _) l).
+ length (concat l) = list_sum (map (@length _) l).
 Proof.
  induction l; simpl; trivial.
  rewrite app_length. now f_equal.
@@ -563,10 +556,10 @@ Proof.
        symmetry. apply H; auto.
 Qed.
 
-Lemma cumul_alt f n : cumul f n = listsum (take n f).
+Lemma cumul_alt f n : cumul f n = list_sum (take n f).
 Proof.
  induction n. trivial. unfold take in *.
- rewrite seq_S, map_app, listsum_app, <- IHn. simpl. lia.
+ rewrite seq_S, map_app, list_sum_app, <- IHn. simpl. lia.
 Qed.
 
 (** Counting values in [list nat] *)
@@ -615,7 +608,7 @@ Proof.
 Qed.
 
 Lemma nbocc_concat a l :
- nbocc a (concat l) = listsum (map (nbocc a) l).
+ nbocc a (concat l) = list_sum (map (nbocc a) l).
 Proof.
  induction l as [|w l IH]; simpl; auto.
  rewrite nbocc_app. now f_equal.
@@ -782,9 +775,10 @@ Proof.
  intros p a Hp. rewrite !take_nth; trivial; lia.
 Qed.
 
-Lemma listsum_prefix (u v:list nat) : Prefix u v -> listsum u <= listsum v.
+Lemma list_sum_prefix (u v:list nat) :
+  Prefix u v -> list_sum u <= list_sum v.
 Proof.
- intros (u',<-). rewrite listsum_app. lia.
+ intros (u',<-). rewrite list_sum_app. lia.
 Qed.
 
 Lemma Suffix_id {A} (w : list A) : Suffix w w.

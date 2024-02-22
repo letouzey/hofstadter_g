@@ -711,11 +711,11 @@ Qed.
 
 Lemma count_kseq_decomp k n a :
  count (kseq k) a n =
-  listsum (map (fun m => nbocc a (kword k m)) (decomp k n)).
+  list_sum (map (fun m => nbocc a (kword k m)) (decomp k n)).
 Proof.
  rewrite count_nbocc, decomp_prefix_kseq. unfold kwords.
  rewrite flat_map_concat_map, nbocc_concat.
-  now rewrite map_map, map_rev, listsum_rev.
+  now rewrite map_map, map_rev, list_sum_rev.
 Qed.
 
 (** Occurrences of letters when applying ksubst *)

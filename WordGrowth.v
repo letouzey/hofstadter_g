@@ -257,18 +257,18 @@ Proof.
  case Nat.eqb_spec; simpl; lia.
 Qed.
 
-Lemma listsum_ksubstw k u :
-  listsum (ksubstw k u) + nbocc k u = listsum u + length u.
+Lemma list_sum_ksubstw k u :
+  list_sum (ksubstw k u) + nbocc k u = list_sum u + length u.
 Proof.
  induction u; trivial.
- simpl. rewrite listsum_app. unfold ksubst at 1.
+ simpl. rewrite list_sum_app. unfold ksubst at 1.
  case Nat.eqb_spec; simpl; try lia.
 Qed.
 
-Lemma listsum_ksubstw' k u :
-  listsum (ksubstw k u) = listsum u + length u - nbocc k u.
+Lemma list_sum_ksubstw' k u :
+  list_sum (ksubstw k u) = list_sum u + length u - nbocc k u.
 Proof.
- generalize (nbocc_le_length k u) (listsum_ksubstw k u). lia.
+ generalize (nbocc_le_length k u) (list_sum_ksubstw k u). lia.
 Qed.
 
 Lemma cumul_kseq_grows k n : 0<n -> cumul (kseq k) n < cumul (kseq (S k)) n.
@@ -312,13 +312,13 @@ Proof.
      assert (P : Prefix (kprefix k (S n)) (ksubstw k (kprefix k m))).
      { apply (PrefixSeq_incl (kseq k)); auto using kprefix_ok, ksubstw_prefix.
        now rewrite kprefix_length. }
-     apply listsum_prefix in P.
+     apply list_sum_prefix in P.
      rewrite <- cumul_alt in P.
      eapply Nat.le_lt_trans; [ apply P | ]. clear P.
      rewrite cumul_alt, E. clear E.
      generalize (nbocc_le_length k (kprefix k m)).
      generalize (nbocc_le_length (S k) (kprefix (S k) m)).
-     rewrite !listsum_ksubstw'.
+     rewrite !list_sum_ksubstw'.
      rewrite <- !cumul_alt, !take_length, <- !count_nbocc.
      fold (a k m) (a (S k) m). lia.
 Qed.
