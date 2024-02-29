@@ -509,6 +509,12 @@ Proof.
  unfold take. now rewrite seq_S, map_app.
 Qed.
 
+Lemma take_add {A} a b (f:nat->A) :
+  take (a+b) f = take a f ++ map f (seq a b).
+Proof.
+ unfold take. now rewrite seq_app, map_app.
+Qed.
+
 Lemma take_S_shift {A} n (f:nat -> A) :
  take (S n) f = f 0 :: take n (fun n => f (S n)).
 Proof.

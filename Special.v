@@ -394,16 +394,6 @@ Proof.
  intros ->. unfold prev_letter. now rewrite Nat.eqb_refl.
 Qed.
 
-Lemma ksubst_k k : ksubst k k = [k;0].
-Proof.
- unfold ksubst. now rewrite Nat.eqb_refl.
-Qed.
-
-Lemma ksubst_km1 k : k<>0 -> ksubst k (k-1) = [k].
-Proof.
- intros K. unfold ksubst. case Nat.eqb_spec; intros. lia. f_equal. lia.
-Qed.
-
 Lemma ksubst_next_letter k a : a<>k -> ksubst k a = [next_letter k a].
 Proof.
  intros A. unfold ksubst, next_letter. case Nat.eqb_spec; auto; lia.

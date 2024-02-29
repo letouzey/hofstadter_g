@@ -244,6 +244,11 @@ Proof.
  rewrite IHp. apply f_k_1.
 Qed.
 
+Lemma fs_k_2 k p : 0<p -> fs k p 2 = 1.
+Proof.
+ destruct p. easy. intros _. now rewrite iter_S, f_k_2, fs_k_1.
+Qed.
+
 Lemma f_eqn k n : f k (S n) + fs k (S k) n = S n.
 Proof.
  assert (H := f_sound k (S n)).

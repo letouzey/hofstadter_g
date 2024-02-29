@@ -593,3 +593,255 @@ Proof.
    transitivity (fs k' p n); [ | now apply fs_mono]. clear n' N.
    induction K; trivial. generalize (fs_grows m p n). lia.
 Qed.
+
+(** Steiner's Thm 1 (direct link between f and kseq) *)
+
+(** Note: in Wolfgang text, substitution [au_k] is [map S]
+    of my [(ksubst (k-1))] and function [F_k] is my [f (k-1)]. *)
+
+Definition knsubstw k j : word -> word := napply (ksubst k) j.
+
+Definition L k j n := length (knsubstw k j (kprefix k n)).
+
+Lemma knsubstw_app k j u v :
+  knsubstw k j (u++v) = knsubstw k j u ++ knsubstw k j v.
+Proof.
+ apply napply_app.
+Qed.
+
+Lemma knsubstw_prefixseq_gen k j w :
+  PrefixSeq w (kseq k) -> PrefixSeq (knsubstw k j w) (kseq k).
+Proof.
+ intros.
+ apply PrefixSeq_napply; trivial using ksubst_noerase, ksubst_prolong.
+Qed.
+
+Lemma knsubstw_prefixseq k j n :
+  PrefixSeq (knsubstw k j (kprefix k n)) (kseq k).
+Proof.
+ apply knsubstw_prefixseq_gen, kprefix_ok.
+Qed.
+
+Lemma L_incr k j : IncrFun (L k j).
+Proof.
+ intro n.
+ unfold L, knsubstw. rewrite take_S, napply_app, app_length.
+ generalize (@napply_mono _ 0 j [kseq k n] (ksubst_noerase k)).
+ simpl. lia.
+Qed.
+
+Lemma L_lt k j n m : n < m <-> L k j n < L k j m.
+Proof.
+ apply incr_monoiff. apply L_incr.
+Qed.
+
+Lemma L_add k i j n : L k i (L k j n) = L k (i+j) n.
+Proof.
+ unfold L. f_equal.
+ generalize (knsubstw_prefixseq k j n). unfold PrefixSeq. intros <-.
+ unfold knsubstw. symmetry. apply napply_add.
+Qed.
+
+Lemma L_S k j n :
+ L k j (S n) = L k j n + length (knsubstw k j [kseq k n]).
+Proof.
+ unfold L. now rewrite take_S, knsubstw_app, app_length.
+Qed.
+
+Lemma L_k_0 k n : L k 0 n = n.
+Proof.
+ unfold L, knsubstw. simpl. apply kprefix_length.
+Qed.
+
+Lemma L_0_1 n : L 0 1 n = 2*n.
+Proof.
+ induction n; try easy.
+ rewrite L_S, IHn. cbn. unfold ksubst.
+ replace (kseq 0 n) with 0 by (generalize (kseq_letters 0 n); lia).
+ simpl. lia.
+Qed.
+
+Definition Thm1 k j n :=
+  0<n -> L k j (Nat.pred (fs k j n)) < n <= L k j (fs k j n).
+
+Lemma steiner_thm1_k0_j1 n : Thm1 0 1 n.
+Proof.
+ red. rewrite !L_0_1. simpl fs.
+ induction n.
+ - inversion 1.
+ - intros _. rewrite f_S. simpl fs.
+   destruct (Nat.eq_dec n 0) as [->|N]; [simpl; lia | lia].
+Qed.
+
+Lemma steiner_thm1_aux1 k n :
+  Thm1 k 1 n -> L k 1 (f k n) = n \/ kseq k n = 0.
+Proof.
+  intros IH1.
+  destruct (Nat.eq_dec n 0) as [->|Hn]; try now left.
+  specialize (IH1 ltac:(lia)). simpl in IH1.
+  generalize (knsubstw_prefixseq k 1 (f k n)).
+  revert IH1.
+  replace (f k n) with (S (Nat.pred (f k n))) at 2 3 4
+    by (generalize (@f_nonzero k n); lia).
+  rewrite L_S. unfold L.
+  rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
+  set (w := knsubstw k 1 (kprefix k (Nat.pred (f k n)))).
+  set (x := kseq _ _) in *.
+  unfold knsubstw. simpl. rewrite app_nil_r.
+  unfold ksubst. case Nat.eqb; intros W0 W; simpl in *; try lia.
+  destruct (Nat.eq_dec (length w) (n-1)) as [W'|W']; try lia.
+  right. rewrite W' in W.
+  rewrite Nat.add_succ_r, Nat.add_1_r in W.
+  rewrite !take_S, <- app_assoc in W. simpl in W.
+  apply app_inv' in W; try easy.
+  destruct W as (_,[= _ ->]). f_equal. lia.
+Qed.
+
+Lemma steiner_thm1_corestep k n : 2<=n ->
+  (forall j, Thm1 k j (n-1)) -> (forall j, Thm1 k j n) -> Thm1 k 1 (S n).
+Proof.
+ intros Hn IHn1 IHn.
+ (* Case k=0 must be handled separately (but it's easy, L is double) *)
+ destruct (Nat.eq_dec k 0) as [->|Hk]; [ apply steiner_thm1_k0_j1 | ].
+ assert (Hn' : S (n-1) = n) by lia.
+ destruct (fs_step k (S k) (n-1)) as [E|E]; rewrite Hn' in E.
+ - (* First case : f^^(S k) flat at (n-1) *)
+   destruct (steiner_thm1_aux1 k n (IHn 1)) as [EQ|EQ].
+   + intros _. simpl. clear IHn1 IHn.
+     replace (f k (S n)) with (S (f k n)).
+     2:{ rewrite <- Hn' at 1. rewrite !f_S, E.
+         generalize (fs_le k (S k) (n-1)). lia. }
+     simpl. rewrite L_S, EQ.
+     unfold knsubstw. simpl. unfold ksubst. case Nat.eqb; simpl; lia.
+   + exfalso.
+     specialize (IHn (S k) ltac:(lia)). destruct IHn as (_,IHn).
+     apply Nat.le_lteq, or_comm in IHn. destruct IHn as [IHn|IHn].
+     * clear IHn1.
+       set (m := fs k (S k) n) in *.
+       generalize (knsubstw_prefixseq k (S k) (S m)).
+       generalize (knsubstw_prefixseq k (S k) m).
+       rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
+       unfold L in IHn. rewrite <- IHn. intros ->. clear IHn.
+       set (x := kseq _ _).
+       change (knsubstw _ _ _) with (ksubstSk k x).
+       rewrite ksubstSk_len, ksubstSk_alt by apply kseq_letters.
+       rewrite take_add.
+       intros W. apply app_inv_head in W. simpl in W.
+       injection W as W _ _. lia.
+     * specialize (IHn1 (S k) ltac:(lia)). destruct IHn1 as (IHn1,_).
+       rewrite <- E in IHn1.
+       replace (fs _ _ _) with (S (Nat.pred (fs k (S k) n))) in IHn.
+       2:{ generalize (@fs_nonzero k n (S k)); lia. }
+       rewrite L_S in IHn.
+       set (m := Nat.pred _) in *.
+       generalize (knsubstw_prefixseq k (S k) (S m)).
+       generalize (knsubstw_prefixseq k (S k) m).
+       rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
+       set (x := kseq k m) in *.
+       assert (Hx : x <= k) by apply kseq_letters.
+       change (knsubstw _ _ [x]) with (ksubstSk k x) in *.
+       fold (L k (S k) m). set (lm := L k (S k) m) in *. intros ->.
+       rewrite ksubstSk_len, ksubstSk_alt in * by trivial. simpl.
+       rewrite take_add.
+       intros W. apply app_inv_head in W. simpl in W.
+       injection W as _ _ W.
+       assert (IN : In 0 (seq 1 x)).
+       { rewrite W, <- EQ. apply in_map, in_seq. lia. }
+       apply in_seq in IN. lia.
+ - (* Second case : f^^(S k) step at (n-1) *)
+   intros _. simpl. replace (f k (S n)) with (f k n).
+   2:{ rewrite <- Hn' at 1.
+       rewrite !f_S, E. generalize (fs_le k (S k) (n-1)). lia. }
+   split; [ apply Nat.lt_lt_succ_r, (IHn 1); lia| ].
+   assert (E' : f k n = S (f k (n-1))).
+   { destruct (f_step k (n-1)) as [E'|E']; rewrite Hn' in *; trivial.
+     exfalso. rewrite !iter_S, <- E' in E; lia. }
+   rewrite E', L_S.
+   assert (HL : L k 1 (f k (n-1)) = n-1).
+   { destruct (IHn1 1 ltac:(lia)) as (_,LB).
+     destruct (IHn 1 ltac:(lia)) as (UB,_).
+     simpl in LB,UB. rewrite E' in UB. simpl in UB. lia. }
+   rewrite HL.
+   assert (HL' : L k (S k) (fs k (S k) (n-1)) = n-1).
+   { destruct (IHn1 (S k) ltac:(lia)) as (_,LB).
+     destruct (IHn (S k) ltac:(lia)) as (UB,_).
+     rewrite E in UB. simpl in *. lia. }
+   clear IHn1 IHn.
+   assert (EL := knsubstw_prefixseq k 1 (f k (n-1))).
+   assert (EL' := knsubstw_prefixseq k (S k) (fs k (S k) (n-1))).
+   red in EL,EL'. unfold L in HL,HL'. rewrite HL,HL' in *. clear HL HL'.
+   assert (K0 : kseq k (n-1) = k /\ kseq k n = 0).
+   { generalize (knsubstw_prefixseq k (S k) (fs k (S k) n)).
+     rewrite E, take_S, knsubstw_app, EL'.
+     set (x := kseq _ _).
+     change (knsubstw k (S k) [x]) with (ksubstSk k x).
+     unfold PrefixSeq. rewrite app_length, kprefix_length, take_add.
+     rewrite ksubstSk_len, ksubstSk_alt by apply kseq_letters.
+     simpl. rewrite Hn'.
+     intro V. apply app_inv_head in V. now injection V as <- <- _. }
+   destruct K0 as (K,K').
+   generalize (knsubstw_prefixseq k 1 (S (f k n))).
+   rewrite E', 2 take_S, !knsubstw_app, EL. clear E E' EL EL'.
+   set (x := kseq k (f k (n-1))).
+   set (y := kseq k (S _)). clearbody x y.
+   unfold knsubstw. simpl. rewrite !app_nil_r. unfold PrefixSeq.
+   rewrite !app_length, kprefix_length, <- Nat.add_assoc, <- app_assoc.
+   rewrite take_add.
+   intros V. apply app_inv_head in V. revert V.
+   unfold ksubst.
+   case Nat.eqb. intros _; simpl; lia.
+   case Nat.eqb; simpl; rewrite Hn'; injection 1; lia.
+Qed.
+
+Lemma steiner_thm1_alt k j n : Thm1 k j n.
+Proof.
+ revert j. induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n 2) as [Hn|Hn].
+ - destruct n as [|[|[|n]]]; try lia.
+   + (* n=0 *) unfold Thm1. inversion 1.
+   + (* n=1 *)
+     unfold Thm1, L. intros j _. rewrite fs_k_1. cbn.
+     unfold knsubstw. rewrite napply_nil. simpl. split; auto.
+     change 1 with (length (napply (ksubst k) 0 [k])).
+     apply napply_mono. apply ksubst_noerase. lia.
+   + (* n=2 *)
+     unfold Thm1, L. intros [|j] _.
+     * simpl. lia.
+     * rewrite fs_k_2 by lia. cbn. rewrite napply_nil. simpl. split; auto.
+       rewrite app_nil_r. rewrite ksubst_k.
+       change 2 with (length (napply (ksubst k) 0 [k;0])).
+       apply napply_mono. apply ksubst_noerase. lia.
+ - destruct n; try lia.
+   assert (J1 : Thm1 k 1 (S n)).
+   { apply steiner_thm1_corestep; try apply IH; lia. }
+   intros [|j].
+   + (* j=0 *)
+     intros _. rewrite !L_k_0. cbn. lia.
+   + (* j<>0 *)
+     assert (FS : f k (S n) < S n) by (apply f_lt; lia).
+     assert (FS0 : 0 < f k (S n)) by (apply f_nonzero; lia).
+     specialize (IH (f k (S n)) FS j FS0).
+     rewrite <- iter_S in IH.
+     destruct IH as (IH1,IH2). apply Nat.lt_le_pred in IH1.
+     apply (incr_mono _ (L_incr k 1)) in IH1,IH2.
+     rewrite L_add in IH1, IH2. simpl "+" in IH1,IH2.
+     unfold Thm1 in *. simpl in J1. lia.
+Qed.
+
+Lemma steiner_thm1 k j n m : 0<n ->
+  fs k j m = n <-> L k j (n-1) < m <= L k j n.
+Proof.
+ intros Hn.
+ split.
+ - intros <-. rewrite Nat.sub_1_r. apply steiner_thm1_alt.
+   destruct m; try lia. now rewrite fs_k_0 in *.
+ - intros H.
+   assert (Hm : 0 < m) by lia.
+   assert (H' := steiner_thm1_alt k j m Hm).
+   destruct (Nat.lt_trichotomy (fs k j m) n) as [LT|[E|LT]];
+    [exfalso|trivial|exfalso].
+   + assert (LE : fs k j m <= n-1) by lia.
+     apply (incr_mono _ (L_incr k j)) in LE. lia.
+   + assert (LE : n <= Nat.pred (fs k j m)) by lia.
+     apply (incr_mono _ (L_incr k j)) in LE. lia.
+Qed.

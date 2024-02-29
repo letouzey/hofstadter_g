@@ -92,6 +92,18 @@ Proof.
  rewrite napply_cons. now f_equal.
 Qed.
 
+Lemma Prefix_apply s u v :
+  Prefix u v -> Prefix (apply s u) (apply s v).
+Proof.
+ intros (w, <-). rewrite apply_app. now eexists.
+Qed.
+
+Lemma Prefix_napply s n u v :
+  Prefix u v -> Prefix (napply s n u) (napply s n v).
+Proof.
+ intros (w, <-). rewrite napply_app. now eexists.
+Qed.
+
 Definition NoErase (s:subst) := forall a, s a <> [].
 
 Definition Prolong (s:subst) a := exists u, u<>[] /\ s a = a::u.
@@ -257,6 +269,16 @@ Qed.
 Lemma kseq_k_1 k : kseq k 1 = 0.
 Proof.
  unfold kseq, subst2seq, ksubst. simpl. now rewrite Nat.eqb_refl.
+Qed.
+
+Lemma ksubst_k k : ksubst k k = [k;0].
+Proof.
+ unfold ksubst. now rewrite Nat.eqb_refl.
+Qed.
+
+Lemma ksubst_km1 k : k<>0 -> ksubst k (k-1) = [k].
+Proof.
+ intros K. unfold ksubst. case Nat.eqb_spec; intros. lia. f_equal. lia.
 Qed.
 
 (** kword letters are always in 0..k *)
