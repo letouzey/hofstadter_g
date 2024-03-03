@@ -61,6 +61,15 @@ Proof.
  apply Delta_more; auto.
 Qed.
 
+Lemma Delta_NoDup p l : Delta (S p) l -> NoDup l.
+Proof.
+ induction 1 as [ | | n m l H1 H2 H3 ].
+ - constructor.
+ - now repeat constructor.
+ - constructor; trivial. rewrite Delta_alt in H2. destruct H2 as (_,H2).
+   intros [->|IN]; try lia. specialize (H2 _ IN); lia.
+Qed.
+
 Lemma Delta_nz p k l : 0<k -> Delta p (k::l) -> ~In 0 (k::l).
 Proof.
  intros H H' [X|X]. autoh.

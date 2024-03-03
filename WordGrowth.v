@@ -1,4 +1,4 @@
-Require Import MoreFun MoreList FunG GenFib GenG Words.
+Require Import MoreFun MoreList DeltaList FunG GenFib GenG Words.
 Import ListNotations.
 
 (** * WordGrowth *)
@@ -642,6 +642,11 @@ Proof.
  unfold knsubstw. symmetry. apply napply_add.
 Qed.
 
+Lemma L_0 k j : L k j 0 = 0.
+Proof.
+ unfold L, knsubstw. cbn. now rewrite napply_nil.
+Qed.
+
 Lemma L_S k j n :
  L k j (S n) = L k j n + length (knsubstw k j [kseq k n]).
 Proof.
@@ -800,17 +805,14 @@ Proof.
  - destruct n as [|[|[|n]]]; try lia.
    + (* n=0 *) unfold Thm1. inversion 1.
    + (* n=1 *)
-     unfold Thm1, L. intros j _. rewrite fs_k_1. cbn.
-     unfold knsubstw. rewrite napply_nil. simpl. split; auto.
-     change 1 with (length (napply (ksubst k) 0 [k])).
-     apply napply_mono. apply ksubst_noerase. lia.
+     unfold Thm1. intros j _. rewrite fs_k_1, L_0. split; auto.
+     apply (napply_mono _ 0 j [k]). apply ksubst_noerase. lia.
    + (* n=2 *)
-     unfold Thm1, L. intros [|j] _.
-     * simpl. lia.
-     * rewrite fs_k_2 by lia. cbn. rewrite napply_nil. simpl. split; auto.
-       rewrite app_nil_r. rewrite ksubst_k.
-       change 2 with (length (napply (ksubst k) 0 [k;0])).
-       apply napply_mono. apply ksubst_noerase. lia.
+     unfold Thm1. intros [|j] _.
+     * simpl. rewrite !L_k_0. lia.
+     * rewrite fs_k_2, L_0 by lia. split; auto.
+       unfold L,knsubstw. cbn. rewrite ksubst_k. cbn.
+       apply (napply_mono _ 0 j [k;0]). apply ksubst_noerase. lia.
  - destruct n; try lia.
    assert (J1 : Thm1 k 1 (S n)).
    { apply steiner_thm1_corestep; try apply IH; lia. }
@@ -844,4 +846,128 @@ Proof.
      apply (incr_mono _ (L_incr k j)) in LE. lia.
    + assert (LE : n <= Nat.pred (fs k j m)) by lia.
      apply (incr_mono _ (L_incr k j)) in LE. lia.
+Qed.
+
+(** Said otherwise, [L k j n] is the largest antecedent of [n] by [fs k j],
+    and [S (L k j n)] is the least antecedent of [S n]. *)
+
+Lemma fs_L k j n : fs k j (L k j n) = n.
+Proof.
+ destruct n.
+ - now rewrite L_0, fs_k_0.
+ - apply steiner_thm1; try lia. split; trivial. apply L_lt; lia.
+Qed.
+
+Lemma fs_S_L k j n : fs k j (S (L k j n)) = S n.
+Proof.
+ apply steiner_thm1; try lia. split.
+ - replace (S n - 1) with n; lia.
+ - apply L_lt; lia.
+Qed.
+
+Lemma fs_rightmost_child_carac k j a n :
+  fs k j n = a -> fs k j (S n) = S a <-> n = L k j a.
+Proof.
+ destruct (Nat.eq_dec a 0) as [->|Ha]; intros E.
+ - apply fs_0_inv in E. subst n. now rewrite fs_k_1, L_0.
+ - split; intros E'.
+   + apply steiner_thm1 in E, E'; try lia.
+     replace (S a - 1) with a in *; lia.
+   + rewrite E'. apply fs_S_L.
+Qed.
+
+Lemma L_k_1_rchild k n : L k 1 n = rchild k n.
+Proof.
+ rewrite <- rightmost_child_carac. apply (fs_S_L k 1). apply (fs_L k 1).
+Qed.
+
+(** Exactly enumerating antecedents of [fs k j], in increasing order *)
+
+Definition fsinv k j n :=
+  if n =? 0 then [0]
+  else
+    let a := L k j (n-1) in
+    let b := L k j n in
+    seq (S a) (b-a).
+
+Lemma fsinv_spec k j n m : In m (fsinv k j n) <-> fs k j m = n.
+Proof.
+ unfold fsinv.
+ case Nat.eqb_spec; [intros ->|intros Hn].
+ - split; simpl.
+   + intros [<-|[ ]]. apply fs_k_0.
+   + generalize (@fs_nonzero k m j). lia.
+ - rewrite in_seq, steiner_thm1; lia.
+Qed.
+
+Lemma fsinv_delta1 k j n : Delta 1 (fsinv k j n).
+Proof.
+ unfold fsinv. case Nat.eqb. constructor. apply Delta_seq.
+Qed.
+
+Lemma fsinv_nodup k j n : NoDup (fsinv k j n).
+Proof.
+ eapply Delta_NoDup, fsinv_delta1.
+Qed.
+
+Lemma fsinv_S_length k j n :
+  length (fsinv k j (S n)) = length (knsubstw k j [kseq k n]).
+Proof.
+ unfold fsinv. simpl. rewrite Nat.sub_0_r, L_S, seq_length. lia.
+Qed.
+
+Lemma fsinv_length k j n :
+  length (fsinv k j n) =
+  match n with 0 => 1 | S n => length (knsubstw k j [kseq k n]) end.
+Proof.
+ unfold fsinv. destruct n; simpl; trivial. now rewrite <- fsinv_S_length.
+Qed.
+
+Lemma knsubstw_k k j : knsubstw k j [k] = kword k j.
+Proof.
+ unfold knsubstw. rewrite napply_ksubst_is_kword; try f_equal; lia.
+Qed.
+
+Lemma knsubstw_0 k j :
+  knsubstw k j [0] = if j <? k then [j] else kword k (j-k).
+Proof.
+ unfold knsubstw. case Nat.ltb_spec; intros.
+ - rewrite ksubst_low0; trivial; lia.
+ - rewrite napply_ksubst_is_kword; try f_equal; lia.
+Qed.
+
+Lemma knsubstw_0_len k j : length (knsubstw k j [0]) = A k (j-k).
+Proof.
+ rewrite knsubstw_0. case Nat.ltb_spec; intros; simpl; try apply kword_len.
+ replace (j-k) with 0 by lia. trivial.
+Qed.
+
+Lemma fsinv_bound k j n : 0<n ->
+  A k (j-k) <= length (fsinv k j n) <= A k j.
+Proof.
+ destruct n; try easy. intros _.
+ rewrite fsinv_S_length.
+ set (x := kseq k n).
+ assert (Hx : x <= k) by apply kseq_letters.
+ rewrite <- knsubstw_0_len.
+ rewrite <- !kword_len, <- knsubstw_k.
+ unfold knsubstw.
+ rewrite <- (ksubst_low0 k x), <- napply_add by trivial.
+ rewrite <- (ksubst_low0 k k), <- napply_add by trivial.
+ split.
+ - apply napply_mono. apply ksubst_noerase. lia.
+ - apply napply_mono. apply ksubst_noerase. lia.
+Qed.
+
+(** For each k and j, these bounds are reached infinitely often when n vary.
+    For instance : *)
+
+Lemma fsinv_1 k j : length (fsinv k j 1) = A k j.
+Proof.
+ now rewrite fsinv_S_length, kseq_k_0, knsubstw_k, kword_len.
+Qed.
+
+Lemma fsinv_2 k j : length (fsinv k j 2) = A k (j-k).
+Proof.
+ now rewrite fsinv_S_length, kseq_k_1, knsubstw_0_len.
 Qed.
