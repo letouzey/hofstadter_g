@@ -596,7 +596,7 @@ Qed.
 
 (** Steiner's Thm 1 (direct link between f and kseq) *)
 
-(** Note: in Wolfgang text, substitution [au_k] is [map S]
+(** Note: in Wolfgang text, substitution [tau_k] is [map S]
     of my [(ksubst (k-1))] and function [F_k] is my [f (k-1)]. *)
 
 Definition knsubstw k j : word -> word := napply (ksubst k) j.
@@ -620,6 +620,16 @@ Lemma knsubstw_prefixseq k j n :
   PrefixSeq (knsubstw k j (kprefix k n)) (kseq k).
 Proof.
  apply knsubstw_prefixseq_gen, kprefix_ok.
+Qed.
+
+Lemma knsubstw_k k n : knsubstw k k [n] = ksubstk k n.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma knsubstw_Sk k n : knsubstw k (S k) [n] = ksubstSk k n.
+Proof.
+ reflexivity.
 Qed.
 
 Lemma L_incr k j : IncrFun (L k j).
@@ -728,8 +738,7 @@ Proof.
        rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
        unfold L in IHn. rewrite <- IHn. intros ->. clear IHn.
        set (x := kseq _ _).
-       change (knsubstw _ _ _) with (ksubstSk k x).
-       rewrite ksubstSk_len, ksubstSk_alt by apply kseq_letters.
+       rewrite knsubstw_Sk, ksubstSk_len, ksubstSk_alt by apply kseq_letters.
        rewrite take_add.
        intros W. apply app_inv_head in W. simpl in W.
        injection W as W _ _. lia.
@@ -744,10 +753,9 @@ Proof.
        rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
        set (x := kseq k m) in *.
        assert (Hx : x <= k) by apply kseq_letters.
-       change (knsubstw _ _ [x]) with (ksubstSk k x) in *.
+       rewrite knsubstw_Sk, ksubstSk_len, ksubstSk_alt in * by trivial.
        fold (L k (S k) m). set (lm := L k (S k) m) in *. intros ->.
-       rewrite ksubstSk_len, ksubstSk_alt in * by trivial. simpl.
-       rewrite take_add.
+       simpl. rewrite take_add.
        intros W. apply app_inv_head in W. simpl in W.
        injection W as _ _ W.
        assert (IN : In 0 (seq 1 x)).
@@ -779,9 +787,8 @@ Proof.
    { generalize (knsubstw_prefixseq k (S k) (fs k (S k) n)).
      rewrite E, take_S, knsubstw_app, EL'.
      set (x := kseq _ _).
-     change (knsubstw k (S k) [x]) with (ksubstSk k x).
      unfold PrefixSeq. rewrite app_length, kprefix_length, take_add.
-     rewrite ksubstSk_len, ksubstSk_alt by apply kseq_letters.
+     rewrite knsubstw_Sk, ksubstSk_len, ksubstSk_alt by apply kseq_letters.
      simpl. rewrite Hn'.
      intro V. apply app_inv_head in V. now injection V as <- <- _. }
    destruct K0 as (K,K').
@@ -923,7 +930,7 @@ Proof.
  unfold fsinv. destruct n; simpl; trivial. now rewrite <- fsinv_S_length.
 Qed.
 
-Lemma knsubstw_k k j : knsubstw k j [k] = kword k j.
+Lemma knsubstw_kword k j : knsubstw k j [k] = kword k j.
 Proof.
  unfold knsubstw. rewrite napply_ksubst_is_kword; try f_equal; lia.
 Qed.
@@ -950,7 +957,7 @@ Proof.
  set (x := kseq k n).
  assert (Hx : x <= k) by apply kseq_letters.
  rewrite <- knsubstw_0_len.
- rewrite <- !kword_len, <- knsubstw_k.
+ rewrite <- !kword_len, <- knsubstw_kword.
  unfold knsubstw.
  rewrite <- (ksubst_low0 k x), <- napply_add by trivial.
  rewrite <- (ksubst_low0 k k), <- napply_add by trivial.
@@ -964,7 +971,7 @@ Qed.
 
 Lemma fsinv_1 k j : length (fsinv k j 1) = A k j.
 Proof.
- now rewrite fsinv_S_length, kseq_k_0, knsubstw_k, kword_len.
+ now rewrite fsinv_S_length, kseq_k_0, knsubstw_kword, kword_len.
 Qed.
 
 Lemma fsinv_2 k j : length (fsinv k j 2) = A k (j-k).
