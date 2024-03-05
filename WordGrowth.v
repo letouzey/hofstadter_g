@@ -1118,3 +1118,39 @@ Lemma steiner_prop2_eqn6 k j n :
 Proof.
  intros. now apply steiner_prop2.
 Qed.
+
+Lemma fs_decreases_gen k j n :
+ j <= S k -> fs (S k) (S j) n <= fs k j n.
+Proof.
+ intros Hj.
+ destruct (Nat.eq_dec n 0) as [->|Hn].
+ - now rewrite !fs_k_0.
+ - apply Nat.nlt_ge. intros LT.
+   set (m := fs k j n) in *.
+   assert (Hm : 0 < m). { apply fs_nonzero. lia. }
+   assert (E6 := steiner_prop2_eqn6 k j m Hj Hm).
+   destruct (steiner_thm1_alt k j n) as (_,E1); try lia.
+   fold m in E1.
+   assert (LE : m <= Nat.pred (fs (S k) (S j) n)) by lia.
+   apply (incr_mono _ (L_incr (S k) (S j))) in LE.
+   destruct (steiner_thm1_alt (S k) (S j) n) as (E1',_); lia.
+Qed.
+
+Lemma fs_bound_gen k j n :
+ j <= S k -> fs k j n <= fs (k-1) (j-1) n <= fs k (j-1) n.
+Proof.
+ destruct k, j; try easy.
+ - inversion 1. simpl. split; trivial. apply f_le.
+   simpl. split; trivial. rewrite Nat.sub_0_r. apply f_le.
+ - replace (S k - 1) with k by lia.
+   replace (S j - 1) with j by lia.
+   split. apply fs_decreases_gen; lia. apply fs_grows_gen; lia.
+Qed.
+
+Lemma fs_bound_gen' k j n :
+ j <= k+2 -> fs k j n <= fs (S k) j n <= fs k (j-1) n.
+Proof.
+ destruct j; try easy.
+ split. apply fs_grows_gen; lia.
+ replace (S j - 1) with j by lia. apply fs_decreases_gen; lia.
+Qed.
