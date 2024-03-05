@@ -978,3 +978,143 @@ Lemma fsinv_2 k j : length (fsinv k j 2) = A k (j-k).
 Proof.
  now rewrite fsinv_S_length, kseq_k_1, knsubstw_0_len.
 Qed.
+
+(** Page 2 of W. Steiner's text *)
+
+Lemma steiner_eqn2bis k n : (* with additions instead of subtractions *)
+  L (S k) (S (S k)) n + L k k n = L (S k) (S k) n + L k (S k) n.
+Proof.
+ induction n.
+ - now rewrite !L_0.
+ - rewrite !L_S, !knsubstw_Sk, !knsubstw_k, !ksubstk_len, !ksubstSk_len
+     by apply kseq_letters. lia.
+Qed.
+
+Definition C k i n := count (kseq k) i n.
+
+Lemma steiner_eqn3 k n : L k 1 n = n + C k k n.
+Proof.
+ induction n; [easy|].
+ rewrite L_S, IHn. unfold C. cbn. unfold ksubst.
+ case Nat.eqb; simpl; lia.
+Qed.
+
+Lemma Lkk_positionk k n : L k k n = positionk k n.
+Proof.
+ unfold L, positionk, knsubstw, ksubstkw.
+ replace k with (1*k) at 2 by lia.
+ now rewrite <- napply_ksubstk.
+Qed.
+
+Lemma steiner_eqn4 k n : 0<n ->
+  L k k (C k k n - 1) < n <= L k k (C k k n).
+Proof.
+ intros. rewrite !Lkk_positionk. now apply positionk_bounds'.
+Qed.
+
+Lemma steiner_eqn4_coro k n : fs k k n = C k k n.
+Proof.
+ apply fs_count_k.
+Qed.
+
+Lemma len_knsubstw_low k j : j <= S k ->
+  length (knsubstw k j [k]) = j+1.
+Proof.
+ intros Hj. unfold knsubstw.
+ destruct (Nat.eq_dec j (S k)) as [->|Hj'].
+ - fold (ksubstSk k k). rewrite ksubstSk_len; lia.
+ - rewrite <- ksubst_pearl by lia.
+   fold (ksubstk k j). rewrite ksubstk_len; lia.
+Qed.
+
+Lemma len_knsubstw_low_le k j x : j <= S k -> x <= k ->
+ length (knsubstw k j [x]) <= j+1.
+Proof.
+ intros.
+ rewrite <- (len_knsubstw_low k j) by lia.
+ unfold knsubstw.
+ rewrite <- (ksubst_low0 k x), <- napply_add by lia.
+ rewrite <- (ksubst_low0 k k), <- napply_add by lia.
+ apply napply_mono. apply ksubst_noerase. lia.
+Qed.
+
+Lemma steiner_prop2 k n :
+ L (S k) 1 n <= L k 1 n
+ /\ (0<n -> forall j, j<=S k -> L k j n < L (S k) (S j) n).
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.eq_dec n 0) as [->|N0]; [easy|].
+ destruct (Nat.eq_dec n 1) as [->|N1].
+ { split.
+   - unfold L. unfold kprefix. simpl. rewrite !kseq_k_0.
+     unfold knsubstw. simpl. rewrite !ksubst_k. simpl. trivial.
+   - intros _. intros j Hj.
+     rewrite !L_S, !L_0, !kseq_k_0, !len_knsubstw_low; lia. }
+ split.
+ - rewrite !steiner_eqn3.
+   destruct (Nat.lt_ge_cases (C k k n) (C (S k) (S k) n)); try lia.
+   exfalso.
+   assert (L k k (C k k n) < L (S k) (S k) (C k k n)).
+   { destruct (Nat.eq_dec k 0) as [->|Hk].
+     - cbn. unfold C. rewrite count_all.
+       2:{ intros m _. generalize (kseq_letters 0 m). lia. }
+       rewrite kprefix_length.
+       destruct n; try easy. cbn. set (w := map _ _).
+       generalize (apply_grow (ksubst 1) w (ksubst_noerase 1)).
+       unfold w at 1; rewrite map_length, seq_length. lia.
+     - apply IH; try lia; unfold C; rewrite <- fs_count_k.
+       + apply fs_lt; lia.
+       + apply fs_nonzero; lia. }
+   destruct (steiner_eqn4 k n) as (_,E1); try lia.
+   destruct (steiner_eqn4 (S k) n) as (E3,_); try lia.
+   assert (E2 : C k k n <= C (S k) (S k) n - 1) by lia.
+   apply (incr_mono _ (L_incr (S k) (S k))) in E2.
+   lia.
+ - intros _. destruct n; try easy.
+   destruct (Nat.eq_dec (kseq (S k) n) (S k)) as [E|N].
+   + intros j Hj. rewrite !L_S, E.
+     rewrite len_knsubstw_low by lia.
+     assert (Hx := kseq_letters k n).
+     set (x := kseq k n) in *.
+     generalize (len_knsubstw_low_le k j x Hj Hx).
+     destruct (IH n) as (_,IH'); try lia.
+     specialize (IH' ltac:(lia) j Hj).
+     lia.
+   + destruct (ksubst_prefix_inv (S k) (kprefix (S k) (S n)))
+       as (v & w & Hv & E & Hw); try apply kprefix_ok.
+     destruct Hw as [-> | ->].
+     2:{ rewrite take_S in Hv; apply app_inv' in Hv; trivial;
+         destruct Hv as (_,[= E']); lia. }
+     rewrite app_nil_r in Hv.
+     red in E.
+     set (l := length v) in *.
+     assert (E' : L (S k) 1 l = S n).
+     { now rewrite <- (kprefix_length (S k) (S n)), Hv, E. }
+     assert (Hl0 : l <> 0). { intros ->. now rewrite L_0 in E'. }
+     assert (Hl : l < S n).
+     { rewrite <- E'. rewrite steiner_eqn3.
+       generalize (count_k_nz (S k) l). unfold C. lia. }
+     destruct (IH l Hl) as (IH5,IH6). clear IH. rewrite E' in IH5.
+     specialize (IH6 ltac:(lia)).
+     assert (LT : forall j, j <= k -> L k j (S n) < L (S k) (S j) (S n)).
+     { intros j Hj. specialize (IH6 (S j) ltac:(lia)).
+       rewrite <- E' at 2. rewrite L_add, Nat.add_1_r.
+       eapply Nat.le_lt_trans; [|apply IH6].
+       rewrite <- (Nat.add_1_r j), <- L_add. apply incr_mono; trivial.
+       apply L_incr. }
+     intros j Hj. destruct (Nat.eq_dec j (S k)) as [->|Hj'].
+     * generalize (steiner_eqn2bis k (S n)).
+       specialize (LT k (Nat.le_refl k)). lia.
+     * apply LT. lia.
+Qed.
+
+Lemma steiner_prop2_eqn5 k n : L (S k) 1 n <= L k 1 n.
+Proof.
+ apply steiner_prop2.
+Qed.
+
+Lemma steiner_prop2_eqn6 k j n :
+ j <= S k -> 0 < n -> L k j n < L (S k) (S j) n.
+Proof.
+ intros. now apply steiner_prop2.
+Qed.

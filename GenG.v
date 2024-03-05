@@ -456,6 +456,16 @@ Proof.
 Qed.
 #[global] Hint Resolve f_lt : hof.
 
+Lemma fs_lt k p n : 0<p -> 1<n -> fs k p n < n.
+Proof.
+ destruct p; [easy|intros _ Hn].
+ change (f k (fs k p n) < n).
+ destruct (Nat.eq_dec (fs k p n) 0) as [->|N0]; [cbn; lia| ].
+ destruct (Nat.eq_dec (fs k p n) 1) as [->|N1]; [now rewrite f_k_1| ].
+ apply Nat.lt_le_trans with (fs k p n); [|apply fs_le].
+ apply f_lt. lia.
+Qed.
+
 (** Two special formulations for [f_step] *)
 
 Lemma f_next k n a : f k n = a -> (f k (S n) <> a <-> f k (S n) = S a).
