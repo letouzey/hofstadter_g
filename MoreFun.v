@@ -29,12 +29,19 @@ Proof.
  intros H. induction 1; auto. specialize (H m). lia.
 Qed.
 
-Lemma incr_monoiff f : IncrFun f -> forall p q, p < q <-> f p < f q.
+Lemma incr_strmono_iff f : IncrFun f -> forall p q, p < q <-> f p < f q.
 Proof.
  intros H p q. split. apply (incr_strmono f H).
  destruct (Nat.lt_trichotomy p q) as [LT|[EQ|GT]]; trivial.
  - subst. lia.
  - apply (incr_strmono f H) in GT. lia.
+Qed.
+
+Lemma incr_mono_iff f : IncrFun f -> forall p q, p <= q <-> f p <= f q.
+Proof.
+ intros H p q. split. apply (incr_mono f H).
+ destruct (Nat.lt_trichotomy p q) as [LT|[EQ|GT]]; try lia.
+ apply (incr_strmono f H) in GT. lia.
 Qed.
 
 Lemma incr_function_bounds f : IncrFun f ->
@@ -197,14 +204,14 @@ Proof.
  destruct (Nat.lt_trichotomy (pos p) (pos' p)) as [LT|[E|LT]]; trivial.
  - assert (exists q, pos p = pos' q) by apply Hpos', Hpos.
    destruct H as (q, E). rewrite E in LT.
-   apply (incr_monoiff pos') in LT. 2:apply Hpos'.
+   apply (incr_strmono_iff pos') in LT. 2:apply Hpos'.
    rewrite <- (IH _ LT) in E.
-   apply (incr_monoiff pos) in LT. 2:apply Hpos. lia.
+   apply (incr_strmono_iff pos) in LT. 2:apply Hpos. lia.
  - assert (exists q, pos' p = pos q) by apply Hpos, Hpos'.
    destruct H as (q, E). rewrite E in LT.
-   apply (incr_monoiff pos) in LT. 2:apply Hpos.
+   apply (incr_strmono_iff pos) in LT. 2:apply Hpos.
    rewrite (IH _ LT) in E.
-   apply (incr_monoiff pos') in LT. 2:apply Hpos'. lia.
+   apply (incr_strmono_iff pos') in LT. 2:apply Hpos'. lia.
 Qed.
 
 Lemma IsPosition_count0 f a pos :
@@ -214,7 +221,7 @@ Proof.
  intros (P0,P1,P2) n Hn. apply count_0. intros m Hm E.
  destruct (P2 _ E) as (p,Hp).
  assert (pos p < pos 0) by lia.
- generalize (incr_monoiff pos P0 p 0). lia.
+ generalize (incr_strmono_iff pos P0 p 0). lia.
 Qed.
 
 Lemma IsPosition_bound_count f a pos :
@@ -239,8 +246,8 @@ Proof.
      exfalso.
      destruct (P2 _ E) as (p',Hp').
      rewrite Hp' in Hp2. destruct Hp2 as (Hp3,Hp4).
-     apply (incr_monoiff _ P0) in Hp3.
-     rewrite Nat.le_ngt, <- (incr_monoiff _ P0), <- Nat.le_ngt in Hp4.
+     apply (incr_strmono_iff _ P0) in Hp3.
+     rewrite Nat.le_ngt, <- (incr_strmono_iff _ P0), <- Nat.le_ngt in Hp4.
      replace p' with (S p) in *; lia.
 Qed.
 
@@ -256,7 +263,7 @@ Proof.
  replace (count f' a' n) with 0. lia.
  { symmetry. apply count_0. intros p Hp E. destruct (P2' _ E) as (p',E').
    assert (pos' p' < pos' 0) by lia.
-   generalize (incr_monoiff pos' P0' p' 0). lia. }
+   generalize (incr_strmono_iff pos' P0' p' 0). lia. }
  assert (H0 : pos 0 < n) by (generalize (LE 0); lia).
  destruct (incr_function_bounds' pos P0 n H0) as (p & Hp).
  destruct (incr_function_bounds' pos' P0' n H0') as (p' & Hp').
