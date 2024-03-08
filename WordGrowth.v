@@ -1132,6 +1132,19 @@ Proof.
    apply steiner_prop2_eqn6; trivial. apply fs_nonzero; lia.
 Qed.
 
+(** Note: when j=k+2, it seems that L k j n <= L (k+1) (j+1) n.
+    Especially we can have L k j n = L (k+1) (j+1) n,
+    for instance L 2 4 4 = L 3 5 4 = 19.
+    This equality is always in n=k+2,
+    and L k (k+ 2) (k+2) = L (S k) (k+3) (k+2) is provable by
+    direct enumeration (ksubstSkw(ksubstw(kword k (S k)), etc)
+
+    And for j>k+2, we can even have L k j n > L (k+1) (j+1) n,
+    for instance L 2 5 4 = 28 > L 3 6 4 = 26.
+*)
+
+(** An interesting lattice of increasing functions : *)
+
 Lemma fs_bound_gen k j n :
  j <= S k -> fs k j n <= fs (k-1) (j-1) n <= fs k (j-1) n.
 Proof.
@@ -1150,14 +1163,3 @@ Proof.
  split. apply fs_grows_gen; lia.
  replace (S j - 1) with j by lia. apply fs_decreases_gen; lia.
 Qed.
-
-(** Note: when j=k+2, it seems that L k j n <= L (k+1) (j+1) n.
-    Especially we can have L k j n = L (k+1) (j+1) n,
-    for instance L 2 4 4 = L 3 5 4 = 19.
-    This equality is always in n=k+2,
-    and L k (k+ 2) (k+2) = L (S k) (k+3) (k+2) is provable by
-    direct enumeration (ksubstSkw(ksubstw(kword k (S k)), etc)
-
-    And for j>k+2, we can even have L k j n > L (k+1) (j+1) n,
-    for instance L 2 5 4 = 28 > L 3 6 4 = 26.
-*)
