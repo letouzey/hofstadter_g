@@ -634,12 +634,22 @@ Proof.
  reflexivity.
 Qed.
 
+Lemma L_0 k j : L k j 0 = 0.
+Proof.
+ unfold L, knsubstw. cbn. now rewrite napply_nil.
+Qed.
+
+Lemma L_S k j n :
+ L k j (S n) = L k j n + length (knsubstw k j [kseq k n]).
+Proof.
+ unfold L. now rewrite take_S, knsubstw_app, app_length.
+Qed.
+
 Lemma L_incr k j : IncrFun (L k j).
 Proof.
- intro n.
- unfold L, knsubstw. rewrite take_S, napply_app, app_length.
+ intro n. rewrite L_S.
  generalize (@napply_mono _ 0 j [kseq k n] (ksubst_noerase k)).
- simpl. lia.
+ unfold knsubstw. simpl. lia.
 Qed.
 
 Lemma L_lt k j n m : n < m <-> L k j n < L k j m.
@@ -695,17 +705,6 @@ Lemma L_strmono_j k j j' n : 0 < n -> j < j' -> L k j n < L k j' n.
 Proof.
  intros. replace j' with ((j'-j)+j) by lia. rewrite <- L_add. apply L_gt_n.
  lia. apply Nat.lt_le_trans with n; trivial. apply L_ge_n.
-Qed.
-
-Lemma L_0 k j : L k j 0 = 0.
-Proof.
- unfold L, knsubstw. cbn. now rewrite napply_nil.
-Qed.
-
-Lemma L_S k j n :
- L k j (S n) = L k j n + length (knsubstw k j [kseq k n]).
-Proof.
- unfold L. now rewrite take_S, knsubstw_app, app_length.
 Qed.
 
 Lemma L_k_0 k n : L k 0 n = n.
