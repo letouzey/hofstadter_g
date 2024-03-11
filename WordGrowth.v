@@ -654,6 +654,49 @@ Proof.
  unfold knsubstw. symmetry. apply napply_add.
 Qed.
 
+Lemma L_ge_n k j n : n <= L k j n.
+Proof.
+ revert n.
+ assert (H : forall n, n <= L k 1 n).
+ { intros n. unfold L, knsubstw. simpl.
+   rewrite <- (kprefix_length k n) at 1.
+   apply apply_grow, ksubst_noerase. }
+ induction j; intros.
+ - cbn. now rewrite kprefix_length.
+ - change (S j) with (1+j). rewrite <- L_add.
+   transitivity (L k j n); trivial.
+Qed.
+
+Lemma L_mono_j k j j' n : j <= j' -> L k j n <= L k j' n.
+Proof.
+ intros. replace j' with ((j'-j)+j) by lia. rewrite <- L_add. apply L_ge_n.
+Qed.
+
+Lemma L_gt_n k j n : 0<j -> 0<n -> n < L k j n.
+Proof.
+ revert n.
+ assert (H : forall n, 0<n -> n < L k 1 n).
+ { intros n Hn. unfold L, knsubstw. simpl.
+   destruct n; try easy. cbn. rewrite app_length.
+   set (w := map _ _).
+   assert (n <= length (apply (ksubst k) w)).
+   { replace n with (length w)
+      by (unfold w; now rewrite map_length, seq_length).
+     apply apply_grow, ksubst_noerase. }
+   rewrite ksubst_k. simpl. lia. }
+ induction j; intros; try easy.
+ destruct j. now apply H.
+ change (S (S j)) with (1+S j). rewrite <- L_add.
+ apply Nat.lt_le_trans with (L k (S j) n). apply IHj; lia.
+ apply L_ge_n.
+Qed.
+
+Lemma L_strmono_j k j j' n : 0 < n -> j < j' -> L k j n < L k j' n.
+Proof.
+ intros. replace j' with ((j'-j)+j) by lia. rewrite <- L_add. apply L_gt_n.
+ lia. apply Nat.lt_le_trans with n; trivial. apply L_ge_n.
+Qed.
+
 Lemma L_0 k j : L k j 0 = 0.
 Proof.
  unfold L, knsubstw. cbn. now rewrite napply_nil.
@@ -814,14 +857,11 @@ Proof.
  - destruct n as [|[|[|n]]]; try lia.
    + (* n=0 *) unfold Thm1. inversion 1.
    + (* n=1 *)
-     unfold Thm1. intros j _. rewrite fs_k_1, L_0. split; auto.
-     apply (napply_mono _ 0 j [k]). apply ksubst_noerase. lia.
+     unfold Thm1. intros j _. rewrite fs_k_1, L_0. auto using L_ge_n.
    + (* n=2 *)
      unfold Thm1. intros [|j] _.
      * simpl. rewrite !L_k_0. lia.
-     * rewrite fs_k_2, L_0 by lia. split; auto.
-       unfold L,knsubstw. cbn. rewrite ksubst_k. cbn.
-       apply (napply_mono _ 0 j [k;0]). apply ksubst_noerase. lia.
+     * rewrite fs_k_2, L_0 by lia. split; auto. apply L_gt_n; lia.
  - destruct n; try lia.
    assert (J1 : Thm1 k 1 (S n)).
    { apply steiner_thm1_corestep; try apply IH; lia. }
@@ -1046,23 +1086,16 @@ Proof.
  induction n as [n IH] using lt_wf_ind.
  destruct (Nat.eq_dec n 0) as [->|N0]; [easy|].
  destruct (Nat.eq_dec n 1) as [->|N1].
- { clear N0 IH. split.
-   - unfold L. unfold kprefix. simpl. rewrite !kseq_k_0.
-     unfold knsubstw. simpl. rewrite !ksubst_k. simpl. trivial.
-   - intros _. intros j Hj.
-     rewrite !L_S, !L_0, !kseq_k_0, !knsubstw_kword, !kword_len.
-     rewrite !A_base; lia. }
+ { clear N0 IH. split; intros;
+   rewrite !L_S, !L_0, !kseq_k_0, !knsubstw_kword, !kword_len, !A_base; lia. }
  split.
  - rewrite !steiner_eqn3.
    apply Nat.le_ngt. intro LT.
    assert (L k k (C k k n) < L (S k) (S k) (C k k n)).
    { destruct (Nat.eq_dec k 0) as [->|Hk].
-     - cbn. unfold C. rewrite count_all.
+     - cbn. unfold C. rewrite kprefix_length, count_all.
        2:{ intros m _. generalize (kseq_letters 0 m). lia. }
-       rewrite kprefix_length.
-       destruct n; try easy. cbn. set (w := map _ _).
-       generalize (apply_grow (ksubst 1) w (ksubst_noerase 1)).
-       unfold w at 1; rewrite map_length, seq_length. lia.
+       apply (L_gt_n 1 1 n); lia.
      - apply IH; try lia; unfold C; rewrite <- fs_count_k.
        + apply fs_lt; lia.
        + apply fs_nonzero; lia. }
