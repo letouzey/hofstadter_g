@@ -12,116 +12,111 @@ Notation lia := (ltac:(lia)) (only parsing).
     - the count of letter 0 decreases with k
     - for all point n, [f k n <= f (S k) n]. *)
 
-(** [knsubstw] : a shortcut for repeated application of [ksubst] *)
+(** [knsub] : a shortcut for repeated application of [ksubst] *)
 
-Definition knsubstw k j : word -> word := napply (ksubst k) j.
+Definition knsub k j : word -> word := napply (ksubst k) j.
 
-Lemma knsubstw_app k j u v :
-  knsubstw k j (u++v) = knsubstw k j u ++ knsubstw k j v.
+Lemma knsub_app k j u v : knsub k j (u++v) = knsub k j u ++ knsub k j v.
 Proof.
  apply napply_app.
 Qed.
 
-Lemma knsubstw_prefixseq_gen k j w :
-  PrefixSeq w (kseq k) -> PrefixSeq (knsubstw k j w) (kseq k).
+Lemma knsub_prefixseq_gen k j w :
+  PrefixSeq w (kseq k) -> PrefixSeq (knsub k j w) (kseq k).
 Proof.
  intros.
  apply PrefixSeq_napply; trivial using ksubst_noerase, ksubst_prolong.
 Qed.
 
-Lemma knsubstw_prefixseq k j n :
-  PrefixSeq (knsubstw k j (kprefix k n)) (kseq k).
+Lemma knsub_prefixseq k j n : PrefixSeq (knsub k j (kprefix k n)) (kseq k).
 Proof.
- apply knsubstw_prefixseq_gen, kprefix_ok.
+ apply knsub_prefixseq_gen, kprefix_ok.
 Qed.
 
-Lemma knsubstw_kword_gen k j n :
-  n <= k -> k <= j+n -> knsubstw k j [n] = kword k (j+n-k).
+Lemma knsub_kword_gen k j n :
+  n <= k -> k <= j+n -> knsub k j [n] = kword k (j+n-k).
 Proof.
- intros. unfold knsubstw. now apply napply_ksubst_is_kword.
+ intros. unfold knsub. now apply napply_ksubst_is_kword.
 Qed.
 
-Lemma knsubstw_kword k j : knsubstw k j [k] = kword k j.
+Lemma knsub_kword k j : knsub k j [k] = kword k j.
 Proof.
- rewrite knsubstw_kword_gen; f_equal; lia.
+ rewrite knsub_kword_gen; f_equal; lia.
 Qed.
 
-Lemma knsubstw_alt k j n :
-  n <= k -> knsubstw k j [n] = if j+n <? k then [j+n] else kword k (j+n-k).
+Lemma knsub_alt k j n :
+  n <= k -> knsub k j [n] = if j+n <? k then [j+n] else kword k (j+n-k).
 Proof.
  case Nat.ltb_spec; intros.
- - unfold knsubstw. rewrite napply_ksubst_shift; f_equal; lia.
- - apply knsubstw_kword_gen; lia.
+ - unfold knsub. rewrite napply_ksubst_shift; f_equal; lia.
+ - apply knsub_kword_gen; lia.
 Qed.
 
-Lemma knsubstw_len k j n :
-  n <= k -> length (knsubstw k j [n]) = A k (j+n-k).
+Lemma knsub_len k j n : n <= k -> length (knsub k j [n]) = A k (j+n-k).
 Proof.
- intros. rewrite knsubstw_alt by trivial.
+ intros. rewrite knsub_alt by trivial.
  case Nat.ltb_spec; intros; simpl; try apply kword_len.
  replace (j+n-k) with 0 by lia. trivial.
 Qed.
 
-Lemma knsubstw_k_alt k n : n <= k -> knsubstw k k [n] = kword k n.
+Lemma knsub_k_alt k n : n <= k -> knsub k k [n] = kword k n.
 Proof.
- intros. rewrite knsubstw_kword_gen; f_equal; lia.
+ intros. rewrite knsub_kword_gen; f_equal; lia.
 Qed.
 
-Lemma knsubstw_Sk_alt k n : n <= k -> knsubstw k (S k) [n] = kword k (S n).
+Lemma knsub_Sk_alt k n : n <= k -> knsub k (S k) [n] = kword k (S n).
 Proof.
- intros. rewrite knsubstw_kword_gen; f_equal; lia.
+ intros. rewrite knsub_kword_gen; f_equal; lia.
 Qed.
 
-Lemma knsubstw_k_len k n : n <= k -> length (knsubstw k k [n]) = S n.
+Lemma knsub_k_len k n : n <= k -> length (knsub k k [n]) = S n.
 Proof.
- intros. rewrite knsubstw_len, A_base; lia.
+ intros. rewrite knsub_len, A_base; lia.
 Qed.
 
-Lemma knsubstw_Sk_len k n : n <= k -> length (knsubstw k (S k) [n]) = 2+n.
+Lemma knsub_Sk_len k n : n <= k -> length (knsub k (S k) [n]) = 2+n.
 Proof.
- intros. rewrite knsubstw_len, A_base; lia.
+ intros. rewrite knsub_len, A_base; lia.
 Qed.
 
-Lemma knsubstw_len_low k j : j <= S k -> length (knsubstw k j [k]) = j+1.
+Lemma knsub_len_low k j : j <= S k -> length (knsub k j [k]) = j+1.
 Proof.
- intros. rewrite knsubstw_len, A_base; lia.
+ intros. rewrite knsub_len, A_base; lia.
 Qed.
 
-Lemma knsubstw_len_le k j n : n <= k -> length (knsubstw k j [n]) <= A k j.
+Lemma knsub_len_le k j n : n <= k -> length (knsub k j [n]) <= A k j.
 Proof.
- intros. rewrite knsubstw_len by trivial. apply A_mono. lia.
+ intros. rewrite knsub_len by trivial. apply A_mono. lia.
 Qed.
 
 (** Fun fact: for n <= k, ksubst^k(n) = ksubst^n(k) *)
 
-Lemma knsubstw_pearl k n : n <= k ->
-  knsubstw k k [n] = knsubstw k n [k].
+Lemma knsub_pearl k n : n <= k -> knsub k k [n] = knsub k n [k].
 Proof.
- intros. rewrite !knsubstw_alt by lia. now rewrite (Nat.add_comm k n).
+ intros. rewrite !knsub_alt by lia. now rewrite (Nat.add_comm k n).
 Qed.
 
 
 (** [L] : length of the repeated expansion of a kseq prefix.
     Sort of reciprocal to fs. *)
 
-Definition L k j n := length (knsubstw k j (kprefix k n)).
+Definition L k j n := length (knsub k j (kprefix k n)).
 
 Lemma L_0 k j : L k j 0 = 0.
 Proof.
- unfold L, knsubstw. cbn. now rewrite napply_nil.
+ unfold L, knsub. cbn. now rewrite napply_nil.
 Qed.
 
-Lemma L_S k j n :
- L k j (S n) = L k j n + length (knsubstw k j [kseq k n]).
+Lemma L_S k j n : L k j (S n) = L k j n + length (knsub k j [kseq k n]).
 Proof.
- unfold L. now rewrite take_S, knsubstw_app, app_length.
+ unfold L. now rewrite take_S, knsub_app, app_length.
 Qed.
 
 Lemma L_incr k j : IncrFun (L k j).
 Proof.
  intro n. rewrite L_S.
  generalize (@napply_mono _ 0 j [kseq k n] (ksubst_noerase k)).
- unfold knsubstw. simpl. lia.
+ unfold knsub. simpl. lia.
 Qed.
 
 Lemma L_lt k j n m : n < m <-> L k j n < L k j m.
@@ -132,15 +127,15 @@ Qed.
 Lemma L_add k i j n : L k i (L k j n) = L k (i+j) n.
 Proof.
  unfold L. f_equal.
- generalize (knsubstw_prefixseq k j n). unfold PrefixSeq. intros <-.
- unfold knsubstw. symmetry. apply napply_add.
+ generalize (knsub_prefixseq k j n). unfold PrefixSeq. intros <-.
+ unfold knsub. symmetry. apply napply_add.
 Qed.
 
 Lemma L_ge_n k j n : n <= L k j n.
 Proof.
  revert n.
  assert (H : forall n, n <= L k 1 n).
- { intros n. unfold L, knsubstw. simpl.
+ { intros n. unfold L, knsub. simpl.
    rewrite <- (kprefix_length k n) at 1.
    apply apply_grow, ksubst_noerase. }
  induction j; intros.
@@ -158,7 +153,7 @@ Lemma L_gt_n k j n : 0<j -> 0<n -> n < L k j n.
 Proof.
  revert n.
  assert (H : forall n, 0<n -> n < L k 1 n).
- { intros n Hn. unfold L, knsubstw. simpl.
+ { intros n Hn. unfold L, knsub. simpl.
    destruct n; try easy. cbn. rewrite app_length.
    set (w := map _ _).
    assert (n <= length (apply (ksubst k) w)).
@@ -181,7 +176,7 @@ Qed.
 
 Lemma L_k_0 k n : L k 0 n = n.
 Proof.
- unfold L, knsubstw. simpl. apply kprefix_length.
+ unfold L, knsub. simpl. apply kprefix_length.
 Qed.
 
 Lemma L_0_1 n : L 0 1 n = 2*n.
@@ -212,15 +207,15 @@ Lemma steiner_thm_disj k n :
 Proof.
   unfold LBound. intros IH1.
   destruct (Nat.eq_dec n 0) as [->|N]; [now left|].
-  generalize (knsubstw_prefixseq k 1 (f k n)).
+  generalize (knsub_prefixseq k 1 (f k n)).
   revert IH1.
   replace (f k n) with (S (f k n - 1)) at 2 3 4
     by (generalize (@f_nonzero k n); lia).
   rewrite L_S. unfold L.
-  rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
-  set (w := knsubstw k 1 (kprefix k (f k n - 1))).
+  rewrite take_S, knsub_app. unfold PrefixSeq. rewrite app_length.
+  set (w := knsub k 1 (kprefix k (f k n - 1))).
   set (x := kseq _ _) in *.
-  unfold knsubstw. simpl. rewrite app_nil_r.
+  unfold knsub. simpl. rewrite app_nil_r.
   unfold ksubst. case Nat.eqb; intros W0 W; simpl in *; try lia.
   destruct (Nat.eq_dec (length w) (n-1)) as [W'|W']; try lia.
   right. rewrite W' in W.
@@ -247,19 +242,19 @@ Proof.
      2:{ rewrite <- Hn' at 1. rewrite !f_S, E.
          generalize (fs_le k (S k) (n-1)). lia. }
      unfold LBound. simpl. rewrite Nat.sub_0_r, L_S, EQ.
-     unfold knsubstw. simpl. unfold ksubst. case Nat.eqb; simpl; lia.
+     unfold knsub. simpl. unfold ksubst. case Nat.eqb; simpl; lia.
    + exfalso.
      specialize (IHn (S k) lia). destruct IHn as (_,IHn).
      apply Nat.le_lteq, or_comm in IHn. destruct IHn as [IHn|IHn].
      * clear IHn1.
        set (m := fs k (S k) n) in *.
-       generalize (knsubstw_prefixseq k (S k) (S m)).
-       generalize (knsubstw_prefixseq k (S k) m).
-       rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
+       generalize (knsub_prefixseq k (S k) (S m)).
+       generalize (knsub_prefixseq k (S k) m).
+       rewrite take_S, knsub_app. unfold PrefixSeq. rewrite app_length.
        unfold L in IHn. rewrite <- IHn. intros ->. clear IHn.
        assert (Hx := kseq_letters k m).
        set (x := kseq k m) in *.
-       rewrite knsubstw_Sk_len, knsubstw_Sk_alt, kword_low by lia.
+       rewrite knsub_Sk_len, knsub_Sk_alt, kword_low by lia.
        rewrite take_add.
        intros W. apply app_inv_head in W. simpl in W.
        injection W as W _ _. lia.
@@ -269,12 +264,12 @@ Proof.
        replace (fs _ _ _) with (S m) in IHn.
        2:{ unfold m. generalize (@fs_nonzero k n (S k)); lia. }
        rewrite L_S in IHn.
-       generalize (knsubstw_prefixseq k (S k) (S m)).
-       generalize (knsubstw_prefixseq k (S k) m).
-       rewrite take_S, knsubstw_app. unfold PrefixSeq. rewrite app_length.
+       generalize (knsub_prefixseq k (S k) (S m)).
+       generalize (knsub_prefixseq k (S k) m).
+       rewrite take_S, knsub_app. unfold PrefixSeq. rewrite app_length.
        assert (Hx := kseq_letters k m).
        set (x := kseq k m) in *.
-       rewrite knsubstw_Sk_len, knsubstw_Sk_alt, kword_low in * by lia.
+       rewrite knsub_Sk_len, knsub_Sk_alt, kword_low in * by lia.
        fold (L k (S k) m). set (lm := L k (S k) m) in *. intros ->.
        simpl. rewrite take_add.
        intros W. apply app_inv_head in W. simpl in W.
@@ -302,24 +297,24 @@ Proof.
      destruct (IHn (S k) lia) as (UB,_).
      rewrite E in UB. simpl in *. rewrite Nat.sub_0_r in *. lia. }
    clear IHn1 IHn.
-   assert (EL := knsubstw_prefixseq k 1 (f k (n-1))).
-   assert (EL' := knsubstw_prefixseq k (S k) (fs k (S k) (n-1))).
+   assert (EL := knsub_prefixseq k 1 (f k (n-1))).
+   assert (EL' := knsub_prefixseq k (S k) (fs k (S k) (n-1))).
    red in EL,EL'. unfold L in HL,HL'. rewrite HL,HL' in *. clear HL HL'.
    assert (K0 : kseq k (n-1) = k /\ kseq k n = 0).
-   { generalize (knsubstw_prefixseq k (S k) (fs k (S k) n)).
-     rewrite E, take_S, knsubstw_app, EL'.
+   { generalize (knsub_prefixseq k (S k) (fs k (S k) n)).
+     rewrite E, take_S, knsub_app, EL'.
      assert (Hx := kseq_letters k (fs k (S k) (n-1))).
      set (x := kseq _ _) in *.
      unfold PrefixSeq. rewrite app_length, kprefix_length, take_add.
-     rewrite knsubstw_Sk_len, knsubstw_Sk_alt, kword_low by lia.
+     rewrite knsub_Sk_len, knsub_Sk_alt, kword_low by lia.
      simpl. rewrite Hn'.
      intro V. apply app_inv_head in V. now injection V as <- <- _. }
    destruct K0 as (K,K').
-   generalize (knsubstw_prefixseq k 1 (S (f k n))).
-   rewrite E', 2 take_S, !knsubstw_app, EL. clear E E' EL EL'.
+   generalize (knsub_prefixseq k 1 (S (f k n))).
+   rewrite E', 2 take_S, !knsub_app, EL. clear E E' EL EL'.
    set (x := kseq k (f k (n-1))).
    set (y := kseq k (S _)). clearbody x y.
-   unfold knsubstw. simpl. rewrite !app_nil_r. unfold PrefixSeq.
+   unfold knsub. simpl. rewrite !app_nil_r. unfold PrefixSeq.
    rewrite !app_length, kprefix_length, <- Nat.add_assoc, <- app_assoc.
    rewrite take_add.
    intros V. apply app_inv_head in V. revert V.
@@ -439,14 +434,14 @@ Proof.
 Qed.
 
 Lemma fsinv_S_length k j n :
-  length (fsinv k j (S n)) = length (knsubstw k j [kseq k n]).
+  length (fsinv k j (S n)) = length (knsub k j [kseq k n]).
 Proof.
  unfold fsinv. simpl. rewrite Nat.sub_0_r, L_S, seq_length. lia.
 Qed.
 
 Lemma fsinv_length k j n :
   length (fsinv k j n) =
-  match n with 0 => 1 | S n => length (knsubstw k j [kseq k n]) end.
+  match n with 0 => 1 | S n => length (knsub k j [kseq k n]) end.
 Proof.
  unfold fsinv. destruct n; simpl; trivial. now rewrite <- fsinv_S_length.
 Qed.
@@ -458,7 +453,7 @@ Proof.
  rewrite fsinv_S_length.
  set (x := kseq k n).
  assert (Hx : x <= k) by apply kseq_letters.
- rewrite knsubstw_len by trivial. split; apply A_mono; lia.
+ rewrite knsub_len by trivial. split; apply A_mono; lia.
 Qed.
 
 (** For each k and j, these bounds are reached infinitely often when n vary.
@@ -466,12 +461,12 @@ Qed.
 
 Lemma fsinv_1 k j : length (fsinv k j 1) = A k j.
 Proof.
- rewrite fsinv_S_length, kseq_k_0, knsubstw_len; f_equal; lia.
+ rewrite fsinv_S_length, kseq_k_0, knsub_len; f_equal; lia.
 Qed.
 
 Lemma fsinv_2 k j : length (fsinv k j 2) = A k (j-k).
 Proof.
- rewrite fsinv_S_length, kseq_k_1, knsubstw_len; f_equal; lia.
+ rewrite fsinv_S_length, kseq_k_1, knsub_len; f_equal; lia.
 Qed.
 
 
@@ -503,18 +498,18 @@ Lemma steiner_trick k n : (* with additions instead of subtractions *)
 Proof.
  induction n.
  - now rewrite !L_0.
- - rewrite !L_S, !knsubstw_Sk_len, !knsubstw_k_len by apply kseq_letters. lia.
+ - rewrite !L_S, !knsub_Sk_len, !knsub_k_len by apply kseq_letters. lia.
 Qed.
 
-Lemma knsubstw_k_nbocc k u :
+Lemma knsub_k_nbocc k u :
   Forall (fun a : nat => a <= k) u ->
-  nbocc k (knsubstw k k u) = length u.
+  nbocc k (knsub k k u) = length u.
 Proof.
  induction u as [|i u IH]; intros Hu.
- - unfold knsubstw. now rewrite napply_nil.
+ - unfold knsub. now rewrite napply_nil.
  - inversion Hu; subst.
-   rewrite (knsubstw_app _ _ [i] u), nbocc_app, IH by trivial. clear IH.
-   rewrite knsubstw_k_alt by trivial.
+   rewrite (knsub_app _ _ [i] u), nbocc_app, IH by trivial. clear IH.
+   rewrite knsub_k_alt by trivial.
    rewrite kword_low by lia. simpl. rewrite Nat.eqb_refl.
    rewrite nbocc_notin; rewrite ?in_seq; lia.
 Qed.
@@ -528,10 +523,10 @@ Proof.
  assert (Hx := kseq_letters k (m-1)).
  set (x := kseq k (m-1)) in *.
  unfold C. rewrite count_nbocc.
- assert (P := knsubstw_prefixseq k k (S (m-1))).
- rewrite !take_S, !knsubstw_app in P. fold x in P.
- rewrite knsubstw_k_alt in * by trivial.
- set (u := knsubstw _ _ _) in *.
+ assert (P := knsub_prefixseq k k (S (m-1))).
+ rewrite !take_S, !knsub_app in P. fold x in P.
+ rewrite knsub_k_alt in * by trivial.
+ set (u := knsub _ _ _) in *.
  change (L k k (m-1)) with (length u) in H.
  assert (P' : Prefix (kprefix k n) (u++kword k x)).
  { eapply PrefixSeq_incl; eauto using kprefix_ok.
@@ -540,7 +535,7 @@ Proof.
  apply Prefix_app in P. destruct P as [P|(v & E & P)].
  { apply Prefix_len in P. rewrite kprefix_length in P. lia. }
  rewrite E, nbocc_app. unfold u.
- rewrite knsubstw_k_nbocc, kprefix_length by apply kprefix_letters.
+ rewrite knsub_k_nbocc, kprefix_length by apply kprefix_letters.
  rewrite kword_low in P by lia.
  apply Prefix_cons_inv in P. destruct P as [->|(w & E' & P)].
  { apply (f_equal (@length _)) in E.
@@ -567,7 +562,7 @@ Proof.
  destruct (Nat.eq_dec n 0) as [->|N0]; [easy|].
  destruct (Nat.eq_dec n 1) as [->|N1].
  { clear N0 IH. split; intros;
-   rewrite !L_S, !L_0, !kseq_k_0, !knsubstw_kword, !kword_len, !A_base; lia. }
+   rewrite !L_S, !L_0, !kseq_k_0, !knsub_kword, !kword_len, !A_base; lia. }
  split.
  - rewrite !Lk1_Ckk.
    apply Nat.le_ngt. intro LT.
@@ -588,10 +583,10 @@ Proof.
  - intros _. destruct n; try easy.
    destruct (Nat.eq_dec (kseq (S k) n) (S k)) as [E|N].
    + intros j Hj. rewrite !L_S, E.
-     rewrite knsubstw_kword, kword_len.
+     rewrite knsub_kword, kword_len.
      assert (Hx := kseq_letters k n).
      set (x := kseq k n) in *.
-     generalize (knsubstw_len_le k j x Hx). rewrite !A_base by lia.
+     generalize (knsub_len_le k j x Hx). rewrite !A_base by lia.
      destruct (IH n lia) as (_,IH').
      specialize (IH' lia j Hj).
      lia.
@@ -717,7 +712,7 @@ Qed.
 (** Counting letter p < k.
 
     The key idea: no matter which letter is i, the letter p occurs
-    exactly once in [knsubstw k (k+S p) [i]], always at position (S p).
+    exactly once in [knsub k (k+S p) [i]], always at position (S p).
 
     This subsumes an older section dedicated specifically to letter 0.
 *)
@@ -733,10 +728,10 @@ Proof.
    do 2 f_equal. simpl. now rewrite app_nil_r.
 Qed.
 
-Lemma knsubstw_unique_letter k p i : p < k -> i <= k ->
- exists w, knsubstw k (k+S p) [i] = kword k p ++ [p] ++ w /\ ~In p w.
+Lemma knsub_unique_letter k p i : p < k -> i <= k ->
+ exists w, knsub k (k+S p) [i] = kword k p ++ [p] ++ w /\ ~In p w.
 Proof.
- intros Hp Hi. rewrite knsubstw_kword_gen by lia.
+ intros Hp Hi. rewrite knsub_kword_gen by lia.
  replace (k+S p+i-k) with (S p+i) by lia.
  destruct (kword_prefix k (S p) (S p+i) lia) as (w,Hw).
  exists w. split.
@@ -760,27 +755,27 @@ Proof.
      rewrite in_seq in IN. lia.
 Qed.
 
-Lemma knsubstw_unique_letter' k p i : p < k -> i <= k ->
- exists w w', knsubstw k (k+S p) [i] = w++[p]++w'
+Lemma knsub_unique_letter' k p i : p < k -> i <= k ->
+ exists w w', knsub k (k+S p) [i] = w++[p]++w'
               /\ length w = S p /\ ~In p w /\ ~In p w'.
 Proof.
  intros Hp Hi.
- destruct (knsubstw_unique_letter k p i Hp Hi) as (w & E & W).
+ destruct (knsub_unique_letter k p i Hp Hi) as (w & E & W).
  exists (kword k p), w; repeat split; trivial.
  - rewrite kword_len, A_base; lia.
  - rewrite kword_low by lia. simpl. rewrite in_seq; lia.
 Qed.
 
-Lemma knsubstw_nbocc k p u : p < k ->
+Lemma knsub_nbocc k p u : p < k ->
   Forall (fun a : nat => a <= k) u ->
-  nbocc p (knsubstw k (k+S p) u) = length u.
+  nbocc p (knsub k (k+S p) u) = length u.
 Proof.
  intros Hp.
  induction u as [|i u IH]; intros Hu.
- - unfold knsubstw. now rewrite napply_nil.
+ - unfold knsub. now rewrite napply_nil.
  - inversion Hu; subst.
-   rewrite (knsubstw_app _ _ [i] u), nbocc_app, IH by trivial. clear IH.
-   destruct (knsubstw_unique_letter' k p i Hp) as (w & w' & -> & _ & W & W');
+   rewrite (knsub_app _ _ [i] u), nbocc_app, IH by trivial. clear IH.
+   destruct (knsub_unique_letter' k p i Hp) as (w & w' & -> & _ & W & W');
     trivial.
    rewrite !nbocc_app. simpl. rewrite Nat.eqb_refl. now rewrite !nbocc_notin.
 Qed.
@@ -792,18 +787,18 @@ intros Hp H. unfold LBound in *.
 assert (c <> 0). { intros ->. rewrite !L_0 in *. lia. }
 set (p' := k+S p) in *.
 replace c with (S (c-1)) in H at 2 by lia. rewrite L_S in H.
-unfold L in H. set (u := knsubstw _ _ _) in *.
+unfold L in H. set (u := knsub _ _ _) in *.
 set (x := kseq k (c-1)) in *.
 set (y := kseq k c) in *.
-set (vx := knsubstw k p' [x]) in *.
-set (vy := knsubstw k p' [y]).
+set (vx := knsub k p' [x]) in *.
+set (vy := knsub k p' [y]).
 unfold C. rewrite count_nbocc.
-assert (P := knsubstw_prefixseq k p' (S (S (c-1)))).
-rewrite !take_S, !knsubstw_app in P. replace (S (c-1)) with c in P by lia.
+assert (P := knsub_prefixseq k p' (S (S (c-1)))).
+rewrite !take_S, !knsub_app in P. replace (S (c-1)) with c in P by lia.
 fold u x y vx vy in P. rewrite <- app_assoc in P.
-destruct (knsubstw_unique_letter' k p x Hp) as (w1 & w2 & E & L & W1 & W2);
+destruct (knsub_unique_letter' k p x Hp) as (w1 & w2 & E & L & W1 & W2);
  try apply kseq_letters.
-destruct (knsubstw_unique_letter' k p y Hp) as (w3 & w4 & E' & L' & W3 & W4);
+destruct (knsub_unique_letter' k p y Hp) as (w3 & w4 & E' & L' & W3 & W4);
  try apply kseq_letters. fold p' vx vy in E,E'.
 assert (P' : Prefix (kprefix k (n+S p)) (u++vx++vy)).
 { eapply PrefixSeq_incl; eauto using kprefix_ok.
@@ -817,7 +812,7 @@ destruct P as [P|(w & E & P)].
 { apply Prefix_len in P. rewrite kprefix_length, app_length, L in P. lia. }
 rewrite E, !nbocc_app.
 unfold u.
-rewrite knsubstw_nbocc, kprefix_length by trivial using kprefix_letters.
+rewrite knsub_nbocc, kprefix_length by trivial using kprefix_letters.
 clearbody u.
 rewrite nbocc_notin by trivial.
 apply (f_equal (@length _)) in E.
