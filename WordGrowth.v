@@ -836,8 +836,7 @@ destruct P as [P|(w' & E' & P)].
     rewrite !app_length, L' in E'. simpl in E'. lia. }
 Qed.
 
-Lemma fs_count k p n :
-  p < k -> fs k (k+S p) n = C k p (n+S p).
+Lemma fs_count k p n : p < k -> fs k (k+S p) n = C k p (n+S p).
 Proof.
  intros Hp.
  destruct (Nat.eq_dec n 0) as [->|N].
@@ -861,19 +860,23 @@ Proof.
  rewrite <- fs_count_0, f_S; generalize (fs_le k (S k) n); lia.
 Qed.
 
-Lemma Ck0_ge_CSk0 k n : k <> 0 -> C (S k) 0 n <= C k 0 n.
+Lemma Ck0_ge_CSk0 k n : C (S k) 0 n <= C k 0 n.
 Proof.
- intros K.
- generalize (f_count_0 k n K) (f_count_0 (S k) n lia) (f_grows k n). lia.
+ destruct (Nat.eq_dec k 0) as [->|K].
+ - unfold C. rewrite (count_all (kseq 0)). apply count_subid.
+   intros m _. generalize (kseq_letters 0 m). lia.
+ - generalize (f_count_0 k n K) (f_count_0 (S k) n lia) (f_grows k n). lia.
 Qed.
 
 
 (** Application to letter 1 *)
 
-Lemma fs_count_1 k n : 1 < k -> fs k (k+2) n = count (kseq k) 1 (n+2).
+Lemma fs_count_1 k n : 1 < k -> fs k (k+2) n = C k 1 (n+2).
 Proof.
  apply fs_count.
 Qed.
 
 (** For 1<k, the previous conjecture fs k (k+2) n >= fs (k+1) (k+3) n
-    hence implies:  count (kseq k) 1 n >= count (kseq (S k)) 1 n. *)
+    hence implies:  C k 1 n >= C (S k) 1 n.
+    (at least for 2<=k, and probably even 1<=k)
+*)
