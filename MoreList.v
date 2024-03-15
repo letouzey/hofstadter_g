@@ -633,6 +633,37 @@ Proof.
  rewrite nbocc_app. simpl. now f_equal.
 Qed.
 
+(** Same as nbocc but for counting value above a given threshold. *)
+
+Fixpoint nbabove (a:nat) (l:list nat) :=
+ match l with
+ | [] => 0
+ | b::l' => nbabove a l' + if a <=? b then 1 else 0
+ end.
+
+Lemma nbabove_app a u v : nbabove a (u++v) = nbabove a u + nbabove a v.
+Proof.
+ induction u; simpl; auto; lia.
+Qed.
+
+Lemma nbabove_le_length k u : nbabove k u <= length u.
+Proof.
+ induction u; simpl; trivial. case Nat.leb; lia.
+Qed.
+
+Lemma nbabove_0 x l : Forall (fun y => y < x) l -> nbabove x l = 0.
+Proof.
+ induction l; simpl; trivial.
+ inversion 1; subst.
+ case Nat.leb_spec; try lia. intros. now rewrite IHl.
+Qed.
+
+Lemma count_above_nbabove f a n : count_above f a n = nbabove a (take n f).
+Proof.
+ induction n. simpl; auto. rewrite take_S.
+ rewrite nbabove_app. simpl. now f_equal.
+Qed.
+
 (** Some predicates on words : Prefix, Suffix, Sub *)
 
 Definition Prefix {A} (u v : list A) := exists w, u++w = v.

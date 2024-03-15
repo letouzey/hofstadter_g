@@ -875,3 +875,104 @@ Qed.
     hence implies:  C k 1 n >= C (S k) 1 n.
     (at least for 2<=k, and probably even 1<=k)
 *)
+
+
+(** Counting many letters at once : all the ones larger than some p.
+
+    Key idea here: for j <= k, [knsub k j [i]] has only its first letter
+    that is j or more.
+
+    NB: [LBound_count_above] subsumes previous [LBound_Ckk] but we keep
+    it for its simplificity.
+ *)
+
+Lemma knsub_nbabove k p u : p <= k ->
+  Forall (fun a : nat => a <= k) u ->
+  nbabove p (knsub k p u) = length u.
+Proof.
+ intros Hp.
+ induction u as [|i u IH]; intros Hu.
+ - unfold knsub. now rewrite napply_nil.
+ - inversion Hu; subst.
+   rewrite (knsub_app _ _ [i] u), nbabove_app, IH by trivial. clear IH Hu.
+   rewrite knsub_alt by trivial.
+   case Nat.ltb_spec; intros; simpl.
+   + case Nat.leb_spec; lia.
+   + rewrite kword_low by lia. simpl.
+     case Nat.leb_spec; intros; try lia.
+     rewrite nbabove_0; try lia. apply Forall_forall.
+     intro x. rewrite in_seq. lia.
+Qed.
+
+Lemma LBound_count_above k p c n : p <= k ->
+ LBound k p n c -> c = count_above (kseq k) p n.
+Proof.
+ unfold LBound. intros Hn H.
+ assert (c <> 0). { intros ->. simpl in *. rewrite !L_0 in H. lia. }
+ replace c with (S (c-1)) in H at 2 by lia.
+ rewrite L_S in H.
+ assert (Hx := kseq_letters k (c-1)).
+ set (x := kseq k (c-1)) in *.
+ rewrite count_above_nbabove.
+ assert (P := knsub_prefixseq k p (S (c-1))).
+ rewrite take_S, knsub_app in P. fold x in P.
+ unfold L in *. set (u := knsub _ _ _) in *.
+ assert (P' : Prefix (kprefix k n) (u++knsub k p [x])).
+ { eapply PrefixSeq_incl; eauto using kprefix_ok.
+   rewrite kprefix_length, app_length. lia. }
+ clear P. rename P' into P.
+ rewrite knsub_alt in * by trivial.
+ destruct (Nat.ltb_spec (p+x) k).
+ - simpl in H.
+   destruct P as ([|],P).
+   + rewrite app_nil_r in P. rewrite P, nbabove_app. simpl.
+     case Nat.leb_spec; intros; try lia.
+     unfold u. rewrite knsub_nbabove; trivial using kprefix_letters.
+     rewrite kprefix_length. lia.
+   + apply (f_equal (@length _)) in P.
+     rewrite !app_length, kprefix_length in P. simpl in P. lia.
+ - rewrite kword_len, A_base, kword_low in * by lia.
+   apply Prefix_app in P. destruct P as [P|(w & E & P)].
+   + apply Prefix_len in P. rewrite kprefix_length in P. lia.
+   + rewrite E, nbabove_app.
+     unfold u. rewrite knsub_nbabove; trivial using kprefix_letters.
+     rewrite kprefix_length.
+     apply Prefix_cons_inv in P. destruct P as [->|(w' & -> & P)].
+     * rewrite app_nil_r in E. apply (f_equal (@length _)) in E.
+       rewrite kprefix_length in E. lia.
+     * simpl. case Nat.leb_spec; intros; try lia.
+       rewrite nbabove_0; try lia.
+       apply Forall_forall. intros y IN. apply Prefix_incl in P.
+       specialize (P y IN). rewrite in_seq in P. lia.
+Qed.
+
+Lemma fs_count_above k p n : p <= k -> fs k p n = count_above (kseq k) p n.
+Proof.
+ intros P.
+ destruct n.
+ - now rewrite fs_k_0.
+ - apply LBound_count_above; trivial. apply steiner_thm; lia.
+Qed.
+
+(** Hence the monotony results on fs also correspond to results on
+    some ΣCkp. *)
+
+(** C as difference between count_above *)
+
+Lemma Ckp_diff_fs k p n : p < k -> C k p n = fs k p n - fs k (S p) n.
+Proof.
+ intros. unfold C. rewrite !fs_count_above, count_above_S; lia.
+Qed.
+
+Lemma Ckp_diff_bis k p n : p < k -> C k p n = fs k (S k) (fs k p n - 1).
+Proof.
+ intros. rewrite Ckp_diff_fs; trivial.
+ rewrite <- (f_eqn_pred k (fs k p n)) at 1. rewrite <- Nat.sub_1_r.
+ simpl. lia.
+Qed.
+
+Lemma wierd_law k p n : p < k ->
+   fs k (k+S p) n = fs k (S k) (fs k p (n+S p) - 1).
+Proof.
+ intros. rewrite <- Ckp_diff_bis; trivial. now apply fs_count.
+Qed.
