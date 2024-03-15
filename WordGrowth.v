@@ -1169,7 +1169,10 @@ Qed.
     for instance L 2 4 4 = L 3 5 4 = 19.
     This equality is always in n=k+2,
     and L k (k+ 2) (k+2) = L (S k) (k+3) (k+2) is provable by
-    direct enumeration (ksubstSkw(ksubstw(kword k (S k)), etc)
+    direct enumeration (ksubstSkw(ksubstw(kword k (S k)), etc).
+
+    Proving this L k (k+2) n <= L (k+1) (k+3) n would imply
+    fs k (k+2) n >= fs (k+1) (k+3) n.
 
     And for j>k+2, we can even have L k j n > L (k+1) (j+1) n,
     for instance L 2 5 4 = 28 > L 3 6 4 = 26.
@@ -1195,3 +1198,162 @@ Proof.
  split. apply fs_grows_gen; lia.
  replace (S j - 1) with j by lia. apply fs_decreases_gen; lia.
 Qed.
+
+(** Counting letter p < k.
+    This subsumes the older part counting specifically letter 0.
+    The key idea: no matter which letter is i, the letter p occurs
+    exactly once in [knsubstw k (k+S p) [i]], always at position (S p).
+*)
+
+Lemma knsubstw_kword_gen k p i :
+  i <= k -> k <= p+i -> knsubstw k p [i] = kword k (p+i-k).
+Proof.
+ intros. unfold knsubstw. now apply napply_ksubst_is_kword.
+Qed.
+
+Lemma kword_flatmap k n :
+  kword k (k+n) = flat_map (kword k) (k :: seq 0 n).
+Proof.
+ induction n.
+ - rewrite Nat.add_0_r. simpl. now rewrite app_nil_r.
+ - rewrite Nat.add_succ_r, kword_eqn, IHn by lia.
+   replace (k+n-k) with n by lia.
+   rewrite seq_S. simpl. rewrite <- app_assoc, flat_map_app.
+   do 2 f_equal. simpl. now rewrite app_nil_r.
+Qed.
+
+Lemma knsubstw_unique_letter k p i :
+ p < k -> i <= k ->
+ exists w, knsubstw k (k+S p) [i] = kword k p ++ [p] ++ w /\ ~In p w.
+Proof.
+ intros Hp Hi. rewrite knsubstw_kword_gen by lia.
+ replace (k+S p+i-k) with (S p+i) by lia.
+ destruct (kword_prefix k (S p) (S p+i) lia) as (w,Hw).
+ exists w. split.
+ - rewrite <- Hw. rewrite !kword_low, seq_S by lia. simpl.
+   now rewrite <- app_assoc.
+ - destruct (Nat.le_gt_cases (S p + i) k).
+   + rewrite !kword_low in Hw by lia.
+     rewrite seq_app in Hw. injection Hw as Hw. apply app_inv_head in Hw.
+     subst. rewrite in_seq. lia.
+   + replace (S p + i) with (k + (S p + i - k)) in Hw by lia.
+     rewrite kword_flatmap in Hw.
+     set (n := S p + i - k) in *.
+     simpl in Hw. rewrite !kword_low in Hw by lia.
+     replace k with (S p + (k - S p)) in Hw at 3 by lia.
+     rewrite seq_app in Hw. injection Hw as Hw.
+     rewrite <- app_assoc in Hw. apply app_inv_head in Hw.
+     subst. rewrite in_app_iff, in_seq.
+     intros [IN|IN]; try lia.
+     rewrite in_flat_map in IN. destruct IN as (x & Hx & IN).
+     rewrite in_seq in Hx. rewrite kword_low in IN by lia. simpl in IN.
+     rewrite in_seq in IN. lia.
+Qed.
+
+Lemma knsubstw_unique_letter' k p i :
+ p < k -> i <= k ->
+ exists w w', knsubstw k (k+S p) [i] = w++[p]++w'
+              /\ length w = S p /\ ~In p w /\ ~In p w'.
+Proof.
+ intros Hp Hi.
+ destruct (knsubstw_unique_letter k p i Hp Hi) as (w & E & W).
+ exists (kword k p), w; repeat split; trivial.
+ - rewrite kword_len, A_base; lia.
+ - rewrite kword_low by lia. simpl. rewrite in_seq; lia.
+Qed.
+
+Lemma knsubstw_nbocc k p u : p < k ->
+  Forall (fun a : nat => a <= k) u ->
+  nbocc p (knsubstw k (k+S p) u) = length u.
+Proof.
+ intros Hp.
+ induction u as [|i u IH]; intros Hu.
+ - unfold knsubstw. now rewrite napply_nil.
+ - inversion Hu; subst.
+   rewrite (knsubstw_app _ _ [i] u), nbocc_app, IH by trivial. clear IH.
+   destruct (knsubstw_unique_letter' k p i Hp) as (w & w' & -> & _ & W & W');
+    trivial.
+   rewrite !nbocc_app. simpl. rewrite Nat.eqb_refl. now rewrite !nbocc_notin.
+Qed.
+
+Lemma L_bounds_give_count k p c n : p < k ->
+ L k (k+S p) (c - 1) < n <= L k (k+S p) c ->
+ c = count (kseq k) p (n+S p).
+Proof.
+intros Hp H.
+assert (c <> 0). { intros ->. rewrite !L_0 in *. lia. }
+set (p' := k+S p) in *.
+set (u := kprefix k (c-1)).
+set (u' := knsubstw k p' u).
+replace c with (S (c-1)) in H at 2 by lia. rewrite L_S in H.
+change (L k p' (c-1)) with (length u') in *.
+set (x := kseq k (c-1)) in *.
+set (y := kseq k c).
+set (vx := knsubstw k p' [x]) in *.
+set (vy := knsubstw k p' [y]).
+rewrite count_nbocc.
+assert (P := knsubstw_prefixseq k p' (S (S (c-1)))).
+rewrite !take_S, !knsubstw_app in P. replace (S (c-1)) with c in P by lia.
+fold u u' x y vx vy in P. rewrite <- app_assoc in P.
+destruct (knsubstw_unique_letter' k p x Hp) as (w1 & w2 & E & L & W1 & W2);
+ [ apply kseq_letters | ].
+destruct (knsubstw_unique_letter' k p y Hp) as (w3 & w4 & E' & L' & W3 & W4);
+ [ apply kseq_letters | ]. fold p' vx vy in E,E'.
+assert (P' : Prefix (kprefix k (n+S p)) (u'++vx++vy)).
+{ eapply PrefixSeq_incl; eauto using kprefix_ok.
+  rewrite kprefix_length, E', !app_length, L'. simpl. lia. }
+clear P. rename P' into P.
+rewrite E,E', <- !app_assoc, !app_length, L in *. simpl in *.
+clear E E' x y vx vy.
+rewrite (app_assoc u'), (app_assoc w2) in P.
+apply Prefix_app in P.
+destruct P as [P|(w & Ew & P)].
+{ apply Prefix_len in P. rewrite kprefix_length, app_length, L in P. lia. }
+rewrite Ew, !nbocc_app.
+unfold u', u.
+rewrite knsubstw_nbocc, kprefix_length by trivial using take_kseq_letters.
+rewrite nbocc_notin by trivial.
+apply (f_equal (@length _)) in Ew.
+rewrite kprefix_length, !app_length, L in Ew.
+apply Prefix_cons_inv in P. destruct P as [->|(w' & -> & P)].
+{ simpl in Ew. lia. }
+simpl in Ew. rename w' into w. simpl. rewrite Nat.eqb_refl.
+apply Prefix_app in P.
+destruct P as [P|(w' & Ew' & P)].
+{ rewrite nbocc_notin; try lia. intro IN.
+  assert (IN' : In p (w2++w3)).
+  { destruct P as (w'&<-). rewrite in_app_iff. now left. }
+  rewrite in_app_iff in IN'; tauto. }
+{ destruct w' as [|z w'].
+  - rewrite Ew', app_nil_r, nbocc_notin; try lia.
+    rewrite in_app_iff; tauto.
+  - exfalso. apply (f_equal (@length _)) in Ew'.
+    rewrite !app_length, L' in Ew'. simpl in Ew'. lia. }
+Qed.
+
+Lemma fs_count k p n :
+  p < k -> fs k (k+S p) n = count (kseq k) p (n+S p).
+Proof.
+ intros Hp.
+ destruct (Nat.eq_dec n 0) as [->|N].
+ - rewrite Nat.add_0_l, fs_k_0, count_nbocc.
+   rewrite <- (@A_base k p lia), kprefix_A_kword, kword_low by lia.
+   rewrite nbocc_notin; trivial. simpl. rewrite in_seq. lia.
+ - apply L_bounds_give_count; trivial.
+   rewrite Nat.sub_1_r. apply steiner_thm1_alt. lia.
+Qed.
+
+(** In particular, this gives back f_count_0 via p=0 and (fs k (S k)) *)
+
+Lemma fs_count_0 k n : 0 < k -> fs k (S k) n = count (kseq k) 0 (S n).
+Proof.
+ rewrite <- (Nat.add_1_r k), <- (Nat.add_1_r n). apply fs_count.
+Qed.
+
+Lemma fs_count_1 k n : 1 < k -> fs k (k+2) n = count (kseq k) 1 (n+2).
+Proof.
+ apply fs_count.
+Qed.
+
+(** For 1<k, the previous conjecture fs k (k+2) n >= fs (k+1) (k+3) n
+    hence implies:  count (kseq k) 1 n >= count (kseq (S k)) 1 n. *)

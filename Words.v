@@ -620,6 +620,10 @@ Proof.
  apply Prefix_equiv. now apply kprefix_prefix_kword.
 Qed.
 
+Lemma kword_prefix k p q : p <= q -> Prefix (kword k p) (kword k q).
+Proof.
+ apply napply_prefix_mono, ksubst_prolong.
+Qed.
 
 (** Full decomposition of any prefix of kword, then kseq (used in Lim) *)
 
