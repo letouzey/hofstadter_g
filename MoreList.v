@@ -655,6 +655,11 @@ Proof.
  intros (w,<-). rewrite app_length. lia.
 Qed.
 
+Lemma Prefix_incl {A} (u v: list A) : Prefix u v -> incl u v.
+Proof.
+ intros (w,<-). now apply incl_appl.
+Qed.
+
 Lemma Prefix_antisym {A} (u v : list A) : Prefix u v -> Prefix v u -> u = v.
 Proof.
  intros (u',<-) P. apply Prefix_len in P. rewrite app_length in P.

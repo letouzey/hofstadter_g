@@ -602,6 +602,14 @@ Proof.
  rewrite <- kseq_take_A. symmetry. apply firstn_take. apply invA_up_spec.
 Qed.
 
+Lemma kprefix_letters k n : Forall (fun a => a <= k) (kprefix k n).
+Proof.
+ induction n.
+ - constructor.
+ - rewrite take_S. apply Forall_app. split; trivial.
+   repeat constructor. apply kseq_letters.
+Qed.
+
 Lemma kprefix_A_kword k p : kprefix k (A k p) = kword k p.
 Proof.
  apply kseq_take_A.
