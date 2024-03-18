@@ -971,6 +971,8 @@ Proof.
  simpl. lia.
 Qed.
 
+(** Weird consequence (see also GenG.f_alt_eqn) *)
+
 Lemma wierd_law k p n : p < k ->
    fs k (k+S p) n = fs k (S k) (fs k p (n+S p) - 1).
 Proof.
