@@ -539,15 +539,13 @@ Proof.
    generalize (@f_lt k (fs k p n)). lia.
 Qed.
 
-Lemma fs_init k n : 1 <= n <= k+2 -> fs k (S k) n = 1.
+Lemma fs_init k n p : 1 <= n <= S p -> fs k p n = 1.
 Proof.
- intros.
- destruct (Nat.eq_dec n 1) as [->|NE].
- - now rewrite fs_k_1.
- - destruct (le_lt_dec (fs k (S k) n) 1) as [LE|LT].
-   + generalize (@fs_nonzero k n (S k)). lia.
-   + apply fs_bound in LT; try lia.
-     generalize (@fs_nonzero k n (S k)). lia.
+ intros N.
+ destruct (Nat.eq_dec n 1) as [->|N']; [ apply fs_k_1 |].
+ assert (H := @fs_nonzero k n p).
+ destruct (Nat.eq_dec (fs k p n) 1); trivial.
+ generalize (@fs_bound k n p). lia.
 Qed.
 
 Lemma f_init k n : 2 <= n <= k+3 -> f k n = n-1.
