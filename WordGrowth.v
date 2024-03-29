@@ -187,6 +187,11 @@ Proof.
  simpl. lia.
 Qed.
 
+Lemma knsub_kprefix k j n : knsub k j (kprefix k n) = kprefix k (L k j n).
+Proof.
+ apply knsub_prefixseq.
+Qed.
+
 (** Steiner's Theorem : direct link between f and kseq *)
 
 Definition LBound k j n m := L k j (m-1) < n <= L k j m.
