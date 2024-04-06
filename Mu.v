@@ -617,28 +617,29 @@ Proof.
    + apply Rmult_le_compat_l; lra.
 Qed.
 
-Lemma mu_upper_bound_aux (k:nat) : k*(mu k - 1)^2 <= 1.
+Lemma mu_upper_bound_aux (k:nat) : (S k)*(mu k - 1)^2 <= 1.
 Proof.
- unfold mu. destruct mu_spec as (mu & M1 & M2). cbn -[pow].
+ unfold mu. destruct mu_spec as (mu & M1 & M2). cbn -[pow INR].
  unfold P in M2. rewrite <- tech_pow_Rmult in M2.
- replace (k*_) with ((mu-1)*(k*(mu-1))) by lra.
+ replace (S k*_) with ((mu-1)*(S k*(mu-1))) by lra.
  replace 1 with ((mu-1)*mu^k) at 3 by lra.
  apply Rmult_le_compat_l; try lra.
  replace mu with (1+(mu-1)) at 2 by lra.
- eapply Rle_trans; [|apply pow_lower_bound; lra]. lra.
+ rewrite S_INR, Rmult_plus_distr_r, Rmult_1_l.
+ generalize (pow_lower_bound k (mu-1)). lra.
 Qed.
 
-Lemma mu_upper_bound (k:nat) : (0<k)%nat -> mu k <= 1 + /sqrt k.
+Lemma mu_upper_bound (k:nat) : mu k <= 1 + /sqrt (S k).
 Proof.
- intros Hk.
- apply lt_INR in Hk; simpl in Hk.
+ assert (Hk := RSpos k).
  assert (M1 := mu_itvl k).
- assert (mu k - 1 <= / sqrt k); try lra.
+ assert (mu k - 1 <= / sqrt (S k)); try lra.
  rewrite inv_sqrt_depr; try lra.
  apply Rsqr_incr_0; try apply sqrt_pos; try lra.
  rewrite Rsqr_sqrt by (generalize (Rinv_0_lt_compat _ Hk); lra).
  rewrite Rsqr_pow2.
- apply Rmult_le_reg_l with k; trivial. rewrite <- Rinv_r_sym; try lra.
+ apply Rmult_le_reg_l with (S k); trivial.
+ rewrite <- Rinv_r_sym; try lra.
  apply mu_upper_bound_aux.
 Qed.
 
@@ -646,9 +647,8 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Lemma mu_limit : is_lim_seq mu 1.
 Proof.
- apply is_lim_seq_incr_1.
  apply is_lim_seq_le_le with (fun _ => 1) (fun k => 1 + /sqrt (S k)).
- - split. generalize (mu_itvl (S n)); lra. apply mu_upper_bound; lia.
+ - split. generalize (mu_itvl n); lra. apply mu_upper_bound; lia.
  - apply is_lim_seq_const.
  - replace (Rbar.Finite 1) with (Rbar.Finite (1+0)) by (f_equal; lra).
    apply is_lim_seq_plus'; try apply is_lim_seq_const.
