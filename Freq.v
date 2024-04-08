@@ -47,9 +47,8 @@ Proof.
  - (* n <= k *)
    replace (n-k)%nat with O by lia. simpl.
    apply Rle_trans with (mu k ^ n + 1).
-   + rewrite tech_pow_Rmult.
-     rewrite Rplus_comm; apply Rcomplements.Rle_minus_l.
-     simpl. eapply Rle_trans; [|apply (mu_ineq k n H); trivial].
+   + rewrite Rplus_comm; apply Rcomplements.Rle_minus_l.
+     eapply Rle_trans; [|apply (mu_ineq k n H); trivial].
      ring_simplify. lra.
    + rewrite Nat.add_1_r, S_INR. generalize (IH n (Nat.le_refl _)). lra.
  - (* k < n *)
