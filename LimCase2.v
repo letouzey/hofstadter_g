@@ -1291,6 +1291,23 @@ Proof.
  rewrite diff2_alt; lra.
 Qed.
 
+(** Alternative bound of diff2 via diff0 : [1+τ] is less precise than
+    the previous bound, but easier to obtain and still below 2. *)
+
+Lemma diff2_via_diff0 n : diff2 n = - diff0 (h n) - τ * diff0 n.
+Proof.
+ rewrite diff2_alt, !diff0_alt. simpl. ring.
+Qed.
+
+Lemma diff2_lt_indirect n : Rabs (diff2 n) < 1+τ.
+Proof.
+ rewrite diff2_via_diff0. unfold Rminus.
+ eapply Rle_lt_trans; try apply Rabs_triang; rewrite !Rabs_Ropp, Rabs_mult.
+ rewrite (Rabs_pos_eq τ) by approx.
+ replace τ with (τ*1) at 2 by lra.
+ apply Rplus_lt_compat; try apply Rmult_lt_compat_l; try apply diff0_lt_1.
+ approx.
+Qed.
 
 (** Distance between [h^^2] and [nat_part (τ^2 * n)].
     This distance may be "+2", for instance for n=1235.
