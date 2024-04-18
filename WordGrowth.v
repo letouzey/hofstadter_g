@@ -359,21 +359,23 @@ Proof.
      unfold SteinerThm, LBound in *. simpl in J1. lia.
 Qed.
 
+Lemma LBound_unique k j m n n' : LBound k j m n -> LBound k j m n' -> n=n'.
+Proof.
+ unfold LBound; intros.
+ assert (n'-1 < n) by (apply (incr_strmono_iff _ (L_incr k j)); lia).
+ assert (n-1 < n') by (apply (incr_strmono_iff _ (L_incr k j)); lia).
+ lia.
+Qed.
+
 Lemma steiner_thm_iff k j n m : 0<n -> fs k j m = n <-> LBound k j m n.
 Proof.
  intros Hn.
  split.
  - intros <-. apply steiner_thm.
    destruct m; try lia. now rewrite fs_k_0 in *.
- - intros H.
-   assert (Hm : 0 < m) by (unfold LBound in *; lia).
-   assert (H' := steiner_thm k j m Hm). unfold LBound in *.
-   destruct (Nat.lt_trichotomy (fs k j m) n) as [LT|[E|LT]];
-    [exfalso|trivial|exfalso].
-   + assert (LE : fs k j m <= n-1) by lia.
-     apply (incr_mono _ (L_incr k j)) in LE. lia.
-   + assert (LE : n <= fs k j m -1) by lia.
-     apply (incr_mono _ (L_incr k j)) in LE. lia.
+ - intros.
+   apply (LBound_unique k j m); trivial.
+   apply steiner_thm. unfold LBound in *. lia.
 Qed.
 
 (** Said otherwise, [L k j n] is the largest antecedent of [n] by [fs k j],
