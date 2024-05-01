@@ -716,6 +716,14 @@ Qed.
 Definition rchild k n := n + fs k k n.
 Definition lchild k n := n + fs k k n - 1. (** left son, if there's one *)
 
+Lemma f_onto_eqn k a : f k (rchild k a) = a.
+Proof.
+ destruct (f_onto k a) as (n,Hn).
+ unfold rchild. rewrite <- Hn, <- iter_S.
+ assert (E := f_eqn k n).
+ destruct (f_step k n) as [<-|H]; f_equal; lia.
+Qed.
+
 Lemma rightmost_child_carac k a n : f k n = a ->
  (f k (S n) = S a <-> n = rchild k a).
 Proof.
@@ -724,17 +732,6 @@ Proof.
  rewrite iter_S in H'.
  rewrite Hn in H'.
  unfold rchild; lia.
-Qed.
-
-Lemma f_onto_eqn k a : f k (rchild k a) = a.
-Proof.
-destruct (f_onto k a) as (n,Hn).
-destruct (f_step k n) as [H|H].
-- unfold rchild.
-  rewrite <- Hn. rewrite <- H at 1 3. f_equal.
-  rewrite <- iter_S. apply f_eqn.
-- rewrite Hn in H.
-  rewrite rightmost_child_carac in H; trivial. congruence.
 Qed.
 
 Lemma f_children k a n : f k n = a ->
