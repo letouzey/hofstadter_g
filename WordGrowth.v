@@ -98,7 +98,7 @@ Qed.
 
 
 (** [L] : length of the repeated expansion of a kseq prefix.
-    Sort of reciprocal to fs. *)
+    Right adjoint of [f]. *)
 
 Definition L k j n := length (knsub k j (kprefix k n)).
 
@@ -129,6 +129,18 @@ Proof.
  unfold L. f_equal.
  generalize (knsub_prefixseq k j n). unfold PrefixSeq. intros <-.
  unfold knsub. symmetry. apply napply_add.
+Qed.
+
+Lemma L_k_0 k n : L k 0 n = n.
+Proof.
+ unfold L, knsub. simpl. apply kprefix_length.
+Qed.
+
+Lemma L_iter k j n : L k j n = ((L k 1)^^j) n.
+Proof.
+ revert n. induction j; simpl; intros.
+ - apply L_k_0.
+ - now rewrite <- IHj, L_add.
 Qed.
 
 Lemma L_ge_n k j n : n <= L k j n.
@@ -172,11 +184,6 @@ Lemma L_strmono_j k j j' n : 0 < n -> j < j' -> L k j n < L k j' n.
 Proof.
  intros. replace j' with ((j'-j)+j) by lia. rewrite <- L_add. apply L_gt_n.
  lia. apply Nat.lt_le_trans with n; trivial. apply L_ge_n.
-Qed.
-
-Lemma L_k_0 k n : L k 0 n = n.
-Proof.
- unfold L, knsub. simpl. apply kprefix_length.
 Qed.
 
 Lemma L_0_1 n : L 0 1 n = 2*n.
