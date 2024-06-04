@@ -395,3 +395,13 @@ Proof.
      constructor. lia. apply IH; auto.
      apply Delta_low_hd with b. lia. auto.
 Qed.
+
+Lemma Delta_filter (f:nat->bool) k l :
+  DeltaList.Delta k l -> DeltaList.Delta k (filter f l).
+Proof.
+ induction l as [|x l]; simpl; trivial.
+ destruct (f x).
+ - rewrite !Delta_alt. intros (D,H); split; auto.
+   intros y. rewrite filter_In; intuition.
+ - intros D. apply Delta_inv in D; auto.
+Qed.
