@@ -815,10 +815,8 @@ Proof.
  - simpl. rewrite map_ext with (g:=id) by apply decr_0.
    rewrite map_id. symmetry. apply decomp_sum.
  - rewrite iter_S.
-   rewrite IHp; auto with arith.
-   rewrite fbis_decomp.
-   rewrite renorm_mapdecr; auto. f_equal.
-   symmetry. apply map_decr_S.
+   rewrite IHp by lia.
+   now rewrite fbis_decomp, renorm_mapdecr, map_decr_S by lia.
 Qed.
 
 Lemma fbis_is_f k n : fbis k n = f k n.
@@ -836,6 +834,7 @@ Proof.
      case Nat.leb_spec; intros.
      * rewrite <- map_decr_1.
        rewrite renormS_alt, renorm_mapdecr'; simpl; auto with arith hof.
+       2: destruct k; lia.
        rewrite Nat.add_shuffle1.
        assert (~In 0 l).
        { apply (@Delta_nz' (S k) a); auto with arith. }
@@ -854,13 +853,16 @@ Proof.
  symmetry. apply fbis_is_f.
 Qed.
 
+Lemma decomp_f k n : decomp k (f k n) = renorm k (map pred (decomp k n)).
+Proof.
+ now rewrite <- fbis_is_f, fbis_decomp.
+Qed.
+
 Lemma fs_decomp k p n :
   p <= S k -> fs k p n = sumA k (map (decr p) (decomp k n)).
 Proof.
- intros.
- rewrite <- fsbis; auto.
- symmetry. clear.
- induction p; auto. simpl. rewrite IHp. apply fbis_is_f.
+ intros. rewrite <- fsbis; auto. clear.
+ induction p; simpl; now rewrite ?IHp, <- ?fbis_is_f.
 Qed.
 
 Lemma f_sumA k l : Delta (S k) l ->
@@ -888,7 +890,48 @@ Lemma fs_sumA_lax k p l : p < S k -> Delta k l ->
 Proof.
  intros. rewrite <- renorm_sum.
  rewrite fs_sumA; auto with arith hof.
- now apply renorm_mapdecr.
+ apply renorm_mapdecr; lia.
+Qed.
+
+(** Extending theorem [fs_decomp] to larger iterates than [p <= S k] *)
+
+Definition succrank k n :=
+  match rank k n with
+  | None => 0
+  | Some r => S r
+  end.
+
+Lemma f_succrank k n : succrank k n <= S (succrank k (f k n)).
+Proof.
+ unfold succrank, rank. rewrite decomp_f.
+ assert (H := renorm_head k (map pred (decomp k n))).
+ destruct decomp as [|r l], renorm as [|r' l']; simpl in *; try lia.
+ destruct H as (m, H). lia.
+Qed.
+
+Lemma fs_decomp_gen k p n : n = 0 \/ p <= k + succrank k n ->
+ fs k p n = sumA k (map (decr p) (decomp k n)).
+Proof.
+ intros [->|H].
+ - simpl. induction p; simpl; now rewrite ?IHp.
+ - revert n H.
+   induction p; intros.
+   + simpl. rewrite map_ext with (g:=id) by apply decr_0.
+     rewrite map_id. symmetry. apply decomp_sum.
+   + rewrite iter_S.
+     rewrite IHp; clear IHp; auto with arith.
+     2:{ generalize (f_succrank k n); lia. }
+     rewrite decomp_f.
+     unfold succrank, rank in H.
+     assert (D := decomp_delta k n).
+     destruct decomp as [|r l]; trivial.
+     destruct (Nat.eq_dec r 0) as [->|R].
+     * rewrite renorm_mapdecr by lia.
+       f_equal. symmetry. apply map_decr_S.
+     * rewrite renorm_nop.
+       { f_equal. symmetry. apply map_decr_S. }
+       { apply Delta_pred; trivial.
+         eapply Delta_nz; eauto with hof. lia. }
 Qed.
 
 (** Zone where [f k n = n-1].
@@ -1015,7 +1058,7 @@ Proof.
        rewrite !A_base by (auto; lia).
        split. intros; f_equal; lia. intros [= ->]; lia.
      * apply Delta_S_cons. rewrite <- E; autoh.
-     * simpl. auto with arith.
+     * simpl. destruct k; lia.
      * rewrite <- E. autoh.
    + simpl. split. intros; f_equal; lia. intros [= ->]; lia.
 Qed.

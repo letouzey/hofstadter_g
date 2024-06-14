@@ -773,6 +773,12 @@ Proof.
 Qed.
 #[global] Hint Resolve renorm_delta : hof.
 
+Lemma renorm_nop k l : Delta (S k) l -> renorm k l = l.
+Proof.
+ intros.
+ rewrite <- (@decomp_carac k (sumA k l) (renorm k l)); auto with hof.
+Qed.
+
 Lemma renorm_le k x l : Delta k (x::l) ->
   forall y, In y (renorm k (x::l)) -> x <= y.
 Proof.
@@ -805,7 +811,7 @@ Proof.
  unfold renorm. rewrite map_length. apply renorm_loop_mapS.
 Qed.
 
-Lemma renorm_loop_mapdecr k m l n : m < S k -> length l <= n ->
+Lemma renorm_loop_mapdecr k m l n : m <= k -> length l <= n ->
   sumA k (map (decr m) (renorm_loop k l n)) =
   sumA k (map (decr m) l).
 Proof.
@@ -814,22 +820,20 @@ Proof.
  induction n; intros [|p l] LE; simpl in *; auto.
  - inversion LE.
  - apply Nat.succ_le_mono in LE.
-   assert (H := IHn l LE).
+   rewrite <- (IHn l LE).
    assert (LE' := renorm_loop_length k l LE).
    assert (Hd := renorm_loop_head k l LE).
    destruct renorm_loop as [|p' l']; simpl in *; auto.
-   case Nat.eqb_spec; simpl in *; intros.
-   + rewrite IHn by (simpl; lia).
-     subst p'. rewrite <- H.
-     rewrite <- Nat.add_succ_r. simpl.
-     rewrite Nat.add_assoc. f_equal.
-     unfold decr.
-     rewrite A_sum by lia.
-     rewrite Nat.add_comm. f_equal; f_equal; lia.
-   + now rewrite <- H.
+   case Nat.eqb_spec; simpl in *; intros; auto.
+   rewrite IHn by (simpl; lia).
+   subst p'. rewrite <- Nat.add_succ_r. simpl.
+   rewrite Nat.add_assoc. f_equal.
+   unfold decr.
+   rewrite A_sum by lia.
+   rewrite Nat.add_comm. f_equal; f_equal; lia.
 Qed.
 
-Lemma renorm_mapdecr k m l : m < S k ->
+Lemma renorm_mapdecr k m l : m <= k ->
   sumA k (map (decr m) (renorm k l)) = sumA k (map (decr m) l).
 Proof.
  unfold renorm. intros. now apply renorm_loop_mapdecr.
@@ -841,36 +845,33 @@ Definition LeHd m l :=
 Lemma renorm_loop_mapdecr' k m l n :
   length l <= n ->
   Delta k l ->
-  LeHd m l ->
+  LeHd (m-k) l ->
   sumA k (map (decr m) (renorm_loop k l n)) =
   sumA k (map (decr m) l).
 Proof.
  revert l.
- induction n; intros [|a l] LE D H; simpl in *; auto.
- - inversion LE.
- - apply Nat.succ_le_mono in LE.
-   apply Delta_alt in D. destruct D as (D,IN).
-   assert (LH : LeHd m l).
-   { destruct l as [|x l]; simpl in *; [intuition|].
-     assert (a+k <= x) by auto. lia. }
-   assert (H' := IHn l LE D LH).
-   assert (LE' := renorm_loop_length k l LE).
-   assert (Hd := renorm_loop_head k l LE).
-   assert (D' := @renorm_loop_delta k l n LE D).
-   destruct renorm_loop as [|p' l']; simpl in *; auto.
-   case Nat.eqb_spec; simpl in *; intros.
-   + rewrite IHn; autoh; try (simpl; lia).
-     subst p'. rewrite <- H'; auto.
-     rewrite <- Nat.add_succ_r. simpl.
-     rewrite Nat.add_assoc. f_equal.
-     unfold decr.
-     rewrite A_sum by lia.
-     rewrite Nat.add_comm. f_equal; f_equal; lia.
-   + rewrite <- H'; auto.
+ induction n; intros [|a l] LE D H; simpl in *; try lia.
+ apply Nat.succ_le_mono in LE.
+ apply Delta_alt in D. destruct D as (D,IN).
+ assert (LH : LeHd (m-k) l).
+ { destruct l as [|x l]; simpl in *; trivial.
+   assert (a+k <= x) by auto. lia. }
+ rewrite <- (IHn l LE D LH).
+ assert (LE' := renorm_loop_length k l LE).
+ assert (Hd := renorm_loop_head k l LE).
+ assert (D' := @renorm_loop_delta k l n LE D).
+ destruct renorm_loop as [|p' l']; simpl in *; auto.
+ case Nat.eqb_spec; simpl in *; intros; auto.
+ rewrite IHn; autoh; try (simpl; lia).
+ subst p'. rewrite <- Nat.add_succ_r. simpl.
+ rewrite Nat.add_assoc. f_equal.
+ unfold decr.
+ rewrite A_sum by lia.
+ rewrite Nat.add_comm. f_equal; f_equal; lia.
 Qed.
 
 Lemma renorm_mapdecr' k m l :
-  Delta k l -> LeHd m l ->
+  Delta k l -> LeHd (m-k) l ->
   sumA k (map (decr m) (renorm k l)) = sumA k (map (decr m) l).
 Proof.
  unfold renorm. intros. now apply renorm_loop_mapdecr'.
