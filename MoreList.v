@@ -486,15 +486,32 @@ Proof.
  apply Nat.sub_0_r.
 Qed.
 
+Lemma map_decr_0 l : map (decr 0) l = l.
+Proof.
+ rewrite <- (map_id l) at 2. apply map_ext, decr_0.
+Qed.
+
 Lemma map_decr_1 l : map (decr 1) l = map pred l.
 Proof.
  apply map_ext. intros; unfold decr. lia.
 Qed.
 
+Lemma map_decr_decr k k' l :
+ map (decr k) (map (decr k') l) = map (decr (k+k')) l.
+Proof.
+ rewrite map_map. apply map_ext. unfold decr; lia.
+Qed.
+
 Lemma map_decr_S k l :
  map (decr (S k)) l = map (decr k) (map pred l).
 Proof.
- rewrite map_map. apply map_ext. intros. unfold decr. lia.
+ now rewrite <- map_decr_1, map_decr_decr, Nat.add_1_r.
+Qed.
+
+Lemma map_decr_S' k l :
+ map (decr (S k)) l = map pred (map (decr k) l).
+Proof.
+ now rewrite <- map_decr_1, map_decr_decr.
 Qed.
 
 (** take : the list of the n first elements of a infinite sequence

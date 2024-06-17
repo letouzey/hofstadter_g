@@ -812,11 +812,8 @@ Proof.
  intros Hp.
  revert n.
  induction p; intros.
- - simpl. rewrite map_ext with (g:=id) by apply decr_0.
-   rewrite map_id. symmetry. apply decomp_sum.
- - rewrite iter_S.
-   rewrite IHp by lia.
-   now rewrite fbis_decomp, renorm_mapdecr, map_decr_S by lia.
+ - simpl. now rewrite map_decr_0, decomp_sum.
+ - now rewrite iter_S, IHp, fbis_decomp, renorm_mapdecr, map_decr_S by lia.
 Qed.
 
 Lemma fbis_is_f k n : fbis k n = f k n.
@@ -916,10 +913,8 @@ Proof.
  - simpl. induction p; simpl; now rewrite ?IHp.
  - revert n H.
    induction p; intros.
-   + simpl. rewrite map_ext with (g:=id) by apply decr_0.
-     rewrite map_id. symmetry. apply decomp_sum.
-   + rewrite iter_S.
-     rewrite IHp; clear IHp; auto with arith.
+   + simpl. now rewrite map_decr_0, decomp_sum.
+   + rewrite iter_S, IHp; clear IHp.
      2:{ generalize (f_succrank k n); lia. }
      rewrite decomp_f.
      unfold succrank, rank in H.
@@ -1254,84 +1249,168 @@ Proof.
      replace (S (n-1)) with n in Rm'; lia.
 Qed.
 
-(** Beware, when comparing an [option nat] and a [nat],
-    [None] serves as a bottom element, not comparable with any [nat]. *)
+(** More about [fs k p], in particular when is it flat or not *)
 
-Definition olt (o : option nat) n :=
- match o with
- | None => False
- | Some a => a < n
- end.
-
-Declare Scope option_nat_scope.
-Delimit Scope option_nat_scope with onat.
-
-Infix "<" := olt : option_nat_scope.
-
-Lemma rank_S_nz_iff k n :
-  rank k (S n) <> Some 0 <-> (rank k n < S k)%onat.
+Lemma fs_S_decomp k p n : p < succrank k n ->
+ fs k p (S n) = sumA k (map (decr p) (decomp k (S n))).
 Proof.
- unfold rank.
+ unfold succrank, rank. rewrite decomp_S.
+ destruct (decomp k n) as [|r l] eqn:E; simpl.
+ - inversion 1.
+ - intros Hp. case Nat.leb_spec; intros.
+   + rewrite fs_decomp by lia. rewrite decomp_S, E. simpl.
+     apply Nat.leb_le in H. now rewrite H.
+   + revert p Hp.
+     assert (D1 : forall m, m + S k <= r ->
+                  Delta (S k) (map (decr m) (0 :: r :: l))).
+     { intros m Hm. simpl. constructor. unfold decr; lia.
+       apply (@Delta_map_decr _ _ (r::l)).
+       - intros x IN. assert (D := decomp_delta k n).
+         rewrite E in D. simpl in IN. destruct IN as [<-|IN]; try lia.
+         apply Delta_le with (y:=x) in D; trivial. lia.
+       - rewrite <- E. apply decomp_delta. }
+     assert (E1 : forall m, m + S k <= r ->
+                  fs k m (S n) = sumA k (map (decr m) (0::r::l))).
+     { induction m.
+       - rewrite map_decr_0. simpl Nat.iter.
+         rewrite <- (decomp_sum k (S n)), decomp_S, E. f_equal.
+         simpl. case Nat.leb_spec; trivial; lia.
+       - simpl Nat.iter. intros Hm. rewrite IHm by lia. clear IHm.
+         rewrite f_decomp.
+         erewrite decomp_carac; [|apply (D1 m); lia|trivial].
+         now rewrite map_decr_S'. }
+     assert (E2 : forall m, m + S k <= r ->
+                  decomp k (fs k m (S n)) = map (decr m) (0::r::l)).
+     { intros m Hm. rewrite E1 by trivial. apply decomp_carac; auto. }
+     clear D1 E1.
+     assert (E3 : decomp k (fs k (r-k) (S n)) =
+                  renorm k (S k :: map (decr (r-k)) l)).
+     { replace (r-k) with (S (r-S k)) by lia. simpl Nat.iter.
+       rewrite decomp_f, E2 by lia. rewrite <- map_decr_S'.
+       simpl. unfold decr at 1. replace (r-_) with k by lia.
+       replace (S (r-_)) with (r-k) by lia. apply renorm_low.
+       replace k with (r-(r-k)) at 2 by lia.
+       apply (@Delta_map_decr _ _ (r::l)).
+       - intros x IN. assert (D := decomp_delta k n). rewrite E in D.
+         simpl in IN. destruct IN as [<-|IN]; try lia.
+         apply Delta_le with (y:=x) in D; trivial. lia.
+       - rewrite <- E. apply decomp_delta. }
+     intros p Hp.
+     destruct (Nat.le_gt_cases p (r-S k)) as [LE|LT].
+     * rewrite <- E2 by lia. now rewrite decomp_sum.
+     * replace p with ((p+k-r)+(r-k)) by lia.
+       rewrite iter_add. rewrite fs_decomp by lia.
+       rewrite E3. rewrite renorm_mapdecr'; try (simpl; lia).
+       { replace (S k) with (decr (r-k) (S r)) by (unfold decr; lia).
+         rewrite (map_decr_decr _ (r-k) (S r::l)).
+         replace (p+k-r+_) with p by lia; cbn -[decr sumA].
+         replace (decr p (S r)) with (S (r-p)) by (unfold decr; lia).
+         simpl. unfold decr at 2. replace (r-p-k) with 0; simpl; lia. }
+       { apply Delta_S_cons.
+         replace k with (decr (r-k) r) at 2 by (unfold decr; lia).
+         apply (@Delta_map_decr _ _ (r::l)).
+         - intros x IN. assert (D := decomp_delta k n). rewrite E in D.
+           simpl in IN. destruct IN as [<-|IN]; try lia.
+           apply Delta_le with (y:=x) in D; trivial. lia.
+         - rewrite <- E. apply decomp_delta. }
+Qed.
+
+Lemma fs_nonflat k p n : p < succrank k n -> fs k p (S n) <> fs k p n.
+Proof.
+ intros Hp.
+ rewrite (@fs_decomp_gen k p n) by lia.
+ rewrite fs_S_decomp by auto.
  rewrite decomp_S.
- destruct (decomp k n) as [|a l] eqn:E.
- - simpl. intuition.
- - simpl.
-   case Nat.leb_spec; intros.
-   + assert (Hd := renormS_head k a l).
-     destruct renormS. intuith.
-     destruct Hd as (m,Hd); simpl in Hd.
-     split; auto with arith.
-     intros _. injection 1 as ->. discriminate.
-   + intuith.
+ unfold succrank, rank in Hp.
+ destruct decomp as [|r l] eqn:E; simpl;
+   try case Nat.leb_spec; intros; simpl; try lia.
+ rewrite renormS_alt by (rewrite <- E; autoh).
+ rewrite renorm_mapdecr'.
+ - rewrite map_cons, sumA_cons.
+   unfold decr at 1 3. rewrite !A_base; auto; lia.
+ - apply Delta_S_cons. rewrite <- E. apply decomp_delta.
+ - simpl. lia.
 Qed.
 
-Lemma fs_flat_low_rank k p n : p <= S k ->
- fs k p (S n) = fs k p n <-> (rank k n < p)%onat.
+Lemma fs_first_flat k p n :
+  n<>0 -> p = succrank k n -> fs k p (S n) = fs k p n.
 Proof.
- intros Hp.
- apply Nat.lt_eq_cases in Hp.
- destruct Hp as [Hp| ->].
- - rewrite !fs_decomp by auto with arith.
-   unfold rank.
-   rewrite decomp_S.
-   destruct (decomp k n) as [|a l] eqn:E.
-   + simpl. intuition lia.
-   + simpl.
-     case Nat.leb_spec; intros.
-     * rewrite renormS_alt by (rewrite <- E; autoh).
-       rewrite renorm_mapdecr by lia.
-       rewrite map_cons, sumA_cons.
-       unfold decr at 1 3.
-       rewrite !A_base by (auto; lia).
-       lia.
-     * simpl. intuition lia.
- - rewrite <- rank_S_nz_iff.
-   rewrite <- step_rank_nz.
-   rewrite 2 f_S.
-   generalize (fs_le k (S k) n).
-   lia.
+ intros N P.
+ rewrite <- (rank_none k) in N.
+ unfold succrank, rank in *.
+ destruct (decomp k n) as [|r l] eqn:E; try easy. clear N. subst.
+ assert (D := decomp_delta k n). rewrite E in D.
+ destruct (Nat.le_gt_cases r k) as [LE|LT].
+ - rewrite !fs_decomp by lia.
+   rewrite decomp_S, E. simpl. case Nat.leb_spec; try lia. intros _.
+   rewrite renormS_alt by trivial.
+   rewrite renorm_mapdecr'; auto with hof; try (unfold LeHd; lia).
+   simpl. unfold decr at 1 3. f_equal. f_equal. lia.
+ - rewrite (@fs_decomp_gen k (S r) n);
+    unfold succrank, rank; rewrite E; try lia.
+   simpl map. unfold decr at 1. replace (r - S r) with 0 by lia.
+   simpl Nat.iter. rewrite fs_S_decomp;
+    unfold succrank, rank; rewrite ?decomp_S, ?E; try lia.
+   simpl next_decomp. case Nat.leb_spec; try lia. intros _.
+   simpl map. unfold decr at 1. rewrite Nat.sub_diag. simpl.
+   change (S (S _)) with (sumA k (1::map (decr r) l)).
+   assert (D' : Delta (S k) (0 :: map (decr r) l)).
+   { rewrite <- (Nat.sub_diag r). apply (@Delta_map_decr _ _ (r::l)); auto.
+     intros x [->|IN]; trivial. eapply Delta_le in D; eauto. lia. }
+   rewrite <- renormS_sum, renormS_alt by auto.
+   rewrite f_sumA by auto with hof.
+   rewrite <- map_decr_1.
+   rewrite renorm_mapdecr'; auto with hof; try (unfold LeHd; lia).
+   simpl. now rewrite map_decr_decr.
 Qed.
 
-Lemma fs_nonflat_high_rank k p n : p <= S k ->
-  fs k p (S n) = S (fs k p n) <-> ~(rank k n < p)%onat.
+Lemma fs_stays_flat k p q n :
+  fs k p (S n) = fs k p n -> p <= q -> fs k q (S n) = fs k q n.
 Proof.
- intros Hp.
- rewrite <- fs_flat_low_rank by trivial.
+ intros Hp. induction 1; trivial. simpl Nat.iter. now rewrite IHle.
+Qed.
+
+Lemma fs_flat_iff k p n :
+  fs k p (S n) = fs k p n <-> n<>0 /\ succrank k n <= p.
+Proof.
+ split.
+ - intros H. split.
+   + contradict H. subst. rewrite fs_k_1, fs_k_0. lia.
+   + apply Nat.le_ngt. contradict H. now apply fs_nonflat.
+ - intros (N,Hp). apply fs_stays_flat with (succrank k n); trivial.
+   now apply fs_first_flat.
+Qed.
+
+Lemma fs_nonflat_iff k p n :
+  fs k p (S n) = S (fs k p n) <-> n=0 \/ p < succrank k n.
+Proof.
  assert (LE := fs_lipschitz k p n (S n)).
  replace (S n - n) with 1 in LE by lia.
- generalize (@fs_mono k p n (S n)). lia.
+ generalize (@fs_mono k p n (S n)) (fs_flat_iff k p n). lia.
 Qed.
 
-Lemma fs_nonflat_high_rank' k p n : p <= S k ->
+Lemma fs_flat_iff' k p n :
+  fs k p (S n) = fs k p n <->
+  match rank k n with
+  | None => False
+  | Some r => r < p
+  end.
+Proof.
+ rewrite fs_flat_iff. unfold succrank.
+ rewrite <- (rank_none k).
+ destruct rank; simpl; intuition; easy || lia.
+Qed.
+
+Lemma fs_nonflat_iff' k p n :
   fs k p (S n) = S (fs k p n) <->
   match rank k n with
   | None => True
-  | Some a => p <= a
+  | Some r => p <= r
   end.
 Proof.
- intros.
- rewrite fs_nonflat_high_rank by trivial.
- destruct rank; simpl; intuition lia.
+ rewrite fs_nonflat_iff. unfold succrank.
+ rewrite <- (rank_none k).
+ destruct rank; simpl; intuition; easy || lia.
 Qed.
 
 (** [fs k p] cannot have more than [p+1] consecutive flats *)
@@ -1343,7 +1422,7 @@ Proof.
  destruct (rank k n) as [r|] eqn:Hr.
  - destruct (@rank_later_is_high k n r p Hp Hr) as (r' & q & H1 & H2 & H3).
    assert (E : fs k p (S (q+n)) = S (fs k p (q+n))).
-   { apply fs_nonflat_high_rank; auto. rewrite H2. simpl. lia. }
+   { apply fs_nonflat_iff; auto. right. unfold succrank. rewrite H2. lia. }
    unfold lt.
    transitivity (S (fs k p (q+n))).
    + apply -> Nat.succ_le_mono. apply fs_mono. lia.

@@ -877,6 +877,18 @@ Proof.
  unfold renorm. intros. now apply renorm_loop_mapdecr'.
 Qed.
 
+Lemma renorm_low k l : Delta (S k) (k::l) ->
+  renorm k (0 :: k :: l) = renorm k (S k :: l).
+Proof.
+ intros D. transitivity (decomp k (sumA k (0::k::l))).
+ - symmetry. apply decomp_carac.
+   + apply renorm_delta. constructor. lia. auto with hof.
+   + now rewrite renorm_sum.
+ - apply decomp_carac.
+   + apply renorm_delta. auto with hof.
+   + rewrite renorm_sum. simpl. rewrite Nat.sub_diag. simpl. lia.
+Qed.
+
 (** Below, [renormS k a l] is a simplified version of [renorm k (S a :: l)].
     Indeed, when a decomposition starts by one lax gap and is strict
     afterwards, no need for the full renorm, a single

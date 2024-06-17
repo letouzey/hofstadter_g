@@ -482,11 +482,10 @@ Lemma kseq_above_p_is_delta_fs k p n :
 Proof.
  intros Hk Hp.
  rewrite kseq_bounded_rank.
- destruct (@fs_flat_low_rank k p n ltac:(lia)) as (_,H).
- destruct (@fs_nonflat_high_rank k p n ltac:(lia)) as (_,H').
+ destruct (@fs_flat_iff' k p n) as (_,H).
+ destruct (@fs_nonflat_iff' k p n) as (_,H').
  unfold bounded_rank. destruct (rank k n) as [r|]; unfold omin.
- - simpl in *.
-   destruct (Nat.lt_decidable r p) as [LT|NLT]; case Nat.leb_spec; lia.
+ - destruct (Nat.lt_decidable r p) as [LT|NLT]; case Nat.leb_spec; lia.
  - simpl in *. case Nat.leb_spec; lia.
 Qed.
 
@@ -504,9 +503,9 @@ Proof.
    apply cumul_ext.
    intros m Hm.
    case Nat.ltb_spec; intros L.
-   + destruct (@fs_nonflat_high_rank k (S m) n) as (_,->); try lia.
+   + destruct (@fs_nonflat_iff' k (S m) n) as (_,->); try lia.
      rewrite E; simpl; lia.
-   + destruct (@fs_flat_low_rank k (S m) n) as (_,->); try lia.
+   + destruct (@fs_flat_iff' k (S m) n) as (_,->); try lia.
      rewrite E; simpl; lia.
  - rewrite rank_none in E. subst. unfold cumul_diff_fs.
    erewrite cumul_ext, (cumul_cst 1); try lia.
@@ -554,10 +553,10 @@ Proof.
  - simpl. rewrite kseq_bounded_rank.
    unfold bounded_rank.
    destruct (fs_step k p n) as [E|E].
-   + rewrite E. rewrite fs_flat_low_rank in E by lia.
+   + rewrite E. rewrite fs_flat_iff' in E by lia.
      destruct (rank k n); simpl; try easy.
      red in E. case Nat.leb_spec; lia.
-   + rewrite E. rewrite fs_nonflat_high_rank in E by lia.
+   + rewrite E. rewrite fs_nonflat_iff' in E.
      destruct (rank k n); simpl in *; case Nat.leb_spec; lia.
 Qed.
 
