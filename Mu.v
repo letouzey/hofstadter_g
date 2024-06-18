@@ -643,6 +643,22 @@ Proof.
  apply mu_upper_bound_aux.
 Qed.
 
+Lemma mu_k_lower_bound (k:nat) : sqrt (S k) <= (mu k)^k.
+Proof.
+  rewrite <- (sqrt_pow2 (mu k ^k)).
+  2:{ apply Rlt_le, pow_lt. generalize (mu_itvl k); lra. }
+  apply sqrt_le_1.
+  - apply Rlt_le. apply RSpos.
+  - rewrite <- Rsqr_pow2. apply Rle_0_sqr.
+  - apply Rmult_le_reg_r with ((mu k-1)^2).
+    + apply pow_lt. generalize (mu_itvl k); lra.
+    + rewrite <- Rpow_mult_distr.
+      replace (mu k^k*(mu k -1)) with 1.
+      * rewrite pow1. apply mu_upper_bound_aux.
+      * field_simplify; try lra.
+        rewrite Rmult_comm, tech_pow_Rmult, mu_carac; lra.
+Qed.
+
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Lemma mu_limit : is_lim_seq mu 1.
