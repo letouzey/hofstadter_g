@@ -315,3 +315,22 @@ Proof.
 Qed.
 
 (* Print Assumptions fk_lt_fSk_eventually. *)
+
+Lemma Lim_fkj_div_n k j : is_lim_seq (fun n => fs k j n / n) ((tau k)^j).
+Proof.
+ induction j.
+ - simpl. rewrite is_lim_seq_incr_1.
+   eapply is_lim_seq_ext, is_lim_seq_const.
+   intros. change (1 = S n / S n). field. generalize (RSpos n); lra.
+ - rewrite is_lim_seq_incr_1. simpl "^".
+   apply is_lim_seq_ext with
+    (fun n => (f k (S n) / S n)*(fs k j (f k (S n)) / f k (S n))).
+   + intros. rewrite iter_S. field. split.
+     * generalize (RSpos n); lra.
+     * apply not_0_INR. generalize (@f_nonzero k (S n)); lia.
+   + apply is_lim_seq_mult'.
+     * assert (H := Lim_fk_div_n k). now rewrite is_lim_seq_incr_1 in H.
+     * eapply (is_lim_seq_subseq (fun n => fs k j n / n)); trivial.
+       intros P (N,HP). repeat red. exists (2*N)%nat. intros n Hn. apply HP.
+       transitivity (f k (2*N)). apply f_double_le. apply f_mono; lia.
+Qed.
