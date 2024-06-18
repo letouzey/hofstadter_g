@@ -664,3 +664,42 @@ Proof.
  replace (Rbar.Finite 1) with (Rbar.Rbar_inv 1) by (simpl; f_equal; lra).
  apply is_lim_seq_inv. apply mu_limit. simpl. intros [= E]. lra.
 Qed.
+
+Lemma opp_pow_upper_bound (k:nat)(x:R) : 0<=x<=1 -> 1-x^k <= k*(1-x).
+Proof.
+ intros Hx.
+ induction k.
+ - simpl. lra.
+ - rewrite <- tech_pow_Rmult, S_INR.
+   assert (x^k*(1-x) <= 1*(1-x)); try lra.
+   { apply Rmult_le_compat_r. lra.
+     rewrite <- (pow1 k). now apply pow_incr. }
+Qed.
+
+Lemma mu_k_upper_bound k : (mu k)^k <= S k.
+Proof.
+ assert (H : 0 < tau k < 1) by (generalize (tau_itvl k); lra).
+ replace (mu k ^k) with (mu k ^S k - 1)
+  by (generalize (mu_carac k); lra).
+ apply Rmult_le_reg_r with (1 - tau k); try lra.
+ replace ((mu k^S k -1)*(1 - tau k)) with (1 - tau k ^S k).
+ 2:{ replace (1-tau k) with (tau k^S k)
+     by (generalize (tau_carac k); lra).
+     rewrite tau_inv, pow_inv. field.
+     destruct H as (H,_). apply (pow_lt _ (S k)) in H. lra. }
+ apply (opp_pow_upper_bound (S k)). lra.
+Qed.
+
+Lemma mu_lower_bound k : 1 + /S k <= mu k.
+Proof.
+ assert (Hk := RSpos k).
+ assert (M1 := mu_itvl k).
+ assert (/S k <= mu k - 1); try lra.
+ apply Rmult_le_reg_r with (S k * mu k^k).
+ - apply Rmult_lt_0_compat. lra. apply pow_lt. lra.
+ - rewrite (Rmult_comm (S k)) at 2.
+   rewrite <- (Rmult_assoc _ _ (S k)).
+   replace ((mu k -1)*mu k^k) with 1; field_simplify; try lra.
+   + apply mu_k_upper_bound.
+   + rewrite tech_pow_Rmult, mu_carac; lra.
+Qed.
