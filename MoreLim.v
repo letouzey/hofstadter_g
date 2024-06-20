@@ -35,6 +35,25 @@ Proof.
    + red. red. simpl. now rewrite Rmult_0_r.
 Qed.
 
+Lemma is_lim_seq_invn : is_lim_seq (fun n => /n) 0.
+Proof.
+ apply is_lim_seq_ext with (fun n => 1/n).
+ - intros n. unfold Rdiv. apply Rmult_1_l.
+ - apply is_lim_seq_bound with (K:=1). intros. rewrite Rabs_pos_eq; lra.
+Qed.
+
+Lemma is_lim_seq_ndivSn :
+ is_lim_seq (fun n => n / S n) 1.
+Proof.
+ replace 1 with (1-0) by lra.
+ apply is_lim_seq_ext with (fun n => 1-/(S n)).
+ - intros n. rewrite S_INR. field. rewrite <- S_INR.
+   generalize (lt_0_INR (S n) ltac:(lia)). lra.
+ - apply is_lim_seq_minus'; try apply is_lim_seq_const.
+   assert (H := is_lim_seq_invn).
+   now apply is_lim_seq_incr_1 in H.
+Qed.
+
 Lemma is_lim_seq_sqrt : is_lim_seq (fun n : nat => sqrt n) Rbar.p_infty.
 Proof.
  apply is_lim_seq_p_infty_Reals.
