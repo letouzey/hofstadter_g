@@ -316,6 +316,8 @@ Qed.
 
 (* Print Assumptions fk_lt_fSk_eventually. *)
 
+(** Similarly, for [fs] *)
+
 Lemma Lim_fkj_div_n k j : is_lim_seq (fun n => fs k j n / n) ((tau k)^j).
 Proof.
  induction j.
@@ -333,4 +335,22 @@ Proof.
      * eapply (is_lim_seq_subseq (fun n => fs k j n / n)); trivial.
        intros P (N,HP). repeat red. exists (2*N)%nat. intros n Hn. apply HP.
        transitivity (f k (2*N)). apply f_double_le. apply f_mono; lia.
+Qed.
+
+Lemma fs_lt_fs_eventually k k' j j' : tau k ^j < tau k' ^j' ->
+ exists N, forall n, (N<=n -> fs k j n < fs k' j' n)%nat.
+Proof.
+ intros LT.
+ assert (H : is_lim_seq (fun n => fs k' j' n / n - fs k j n / n)
+                        (tau k' ^j' - tau k ^j)).
+ { apply is_lim_seq_minus'; apply Lim_fkj_div_n. }
+ rewrite is_lim_seq_Reals in H. red in H.
+ set (eps := tau k' ^j' - tau k ^j).
+ assert (Heps : eps > 0) by (unfold eps; lra).
+ destruct (H eps Heps) as (N & HN). clear H. exists (S N).
+ intros n Hn. apply INR_lt.
+ assert (Hn' : (n >= N)%nat) by lia.
+ specialize (HN n Hn'). apply Rdist_impl_pos in HN.
+ apply Rmult_lt_reg_r with (/n); try lra.
+ apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
