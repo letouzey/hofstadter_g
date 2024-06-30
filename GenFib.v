@@ -314,6 +314,32 @@ Proof.
    apply Nat.add_lt_le_mono; auto using A_Sk_le.
 Qed.
 
+Lemma A_diag_decr_exact k n : 2*k+3 <= n <= 3*k+3 ->
+  A k n = A (S k) (S n) + ((n-2*k-3)*(n-2*k))/2.
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ intros Hn.
+ destruct (Nat.eq_dec n (2*k+3)) as [E|N].
+ - replace (n-2*k-3) with 0 by lia. simpl "/". now rewrite A_diag_eq.
+ - replace n with (S (n-1)) at 1 by lia. simpl A.
+   rewrite (IH (n-1)) by lia.
+   replace (S (n-1)) with n by lia.
+   rewrite <- !Nat.add_assoc. f_equal.
+   replace (n-S k) with (S (n-k-2)) by lia.
+   rewrite A_diag_step by lia.
+   replace (n-1-k) with (S (n-k-2)) by lia.
+   rewrite A_S. rewrite (@A_base k (n-k-2-k)) by lia.
+   rewrite Nat.add_shuffle3. rewrite !Nat.add_succ_r, Nat.add_succ_l.
+   f_equal. f_equal.
+   set (m := n-1-2*k-3).
+   replace (n-2*k-3) with (m+1) by lia.
+   replace (n-k-2-k) with (m+2) by lia.
+   replace (n-1-2*k) with (m+3) by lia.
+   replace (n-2*k) with (m+4) by lia.
+   replace ((m+1)*(m+4)) with (m*(m+3)+(m+2)*2) by ring.
+   rewrite Nat.div_add; lia.
+Qed.
+
 (* Inverting A *)
 
 Fixpoint invA k n :=
