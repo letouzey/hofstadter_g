@@ -992,3 +992,105 @@ Lemma wierd_law k p n : p < k ->
 Proof.
  intros. rewrite <- Ckp_diff_bis; trivial. now apply fs_count.
 Qed.
+
+
+(** Galois connection : L is a right adjoint to f *)
+
+Lemma L_f_galois k j n m : fs k j n <= m <-> n <= L k j m.
+Proof.
+ intros. destruct (Nat.eq_dec n 0) as [->|N].
+ - rewrite fs_k_0; lia.
+ - split; intros.
+   + etransitivity. 2:apply incr_mono; eauto using L_incr.
+     apply steiner_thm; lia.
+   + rewrite <- (fs_L k j m). now apply fs_mono.
+Qed.
+
+Definition pointwise_le (f1 f2 : nat -> nat) := forall n, f1 n <= f2 n.
+
+Infix "[<=]" := pointwise_le (at level 70, no associativity).
+
+Lemma L_f_dual k k' j j' : fs k j [<=] fs k' j' <-> L k' j' [<=] L k j.
+Proof.
+ split; intros H n.
+ - apply L_f_galois. rewrite <- (fs_L k' j' n) at 2. apply H.
+ - apply L_f_galois. etransitivity; [|apply H]. now apply L_f_galois.
+Qed.
+
+(** L at n=1 *)
+
+Lemma Lkj1_A k j : L k j 1 = A k j.
+Proof.
+ now rewrite L_S, L_0, knsub_kword, kword_len, kseq_k_0.
+Qed.
+
+Lemma Lkj1_diag_decr_ultimately k j :
+  2*k+3 < j -> L (S k) (S j) 1 < L k j 1.
+Proof.
+ intros J. rewrite !Lkj1_A. now apply A_diag_decr.
+Qed.
+
+Lemma L_diag_nle_ultimately k j :
+  2*k+3 < j -> ~(L k j [<=] L (S k) (S j)).
+Proof.
+ intros J LE. specialize (LE 1). apply Lkj1_diag_decr_ultimately in J. lia.
+Qed.
+
+(** Back to [Lk_LSk], large inequalities, decreasing [j] *)
+
+Lemma Lk_LSk_again k j :
+ L k (S j) [<=] L (S k) (S (S j)) ->
+ L k j [<=] L (S k) (S j).
+Proof.
+ intros H n.
+ induction n as [n IH] using lt_wf_ind.
+ destruct n; try now rewrite !L_0.
+ destruct (Nat.eq_dec (kseq (S k) n) (S k)) as [E|N].
+ + rewrite !L_S, E.
+   rewrite knsub_kword, kword_len.
+   assert (Hx := kseq_letters k n).
+   set (x := kseq k n) in *.
+   rewrite knsub_len by trivial.
+   apply Nat.add_le_mono.
+   * apply IH; lia.
+   * transitivity (A k j); [apply A_mono; lia|].
+     assert (S j <= 2*k+3).
+     { apply Nat.le_ngt. intros J. now apply L_diag_nle_ultimately in J. }
+     generalize (@A_diag_step k j) (@A_diag_eq k j). lia.
+ + destruct (ksubst_prefix_inv (S k) (kprefix (S k) (S n)))
+     as (v & w & Hv & E & Hw); try apply kprefix_ok.
+   destruct Hw as [-> | ->].
+   2:{ rewrite take_S in Hv; apply app_inv' in Hv; trivial.
+       destruct Hv as (_,[= E']); lia. }
+   rewrite app_nil_r in Hv.
+   red in E.
+   set (l := length v) in *.
+   assert (E' : L (S k) 1 l = S n).
+   { now rewrite <- (kprefix_length (S k) (S n)), Hv, E. }
+   assert (Hl0 : l <> 0). { intros ->. now rewrite L_0 in E'. }
+   assert (Hl : l < S n).
+   { rewrite <- E'. rewrite Lk1_Ckk.
+       generalize (Ckk_nz (S k) l). lia. }
+   specialize (IH l Hl).
+   assert (IH5 := Lk1_ge_LSk1 k l). rewrite E' in IH5.
+   rewrite <- E' at 2.
+   rewrite L_add. rewrite Nat.add_1_r.
+   etransitivity; [|apply H; lia].
+   rewrite <- (Nat.add_1_r j), <- L_add. apply incr_mono; trivial.
+   apply L_incr.
+Qed.
+
+Lemma fk_fSk k j :
+ fs (S k) (S (S j)) [<=] fs k (S j) ->
+ fs (S k) (S j) [<=] fs k j.
+Proof.
+ intros J H. apply L_f_dual. apply Lk_LSk_again; trivial.
+ now apply L_f_dual.
+Qed.
+
+Lemma fk_fSk_contra k j :
+ ~ (fs (S k) (S j) [<=] fs k j) ->
+ ~ (fs (S k) (S (S j)) [<=] fs k (S j)).
+Proof.
+ intros H H'. now apply fk_fSk in H'.
+Qed.
