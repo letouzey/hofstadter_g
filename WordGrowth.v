@@ -1017,6 +1017,18 @@ Proof.
  - apply L_f_galois. etransitivity; [|apply H]. now apply L_f_galois.
 Qed.
 
+Lemma L_f_dual_example k k' j j' n :
+ L k j n <= L k' j' n <-> fs k' j' (L k j n) <= fs k j (L k j n).
+Proof.
+ rewrite fs_L. split; intros; now apply L_f_galois.
+Qed.
+
+Lemma L_f_dual_strict_example k k' j j' n :
+ L k j n < L k' j' n <-> fs k' j' (L k' j' n) < fs k j (L k' j' n).
+Proof.
+ rewrite !Nat.lt_nge. now rewrite L_f_dual_example.
+Qed.
+
 (** L at n=1 *)
 
 Lemma Lkj1_A k j : L k j 1 = A k j.
@@ -1036,7 +1048,55 @@ Proof.
  intros J LE. specialize (LE 1). apply Lkj1_diag_decr_ultimately in J. lia.
 Qed.
 
-(** Back to [Lk_LSk], large inequalities, decreasing [j] *)
+Lemma L_diag_decr_gen k j p :
+ k+3 <= j -> 2*k+4 <= p+j -> p <= k+1 ->
+ L (S k) (S j) (S p) < L k j (S p).
+Proof.
+ intros J PJ P.
+ rewrite <- (@A_base (S k) p) at 1 by lia.
+ rewrite <- (@A_base k p) by lia.
+ rewrite <- !Lkj1_A, !L_add, Nat.add_succ_l.
+ apply Lkj1_diag_decr_ultimately. lia.
+Qed.
+
+Lemma L_diag_decr_example k j :
+ k+3 <= j -> let p := 2*k+4-j in L (S k) (S j) (S p) < L k j (S p).
+Proof.
+ intros J p. unfold p. apply L_diag_decr_gen; lia.
+Qed.
+
+Lemma L_diag_decr_example_kp3 k :
+ L (S k) (k+4) (k+2) < L k (k+3) (k+2).
+Proof.
+ replace (k+2) with (S (2*k+4-(k+3))) by lia.
+ replace (k+4) with (S (k+3)) by lia.
+ now apply L_diag_decr_example.
+Qed.
+
+Lemma fs_diag_incr_example k j :
+ k+3 <= j -> let p := L k j (S (2*k+4-j)) in
+ fs k j p < fs (S k) (S j) p.
+Proof.
+ intros J p. unfold p. apply L_f_dual_strict_example.
+ now apply L_diag_decr_example.
+Qed.
+
+Lemma fs_diag_incr_example_kp3 k :
+ let p := L k (k+3) (k+2) in
+ fs k (k+3) p < fs (S k) (k+4) p.
+Proof.
+ replace (k+2) with (S (2*k+4-(k+3))) by lia.
+ replace (k+4) with (S (k+3)) by lia.
+ now apply fs_diag_incr_example.
+Qed.
+
+
+
+(** Back to [Lk_LSk], large inequalities, decreasing [j].
+    USELESS THEOREM actually, since
+    - concl already proved for j <= k+1
+    - hyp false for j >= k+2 (cf L_diag_decr_gen)
+ *)
 
 Lemma Lk_LSk_again k j :
  L k (S j) [<=] L (S k) (S (S j)) ->
@@ -1078,19 +1138,4 @@ Proof.
    etransitivity; [|apply H; lia].
    rewrite <- (Nat.add_1_r j), <- L_add. apply incr_mono; trivial.
    apply L_incr.
-Qed.
-
-Lemma fk_fSk k j :
- fs (S k) (S (S j)) [<=] fs k (S j) ->
- fs (S k) (S j) [<=] fs k j.
-Proof.
- intros J H. apply L_f_dual. apply Lk_LSk_again; trivial.
- now apply L_f_dual.
-Qed.
-
-Lemma fk_fSk_contra k j :
- ~ (fs (S k) (S j) [<=] fs k j) ->
- ~ (fs (S k) (S (S j)) [<=] fs k (S j)).
-Proof.
- intros H H'. now apply fk_fSk in H'.
 Qed.
