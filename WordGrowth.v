@@ -1006,27 +1006,41 @@ Proof.
    + rewrite <- (fs_L k j m). now apply fs_mono.
 Qed.
 
+Lemma LL_fsfs_le_iff k k' j j' n :
+  L k j n <= L k' j' n <-> let m := L k j n in fs k' j' m <= fs k j m.
+Proof.
+ simpl. rewrite fs_L. split; intros; now apply L_f_galois.
+Qed.
+
+Lemma LL_fsfs_lt_iff k k' j j' n :
+  L k j n < L k' j' n -> let m := L k' j' n in fs k' j' m < fs k j m.
+Proof.
+ rewrite !Nat.lt_nge. now rewrite LL_fsfs_le_iff.
+Qed.
+
+Lemma LL_fsfs_le_bis k k' j j' n :
+ let m := fs k j n in L k j m <= L k' j' m -> fs k' j' n <= fs k j n.
+Proof.
+ simpl; intros H.
+ destruct (Nat.eq_dec n 0) as [->|N].
+ - now rewrite !fs_k_0.
+ - apply L_f_galois. etransitivity; [|apply H]. apply steiner_thm; lia.
+Qed.
+
+Lemma fsfs_LL_lt k k' j j' n :
+ fs k j n < fs k' j' n -> let m := fs k j n in L k' j' m < L k j m.
+Proof.
+ simpl. rewrite !Nat.lt_nge. intros H. contradict H.
+ now apply LL_fsfs_le_bis.
+Qed.
+
 Definition pointwise_le (f1 f2 : nat -> nat) := forall n, f1 n <= f2 n.
 
 Infix "[<=]" := pointwise_le (at level 70, no associativity).
 
 Lemma L_f_dual k k' j j' : fs k j [<=] fs k' j' <-> L k' j' [<=] L k j.
 Proof.
- split; intros H n.
- - apply L_f_galois. rewrite <- (fs_L k' j' n) at 2. apply H.
- - apply L_f_galois. etransitivity; [|apply H]. now apply L_f_galois.
-Qed.
-
-Lemma L_f_dual_example k k' j j' n :
- L k j n <= L k' j' n <-> fs k' j' (L k j n) <= fs k j (L k j n).
-Proof.
- rewrite fs_L. split; intros; now apply L_f_galois.
-Qed.
-
-Lemma L_f_dual_strict_example k k' j j' n :
- L k j n < L k' j' n <-> fs k' j' (L k' j' n) < fs k j (L k' j' n).
-Proof.
- rewrite !Nat.lt_nge. now rewrite L_f_dual_example.
+ split; intros H n. now apply LL_fsfs_le_iff. now apply LL_fsfs_le_bis.
 Qed.
 
 (** L at n=1 *)
@@ -1073,11 +1087,16 @@ Proof.
  now apply L_diag_decr_example.
 Qed.
 
+Lemma L_diag_incr_example k j : j <= 2*k+2 -> L k j 1 < L (S k) (S j) 1.
+Proof.
+ intros. rewrite !Lkj1_A, A_diag_step; lia.
+Qed.
+
 Lemma fs_diag_incr_example k j :
  k+3 <= j -> let p := L k j (S (2*k+4-j)) in
  fs k j p < fs (S k) (S j) p.
 Proof.
- intros J p. unfold p. apply L_f_dual_strict_example.
+ intros J p. unfold p. apply LL_fsfs_lt_iff.
  now apply L_diag_decr_example.
 Qed.
 
@@ -1090,7 +1109,13 @@ Proof.
  now apply fs_diag_incr_example.
 Qed.
 
-
+Lemma fs_diag_decr_example k j :
+ j <= 2*k+2 -> let p := L (S k) (S j) 1 in
+ fs (S k) (S j) p < fs k j p.
+Proof.
+ intros J p. unfold p. apply LL_fsfs_lt_iff.
+ now apply L_diag_incr_example.
+Qed.
 
 (** Back to [Lk_LSk], large inequalities, decreasing [j].
     USELESS THEOREM actually, since
