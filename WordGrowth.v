@@ -1117,6 +1117,34 @@ Proof.
  now apply L_diag_incr_example.
 Qed.
 
+(** For letters [2<=i<k], [C k i] and [C (k+1) i] are uncomparable. *)
+
+Lemma C_diag_incr_example k i :
+ 2 <= i < k ->
+ let n := L k (2*k+4) 1 + S i in
+ C k i n < C (S k) i n.
+Proof.
+ intros Hi n. unfold n. rewrite <- !fs_count by lia.
+ rewrite (Nat.add_succ_l k).
+ set (j := k + S i).
+ replace (L k (2*k+4) 1) with (L k j (S (2*k+4-j))).
+ 2:{ replace (2*k+4) with (j + (k+3-i)) by lia.
+     rewrite <- L_add. f_equal. rewrite Lkj1_A, A_base; lia. }
+ apply fs_diag_incr_example; lia.
+Qed.
+
+Lemma C_diag_decr_example k i :
+ 2 <= i < k ->
+ let n := L (S k) (2+k+i) 1 + S i in
+ C (S k) i n < C k i n.
+Proof.
+ intros Hi n. unfold n. rewrite <- !fs_count by lia.
+ rewrite (Nat.add_succ_l k).
+ set (j := k + S i). replace (2+k+i) with (S j) by lia.
+ apply fs_diag_decr_example; lia.
+Qed.
+
+
 (** Back to [Lk_LSk], large inequalities, decreasing [j].
     USELESS THEOREM actually, since
     - concl already proved for j <= k+1
