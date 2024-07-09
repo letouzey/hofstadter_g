@@ -1426,3 +1426,139 @@ Proof.
  - apply applyseq_ok, ksubst_noerase.
  - intro u. apply ksubstw_prefix.
 Qed.
+
+(** Letters in kseq, what's before, what's after *)
+
+Definition next_letter k a := if a =? k then 0 else S a.
+Definition prev_letter k a := if a =? 0 then k else pred a.
+
+Lemma next_letter_le k a : a <= k -> next_letter k a <= k.
+Proof.
+ intros Ha. unfold next_letter. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma next_letter_k k : next_letter k k = 0.
+Proof.
+ unfold next_letter. now rewrite Nat.eqb_refl.
+Qed.
+
+Lemma prev_letter_le k a : a <= k -> prev_letter k a <= k.
+Proof.
+ intros Ha. unfold prev_letter. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma next_letter_alt k a : a <= k -> next_letter k a = (S a) mod (S k).
+Proof.
+ intros Ha. unfold next_letter.
+ case Nat.eqb_spec.
+ - intros ->. symmetry. apply Nat.mod_same; lia.
+ - intros. symmetry. apply Nat.mod_small. lia.
+Qed.
+
+Lemma prev_letter_alt k a : a <= k -> prev_letter k a = (a+k) mod (S k).
+Proof.
+ intros Ha. unfold prev_letter.
+ case Nat.eqb_spec.
+ - intros ->. symmetry. apply Nat.mod_small. lia.
+ - intros. replace (a+k) with (a-1 + 1*(S k)) by lia.
+   rewrite Nat.mod_add, Nat.mod_small; lia.
+Qed.
+
+Lemma next_prev_letter k a : a <= k -> next_letter k (prev_letter k a) = a.
+Proof.
+ intros Ha. unfold prev_letter.
+ case Nat.eqb_spec.
+ - intros ->. apply next_letter_k.
+ - intros. unfold next_letter. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma prev_next_letter k a : a <= k -> prev_letter k (next_letter k a) = a.
+Proof.
+ intros Ha. unfold next_letter.
+ case Nat.eqb_spec; trivial.
+ intros ->. unfold prev_letter. now rewrite Nat.eqb_refl.
+Qed.
+
+Lemma ksubst_next_letter k a : a<>k -> ksubst k a = [next_letter k a].
+Proof.
+ intros A. unfold ksubst, next_letter. case Nat.eqb_spec; auto; lia.
+Qed.
+
+Lemma kseq_prev_letter k p :
+  kseq k p <> k -> kseq k (p-1) = prev_letter k (kseq k p).
+Proof.
+ intros Ha.
+ assert (Ha' := kseq_letters k p).
+ remember (kseq k p) as a eqn:Ea in *.
+ rewrite kseq_bounded_rank in *.
+ unfold bounded_rank, omin, rank in *.
+ set (l := decomp k p) in *.
+ destruct l as [|r l'] eqn:Hl; try lia.
+ replace r with a in * by lia.
+ rewrite decomp_pred. fold l. rewrite Hl. simpl.
+ destruct a as [|a]; unfold prev_letter; simpl.
+ - assert (D := decomp_delta k p). fold l in D. rewrite Hl in D.
+   destruct l'; simpl; trivial. inversion_clear D. lia.
+ - replace (a-k) with 0 by lia. simpl. lia.
+Qed.
+
+Lemma kseq_next_letter k p :
+  kseq k (S p) <> k -> kseq k (S p) = next_letter k (kseq k p).
+Proof.
+ intros Ha. replace p with (S p-1) at 2 by lia.
+ rewrite kseq_prev_letter; trivial. rewrite next_prev_letter; trivial.
+ apply kseq_letters.
+Qed.
+
+Lemma kseq_next_km1 k p : kseq k p = k-1 -> kseq k (S p) = k.
+Proof.
+ intros E.
+ destruct (Nat.eq_dec (kseq k (S p)) k) as [E'|E']; trivial.
+ rewrite kseq_next_letter, E; trivial.
+ unfold next_letter.
+ case Nat.eqb_spec; lia.
+Qed.
+
+Lemma all_letters_occur k a : a <= k -> kseq k (S a) = a.
+Proof.
+ intros Ha. rewrite kseq_bounded_rank. unfold bounded_rank, rank.
+ replace (decomp k (S a)) with [a]. simpl. lia.
+ symmetry. apply decomp_carac. constructor. simpl. rewrite A_base; lia.
+Qed.
+
+Lemma count_le_prev_letter k a n : a < k ->
+  count (kseq k) a n <= count (kseq k) (prev_letter k a) n.
+Proof.
+ intros Ha.
+ induction n as [[|n] IH] using lt_wf_ind; simpl; trivial.
+ assert (IHn := IH n ltac:(lia)).
+ do 2 case Nat.eqb_spec; intros E2 E1; try lia. clear IHn.
+ destruct n; simpl.
+ - rewrite kseq_k_0 in *. unfold prev_letter in *.
+   destruct (Nat.eqb_spec a 0) as [->|E3]; lia.
+ - specialize (IH n ltac:(lia)).
+   assert (E3 := kseq_prev_letter k (S n) ltac:(lia)).
+   rewrite E1 in E3.
+   replace (S n -1) with n in E3 by lia. do 2 case Nat.eqb_spec; lia.
+Qed.
+
+Lemma count_le_lower_letter k a b n : a <= b < k ->
+ count (kseq k) b n <= count (kseq k) a n.
+Proof.
+ intros (AB,BK). induction AB; trivial.
+ etransitivity; [ | apply IHAB; lia ].
+ replace m with (prev_letter k (S m)) at 2 by easy.
+ apply count_le_prev_letter; trivial.
+Qed.
+
+Lemma count_le_count_k k a n : count (kseq k) a n <= count (kseq k) k n.
+Proof.
+ destruct (Nat.eq_dec a k) as [->|Ha]; trivial.
+ destruct (Nat.ltb_spec k a) as [Ha'|Ha'].
+ - replace (count (kseq k) a n) with 0; try lia. symmetry. apply count_0.
+   intros x _. generalize (kseq_letters k x); lia.
+ - transitivity (count (kseq k) 0 n).
+   + apply count_le_lower_letter; lia.
+   + replace k with (prev_letter k 0) at 3 by easy.
+     apply count_le_prev_letter; lia.
+Qed.
