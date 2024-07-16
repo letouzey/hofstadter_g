@@ -657,17 +657,24 @@ Qed.
     (moreover, [ftabulate] can always be used when multiples
     images of [f] are needed at the same time). *)
 
-Definition fopt k n :=
-  match ftabulate k n with
-  | a::_ => a
-  | [] => 0
-  end.
+Definition fopt k n := hd 0 (ftabulate k n).
 
 Lemma fopt_spec k n : fopt k n = f k n.
 Proof.
  unfold fopt. rewrite ftabulate_spec. destruct n; simpl; auto.
 Qed.
 
+Lemma fopt_iter k p n : (fopt k ^^p) n = fs k p n.
+Proof.
+ induction p; simpl; trivial. rewrite fopt_spec. now f_equal.
+Qed.
+
+Definition fsopt k p n := fdescend (ftabulate k n) p n.
+
+Lemma fsopt_spec k p n : fsopt k p n = fs k p n.
+Proof.
+ apply fdescend_spec, ftabulate_spec.
+Qed.
 
 (*==============================================================*)
 
