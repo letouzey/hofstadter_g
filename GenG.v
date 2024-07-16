@@ -1763,10 +1763,59 @@ Qed.
    Conjecture : [forall m, triangle(k+4)-3 < m -> f k m < f (S k) m].
    Proof: ?! (TODO) *)
 
+Definition quad k := triangle (k+4)-3.
+
 Lemma fk_fSk_last_equality k n :
- n = triangle(k+4)-3 -> f k n = f (S k) n.
+ n = quad k -> f k n = f (S k) n.
 Proof.
   intros EQ. now rewrite f_last_triangle_1, f_last_triangle_2.
+Qed.
+
+(* Note: [quad k] is the lowest number with three terms in its k-decomp *)
+
+Lemma quad_alt k : quad k = A k (2*k+3) - 1.
+Proof.
+ unfold quad. rewrite A_2kp3_tri. lia.
+Qed.
+
+Lemma quad_decomp k : decomp k (quad k) = [0;k+1;2*k+2].
+Proof.
+ apply decomp_carac; [ repeat constructor; lia | ].
+ rewrite quad_alt, A_2kp3_eqn. rewrite Nat.add_1_r. simpl; lia.
+Qed.
+
+(* [quad k] also appears to be le last point of equality between
+   [rchild (k+1)] and [rchild (k+2)]. *)
+
+Lemma quad_decomp_Sk k : decomp (S k) (quad k) = [k+1; 2*k+3].
+Proof.
+ apply decomp_carac; [ repeat constructor; lia | ].
+ cbn - ["*" "/"].
+ rewrite A_base by lia.
+ replace (2*k+3) with (S k + (k+2)) by lia. rewrite A_triangle by lia.
+ unfold quad. replace (k+4) with (S (S (k+2))); rewrite ?triangle_succ; lia.
+Qed.
+
+Lemma quad_decomp_SSk k : decomp (S (S k)) (quad k) = [k; 2*k+4].
+Proof.
+ apply decomp_carac; [ repeat constructor; lia | ].
+ cbn - ["*" "/"].
+ rewrite A_base by lia.
+ replace (2*k+4) with (S (S k) + (k+2)) by lia.
+ rewrite A_triangle by lia.
+ unfold quad. replace (k+4) with (S (S (k+2))); rewrite ?triangle_succ; lia.
+Qed.
+
+Lemma rchild_Sk_SSk_last_equality k n :
+ n = quad k -> rchild (S k) n = rchild (S (S k)) n.
+Proof.
+ intros ->.
+ rewrite !rchild_decomp, quad_decomp_Sk, quad_decomp_SSk.
+ cbn - ["*" "/" A].
+ rewrite (@A_base (S k)), (@A_base (S (S k))) by lia.
+ replace (S (2*k+3)) with (S k + (k+3)) by lia.
+ replace (S (2*k+4)) with (S (S k) + (k+3)) by lia.
+ rewrite !A_triangle; lia.
 Qed.
 
 (* Some particular cases after the limit of the triangular zone *)
