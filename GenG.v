@@ -1593,14 +1593,30 @@ Proof.
  apply steps_altspec; auto. lia.
 Qed.
 
-(* The numbers below [A k (2*k+3) = triangle(k+4)-2] (cf A_2kp3_tri)
-   have a decomposition of size at most 2, and have rank 0 only when
-   they are 1 or a successor of a [A] number. That's the key for describing
-   the "triangular" zone of f. Graphical interpretation : the bottom
-   of the tree, where binary nodes are on the left edge. *)
+(* The number [triangle(k+4)-3] (which is also [A k (2*k+3) -1]) is
+   the lowest number with three terms in its k-decomp. Let's call it
+   [quad k]. *)
 
-Lemma decomp_len_lt_3 k n :
-  n < A k (2*k+3) - 1 -> length (decomp k n) < 3.
+Definition quad k := triangle (k+4)-3.
+
+Lemma quad_S k : quad (S k) = quad k + (k+5).
+Proof.
+ unfold quad. replace (S k + 4) with (S (k+4)) by lia.
+ rewrite triangle_succ. generalize (triangle_aboveid (k+4)). lia.
+Qed.
+
+Lemma quad_alt k : quad k = A k (2*k+3) - 1.
+Proof.
+ unfold quad. rewrite A_2kp3_tri. lia.
+Qed.
+
+Lemma quad_decomp k : decomp k (quad k) = [0;k+1;2*k+2].
+Proof.
+ apply decomp_carac; [ repeat constructor; lia | ].
+ rewrite quad_alt, A_2kp3_eqn. rewrite Nat.add_1_r. simpl; lia.
+Qed.
+
+Lemma decomp_len_lt_3 k n : n < quad k -> length (decomp k n) < 3.
 Proof.
  intros LT.
  assert (E := decomp_sum k n).
@@ -1612,21 +1628,17 @@ Proof.
  specialize (D1 q (or_introl eq_refl)).
  assert (A k (S k) <= A k p) by (apply A_mono; lia).
  assert (A k (2*k + 2) <= A k q) by (apply A_mono; lia).
- simpl in E. rewrite A_2kp3_eqn in LT.
+ simpl in E. rewrite quad_alt, A_2kp3_eqn in LT.
  generalize (A_nz k r). lia.
 Qed.
 
-Lemma decomp_len_3 k :
-  decomp k (A k (2*k+3) - 1) = [0; S k; 2*S k].
-Proof.
- apply decomp_carac.
- - repeat (constructor; try lia).
- - rewrite A_2kp3_eqn. replace (2*S k) with (2*k+2) by lia.
-   simpl. replace (k-k) with 0; lia.
-Qed.
+(* The numbers below [quad k] also have rank 0 only when
+   they are 1 or a successor of a [A] number. That's the key for describing
+   the "triangular" zone of f. Graphical interpretation : the bottom
+   of the tree, where binary nodes are on the left edge. *)
 
 Lemma low_rank0 k n :
-  1 < n < A k (2*k+3) - 1 -> rank k n = Some 0 ->
+  1 < n < quad k -> rank k n = Some 0 ->
   exists p, p < 2*k+3 /\ n = S (A k p).
 Proof.
  unfold rank.
@@ -1636,7 +1648,8 @@ Proof.
  assert (D := decomp_delta k n).
  destruct (decomp k n) as [|r [|p [|q l]]]; simpl in L;
   try easy; injection Hr as ->; simpl in E; try lia.
- exists p. split; try lia. apply A_lt_inv with k; lia.
+ exists p. split; try lia.
+ apply A_lt_inv with k. rewrite quad_alt in *. lia.
 Qed.
 
 Lemma A_plus2 k n : n <= k+2 -> A k n <= n+2.
@@ -1647,11 +1660,8 @@ Proof.
    replace (k+1-k) with 1 by lia. now rewrite A_k_1.
 Qed.
 
-Lemma f_triangle k n :
-  n<>1 -> n <= triangle(k+4)-3 ->
-  f k n = n-1 - steps (n-k-3).
+Lemma f_triangle k n : n<>1 -> n <= quad k -> f k n = n-1 - steps (n-k-3).
 Proof.
- replace (_-3) with (triangle(k+4)-2-1) by lia. rewrite <- A_2kp3_tri.
  induction n.
  - reflexivity.
  - intros NE LE.
@@ -1684,7 +1694,7 @@ Proof.
          { rewrite Nat.succ_lt_mono.
            apply A_lt_inv with k. rewrite A_base; lia. }
          assert (p < 2*k+3).
-         { apply A_lt_inv with k. lia. }
+         { apply A_lt_inv with k. rewrite quad_alt in *. lia. }
          assert (LE' : p - k <= k + 2) by lia.
          assert (T := A_triangle k LE').
          replace (k+(p-k)) with p in T by lia.
@@ -1712,19 +1722,17 @@ Qed.
    this triangular zone. *)
 
 Lemma f_triangle_diag_incr k n :
-  n<>1 -> n <= triangle(k+4)-3 ->
-  f (S k) (S n) = S (f k n).
+  n<>1 -> n <= quad k -> f (S k) (S n) = S (f k n).
 Proof.
  intros Hn LE.
  destruct (Nat.eq_dec n 0).
  - subst. now rewrite f_k_0, f_k_1.
  - rewrite !f_triangle; try lia. simpl.
    generalize (steps_le_id (n-k-3)). lia.
-   simpl. rewrite triangle_succ. lia.
+   rewrite quad_S; lia.
 Qed.
 
-Lemma f_triangle_incrk k n :
-  n <= triangle(k+4)-3 -> f k n <= f (S k) n.
+Lemma f_triangle_incrk k n : n <= quad k -> f k n <= f (S k) n.
 Proof.
  destruct (Nat.eq_dec n 1) as [->|NE].
  - intros _. now rewrite !f_k_1.
@@ -1734,32 +1742,28 @@ Proof.
    + rewrite f_triangle_diag_incr in E; lia.
 Qed.
 
-Lemma f_last_triangle_1 k n :
- n = triangle(k+4)-3 -> f k n = n - k - 3.
+Lemma f_last_triangle_1 k n : n = quad k -> f k n = n - k - 3.
 Proof.
  intros EQ.
  destruct (Nat.eq_dec n 1) as [->|NE].
- - exfalso. rewrite Nat.add_succ_r, triangle_succ in EQ.
-   generalize (triangle_aboveid (k+3)). lia.
+ - exfalso. destruct k; try easy. rewrite quad_S in *. lia.
  - rewrite f_triangle by lia.
-   rewrite EQ at 2.
+   rewrite EQ at 2. unfold quad.
    rewrite Nat.add_succ_r, triangle_succ.
    replace (triangle _ + _ - _ - _ - _)
      with (triangle (k+3) - 2) by lia.
    rewrite steps_triangle_minus; lia.
 Qed.
 
-Lemma f_last_triangle_2 k n :
- n = triangle(k+4)-3 -> f (S k) n = n - k - 3.
+Lemma f_last_triangle_2 k n : n = quad k -> f (S k) n = n - k - 3.
 Proof.
  intros EQ.
  destruct (Nat.eq_dec n 1) as [->|NE].
- - exfalso. rewrite Nat.add_succ_r, triangle_succ in EQ.
-   generalize (triangle_aboveid (k+3)). lia.
+ - exfalso. destruct k; try easy. rewrite quad_S in *. lia.
  - rewrite f_triangle; try lia.
-   2:{ simpl. rewrite triangle_succ. lia. }
+   2:{ simpl. rewrite quad_S. lia. }
    rewrite EQ at 2.
-   rewrite Nat.add_succ_r, triangle_succ.
+   unfold quad. rewrite Nat.add_succ_r, triangle_succ.
    replace (triangle _ + _ - _ - _ - _)
      with (triangle (k+3) - 3) by lia.
    rewrite steps_triangle_minus; lia.
@@ -1770,25 +1774,20 @@ Qed.
    Conjecture : [forall m, triangle(k+4)-3 < m -> f k m < f (S k) m].
    Proof: ?! (TODO) *)
 
-Definition quad k := triangle (k+4)-3.
-
 Lemma fk_fSk_last_equality k n :
  n = quad k -> f k n = f (S k) n.
 Proof.
   intros EQ. now rewrite f_last_triangle_1, f_last_triangle_2.
 Qed.
 
-(* Note: [quad k] is the lowest number with three terms in its k-decomp *)
-
-Lemma quad_alt k : quad k = A k (2*k+3) - 1.
+Lemma fk_fSk_conjectures k :
+ (forall m, quad k < m -> f k m < f (S k) m) ->
+ (forall n, n<>1 -> f k n < f (S k) (S n)).
 Proof.
- unfold quad. rewrite A_2kp3_tri. lia.
-Qed.
-
-Lemma quad_decomp k : decomp k (quad k) = [0;k+1;2*k+2].
-Proof.
- apply decomp_carac; [ repeat constructor; lia | ].
- rewrite quad_alt, A_2kp3_eqn. rewrite Nat.add_1_r. simpl; lia.
+ intros C1 n Hn.
+ destruct (Nat.ltb_spec (quad k) n) as [LT|LE].
+ - apply C1 in LT. eapply Nat.lt_le_trans; eauto. apply f_mono; lia.
+ - rewrite f_triangle_diag_incr; auto.
 Qed.
 
 (* [quad k] also appears to be le last point of equality between
@@ -1813,62 +1812,101 @@ Proof.
  unfold quad. replace (k+4) with (S (S (k+2))); rewrite ?triangle_succ; lia.
 Qed.
 
+Lemma rchild_Sk_quad k : rchild (S k) (quad k) = quad (S k) -1.
+Proof.
+ rewrite rchild_decomp, quad_decomp_Sk.
+ rewrite <- (decomp_sum (S k) (quad (S k))), quad_decomp.
+ cbn - ["*" "/" A]. replace (2*S k +2) with (S (2*k+3)); simpl; lia.
+Qed.
+
+Lemma rchild_SSk_quad k : rchild (S (S k)) (quad k) = quad (S k) -1.
+Proof.
+ rewrite rchild_decomp, quad_decomp_SSk.
+ rewrite <- (decomp_sum (S (S k)) (quad (S k))), quad_decomp_Sk.
+ cbn - ["*" "/" A]. replace (2*S k +3) with (S (2*k+4)) by lia.
+ rewrite Nat.add_1_r. rewrite (@A_S (S (S k)) (S k)).
+ replace (S k - S (S k)) with 0 by lia. simpl; lia.
+Qed.
+
 Lemma rchild_Sk_SSk_last_equality k n :
  n = quad k -> rchild (S k) n = rchild (S (S k)) n.
 Proof.
- intros ->.
- rewrite !rchild_decomp, quad_decomp_Sk, quad_decomp_SSk.
- cbn - ["*" "/" A].
- rewrite (@A_base (S k)), (@A_base (S (S k))) by lia.
- replace (S (2*k+3)) with (S k + (k+3)) by lia.
- replace (S (2*k+4)) with (S (S k) + (k+3)) by lia.
- rewrite !A_triangle; lia.
+ intros ->. now rewrite rchild_Sk_quad, rchild_SSk_quad.
 Qed.
 
 (* Some particular cases after the limit of the triangular zone *)
 
-Lemma f_after_triangle_1 k n :
- n = triangle(k+4)-2 -> f k n = n - k - 4.
+Lemma rchild_Sk_Squad k : rchild (S k) (S (quad k)) = S (quad (S k)).
 Proof.
- rewrite <- A_2kp3_tri. intros ->.
- rewrite f_A. rewrite A_2kp3_eqn.
+ rewrite rchild_decomp, decomp_S, quad_decomp_Sk. simpl.
+ case Nat.leb_spec; try lia; intros _.
+ case Nat.eqb_spec; try lia; intros _.
+ rewrite quad_alt. simpl map. replace (S (S (_+3))) with (2*S k+3) by lia.
+ cbn - ["*"]. generalize (@A_nz (S k) (2*S k+3)); lia.
+Qed.
+
+Lemma rchild_SSk_Squad k : rchild (S (S k)) (S (quad k)) = quad (S k).
+Proof.
+ rewrite rchild_decomp, decomp_S, quad_decomp_SSk. simpl.
+ case Nat.leb_spec; try lia; intros _.
+ case Nat.eqb_spec; try lia; intros _.
+ rewrite <- (decomp_sum (S (S k)) (quad (S k))), quad_decomp_Sk.
+ do 3 (f_equal; simpl; try lia).
+Qed.
+
+Lemma rchild_Sk_SSk_post_equality k n :
+ n = S (quad k) -> rchild (S k) n = S (rchild (S (S k)) n).
+Proof.
+ intros ->. now rewrite rchild_Sk_Squad, rchild_SSk_Squad.
+Qed.
+
+Lemma f_after_triangle_1 k n :
+ n = S (quad k) -> f k n = n - k - 4.
+Proof.
+ rewrite quad_alt.
+ replace (S (_ -1)) with (A k (2*k+3))
+  by (generalize (@A_nz k (2*k+3)); lia).
+ intros ->. rewrite f_A. rewrite A_2kp3_eqn.
  rewrite (@A_base k (S k)) by lia.
  replace (2*k+3-1) with (2*k+2); lia.
 Qed.
 
 Lemma f_after_triangle_2 k n :
- n = triangle(k+4)-2 -> f k (S n) = n - k - 3.
+ n = S (quad k) -> f k (S n) = n - k - 3.
 Proof.
- rewrite <- A_2kp3_tri. intros ->.
- rewrite f_SA; try lia.
+ rewrite quad_alt.
+ replace (S (_ -1)) with (A k (2*k+3))
+  by (generalize (@A_nz k (2*k+3)); lia).
+ intros ->. rewrite f_SA; try lia.
  rewrite A_2kp3_eqn.
  rewrite (@A_base k (S k)) by lia.
  replace (2*k+3-1) with (2*k+2); lia.
 Qed.
 
 Lemma f_after_triangle_3 k n :
- n = triangle(k+4)-2 -> f (S k) n = n - k - 3.
+ n = S (quad k) -> f (S k) n = n - k - 3.
 Proof.
  intros E.
  rewrite f_triangle.
- 2:{ rewrite E, Nat.add_succ_r, triangle_succ. lia. }
- 2:{ simpl. rewrite triangle_succ. lia. }
+ 2:{ rewrite E. destruct k; try easy. rewrite quad_S; lia. }
+ 2:{ rewrite quad_S. lia. }
  rewrite E at 2.
- rewrite Nat.add_succ_r, triangle_succ.
- replace (_ + S (k+3) - 2 - S k - 3) with (triangle (k+3) -2) by lia.
+ unfold quad. rewrite Nat.add_succ_r, triangle_succ.
+ replace (_ - S k - 3) with (triangle (k+3) -2)
+  by (generalize (triangle_aboveid (k+3)); lia).
  rewrite steps_triangle_minus; lia.
 Qed.
 
 Lemma f_after_triangle_4 k n :
- n = triangle(k+4)-2 -> f (S k) (S n) = n - k - 2.
+ n = S (quad k) -> f (S k) (S n) = n - k - 2.
 Proof.
  intros E.
  rewrite f_triangle.
- 2:{ rewrite E, Nat.add_succ_r, triangle_succ. lia. }
- 2:{ simpl. rewrite triangle_succ. lia. }
- simpl. rewrite E at 2.
- rewrite Nat.add_succ_r, triangle_succ.
- replace (_ + S (k+3) - 2 - k - 3) with (triangle (k+3) -1) by lia.
+ 2:{ lia. }
+ 2:{ rewrite quad_S. lia. }
+ rewrite E at 2.
+ unfold quad. rewrite Nat.add_succ_r, triangle_succ.
+ replace (_ - S k - 3) with (triangle (k+3) -1) by lia.
  rewrite steps_triangle_minus; lia.
 Qed.
 

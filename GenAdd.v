@@ -897,7 +897,7 @@ Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 8).
 - (* compute for all n < 8 or : *)
-  rewrite <- f_1_g. apply f_triangle_incrk. simpl. lia.
+  rewrite <- f_1_g. apply f_triangle_incrk. unfold quad; simpl. lia.
 - replace n with (8+(n-8)) by lia.
   transitivity (5 + g (n - 8)). apply g_add_8.
   transitivity (5 + h (n - 8)). 2:apply h_add_8.
