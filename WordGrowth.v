@@ -578,22 +578,17 @@ Proof.
  { clear N0 IH. split; intros;
    rewrite !L_S, !L_0, !kseq_k_0, !knsub_kword, !kword_len, !A_base; lia. }
  split.
- - rewrite !Lk1_Ckk.
-   apply Nat.le_ngt. intro LT.
-   assert (L k k (C k k n) < L (S k) (S k) (C k k n)).
-   { destruct (Nat.eq_dec k 0) as [->|Hk].
-     - cbn. unfold C. rewrite kprefix_length, count_all.
-       2:{ intros m _. generalize (kseq_letters 0 m). lia. }
-       apply (L_gt_n 1 1 n); lia.
-     - apply IH; try lia; rewrite <- fs_count_k.
-       + apply fs_lt; lia.
-       + apply fs_nonzero; lia. }
-   destruct (steiner_thm k k n) as (_,E1); try lia.
-   destruct (steiner_thm (S k) (S k) n) as (E3,_); try lia.
-   rewrite !fs_count_k in E1, E3.
-   assert (E2 : C k k n <= C (S k) (S k) n - 1) by lia.
-   apply (incr_mono _ (L_incr (S k) (S k))) in E2.
-   lia.
+ - rewrite !Lk1_Ckk, <- !fs_count_k, <- Nat.add_le_mono_l.
+   set (c := fs k k n).
+   set (c' := fs (S k) (S k) n).
+   destruct (Nat.eq_dec c' 0); try lia.
+   replace c' with (S (c'-1)) by lia. change (c'-1 < c).
+   apply (incr_strmono_iff _ (L_incr (S k) (S k))).
+   apply Nat.lt_le_trans with n; [apply steiner_thm; lia|].
+   transitivity (L k k c); [apply steiner_thm; lia|].
+   destruct (Nat.eq_dec k 0) as [->|K].
+   + rewrite L_k_0. apply L_ge_n.
+   + apply Nat.lt_le_incl, IH; try apply fs_lt; try apply fs_nonzero; lia.
  - intros _. destruct n; try easy.
    destruct (Nat.eq_dec (kseq (S k) n) (S k)) as [E|N].
    + intros j Hj. rewrite !L_S, E.
