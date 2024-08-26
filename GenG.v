@@ -1790,7 +1790,7 @@ Proof.
  - rewrite f_triangle_diag_incr; auto.
 Qed.
 
-(* [quad k] also appears to be le last point of equality between
+(* [quad k] also appears to be the last point of equality between
    [rchild (k+1)] and [rchild (k+2)]. *)
 
 Lemma quad_decomp_Sk k : decomp (S k) (quad k) = [k+1; 2*k+3].
