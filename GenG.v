@@ -1615,6 +1615,12 @@ Proof.
  unfold quad. rewrite A_2kp3_tri. lia.
 Qed.
 
+Lemma quad_other_eqn k : quad k = (k+2)*(k+7)/2.
+Proof.
+ apply Nat.div_unique with 0; try lia. unfold quad.
+ generalize (triangle_aboveid k) (double_triangle (k+4)). lia.
+Qed.
+
 Lemma quad_decomp k : decomp k (quad k) = [0;k+1;2*k+2].
 Proof.
  apply decomp_carac; [ repeat constructor; lia | ].
