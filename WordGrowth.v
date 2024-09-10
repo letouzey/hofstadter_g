@@ -1187,3 +1187,45 @@ Proof.
    rewrite <- (Nat.add_1_r j), <- L_add. apply incr_mono; trivial.
    apply L_incr.
 Qed.
+
+Lemma f_L_conjectures k :
+ (forall m, quad (S k) < m -> f (S k) m < f (S (S k)) m) ->
+ (forall m, quad k < m -> L (S (S k)) 1 m < L (S k) 1 m).
+Proof.
+ intros H m Hm.
+ red in Hm.
+ apply Nat.le_lteq in Hm. destruct Hm as [Hm|<-].
+ - apply (incr_strmono (L (S k) 1)) in Hm. 2:apply L_incr.
+   rewrite L_k_1_rchild, rchild_Sk_Squad in Hm.
+   rewrite Nat.lt_nge, LL_fsfs_le_iff, <- Nat.lt_nge.
+   apply H. lia.
+ - rewrite !L_k_1_rchild. rewrite rchild_SSk_Squad, rchild_Sk_Squad. lia.
+Qed.
+
+(* Recip ??
+ (forall m, quad k < m -> L (S (S k)) 1 m < L (S k) 1 m) ->
+ (forall m, quad (S k) < m -> f (S k) m < f (S (S k)) m).
+*)
+
+Lemma L11_le_2np3 n : L 1 1 (n+2) <= 2*n+3.
+Proof.
+ induction n as [|n IH]; simpl; try easy.
+ rewrite L_S. unfold knsub. simpl. unfold ksubst.
+ destruct Nat.eqb; simpl; lia.
+Qed.
+
+Lemma L11_lt_2n n : 2 <= n -> L 1 1 n < 2*n.
+Proof.
+ intros. replace n with (n-2+2) by lia. generalize (L11_le_2np3 (n-2)). lia.
+Qed.
+
+Lemma f_L_conjectures_bis k :
+ (forall m, quad k < m -> f k m < f (S k) m) ->
+ (forall m, quad (k-1) < m -> L (S k) 1 m < L k 1 m).
+Proof.
+ intros H m Hm.
+ destruct k.
+ - simpl in Hm. rewrite L_0_1. apply L11_lt_2n. compute in Hm. lia.
+ - replace (S k -1) with k in Hm by lia.
+   apply f_L_conjectures; auto.
+Qed.

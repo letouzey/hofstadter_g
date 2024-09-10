@@ -1605,6 +1605,11 @@ Proof.
  rewrite triangle_succ. generalize (triangle_aboveid (k+4)). lia.
 Qed.
 
+Lemma quad_min k : 7 <= quad k.
+Proof.
+ induction k. easy. rewrite quad_S. lia.
+Qed.
+
 Lemma quad_alt k : quad k = A k (2*k+3) - 1.
 Proof.
  unfold quad. rewrite A_2kp3_tri. lia.
@@ -1909,6 +1914,48 @@ Proof.
  replace (_ - S k - 3) with (triangle (k+3) -1) by lia.
  rewrite steps_triangle_minus; lia.
 Qed.
+
+(** Another observation : [quad (S k)] is where [f k] and [f (S k)]
+    differ by 2 for the first time *)
+
+Lemma quadS_decomp k : decomp k (quad (S k)) = [k+2;2*k+3].
+Proof.
+ apply decomp_carac.
+ - repeat constructor. lia.
+ - rewrite quad_S. rewrite <- (decomp_sum k (quad k)), quad_decomp.
+   replace (k+2) with (S (k+1)) by lia.
+   replace (2*k+3) with (S (2*k+2)) by lia.
+   set (kk2 := 2*k+2). simpl.
+   replace (kk2-k) with (S (k+1)) by lia. simpl.
+   replace (k+1-k) with 1 by lia. simpl.
+   rewrite (@A_base k (k+1)) by lia. lia.
+Qed.
+
+Lemma f_Sk_quadSk k : f (S k) (quad (S k)) = S (quad k).
+Proof.
+ rewrite f_last_triangle_1, quad_S by trivial. lia.
+Qed.
+
+Lemma f_k_quadSk k : f k (quad (S k)) = quad k - 1.
+Proof.
+ rewrite f_decomp, quadS_decomp.
+ replace (k+2) with (S (k+1)) by lia.
+ replace (2*k+3) with (S (2*k+2)) by lia. simpl.
+ rewrite <- (decomp_sum k (quad k)), quad_decomp. simpl. lia.
+Qed.
+
+Lemma f_quad_diff_2 k n :
+ n = quad (S k) -> f (S k) n = 2 + f k n.
+Proof.
+ intros ->. rewrite f_Sk_quadSk, f_k_quadSk. generalize (quad_min k). lia.
+Qed.
+
+(* TODO:
+Lemma f_quad_first_diff_2 k n :
+ n < quad (S k) -> f (S k) n <= 1 + f k n.
+Proof.
+Admitted.
+*)
 
 (** * Another equation about [f]
 
