@@ -64,7 +64,8 @@ Summary of files:
   - [Freq.v](Freq.v): frequencies of letters in `kseq k`, limit of `(f k n)/n`.
   - [LimCase2.v](LimCase2.v): Hofstadter H (i.e. k=2) at dist <1 of `n*τ_2`
   - [LimCase3.v](LimCase3.v): `f 3` at dist <2 of `n*τ_3`
-
+6. A companion Coq file for a forthcoming article
+  - [Article1.v](Article1.v)
 
 References:
 ----------

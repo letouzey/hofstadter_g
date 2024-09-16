@@ -7,7 +7,7 @@
 ##         #     GNU Lesser General Public License Version 2.1          ##
 ##         #     (see LICENSE file for the text of the license)         ##
 ##########################################################################
-## GNUMakefile for Coq 8.16.0
+## GNUMakefile for Coq 8.16.1
 
 # For debugging purposes (must stay here, don't move below)
 INITIAL_VARS := $(.VARIABLES)
@@ -109,9 +109,9 @@ COQMKFILE ?= "$(COQBIN)coq_makefile"
 OCAMLLIBDEP ?= "$(COQBIN)ocamllibdep"
 
 # Timing scripts
-COQMAKE_ONE_TIME_FILE ?= "$(COQCORELIB)/tools/make-one-time-file.py"
-COQMAKE_BOTH_TIME_FILES ?= "$(COQCORELIB)/tools/make-both-time-files.py"
-COQMAKE_BOTH_SINGLE_TIMING_FILES ?= "$(COQCORELIB)/tools/make-both-single-timing-files.py"
+COQMAKE_ONE_TIME_FILE ?= "$(COQBIN)/coq-makefile-make-one-time-file"
+COQMAKE_BOTH_TIME_FILES ?= "$(COQBIN)/coq-makefile-make-both-time-files"
+COQMAKE_BOTH_SINGLE_TIMING_FILES ?= "$(COQBIN)/coq-makefile-make-both-single-timing-files"
 BEFORE ?=
 AFTER ?=
 
@@ -278,7 +278,7 @@ COQDOCLIBS?=$(COQLIBS_NOML)
 # The version of Coq being run and the version of coq_makefile that
 # generated this makefile
 COQ_VERSION:=$(shell $(COQC) --print-version | cut -d " " -f 1)
-COQMAKEFILE_VERSION:=8.16.0
+COQMAKEFILE_VERSION:=8.16.1
 
 # COQ_SRC_SUBDIRS is for user-overriding, usually to add
 # `user-contrib/Foo` to the includes, we keep COQCORE_SRC_SUBDIRS for
@@ -592,6 +592,8 @@ beautify: $(BEAUTYFILES)
 # There rules can be extended in Makefile.local
 # Extensions can't assume when they run.
 
+# findlib needs the package to not be installed, so we remove it before
+# installing it (see the call to findlib_remove)
 install: META
 	$(HIDE)code=0; for f in $(FILESTOINSTALL); do\
 	 if ! [ -f "$$f" ]; then >&2 echo $$f does not exist; code=1; fi \
@@ -606,8 +608,6 @@ install: META
 	   echo INSTALL "$$f" "$(COQLIBINSTALL)/$$df";\
 	 fi;\
 	done
-	# findlib needs the package to not be installed, so we remove it before
-	# installing it
 	$(call findlib_remove)
 	$(call findlib_install, META $(FINDLIBFILESTOINSTALL))
 	$(HIDE)$(MAKE) install-extra -f "$(SELF)"
