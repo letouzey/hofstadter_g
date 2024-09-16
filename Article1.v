@@ -1302,6 +1302,7 @@ Qed.
 
 (* Final examples *)
 
+(*
 Compute let k := 5 in let i := 4 in (L k ^^(2*k+2)) 1 + i. (* 49 *)
 Compute C 5 (Nat.eqb 4) 49. (* 5 *)
 Compute C 6 (Nat.eqb 4) 49. (* 6 *)
@@ -1312,3 +1313,4 @@ Compute C 6 (Nat.eqb 4) 48. (* 6 *)
 Compute let i := 4 in let k := 5 in (L (S k)^^(k+i)) 1 + i. (* 20 *)
 Compute C 5 (Nat.eqb 4) 20. (* 2 *)
 Compute C 6 (Nat.eqb 4) 20. (* 1 *)
+*)
