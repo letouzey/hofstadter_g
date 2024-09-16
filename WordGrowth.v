@@ -1229,3 +1229,78 @@ Proof.
  - replace (S k -1) with k in Hm by lia.
    apply f_L_conjectures; auto.
 Qed.
+
+(** More about L at n=1 *)
+
+Lemma L_k_2k_1 k : L k (2*k) 1 = triangle (k+1).
+Proof.
+ rewrite Lkj1_A. replace (2*k) with (k+k) by lia.
+ rewrite A_triangle by lia.
+ rewrite Nat.add_1_r, triangle_succ. lia.
+Qed.
+
+Lemma L_k_2k1_1 k : L k (2*k+1) 1 = triangle (k+2) - 1.
+Proof.
+ rewrite Lkj1_A. replace (2*k+1) with (k+(k+1)) by lia.
+ rewrite A_triangle by lia.
+ rewrite (Nat.add_succ_r k 1), triangle_succ. lia.
+Qed.
+
+Lemma L_k_2k2_1 k : L k (2*k+2) 1 = triangle (k+3) - 2.
+Proof.
+ rewrite Lkj1_A. replace (2*k+2) with (k+(k+2)) by lia.
+ rewrite A_triangle by lia.
+ rewrite (Nat.add_succ_r k 2), triangle_succ. lia.
+Qed.
+
+Lemma L_k_2k3_1 k : L k (2*k+3) 1 = triangle (k+4) - 2.
+Proof.
+ rewrite Lkj1_A. apply A_2kp3_tri.
+Qed.
+
+Lemma L_k_k2_k1 k : L k (k+2) (k+1) = triangle (k+3) - 2.
+Proof.
+ rewrite Nat.add_1_r.
+ rewrite <- (@A_base k k), <- Lkj1_A by lia.
+ rewrite L_add, <- L_k_2k2_1. f_equal. lia.
+Qed.
+
+Lemma L_k_k2_k2 k : L k (k+2) (k+2) = triangle (k+4) - 2.
+Proof.
+ rewrite (Nat.add_succ_r k 1) at 2.
+ rewrite <- (@A_base k (k+1)), <- Lkj1_A by lia.
+ rewrite L_add, <- L_k_2k3_1. f_equal. lia.
+Qed.
+
+Lemma L_equality k : L k (k+2) (k+2) = L (k+1) (k+3) (k+2).
+Proof.
+ rewrite L_k_k2_k2.
+ replace (k+4) with (k+1+3) by lia.
+ rewrite <- L_k_k2_k1. f_equal; lia.
+Qed.
+
+Definition cex k j := S (2*k+4-j).
+
+Lemma cex_spec k j :
+  k+3 <= j ->
+  L (S k) (S j) (cex k j) < L k j (cex k j).
+Proof.
+ intros Hj.
+ destruct (Nat.le_gt_cases (2*k+4) j) as [Hj'|Hj'].
+ - unfold cex. replace (2*k+4-j) with 0 by lia.
+   rewrite !Lkj1_A. apply A_diag_decr. lia.
+ - unfold cex. set (p := 2*k+4-j) in *.
+   rewrite <- (@A_base k p) at 2 by lia. rewrite <- Lkj1_A, L_add, Lkj1_A.
+   replace (j+p) with (2*k+4) by lia.
+   rewrite <- (@A_base (S k) p) by lia. rewrite <- Lkj1_A, L_add, Lkj1_A.
+   replace (S j+p) with (S (2*k+4)) by lia.
+   apply A_diag_decr. lia.
+Qed.
+
+Lemma cex_spec' k j :
+  k+3 <= j ->
+  let m := L k j (cex k j) in
+  fs k j m < fs (S k) (S j) m.
+Proof.
+ intros Hj. apply LL_fsfs_lt_iff. now apply cex_spec.
+Qed.
