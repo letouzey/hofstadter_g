@@ -906,14 +906,31 @@ Qed.
 
 (** h_add_33 and f3_add_33 imply h <= f 3 *)
 
+Lemma intvl_dec a b tst :
+  (forallb tst (seq a (S b-a))) = true ->
+  forall n, a <= n <= b -> tst n = true.
+Proof.
+ intros H n Hn.
+ rewrite forallb_forall in H. apply H. rewrite in_seq. lia.
+Qed.
+
+Lemma intvl_dec_0 b tst :
+  (forallb tst (seq 0 b)) = true ->
+  forall n, n < b -> tst n = true.
+Proof.
+ intros H n Hn. destruct b as [|b]; try lia.
+ replace (S b) with (S b-0) in H by lia.
+ apply (@intvl_dec _ _ _ H n). lia.
+Qed.
+
 Lemma h_below_f3 n : h n <= f 3 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 33).
 - clear IH.
   (* Alas f_triangle_incrk isn't enough : triangle(2+4)-3 = 18 < 33 *)
-  unfold h. rewrite <- !fopt_spec.
-  do 33 (destruct n; [vm_compute; auto|]). exfalso. lia.
+  unfold h. rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
+  apply intvl_dec_0. now vm_compute.
 - replace n with (33+(n-33)) by lia.
   transitivity (23 + h (n - 33)). apply h_add_33.
   transitivity (23 + f 3 (n - 33)).
@@ -938,8 +955,8 @@ Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 73).
 - clear IH.
-  rewrite <- !fopt_spec.
-  do 73 (destruct n; [vm_compute; auto|]). exfalso. lia.
+  rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
+  apply intvl_dec_0. now vm_compute.
 - replace n with (73+(n-73)) by lia.
   transitivity (54 + f 3 (n - 73)). apply (f3_add_73 (n-73)).
   transitivity (54 + f 4 (n - 73)).
@@ -964,8 +981,8 @@ Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 169).
 - clear IH.
-  rewrite <- !fopt_spec.
-  do 169 (destruct n; [vm_compute; auto|]). exfalso. lia.
+  rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
+  apply intvl_dec_0. now vm_compute.
 - replace n with (169+(n-169)) by lia.
   transitivity (129 + f 4 (n - 169)). apply (f4_add_169 (n-169)).
   transitivity (129 + f 5 (n - 169)).
@@ -1002,3 +1019,115 @@ Qed.
 *)
 
 (** General proof : cf Words.f_grows *)
+
+(** * Strict order between [f k] and [f (S k)].
+
+    We know that [f k (quad k) = f (S k) (quad k)] thanks to
+    GenG.fk_fSk_last_equality. Now for small specific values of k,
+    we can show there is no more equality for [n > quad k].
+*)
+
+Lemma f0_add_2 n : f 0 (2+n) = 1 + f 0 n.
+Proof.
+ rewrite !f_0_div2.
+ replace (S (2+n)) with (S n + 1 * 2) by lia.
+ rewrite Nat.div_add; lia.
+Qed.
+
+Lemma f0_lt_g n : quad 0 < n -> f 0 n < g n.
+Proof.
+ unfold quad, triangle; simpl.
+ induction n as [n IH] using lt_wf_ind.
+ intros Hn.
+ destruct (Nat.le_gt_cases n 9).
+ - clear IH. rewrite <- Nat.ltb_lt.
+   apply (@intvl_dec 8 9 (fun n => f 0 n <? g n)). now vm_compute. lia.
+ - replace n with (2+(n-2)) by lia.
+   rewrite f0_add_2.
+   apply Nat.lt_le_trans with (1 + g (n - 2)).
+   + specialize (IH (n-2)). lia.
+   + rewrite <- !f_1_g. apply fk_add_2.
+Qed.
+
+Lemma g_lt_h n : quad 1 < n -> g n < h n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n 20).
+- clear IH. rewrite <- Nat.ltb_lt. generalize (conj Hn H). clear Hn H.
+  revert n. apply intvl_dec. now vm_compute.
+- clear Hn. replace n with (8+(n-8)) by lia.
+  apply Nat.le_lt_trans with (5 + g (n - 8)). apply g_add_8.
+  apply Nat.lt_le_trans with (5 + h (n - 8)). 2:apply h_add_8.
+  specialize (IH (n-8)). lia.
+Qed.
+
+Lemma h_lt_f3 n : quad 2 < n -> h n < f 3 n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n (18+33)).
+- clear IH. unfold h. rewrite <- !fopt_spec, <- Nat.ltb_lt.
+  generalize (conj Hn H). clear Hn H. revert n.
+  apply intvl_dec. now vm_compute.
+- clear Hn. replace n with (33+(n-33)) by lia.
+  apply Nat.le_lt_trans with (23 + h (n - 33)). apply h_add_33.
+  apply Nat.lt_le_trans with (23 + f 3 (n - 33)).
+  specialize (IH (n-33)). lia.
+  apply (f3_add_33 (n-33)).
+Qed.
+
+Lemma f3_lt_f4 n : quad 3 < n -> f 3 n < f 4 n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n (25+73)).
+- clear IH. rewrite <- !fopt_spec, <- Nat.ltb_lt.
+  generalize (conj Hn H). clear Hn H. revert n.
+  apply intvl_dec. now vm_compute.
+- clear Hn. replace n with (73+(n-73)) by lia.
+  apply Nat.le_lt_trans with (54 + f 3 (n - 73)). apply (f3_add_73 (n-73)).
+  apply Nat.lt_le_trans with (54 + f 4 (n - 73)).
+  specialize (IH (n-73)). lia.
+  apply (f4_add_73 (n-73)).
+Qed.
+
+Lemma f4_lt_f5 n : quad 4 < n -> f 4 n < f 5 n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n (33+169)).
+- clear IH. rewrite <- !fopt_spec, <- Nat.ltb_lt.
+  generalize (conj Hn H). clear Hn H. revert n.
+  apply intvl_dec. now vm_compute.
+- clear Hn. replace n with (169+(n-169)) by lia.
+  apply Nat.le_lt_trans with (129 + f 4 (n - 169)). apply (f4_add_169 (n-169)).
+  apply Nat.lt_le_trans with (129 + f 5 (n - 169)).
+  specialize (IH (n-169)). lia.
+  apply (f5_add_169 (n-169)).
+Qed.
+
+(** Consequence : GenG.fk_fSk_conjectures and the future
+    WordGrowth.f_L_conjectures can be applied for these small k.
+    For instance : *)
+
+Lemma g_lt_h' n : n<>1 -> g n < h (S n).
+Proof.
+ rewrite <- f_1_g. apply fk_fSk_conjectures.
+ intros m Hm. rewrite f_1_g. now apply g_lt_h.
+Qed.
+
+Lemma h_lt_f3' n : n<>1 -> h n < f 3 (S n).
+Proof.
+ apply fk_fSk_conjectures, h_lt_f3.
+Qed.
+
+Lemma f3_lt_f4' n : n<>1 -> f 3 n < f 4 (S n).
+Proof.
+ apply fk_fSk_conjectures, f3_lt_f4.
+Qed.
+
+Lemma f4_lt_f5' n : n<>1 -> f 4 n < f 5 (S n).
+Proof.
+ apply fk_fSk_conjectures, f4_lt_f5.
+Qed.
