@@ -4,7 +4,7 @@ Require Import MoreFun MoreList.
 Require GenFib GenG Words WordGrowth MoreLim.
 Require Mu Freq.
 
-(** * Article.v *)
+(** * Article1.v *)
 
 (** This file is a wrapper around the rest of the current Coq development,
     mostly for adapting the parameter k (which starts at 1 in the article

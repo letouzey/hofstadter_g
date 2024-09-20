@@ -367,19 +367,9 @@ Lemma enum_delta_below_ok0 d b l :
  Delta (S d) (0::l) /\ Below (0::l) (S b) <->
  In (0::l) (map (zeroshift (S d)) (enum_delta_below d (b-d))).
 Proof.
- rewrite in_map_iff. split.
- - intros (D,B).
-   assert (D' := fun x => @Delta_le (S d) l 0 x D).
-   replace (0 :: l) with (zeroshift (S d) (map (decr (S d)) l)) in *.
-   rewrite zeroshift_delta in D.
-   rewrite zeroshift_below in B.
-   2:{ unfold zeroshift. f_equal. rewrite map_map.
-       rewrite <- (map_id l) at 2. apply map_ext_in.
-       intros x Hx. unfold decr. specialize (D' x Hx). lia. }
-   eexists; split; [ reflexivity | ]. rewrite enum_delta_below_ok by lia.
-   easy.
- - intros (u & <- & IN). rewrite enum_delta_below_ok in IN by lia.
-   split. now apply zeroshift_delta. now apply zeroshift_below.
+ rewrite <- enum_delta_below_ok. simpl. rewrite in_app_iff.
+ split; [ intros [H|H]; trivial | now left ].
+ rewrite in_map_iff in H. destruct H as (l' & H & _). now destruct l'.
 Qed.
 
 Lemma insert_delta x l a :
