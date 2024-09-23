@@ -18,20 +18,6 @@ Ltac negapply f :=
 
 Local Open Scope C.
 
-(* Sums of (list C). *)
-
-Definition Clistsum l := List.fold_right Cplus 0%C l.
-
-Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
-Proof.
- reflexivity.
-Qed.
-
-Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
-Proof.
- induction l; simpl; rewrite ?IHl; ring.
-Qed.
-
 (** Better Ring / Field than in Coquelicot, handling Z constants and power *)
 
 Definition C_ring_morph :
@@ -307,24 +293,50 @@ Proof.
  rewrite <- RE. destruct c. simpl in *. now rewrite IM.
 Qed.
 
+(* Sums of (list C). *)
+
+Definition Clistsum l := List.fold_right Cplus 0%C l.
+
+Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
+Proof.
+ induction l; simpl; rewrite ?IHl; ring.
+Qed.
+
+Definition Cpoly x l := Clistsum (List.map (Cpow x) l).
+
+Lemma Cpoly_cons x n l : Cpoly x (n::l) = (x^n + Cpoly x l)%C.
+Proof.
+ easy.
+Qed.
+
+Lemma Cpoly_app x l l' : Cpoly x (l++l') = (Cpoly x l + Cpoly x l')%C.
+Proof.
+ unfold Cpoly. now rewrite map_app, Clistsum_app.
+Qed.
+
 Lemma Clistsum_pow_factor c p l :
- Clistsum (List.map (fun n => c^(p+n))%C l) =
- (c^p * Clistsum (List.map (Cpow c) l))%C.
+ Clistsum (List.map (fun n => c^(p+n))%C l) = (c^p * Cpoly c l)%C.
 Proof.
  induction l; cbn -[Cpow].
  - ring.
  - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
-   rewrite Cpow_add_r. ring.
+   fold (Cpoly c l). rewrite Cpow_add_r. ring.
 Qed.
 
-Lemma Clistsum_pow_factor_above c p l :
+Lemma Cpoly_factor_above c p l :
  (forall n, List.In n l -> p <= n)%nat ->
- Clistsum (List.map (Cpow c) l) =
- (c^p * Clistsum (List.map (Cpow c) (List.map (decr p) l)))%C.
+ Cpoly c l = (c^p * Cpoly c (List.map (decr p) l))%C.
 Proof.
  induction l as [|a l IH]; cbn -[Cpow]; intros Hl.
  - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IH by intuition.
+ - change (List.fold_right Cplus 0)%C with Clistsum.
+   fold (Cpoly c l). fold (Cpoly c (map (decr p) l)).
+   rewrite IH by intuition.
    replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
    rewrite Cpow_add_r. unfold decr at 2. ring.
 Qed.

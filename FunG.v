@@ -1550,7 +1550,7 @@ destruct dp as [|a pl].
           - rewrite map_pred_insert, sumfib_insert.
             rewrite <- !Nat.sub_1_r, <- !Nat.sub_add_distr. simpl.
             generalize (fib_eqn (a-3)). simpl_sub. lia.
-          - apply insert_delta; autoh. }
+          - apply insert_delta1; autoh. }
       - (* NIa : ~In a nl *)
         clear IH.
         subst p. simpl sumfib. rewrite Nat.add_0_r.
@@ -1562,7 +1562,7 @@ destruct dp as [|a pl].
           rewrite !g_sumfib'; autoh.
           - rewrite map_pred_insert, sumfib_insert.
             rewrite Nat.sub_1_r. lia.
-          - apply insert_delta; autoh. }
+          - apply insert_delta1; autoh. }
     }
   + set (pl' := b::pl) in *.
     apply Delta_inv2 in D. destruct D as (Hb,D).
@@ -1595,7 +1595,7 @@ destruct dp as [|a pl].
               generalize (fib_eqn (b-3)). simpl_sub. lia.
             - constructor; auto. constructor. lia.
               apply Delta_S. apply Delta_low_hd with b; autoh.
-            - apply insert_delta; autoh. }
+            - apply insert_delta1; autoh. }
         - (* NIb : ~In b dn *)
           set (nl' := insert b nl).
           set (pl2 := a::pl).
@@ -1615,7 +1615,7 @@ destruct dp as [|a pl].
             rewrite !g_sumfib'; autoh.
             - rewrite map_pred_insert, sumfib_insert. simpl. lia.
             - constructor; auto. apply Delta_low_hd with b; autoh.
-            - apply insert_delta; autoh. }
+            - apply insert_delta1; autoh. }
       }
     * assert (Hb2 : b = a + 2) by lia. clear Hb Hb'. rename Hb2 into Hb.
       destruct (decomp_exists n) as (nl & En & Dn).
@@ -1638,7 +1638,7 @@ destruct dp as [|a pl].
            subst p. subst n. unfold pl', nl'. rewrite !g_sumfib'; autoh.
            - rewrite map_pred_insert, sumfib_insert. simpl. lia.
            - constructor; autoh.
-           - apply insert_delta; auto. }
+           - apply insert_delta1; auto. }
       }
      apply Nat.lt_eq_cases in Ha. destruct Ha as [Ha|<-].
      apply Nat.lt_eq_cases in Ha. destruct Ha as [Ha|<-].
@@ -1665,7 +1665,7 @@ destruct dp as [|a pl].
            generalize (fib_eqn (a-3)). simpl_sub. lia.
          - constructor; auto. lia. constructor; autoh.
          - constructor; auto. lia. constructor; autoh.
-         - apply insert_delta; auto. 2:lia.
+         - apply insert_delta1; auto. 2:lia.
            intro. apply (@Delta2_apart nl (a-1)); autoh.
            inversion_clear Dn; autoh. simpl_sub. autoh. }
      }

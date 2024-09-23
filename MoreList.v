@@ -131,6 +131,12 @@ Proof.
  - f_equal; auto.
 Qed.
 
+Lemma insert_in x l y : In y (insert x l) <-> x = y \/ In y l.
+Proof.
+ induction l; simpl; auto.
+ - intuition.
+ - case Nat.leb; simpl; rewrite ?IHl; intuition.
+Qed.
 
 (** More on count_occ *)
 
@@ -332,7 +338,7 @@ Proof.
  apply Permutation_length, insert_permut.
 Qed.
 
-Lemma insert_in {A} n x y (l:list A) :
+Lemma insert_at_in {A} n x y (l:list A) :
   In y (insert_at n x l) <-> In y (x :: l).
 Proof.
  split; apply Permutation_in; auto using Permutation_sym, insert_permut.
@@ -1256,3 +1262,7 @@ Proof.
  destruct l as [|c [|d l]]; simpl; try easy; try lia.
  now intros ND [<-|[ ]] [<-|[ ]].
 Qed.
+
+(** [Below l x] means that [x] is a strict upper bound for [l] *)
+
+Definition Below l x := forall y, In y l -> y < x.

@@ -644,30 +644,6 @@ Proof.
  destruct (x <=? a); simpl; rewrite ?IHl; lia.
 Qed.
 
-Lemma insert_in x l y : In y (insert x l) <-> x = y \/ In y l.
-Proof.
- induction l; simpl; auto.
- - intuition.
- - case Nat.leb; simpl; rewrite ?IHl; intuition.
-Qed.
-
-Lemma insert_delta x l :
- Delta 3 l -> ~In x l -> ~In (x-1) l -> ~In (x+1) l -> Delta 2 (insert x l).
-Proof.
- induction l.
- - simpl. autoh.
- - intros D H0 H1 H2.
-   simpl.
-   case Nat.leb_spec; intros.
-   + constructor; autoh.
-     simpl in H0,H2. lia.
-   + rewrite Delta_alt in *; split; auto.
-     * apply IHl; simpl in *; auto. destruct D; auto.
-     * intros y. rewrite insert_in.
-       intros [<-|IN]. simpl in *. lia.
-       destruct D as (_,D). specialize (D y IN). lia.
-Qed.
-
 Lemma h_addA_eq q l : Delta 3 l ->
   ~In q l -> ~In (q-1) l -> ~In (q+1) l ->
   h (A2 q + sumA 2 l) = A2 (q-1) + h (sumA 2 l).
@@ -679,7 +655,7 @@ Proof.
  rewrite f_sumA; auto.
  rewrite map_pred_insert, sumA_insert; auto.
  replace (Nat.pred q) with (q-1); lia.
- apply insert_delta; auto.
+ apply insert_delta2; auto.
 Qed.
 
 Lemma h_addA q n : A2 (q-1) + h n - 1 <= h (A2 q + n) <= A2 (q-1) + h n + 1.

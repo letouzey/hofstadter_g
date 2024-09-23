@@ -391,27 +391,41 @@ Proof.
  apply IHl; intuition.
 Qed.
 
+Definition Rpoly x l := Rlistsum (List.map (pow x) l).
+
+Lemma Rpoly_cons x n l : Rpoly x (n::l) = (x^n + Rpoly x l)%R.
+Proof.
+ easy.
+Qed.
+
+Lemma Rpoly_app x l l' : Rpoly x (l++l') = (Rpoly x l + Rpoly x l')%R.
+Proof.
+ unfold Rpoly. now rewrite map_app, Rlistsum_app.
+Qed.
+
 Lemma Rlistsum_pow_factor r p l :
- Rlistsum (List.map (fun n => r^(p+n)) l) =
- (r^p * Rlistsum (List.map (pow r) l)).
+ Rlistsum (List.map (fun n => r^(p+n)) l) = r^p * Rpoly r l.
 Proof.
  induction l; cbn -[pow].
  - ring.
  - change (List.fold_right Rplus 0) with Rlistsum. rewrite IHl.
-   rewrite Rdef_pow_add. ring.
+   fold (Rpoly r l). rewrite Rdef_pow_add. ring.
 Qed.
 
-Lemma Rlistsum_pow_factor_above r p l :
+Lemma Rpoly_factor_above r p l :
  (forall n, List.In n l -> p <= n)%nat ->
- Rlistsum (List.map (pow r) l) =
- (r^p * Rlistsum (List.map (pow r) (List.map (decr p) l))).
+ Rpoly r l = r^p * Rpoly r (List.map (decr p) l).
 Proof.
  induction l as [|a l IH]; cbn -[pow]; intros Hl.
  - ring.
- - change (List.fold_right Rplus 0) with Rlistsum. rewrite IH by intuition.
+ - change (List.fold_right Rplus 0) with Rlistsum.
+   fold (Rpoly r l). fold (Rpoly r (map (decr p) l)).
+   rewrite IH by intuition.
    replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
    rewrite Rdef_pow_add. unfold decr at 2. ring.
 Qed.
+
+
 
 Lemma sum_pow_cons k l n r :
   O<>k -> 0<=r<1 -> Delta k (n::l) ->

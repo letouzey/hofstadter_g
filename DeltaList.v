@@ -284,95 +284,7 @@ Proof.
    + apply IH; auto.
 Qed.
 
-Definition Below l x := forall y, In y l -> y < x.
-
-(** All lists l such that [Delta (S d) l] and [Below l b] *)
-
-Definition zeroshift k l := 0::map (Nat.add k) l.
-
-Fixpoint enum_delta_below d b :=
-  match b with
-  | 0 => [[]]
-  | S b =>
-    map (zeroshift (S d)) (enum_delta_below d (b - d))
-    ++ map (map S) (enum_delta_below d b)
-  end.
-
-Lemma zeroshift_delta k l : Delta k (zeroshift k l) <-> Delta k l.
-Proof.
- unfold zeroshift; split; intros D.
- - replace l with (map (decr k) (map (Nat.add k) l)).
-   2:{ rewrite map_map. rewrite <- (map_id l) at 2. apply map_ext.
-       unfold decr. lia. }
-   apply Delta_map_decr. 2:eapply Delta_inv; eauto.
-   intros x. rewrite in_map_iff. intros (y & <- & IN). lia.
- - rewrite Delta_alt; split.
-   + eapply Delta_map; eauto; lia.
-   + intros x. rewrite in_map_iff. intros (y & <- & IN). lia.
-Qed.
-
-Lemma zeroshift_below d b l :
- Below (zeroshift (S d) l) (S b) <-> Below l (b-d).
-Proof.
- unfold zeroshift; split; intros B x IN.
- - assert (S d + x < S b); try lia.
-   { apply B. simpl; right. rewrite in_map_iff. now exists x. }
- - simpl in IN. rewrite in_map_iff in IN.
-   destruct IN as [<-|(y & <- & IN)]; try lia. specialize (B y IN). lia.
-Qed.
-
-Lemma enum_delta_below_ok d b l :
- In l (enum_delta_below d b) <-> Delta (S d) l /\ Below l b.
-Proof.
- revert l.
- induction b as [[|b] IH] using lt_wf_ind; cbn; intros l; split.
- - intros [<-|[]]. split. constructor. now red.
- - intros (D,B). destruct l as [|n l]; auto.
-   assert (n < 0)%nat by (apply B; now left). lia.
- - rewrite in_app_iff, !in_map_iff.
-   intros [(u & <- & IN)|(u & <- & IN)]; rewrite IH in IN by lia; clear IH.
-   + now rewrite zeroshift_delta, zeroshift_below.
-   + destruct IN as (D,B). split.
-     * eapply Delta_map; eauto; lia.
-     * intros x. rewrite in_map_iff. intros (y & <- & IN). apply B in IN. lia.
- - intros (D,B). rewrite in_app_iff, !in_map_iff.
-   destruct l as [|[|x] l].
-   + right. exists []. split; auto. rewrite IH by lia; split; auto. now red.
-   + left. assert (D' := fun x => @Delta_le (S d) l 0 x D).
-     replace (0 :: l) with (zeroshift (S d) (map (decr (S d)) l)) in *.
-     rewrite zeroshift_delta in D.
-     rewrite zeroshift_below in B.
-     2:{ unfold zeroshift. f_equal. rewrite map_map.
-         rewrite <- (map_id l) at 2. apply map_ext_in.
-         intros x Hx. unfold decr. specialize (D' x Hx). lia. }
-     eexists; split; [ reflexivity | ]. rewrite IH by lia. easy.
-   + right. assert (D' := fun y => @Delta_le (S d) l (S x) y D).
-     replace (S x :: l) with (map S (x :: map (decr 1) l)).
-     2:{ unfold decr. simpl. f_equal. rewrite map_map.
-         rewrite <- (map_id l) at 2. apply map_ext_in.
-         intros y Hy. specialize (D' y Hy). lia. }
-     eexists; split; [ reflexivity | ]. rewrite IH by lia; split.
-     { rewrite Delta_alt. split.
-       - apply Delta_map_decr. intros y Hy. specialize (D' y Hy). lia.
-         eapply Delta_inv; eauto.
-       - intro y. rewrite in_map_iff. intros (z & <- & IN).
-         specialize (D' z IN). unfold decr. lia. }
-     { intros y. simpl. rewrite in_map_iff. intros [<-|(z & <- & IN)].
-       - specialize (B (S x)). simpl in B. lia.
-       - unfold decr. specialize (B z (or_intror IN)). specialize (D' z IN).
-         lia. }
-Qed.
-
-Lemma enum_delta_below_ok0 d b l :
- Delta (S d) (0::l) /\ Below (0::l) (S b) <->
- In (0::l) (map (zeroshift (S d)) (enum_delta_below d (b-d))).
-Proof.
- rewrite <- enum_delta_below_ok. simpl. rewrite in_app_iff.
- split; [ intros [H|H]; trivial | now left ].
- rewrite in_map_iff in H. destruct H as (l' & H & _). now destruct l'.
-Qed.
-
-Lemma insert_delta x l a :
+Lemma insert_delta1 x l a :
  Delta 2 (Nat.pred a::l) -> ~In x l -> a < x -> Delta 1 (a::insert x l).
 Proof.
  revert a.
@@ -384,6 +296,23 @@ Proof.
    + inversion 1; subst. intros.
      constructor. lia. apply IH; auto.
      apply Delta_low_hd with b. lia. auto.
+Qed.
+
+Lemma insert_delta2 x l :
+ Delta 3 l -> ~In x l -> ~In (x-1) l -> ~In (x+1) l -> Delta 2 (insert x l).
+Proof.
+ induction l.
+ - simpl. autoh.
+ - intros D H0 H1 H2.
+   simpl.
+   case Nat.leb_spec; intros.
+   + constructor; autoh.
+     simpl in H0,H2. lia.
+   + rewrite Delta_alt in *; split; auto.
+     * apply IHl; simpl in *; auto. destruct D; auto.
+     * intros y. rewrite insert_in.
+       intros [<-|IN]. simpl in *. lia.
+       destruct D as (_,D). specialize (D y IN). lia.
 Qed.
 
 Lemma Delta_filter (f:nat->bool) k l :

@@ -788,14 +788,13 @@ Qed.
 
 Lemma diff0_decomp_eqn' n :
   diff0 n =
-   2*Re (coefa0 * Clistsum (List.map (Cpow α) (decomp 3 n))) +
-   coefν0 * Rlistsum (List.map (pow ν) (decomp 3 n)).
+   2*Re (coefa0 * Cpoly α (decomp 3 n)) + coefν0 * Rpoly ν (decomp 3 n).
 Proof.
  rewrite diff0_decomp_eqn.
  induction decomp.
  - cbn -[Re ν]. rewrite Cmult_0_r. simpl. ring.
  - set (f := fun n => _) in *.
-   simpl map. rewrite !Rlistsum_cons, Clistsum_cons.
+   simpl map. rewrite Rpoly_cons, Cpoly_cons, Rlistsum_cons.
    rewrite Cmult_plus_distr_l, re_plus, !Rmult_plus_distr_l, IHl.
    unfold f at 1. ring.
 Qed.
@@ -805,10 +804,10 @@ Qed.
 
 Lemma diff0_decomp_le n :
  Rabs (diff0 n) <=
-  2 * Cmod coefa0 * Rlistsum (List.map (pow (Cmod α)) (decomp 3 n))
-  + Rabs coefν0 * Rlistsum (List.map (pow (Rabs ν)) (decomp 3 n)).
+  2 * Cmod coefa0 * Rpoly (Cmod α) (decomp 3 n)
+  + Rabs coefν0 * Rpoly (Rabs ν) (decomp 3 n).
 Proof.
- rewrite diff0_decomp_eqn.
+ rewrite diff0_decomp_eqn. unfold Rpoly.
  induction decomp.
  - simpl. rewrite Rabs_R0. lra.
  - set (f := fun n => _) in *.
@@ -862,10 +861,9 @@ Definition max4packν := 1+ν^4+ν^8+ν^12.
 Proof. unfold max4packν. approx. Qed.
 
 Lemma best_4packν_0 l :
-  Delta 4 (O::l) -> Below l 16 ->
-  Rabs (Rlistsum (List.map (pow ν) (O::l))) <= max4packν.
+  Delta 4 (O::l) -> Below l 16 -> Rabs (Rpoly ν (O::l)) <= max4packν.
 Proof.
- intros D B.
+ intros D B. unfold Rpoly.
  inversion D; subst; cbn -[Cpow pow ν]. rewrite !pow_0_r.
  { rewrite Rplus_0_r, Rabs_right by lra. approx. }
  eapply Rle_trans; [apply Rabs_triang|].
@@ -891,12 +889,11 @@ Proof.
 Qed.
 
 Lemma best_4packν_below l :
-  Delta 4 l -> Below l 16 ->
-  Rabs (Rlistsum (List.map (pow ν) l)) <= max4packν.
+  Delta 4 l -> Below l 16 -> Rabs (Rpoly ν l) <= max4packν.
 Proof.
  intros D B.
  destruct l as [|a l].
- - simpl. rewrite Rabs_R0. approx.
+ - unfold Rpoly; simpl. rewrite Rabs_R0. approx.
  - revert l D B. induction a as [|a IH]; intros l D B.
    + apply best_4packν_0; auto. unfold Below in *. simpl in *. intuition.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
@@ -906,10 +903,11 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
+     unfold Rpoly.
      rewrite List.map_map, (Rlistsum_pow_factor ν 1), Rabs_mult, pow_1.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
-     * rewrite <- (Rmult_1_l (Rabs (Rlistsum _))) at 2.
+     * rewrite <- (Rmult_1_l (Rabs (Rpoly _ _))) at 2.
        apply Rmult_le_compat_r; try apply Rabs_pos. approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
@@ -927,8 +925,7 @@ Proof.
 Qed.
 
 Lemma best_4packν l :
-  Delta 4 l ->
-  Rabs (Rlistsum (List.map (pow ν) l)) <= max4packν / (1 - ν ^16).
+  Delta 4 l -> Rabs (Rpoly ν l) <= max4packν / (1 - ν ^16).
 Proof.
  intros D.
  assert (B := maxlist0_above l).
@@ -945,14 +942,14 @@ Proof.
    assert (D' := D).
    assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
    rewrite Delta_app_iff in D'. destruct D' as (D1 & D2 & D3).
-   rewrite List.map_app, Rlistsum_app.
+   rewrite Rpoly_app.
    eapply Rle_trans. apply Rabs_triang.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
    + apply best_4packν_below; auto.
      generalize (cut_fst 16 l). now rewrite E.
    + assert (A : forall n, List.In n l2 -> (16 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 4 16 l); auto. now rewrite E. }
-     rewrite (Rlistsum_pow_factor_above ν 16 l2) by trivial.
+     rewrite (Rpoly_factor_above ν 16 l2) by trivial.
      set (l2' := List.map (decr 16) l2).
      rewrite Rabs_mult.
      replace (max4packν / _)
@@ -1075,14 +1072,13 @@ Proof.
 Qed.
 
 Lemma best_4packa_0 l :
-  Delta 4 (O::l) -> Below l 16 ->
-  Cmod (Clistsum (List.map (Cpow α) (O::l))) <= max4packa.
+  Delta 4 (O::l) -> Below l 16 -> Cmod (Cpoly α (O::l)) <= max4packa.
 Proof.
  intros D B.
  apply Rle_pow2_inv; [apply Cmod_ge_0| ].
  assert (H : Delta 4 (O::l) /\ Below (O::l) 16).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite enum_delta_below_ok0 in H.
+ rewrite enum_delta_below_ok0 in H. unfold Cpoly.
  compute in H;
  repeat destruct H as [<-|H]; try destruct H as [ ]; cbn -[Cpow pow];
   try (calc_α; rewrite cmod2_α_quadrinomial; approx). (* slow... *)
@@ -1091,7 +1087,7 @@ Qed.
 
 Lemma best_4packa_below l :
   Delta 4 l -> Below l 16 ->
-  Cmod (Clistsum (List.map (Cpow α) l)) <= max4packa.
+  Cmod (Cpoly α l) <= max4packa.
 Proof.
  intros D B.
  destruct l as [|a l].
@@ -1105,10 +1101,11 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
+     unfold Cpoly.
      rewrite List.map_map, (Clistsum_pow_factor α 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
-     * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
+     * rewrite <- (Rmult_1_l (Cmod (Cpoly _ _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0; try approx.
      * unfold l'. clear l'.
        destruct l as [|b l].
@@ -1126,9 +1123,7 @@ Proof.
 Qed.
 
 Lemma best_4packa l :
-  Delta 4 l ->
-  Cmod (Clistsum (List.map (Cpow α) l)) <=
-   max4packa / (1 - Cmod α ^16).
+  Delta 4 l -> Cmod (Cpoly α l) <= max4packa / (1 - Cmod α ^16).
 Proof.
  intros D.
  assert (B := maxlist0_above l).
@@ -1146,14 +1141,14 @@ Proof.
    assert (D' := D).
    assert (E' := cut_app 16 l). rewrite E in E'. rewrite <- E' in D',B |- *.
    rewrite Delta_app_iff in D'. destruct D' as (D1 & D2 & D3).
-   rewrite List.map_app, Clistsum_app.
+   rewrite Cpoly_app.
    eapply Rle_trans. apply Cmod_triangle.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
    + apply best_4packa_below; auto.
      generalize (cut_fst 16 l). now rewrite E.
    + assert (A : forall n, List.In n l2 -> (16 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 4 16 l); auto. now rewrite E. }
-     rewrite (Clistsum_pow_factor_above α 16 l2) by trivial.
+     rewrite (Cpoly_factor_above α 16 l2) by trivial.
      set (l2' := List.map (decr 16) l2).
      rewrite Cmod_mult.
      replace (max4packa / _)

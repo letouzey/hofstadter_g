@@ -1292,3 +1292,173 @@ Proof.
  apply (@decompminus_below k l p) in B.
  specialize (B _ IN). lia.
 Qed.
+
+(** [decomp] can be used to generate all the subsets of [{0..p-1}]
+    whose elements are at distance of at least (k+1). *)
+
+Definition enum_sparse_subsets k p := map (decomp k) (seq 0 (A k p)).
+
+Lemma decomp_max' k p l :
+  Delta (S k) l -> Below l p -> sumA k l < A k p.
+Proof.
+ intros D B.
+ rewrite <- DeltaRev_rev in D.
+ assert (B' : Below (rev l) p). { intros y. rewrite <- in_rev. apply B. }
+ clear B.
+ rewrite <- sumA_rev.
+ destruct (rev l) as [|n l'].
+ - apply A_nz.
+ - apply Nat.lt_le_trans with (A k (S n)).
+   + now apply decomp_max.
+   + apply A_mono. apply B'. now left.
+Qed.
+
+Lemma enum_sparse_subsets_ok k p l :
+  In l (enum_sparse_subsets k p) <-> Below l p /\ Delta (S k) l.
+Proof.
+ unfold enum_sparse_subsets.
+ rewrite in_map_iff. setoid_rewrite in_seq.
+ split.
+ - intros (n & Hl & (_,Hn)). simpl in Hn. split.
+   + intros x Hx. subst l.
+     apply decomp_in in Hx. apply (@A_lt_inv k). lia.
+   + subst l. apply decomp_delta.
+ - intros (Hl,D). exists (sumA k l). split.
+   + now apply decomp_sum'.
+   + split; [lia|]. apply decomp_max'; trivial.
+Qed.
+
+Lemma enum_sparse_subsets_nodup k p : NoDup (enum_sparse_subsets k p).
+Proof.
+ apply FinFun.Injective_map_NoDup; [|apply seq_NoDup].
+ intros x y E.
+ now rewrite <- (@decomp_sum k x), E, decomp_sum.
+Qed.
+
+(** A former approach, more algorithmic, building the same sparse
+    subsets (but in a different order) *)
+
+Definition zeroshift k l := 0::map (Nat.add k) l.
+
+Fixpoint enum_delta_below d b :=
+  match b with
+  | 0 => [[]]
+  | S b =>
+    map (zeroshift (S d)) (enum_delta_below d (b - d))
+    ++ map (map S) (enum_delta_below d b)
+  end.
+
+Lemma zeroshift_delta k l : Delta k (zeroshift k l) <-> Delta k l.
+Proof.
+ unfold zeroshift; split; intros D.
+ - replace l with (map (decr k) (map (Nat.add k) l)).
+   2:{ rewrite map_map. rewrite <- (map_id l) at 2. apply map_ext.
+       unfold decr. lia. }
+   apply Delta_map_decr. 2:eapply Delta_inv; eauto.
+   intros x. rewrite in_map_iff. intros (y & <- & IN). lia.
+ - rewrite Delta_alt; split.
+   + eapply Delta_map; eauto; lia.
+   + intros x. rewrite in_map_iff. intros (y & <- & IN). lia.
+Qed.
+
+Lemma zeroshift_below d b l :
+ Below (zeroshift (S d) l) (S b) <-> Below l (b-d).
+Proof.
+ unfold zeroshift; split; intros B x IN.
+ - assert (S d + x < S b); try lia.
+   { apply B. simpl; right. rewrite in_map_iff. now exists x. }
+ - simpl in IN. rewrite in_map_iff in IN.
+   destruct IN as [<-|(y & <- & IN)]; try lia. specialize (B y IN). lia.
+Qed.
+
+Lemma enum_delta_below_ok d b l :
+ In l (enum_delta_below d b) <-> Delta (S d) l /\ Below l b.
+Proof.
+ revert l.
+ induction b as [[|b] IH] using lt_wf_ind; cbn; intros l; split.
+ - intros [<-|[]]. split. constructor. now red.
+ - intros (D,B). destruct l as [|n l]; auto.
+   assert (n < 0)%nat by (apply B; now left). lia.
+ - rewrite in_app_iff, !in_map_iff.
+   intros [(u & <- & IN)|(u & <- & IN)]; rewrite IH in IN by lia; clear IH.
+   + now rewrite zeroshift_delta, zeroshift_below.
+   + destruct IN as (D,B). split.
+     * eapply Delta_map; eauto; lia.
+     * intros x. rewrite in_map_iff. intros (y & <- & IN). apply B in IN. lia.
+ - intros (D,B). rewrite in_app_iff, !in_map_iff.
+   destruct l as [|[|x] l].
+   + right. exists []. split; auto. rewrite IH by lia; split; auto. now red.
+   + left. assert (D' := fun x => @Delta_le (S d) l 0 x D).
+     replace (0 :: l) with (zeroshift (S d) (map (decr (S d)) l)) in *.
+     rewrite zeroshift_delta in D.
+     rewrite zeroshift_below in B.
+     2:{ unfold zeroshift. f_equal. rewrite map_map.
+         rewrite <- (map_id l) at 2. apply map_ext_in.
+         intros x Hx. unfold decr. specialize (D' x Hx). lia. }
+     eexists; split; [ reflexivity | ]. rewrite IH by lia. easy.
+   + right. assert (D' := fun y => @Delta_le (S d) l (S x) y D).
+     replace (S x :: l) with (map S (x :: map (decr 1) l)).
+     2:{ unfold decr. simpl. f_equal. rewrite map_map.
+         rewrite <- (map_id l) at 2. apply map_ext_in.
+         intros y Hy. specialize (D' y Hy). lia. }
+     eexists; split; [ reflexivity | ]. rewrite IH by lia; split.
+     { rewrite Delta_alt. split.
+       - apply Delta_map_decr. intros y Hy. specialize (D' y Hy). lia.
+         eapply Delta_inv; eauto.
+       - intro y. rewrite in_map_iff. intros (z & <- & IN).
+         specialize (D' z IN). unfold decr. lia. }
+     { intros y. simpl. rewrite in_map_iff. intros [<-|(z & <- & IN)].
+       - specialize (B (S x)). simpl in B. lia.
+       - unfold decr. specialize (B z (or_intror IN)). specialize (D' z IN).
+         lia. }
+Qed.
+
+Lemma enum_delta_below_nodup k p : NoDup (enum_delta_below k p).
+Proof.
+ induction p as [[|p] IH] using lt_wf_ind; simpl.
+ - now repeat constructor.
+ - apply app_nodup.
+   + apply FinFun.Injective_map_NoDup; [ | apply IH; lia].
+     intros x y. unfold zeroshift. intros [=E].
+     clear IH. revert y E.
+     induction x; destruct y; try easy; intros [= E E'].
+     f_equal. lia. now apply IHx.
+   + apply FinFun.Injective_map_NoDup; [ | apply IH; lia].
+     intros x. induction x; destruct y; try easy; intros [= E E'].
+     f_equal; auto.
+   + intros x. rewrite !in_map_iff.
+     now intros ((l & E & _),([|l'] & <- & _)).
+Qed.
+
+Lemma enums_equiv k p :
+  Permutation (enum_sparse_subsets k p) (enum_delta_below k p).
+Proof.
+ apply NoDup_Permutation;
+  trivial using enum_delta_below_nodup, enum_sparse_subsets_nodup.
+ intros l. now rewrite enum_sparse_subsets_ok, enum_delta_below_ok.
+Qed.
+
+(** A particular case used in LimCase2 and LimCase3 *)
+
+Lemma enum_delta_below_ok0 d b l :
+ Delta (S d) (0::l) /\ Below (0::l) (S b) <->
+ In (0::l) (map (zeroshift (S d)) (enum_delta_below d (b-d))).
+Proof.
+ rewrite <- enum_delta_below_ok. simpl. rewrite in_app_iff.
+ split; [ intros [H|H]; trivial | now left ].
+ rewrite in_map_iff in H. destruct H as (l' & H & _). now destruct l'.
+Qed.
+
+(** Or now a direct filtering *)
+
+Definition check_cons0 l :=
+  match l with
+  | 0::_ => true
+  | _ => false
+  end.
+
+Lemma enum_cons0 ll l :
+  In (0::l) ll <-> In (0::l) (filter check_cons0 ll).
+Proof.
+ now rewrite filter_In.
+Qed.

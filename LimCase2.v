@@ -746,7 +746,7 @@ Proof.
 Qed.
 
 Lemma diff0_decomp_eqn' n :
-  diff0 n = 2*Re (coefa0 * Clistsum (List.map (Cpow α) (decomp 2 n))).
+  diff0 n = 2*Re (coefa0 * Cpoly α (decomp 2 n)).
 Proof.
  rewrite diff0_decomp_eqn.
  induction decomp; cbn -[Re].
@@ -918,25 +918,24 @@ Qed.
 
 Lemma best_3pack_0 l :
   Delta 3 (O::l) -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow α) (O::l))) <= max3pack.
+  Cmod (Cpoly α (O::l)) <= max3pack.
 Proof.
  intros D B.
  apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
- assert (H : Delta 3 (O::l) /\ Below (O::l) 9).
+ assert (H : Below (O::l) 9 /\ Delta 3 (O::l)).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite enum_delta_below_ok0 in H. compute in H;
+ rewrite <- enum_sparse_subsets_ok, enum_cons0 in H. vm_compute in H.
  repeat destruct H as [<-|H]; try destruct H; cbn -[Cpow pow]; (* 13 cases *)
  calc_α; try rewrite cmod2_trinom_α; calc_τ; try approx.
- - lra. (* max3pack <= max3pack *)
+ - rewrite Cmod_1, pow1. approx.
  - (* special case without the α monom *)
    replace C2 with (0*α+C2)%C by ring.
    rewrite Cplus_assoc, cmod2_trinom_α; calc_τ; approx.
- - rewrite Cmod_1, pow1. approx.
+ - lra. (* max3pack <= max3pack *)
 Qed.
 
 Lemma best_3pack_below l :
-  Delta 3 l -> Below l 9 ->
-  Cmod (Clistsum (List.map (Cpow α) l)) <= max3pack.
+  Delta 3 l -> Below l 9 -> Cmod (Cpoly α l) <= max3pack.
 Proof.
  intros D B.
  destruct l as [|a l].
@@ -950,10 +949,11 @@ Proof.
          assert (b<>O); try lia.
          { contradict Hb. subst b.
            apply (@Delta_nz' 3 (S a) l); auto; try lia. }}
+     unfold Cpoly.
      rewrite List.map_map, (Clistsum_pow_factor α 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
-     * rewrite <- (Rmult_1_l (Cmod (Clistsum _))) at 2.
+     * rewrite <- (Rmult_1_l (Cmod (Cpoly _ _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
        apply Rle_pow2_inv; try lra. rewrite αmod2. approx.
      * unfold l'. clear l'.
@@ -972,8 +972,7 @@ Proof.
 Qed.
 
 Lemma best_3pack l :
-  Delta 3 l ->
-  Cmod (Clistsum (List.map (Cpow α) l)) <= max3pack / (1 - Cmod α ^9).
+  Delta 3 l -> Cmod (Cpoly α l) <= max3pack / (1 - Cmod α ^9).
 Proof.
  intros D.
  assert (B := maxlist0_above l).
@@ -994,14 +993,14 @@ Proof.
    assert (D' := D).
    assert (E' := cut_app 9 l). rewrite E in E'. rewrite <- E' in D',B |- *.
    rewrite Delta_app_iff in D'. destruct D' as (D1 & D2 & D3).
-   rewrite List.map_app, Clistsum_app.
+   rewrite Cpoly_app.
    eapply Rle_trans. apply Cmod_triangle.
    eapply Rle_trans; [eapply Rplus_le_compat_r|].
    + apply best_3pack_below; auto.
      generalize (cut_fst 9 l). now rewrite E.
    + assert (A : forall n, List.In n l2 -> (9 <= n)%nat).
      { intros n Hn. apply (@cut_snd' 3 9 l); auto. now rewrite E. }
-     rewrite (Clistsum_pow_factor_above α 9 l2) by trivial.
+     rewrite (Cpoly_factor_above α 9 l2) by trivial.
      set (l2' := List.map (decr 9) l2).
      rewrite Cmod_mult.
      replace (max3pack / _)
@@ -1168,7 +1167,7 @@ Proof.
 Qed.
 
 Lemma diff2_decomp_eqn' n :
-  diff2 n = 2*Re (coefa2 * Clistsum (List.map (Cpow α) (decomp 2 n))).
+  diff2 n = 2*Re (coefa2 * Cpoly α (decomp 2 n)).
 Proof.
  rewrite diff2_decomp_eqn.
  induction decomp; cbn -[Re].
