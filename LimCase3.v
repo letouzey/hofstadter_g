@@ -968,107 +968,84 @@ Qed.
 
 (** Now the α part of the bound *)
 
-Definition max4packa := Cmod (1+α^5+α^9+α^14).
+Module Coefs.
+(** Quadruplets (a,b,c,d) for "reduced" polynomials a+bα+cα^2+dα^3 *)
+Local Open Scope nat.
 
-#[local] Instance : Approx 0.37433943916 (Cmod α ^16) 0.37433943918.
+Inductive coefs := Coefs (a b c d : nat).
+
+Definition zero : coefs := Coefs 0 0 0 0.
+
+Definition add '(Coefs a b c d) '(Coefs a' b' c' d') :=
+ Coefs (a+a') (b+b') (c+c') (d+d').
+
+Fixpoint of_exp n :=
+ match n with
+ | 0 => Coefs 1 0 0 0
+ | 1 => Coefs 0 1 0 0
+ | 2 => Coefs 0 0 1 0
+ | 3 => Coefs 0 0 0 1
+ | S n => add (of_exp n) (of_exp (n-3))
+ end.
+
+Definition of_poly l := List.fold_right add zero (map of_exp l).
+
+Definition Ceval x '(Coefs a b c d) := (a + b * x + c * x^2 + d * x^3)%C.
+
+Lemma of_exp_S n : 3 <= n ->
+  of_exp (S n) = add (of_exp n) (of_exp (n-3)).
 Proof.
- replace (Cmod α^16) with ((Cmod α^2)^8) by ring. approx.
+ destruct n as [|[|[|n ] ] ]; lia || easy.
 Qed.
 
-Ltac simpl_α := repeat (autorewrite with α; ring_simplify).
-#[local] Hint Rewrite α_is_Croot : α.
+Lemma Ceval_add x c c' :
+  (Ceval x (add c c') = Ceval x c + Ceval x c')%C.
+Proof.
+ destruct c as [a b c d], c' as [a' b' c' d']. simpl.
+ rewrite !plus_INR. lca.
+Qed.
 
-Local Open Scope C.
-Lemma α5 : α^5 = 1 + α + α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α5 : α.
-Lemma α6 : α^6 = 1 + α + α^2 + α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α6 : α.
-Lemma α7 : α^7 = 1 + α + α^2 + 2*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α7 : α.
-Lemma α8 : α^8 = 2 + α + α^2 + 3*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α8 : α.
-Lemma α9 : α^9 = 3 + 2*α + α^2 + 4*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α9 : α.
-Lemma α10 : α^10 = 4 + 3*α + 2*α^2 + 5*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α10 : α.
-Lemma α11 : α^11 = 5 + 4*α + 3*α^2 + 7*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α11 : α.
-Lemma α12 : α^12 = 7 + 5*α + 4*α^2 + 10*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α12 : α.
-Lemma α13 : α^13 = 10 + 7*α + 5*α^2 + 14*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α13 : α.
-Lemma α14 : α^14 = 14 + 10*α + 7*α^2 + 19*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α14 : α.
-Lemma α15 : α^15 = 19 + 14*α + 10*α^2 + 26*α^3.
-Proof. rewrite Cpow_S. now simpl_α. Qed.
-#[local] Hint Rewrite α15 : α.
-Local Close Scope C.
+Lemma Cpow_α_reduce n : (α^n = Ceval α (of_exp n))%C.
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n 3).
+ - destruct n as [|[|[|[|n] ] ] ]; lca || lia.
+ - destruct n; try lia. rewrite of_exp_S by lia.
+   rewrite Ceval_add, <- !IH by lia. clear IH.
+   replace (S n) with (4 + (n-3)) by lia.
+   rewrite Cpow_add_r, α_is_Croot.
+   replace n with (3 + (n-3)) at 2 by lia.
+   rewrite Cpow_add_r. ring.
+Qed.
 
-Module FixQuadrinomial.
-(* explicit polynomial syntax [a*α^3+b*α^2+c*α+d]
-   even if some coefficients are 0 or 1. Needed for application
-   of cmod2_α_quadrinomial below. *)
-Local Open Scope C.
-Ltac fix1 t :=
- match t with
- | ?c * α + _ => constr:(t)
- | ?c * α => constr:(c*α+0)
- | α + ?t => constr:(1*α+t)
- | α => constr:(1*α+0)
- | _ => constr:(0*α+t)
- end.
-Ltac fix2 t :=
- match t with
- | ?c * α^2 + ?t => let t' := fix1 t in constr:(c*α^2+t')
- | ?c * α^2 => fix2 constr:(t+0)
- | α^2 + ?t => fix2 constr:(1*α^2+t)
- | α^2 => fix2 constr:(1*α^2+0)
- | _ => fix2 constr:(0*α^2+t)
- end.
-Ltac fix3 t :=
- match t with
- | ?c * α^3 + ?t => let t' := fix2 t in constr:(c*α^3+t')
- | ?c * α^2 => fix3 constr:(t+0)
- | α^3 + ?t => fix3 constr:(1*α^3+t)
- | α^3 => fix3 constr:(1*α^3+0)
- | _ => fix3 constr:(0*α^3+t)
- end.
-End FixQuadrinomial.
+Lemma Cpoly_α_reduce l : (Cpoly α l = Ceval α (of_poly l))%C.
+Proof.
+ induction l.
+ - unfold Cpoly. simpl. lca.
+ - cbn. rewrite Ceval_add, Cpow_α_reduce. f_equal. apply IHl.
+Qed.
 
-Ltac calc_α :=
-  let c := fresh in
-  let H := fresh in
-  remember (Cplus _ _) as c eqn:H; (* ad-hoc but enough here ! *)
-  repeat (autorewrite with α in H; ring_simplify in H);
-  (* fixing quadrinomial *)
-  rewrite <- ?Cplus_assoc in H;
-  match type of H with _ = ?t =>
-    let t' := FixQuadrinomial.fix3 t in replace t with t' in H by ring
-  end;
-  rewrite ?Cplus_assoc in H;
-  rewrite H; clear c H.
+End Coefs.
 
 Lemma cmod2_α_quadrinomial (a b c d : R) :
- Cmod (d*α^3+c*α^2+b*α+a)^2 =
+ Cmod (a+b*α+c*α^2+d*α^3)^2 =
  (a + b*re_α + c*re_α^2 + d*re_α^3 - (c+3*d*re_α)*im_α^2)^2
  + (re_α*im_α*(2*c+3*d*re_α) + im_α*b - d*im_α^3)^2.
 Proof.
  rewrite Cmod2_alt. f_equal; f_equal; unfold α; cbn; ring.
 Qed.
 
+Ltac calc_α_poly :=
+ rewrite Coefs.Cpoly_α_reduce; cbn -[pow INR];
+ rewrite cmod2_α_quadrinomial; approx.
+
+(** The best "pack" *)
+Definition max4lista := [0;5;9;14]%nat.
+Definition max4packa := Cmod (Cpoly α max4lista).
+
 #[local] Instance : Approx 6.7073103 (max4packa^2) 6.7073105.
 Proof.
- unfold max4packa. calc_α. rewrite cmod2_α_quadrinomial. approx.
+ unfold max4packa, max4lista. calc_α_poly.
 Qed.
 
 Lemma best_4packa_0 l :
@@ -1078,11 +1055,10 @@ Proof.
  apply Rle_pow2_inv; [apply Cmod_ge_0| ].
  assert (H : Delta 4 (O::l) /\ Below (O::l) 16).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite enum_delta_below_ok0 in H. unfold Cpoly.
- compute in H;
- repeat destruct H as [<-|H]; try destruct H as [ ]; cbn -[Cpow pow];
-  try (calc_α; rewrite cmod2_α_quadrinomial; approx). (* slow... *)
- rewrite !Cplus_assoc, Cplus_0_r; apply Rle_refl. (* for max4packa *)
+ rewrite enum_delta_below_ok0 in H.
+ compute in H; repeat (destruct H as [<-|H]; [try calc_α_poly|]).
+ - apply Rle_refl. (* for max4packa *)
+ - easy. (* for the final [In x []], i.e. False *)
 Qed.
 
 Lemma best_4packa_below l :
@@ -1199,7 +1175,8 @@ Qed.
 
 #[local] Instance : Approx 0.4785740967 (Cmod UV0a ^2) 0.4785740985.
 Proof.
- unfold UV0a. calc_α. rewrite cmod2_α_quadrinomial. approx.
+ replace UV0a with (Cpoly α [0;1;2;3])%nat. calc_α_poly.
+ unfold Cpoly, UV0a. simpl. ring.
 Qed.
 
 #[local] Instance : Approx 0.916466310 (Cmod coefa_detU ^2) 0.916466315.

@@ -83,6 +83,10 @@ Proof. red. lra. Qed.
 #[global] Instance IZR_approx z : Approx (inject_Z z) (IZR z) (inject_Z z).
 Proof. rewrite <- Q2R_IZR. typeclasses eauto. Qed.
 
+#[global] Instance INR_approx n :
+  Approx (inject_Z (Z.of_nat n)) (INR n) (inject_Z (Z.of_nat n)).
+Proof. rewrite INR_IZR_INZ. typeclasses eauto. Qed.
+
 #[global] Instance plus_approx {a r b a' r' b'} :
   Approx a r b -> Approx a' r' b' -> Approx (a+a') (r+r') (b+b').
 Proof.
