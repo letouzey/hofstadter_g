@@ -874,43 +874,87 @@ Proof.
  simpl. ring.
 Qed.
 
+Module Coefs.
+(** Triplets (a,b,c) for "reduced" polynomials a+bα+cα^2 *)
+Local Open Scope nat.
+
+Inductive coefs := Coefs (a b c : nat).
+
+Definition zero : coefs := Coefs 0 0 0.
+
+Definition add '(Coefs a b c) '(Coefs a' b' c') :=
+ Coefs (a+a') (b+b') (c+c').
+
+Fixpoint of_exp n :=
+ match n with
+ | 0 => Coefs 1 0 0
+ | 1 => Coefs 0 1 0
+ | 2 => Coefs 0 0 1
+ | S n => add (of_exp n) (of_exp (n-2))
+ end.
+
+Definition of_poly l := List.fold_right add zero (map of_exp l).
+
+Definition Ceval x '(Coefs a b c) := (a + b * x + c * x^2)%C.
+
+Lemma of_exp_S n : 2 <= n ->
+  of_exp (S n) = add (of_exp n) (of_exp (n-2)).
+Proof.
+ destruct n as [|[|n ] ]; lia || easy.
+Qed.
+
+Lemma Ceval_add x c c' :
+  (Ceval x (add c c') = Ceval x c + Ceval x c')%C.
+Proof.
+ destruct c as [a b c], c' as [a' b' c']. simpl.
+ rewrite !plus_INR. lca.
+Qed.
+
+Lemma Cpow_α_reduce n : (α^n = Ceval α (of_exp n))%C.
+Proof.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.le_gt_cases n 2).
+ - destruct n as [|[|[|n ] ] ]; lca || lia.
+ - destruct n; try lia. rewrite of_exp_S by lia.
+   rewrite Ceval_add, <- !IH by lia. clear IH.
+   replace (S n) with (3 + (n-2)) by lia.
+   rewrite Cpow_add_r, α_is_root.
+   replace n with (2 + (n-2)) at 2 by lia.
+   rewrite Cpow_add_r. ring.
+Qed.
+
+Lemma Cpoly_α_reduce l : (Cpoly α l = Ceval α (of_poly l))%C.
+Proof.
+ induction l.
+ - unfold Cpoly. simpl. lca.
+ - cbn. rewrite Ceval_add, Cpow_α_reduce. f_equal. apply IHl.
+Qed.
+
+End Coefs.
+
 Lemma cmod2_trinom_α (a b c : R) :
- (Cmod (a*α^2 + b*α + c))^2 =
- (1/4)*((2*c - b*τ^2 - a*τ*(1+τ))^2 + τ*(3+τ)*(b-a*τ^2)^2).
+ (Cmod (a + b*α + c*α^2))^2 =
+ (1/4)*((2*a - b*τ^2 - c*τ*(1+τ))^2 + τ*(3+τ)*(b-c*τ^2)^2).
 Proof.
  rewrite Cmod2_alt.
  rewrite !re_plus, !im_plus, re_RtoC, im_RtoC.
  rewrite !re_scal_l, !im_scal_l, re_α2_τ, im_α2.
  simpl Im. simpl Re.
- replace (_ + _ + 0) with (im_α * (b + a * (2*re_α))) by ring.
+ replace (0 + _ + _) with (im_α * (b + c * (2*re_α))) by ring.
  rewrite Rpow_mult_distr, im_α_2, re_α_alt. field.
 Qed.
 
-Ltac calc_α :=
-  let c := fresh in
-  let H := fresh in
-  remember (Cplus _ _) as c eqn:H;
-  repeat (autorewrite with root in H; ring_simplify in H);
-  rewrite H; clear c H;
- (* Hack : explicit 1*α and 1*α^2 if needed for easy
-    application of cmod2_trinom_α below *)
- match goal with
- | |- context [ (α^2 + _)%C ] => rewrite <- (Cmult_1_l (α^2))
- | _ => idtac
- end;
- match goal with
- | |- context [ (_ + α)%C ] => rewrite <- (Cmult_1_l α) at 2
- | _ => idtac
- end.
+Ltac calc_α_poly :=
+ rewrite Coefs.Cpoly_α_reduce; cbn -[pow INR]; rewrite cmod2_trinom_α.
 
-Ltac calc_τ :=
-  field_simplify; rewrite ?τ6, ?τ5, ?τ4, ?τ3; field_simplify.
-
-Definition max3pack := Cmod (1+α^3+α^7).
+Definition max3list := [0;3;7]%nat.
+Definition max3pack := Cmod (Cpoly α max3list).
 
 Lemma max3pack_eqn : max3pack^2 = 15 - 11*τ - 10*τ^2.
 Proof.
- unfold max3pack. calc_α. rewrite cmod2_trinom_α. calc_τ. field.
+ unfold max3pack, max3list. calc_α_poly.
+ rewrite !INR_IZR_INZ. simpl Z.of_nat.
+ field_simplify. rewrite ?τ6, ?τ5, ?τ4, ?τ3. field.
 Qed.
 
 (* Curious note : all the trinoms we consider lead to N - M*τ - K*τ^2
@@ -925,13 +969,9 @@ Proof.
  assert (H : Below (O::l) 9 /\ Delta 3 (O::l)).
  { split; trivial. intros x [<-|Hx]. lia. now apply B. }
  rewrite <- enum_sparse_subsets_ok, enum_cons0 in H. vm_compute in H.
- repeat destruct H as [<-|H]; try destruct H; cbn -[Cpow pow]; (* 13 cases *)
- calc_α; try rewrite cmod2_trinom_α; calc_τ; try approx.
- - rewrite Cmod_1, pow1. approx.
- - (* special case without the α monom *)
-   replace C2 with (0*α+C2)%C by ring.
-   rewrite Cplus_assoc, cmod2_trinom_α; calc_τ; approx.
- - lra. (* max3pack <= max3pack *)
+ repeat (destruct H as [<-|H]; [try (calc_α_poly; approx)|]).
+ - rewrite <- max3pack_eqn. apply Rle_refl.
+ - easy.
 Qed.
 
 Lemma best_3pack_below l :
