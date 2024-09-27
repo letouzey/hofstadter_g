@@ -1048,17 +1048,12 @@ Proof.
  unfold max4packa, max4lista. calc_α_poly.
 Qed.
 
-Lemma best_4packa_0 l :
-  Delta 4 (O::l) -> Below l 16 -> Cmod (Cpoly α (O::l)) <= max4packa.
+Lemma best_4packa_enum l :
+  In l (enum_sparse_subsets0 3 16) -> Cmod (Cpoly α l) <= max4packa.
 Proof.
- intros D B.
- apply Rle_pow2_inv; [apply Cmod_ge_0| ].
- assert (H : Delta 4 (O::l) /\ Below (O::l) 16).
- { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite enum_delta_below_ok0 in H.
- compute in H; repeat (destruct H as [<-|H]; [try calc_α_poly|]).
- - apply Rle_refl. (* for max4packa *)
- - easy. (* for the final [In x []], i.e. False *)
+ intros H. apply Rle_pow2_inv; [apply Cmod_ge_0|]. revert l H.
+ apply Forall_forall. vm_compute enum_sparse_subsets0.
+ repeat (constructor; [ calc_α_poly || apply Rle_refl | ]). constructor.
 Qed.
 
 Lemma best_4packa_below l :
@@ -1069,33 +1064,25 @@ Proof.
  destruct l as [|a l].
  - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
  - revert l D B. induction a as [|a IH]; intros l D B.
-   + apply best_4packa_0; auto. unfold Below in *. simpl in *. intuition.
+   + apply best_4packa_enum.
+     now rewrite enum_sparse_subsets0_ok, enum_sparse_subsets_ok.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
      2:{ simpl. f_equal. rewrite List.map_map.
          rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
          intros b Hb.
          assert (b<>O); try lia.
-         { contradict Hb. subst b.
-           apply (@Delta_nz' 4 (S a) l); auto; try lia. }}
+         { intros ->. apply (@Delta_nz' 4 (S a) l); auto; lia. }}
      unfold Cpoly.
      rewrite List.map_map, (Clistsum_pow_factor α 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
      eapply Rle_trans. 2:apply (IH l').
      * rewrite <- (Rmult_1_l (Cmod (Cpoly _ _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0; try approx.
-     * unfold l'. clear l'.
-       destruct l as [|b l].
-       { simpl; constructor. }
-       { inversion_clear D. simpl. constructor. lia.
-         apply (@Delta_pred 4 (b::l)); auto.
-         apply (@Delta_nz' 4 a (b::l)); try lia.
-         constructor; auto; try lia. }
-     * unfold Below in *. intros y [->|Hy].
-       { specialize (B (S y)). simpl in B; lia. }
-       { unfold l' in *. clear l'.
-         rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
-         assert (x < 16)%nat by (apply (B x); simpl; intuition).
-         lia. }
+     * change (Delta 4 (map pred (S a :: l))). clear l'.
+       apply Delta_pred; trivial. eapply Delta_nz; eauto; lia.
+     * change (Below (map pred (S a :: l)) 16). clear l'.
+       unfold Below in *. intros x. rewrite in_map_iff.
+       intros (y & <- & Hy). specialize (B y Hy). lia.
 Qed.
 
 Lemma best_4packa l :

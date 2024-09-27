@@ -960,18 +960,13 @@ Qed.
 (* Curious note : all the trinoms we consider lead to N - M*τ - K*τ^2
    except (Cmod (1+α^4+α^8))^2 = 8 + 2*τ - 17*τ^2. *)
 
-Lemma best_3pack_0 l :
-  Delta 3 (O::l) -> Below l 9 ->
-  Cmod (Cpoly α (O::l)) <= max3pack.
+Lemma best_3pack_enum l :
+  In l (enum_sparse_subsets0 2 9) -> Cmod (Cpoly α l) <= max3pack.
 Proof.
- intros D B.
- apply Rle_pow2_inv; [apply Cmod_ge_0| rewrite max3pack_eqn].
- assert (H : Below (O::l) 9 /\ Delta 3 (O::l)).
- { split; trivial. intros x [<-|Hx]. lia. now apply B. }
- rewrite <- enum_sparse_subsets_ok, enum_cons0 in H. vm_compute in H.
- repeat (destruct H as [<-|H]; [try (calc_α_poly; approx)|]).
- - rewrite <- max3pack_eqn. apply Rle_refl.
- - easy.
+ intro H. apply Rle_pow2_inv; [apply Cmod_ge_0|]. rewrite max3pack_eqn.
+ revert l H. apply Forall_forall. vm_compute enum_sparse_subsets0.
+ repeat (constructor; [ try (calc_α_poly; approx) | ]); [|constructor].
+ rewrite <- max3pack_eqn. apply Rle_refl.
 Qed.
 
 Lemma best_3pack_below l :
@@ -981,14 +976,14 @@ Proof.
  destruct l as [|a l].
  - cbn -[Cpow]. rewrite Cmod_0. apply Cmod_ge_0.
  - revert l D B. induction a as [|a IH]; intros l D B.
-   + apply best_3pack_0; auto. unfold Below in *. simpl in *. intuition.
+   + apply best_3pack_enum.
+     now rewrite enum_sparse_subsets0_ok, enum_sparse_subsets_ok.
    + replace (S a::l)%list with (List.map S (a :: List.map pred l))%list.
      2:{ simpl. f_equal. rewrite List.map_map.
          rewrite <- (List.map_id l) at 2. apply List.map_ext_in.
          intros b Hb.
          assert (b<>O); try lia.
-         { contradict Hb. subst b.
-           apply (@Delta_nz' 3 (S a) l); auto; try lia. }}
+         { intros ->. apply (@Delta_nz' 3 (S a) l); auto; lia. }}
      unfold Cpoly.
      rewrite List.map_map, (Clistsum_pow_factor α 1), Cmod_mult, Cpow_1_r.
      set (l' := List.map pred l).
@@ -996,19 +991,11 @@ Proof.
      * rewrite <- (Rmult_1_l (Cmod (Cpoly _ _))) at 2.
        apply Rmult_le_compat_r; try apply Cmod_ge_0.
        apply Rle_pow2_inv; try lra. rewrite αmod2. approx.
-     * unfold l'. clear l'.
-       destruct l as [|b l].
-       { simpl; constructor. }
-       { inversion_clear D. simpl. constructor. lia.
-         apply (@Delta_pred 3 (b::l)); auto.
-         apply (@Delta_nz' 3 a (b::l)); try lia.
-         constructor; auto; try lia. }
-     * unfold Below in *. intros y [->|Hy].
-       { specialize (B (S y)). simpl in B; lia. }
-       { unfold l' in *. clear l'.
-         rewrite List.in_map_iff in Hy. destruct Hy as (x & <- & Hx).
-         assert (x < 9)%nat by (apply (B x); simpl; intuition).
-         lia. }
+     * change (Delta 3 (map pred (S a :: l))). clear l'.
+       apply Delta_pred; trivial. eapply Delta_nz; eauto; lia.
+     * change (Below (map pred (S a :: l)) 9). clear l'.
+       unfold Below in *. intros x. rewrite in_map_iff.
+       intros (y & <- & Hy). specialize (B y Hy). lia.
 Qed.
 
 Lemma best_3pack l :

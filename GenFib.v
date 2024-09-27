@@ -1335,18 +1335,9 @@ Proof.
  now rewrite <- (@decomp_sum k x), E, decomp_sum.
 Qed.
 
-(** A former approach, more algorithmic, building the same sparse
-    subsets (but in a different order) *)
+(** The decompositions of rank 0 can be obtained in a more efficient way *)
 
 Definition zeroshift k l := 0::map (Nat.add k) l.
-
-Fixpoint enum_delta_below d b :=
-  match b with
-  | 0 => [[]]
-  | S b =>
-    map (zeroshift (S d)) (enum_delta_below d (b - d))
-    ++ map (map S) (enum_delta_below d b)
-  end.
 
 Lemma zeroshift_delta k l : Delta k (zeroshift k l) <-> Delta k l.
 Proof.
@@ -1370,6 +1361,39 @@ Proof.
  - simpl in IN. rewrite in_map_iff in IN.
    destruct IN as [<-|(y & <- & IN)]; try lia. specialize (B y IN). lia.
 Qed.
+
+Definition enum_sparse_subsets0 k p :=
+  map (zeroshift (S k)) (enum_sparse_subsets k (p-S k)).
+
+Lemma enum_sparse_subsets0_ok k p l :
+ In (0::l) (enum_sparse_subsets0 k (S p)) <->
+ In (0::l) (enum_sparse_subsets k (S p)).
+Proof.
+ unfold enum_sparse_subsets0. rewrite in_map_iff, enum_sparse_subsets_ok.
+ setoid_rewrite enum_sparse_subsets_ok.
+ split.
+ - intros (l' & E & B & D).
+   now rewrite <- E, zeroshift_delta, zeroshift_below.
+ - intros (B,D).
+   set (l' := map (decr (S k)) l).
+   assert (E : zeroshift (S k) l' = 0::l).
+   { unfold zeroshift. f_equal. unfold l'. rewrite map_map.
+     rewrite <- (map_id l) at 2. apply map_ext_in.
+     intros a Ha. eapply Delta_le in D; eauto. unfold decr. lia. }
+   exists l'. split. trivial.
+   simpl. now rewrite <- zeroshift_delta, <- zeroshift_below, E.
+Qed.
+
+(** Another enumeration, more algorithmic and faster,
+    building the same sparse subsets (but in a different order) *)
+
+Fixpoint enum_delta_below d b :=
+  match b with
+  | 0 => [[]]
+  | S b =>
+    map (zeroshift (S d)) (enum_delta_below d (b - d))
+    ++ map (map S) (enum_delta_below d b)
+  end.
 
 Lemma enum_delta_below_ok d b l :
  In l (enum_delta_below d b) <-> Delta (S d) l /\ Below l b.
@@ -1436,29 +1460,4 @@ Proof.
  apply NoDup_Permutation;
   trivial using enum_delta_below_nodup, enum_sparse_subsets_nodup.
  intros l. now rewrite enum_sparse_subsets_ok, enum_delta_below_ok.
-Qed.
-
-(** A particular case used in LimCase2 and LimCase3 *)
-
-Lemma enum_delta_below_ok0 d b l :
- Delta (S d) (0::l) /\ Below (0::l) (S b) <->
- In (0::l) (map (zeroshift (S d)) (enum_delta_below d (b-d))).
-Proof.
- rewrite <- enum_delta_below_ok. simpl. rewrite in_app_iff.
- split; [ intros [H|H]; trivial | now left ].
- rewrite in_map_iff in H. destruct H as (l' & H & _). now destruct l'.
-Qed.
-
-(** Or now a direct filtering *)
-
-Definition check_cons0 l :=
-  match l with
-  | 0::_ => true
-  | _ => false
-  end.
-
-Lemma enum_cons0 ll l :
-  In (0::l) ll <-> In (0::l) (filter check_cons0 ll).
-Proof.
- now rewrite filter_In.
 Qed.
