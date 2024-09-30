@@ -24,14 +24,19 @@ Usage
 - Use `make gallinahtml` to generate the short html documentation.
 - Use `cd reports/g && pdflatex report` to generate the pdf of the technical report.
 
-Some recent files depend on Coq >= 8.16 and external libraries Coquelicot >= 3.3.0
-and QuantumLib. I advise to fetch them via opam :
+Some recent files depend on Coq >= 8.16 and < 8.20 as well as external libraries
+Coquelicot >= 3.3.0 and QuantumLib 1.1.0 or 1.3.0. I advise to fetch them via opam.
+For instance:
 
 ```
-opam install coq
+opam pin add coq 8.19.2
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam install coq-coquelicot coq-quantumlib
+opam install coq-coquelicot
+opam pin add coq-quantumlib 1.3.0
 ```
+
+Note : the recent versions of QuantumLib (e.g. 1.5.1) require some minor
+modifications here, see branch `for_QuantumLib_1.5.1` in this repository.
 
 Summary of files:
 ----------------
