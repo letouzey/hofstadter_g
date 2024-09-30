@@ -380,7 +380,7 @@ Lemma cols_scale_det n p l (M : Square n) :
 Proof.
  revert p M.
  induction l; simpl; intros; try lca.
- rewrite IHl by lia. rewrite Determinant_scale by lia. lca.
+ rewrite IHl by lia. rewrite Determinant_col_scale by lia. lca.
 Qed.
 
 (** Determinant and matrix equality *)

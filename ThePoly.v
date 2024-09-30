@@ -211,14 +211,14 @@ Proof.
 Qed.
 
 Lemma get_row_mult n m p (A : Matrix n m) (B : Matrix m p) k :
- Mmult (get_row k A) B == get_row k (Mmult A B).
+ Mmult (get_row A k) B == get_row (Mmult A B) k.
 Proof.
  intros i j Hi Hj. unfold get_row, Mmult. case Nat.eqb_spec; auto; lia.
 Qed.
 
 Lemma get_row_mult_eq n m p (A : Matrix n m) (B : Matrix m p) k :
  WF_Matrix A -> WF_Matrix B ->
- Mmult (get_row k A) B = get_row k (Mmult A B).
+ Mmult (get_row A k) B = get_row (Mmult A B) k.
 Proof.
  intros. apply mat_equiv_eq; auto using WF_get_row, WF_mult.
  apply get_row_mult.
@@ -266,7 +266,7 @@ Qed.
 
 Lemma VdmRoots_invertible : invertible vdmroot.
 Proof.
- apply lin_indep_invertible. apply WF_Vandermonde.
+ apply lin_indep_iff_invertible. apply WF_Vandermonde.
  apply lin_indep_det_neq_0. apply WF_Vandermonde.
  red. split; auto. apply VdmRoots_det_nz.
 Qed.
@@ -276,13 +276,13 @@ Lemma coefs_LinComb :
   forall p, (p <= k)%nat ->
     scalprod coefs (mkvect _ (pows allroots p)) = S p.
 Proof.
- destruct VdmRoots_invertible as (Vinv & E & _).
+ destruct VdmRoots_invertible as (Vinv & _ & E & _).
  set (vect_1_Sk := mkvect (S k) (map (compose RtoC INR) (seq 1 (S k)))).
  assert (WF_Matrix vect_1_Sk).
  { apply WF_mkvect. now rewrite map_length, seq_length. }
  set (coefs := Mmult Vinv vect_1_Sk).
  exists (make_WF coefs). intros p Hp.
- replace (mkvect _ (pows allroots p)) with (transpose (get_row p vdmroot)).
+ replace (mkvect _ (pows allroots p)) with (transpose (get_row vdmroot p)).
  2:{ apply mat_equiv_eq.
      - apply WF_transpose, WF_get_row, WF_Vandermonde.
      - apply WF_mkvect. unfold pows. rewrite map_length; lia.
