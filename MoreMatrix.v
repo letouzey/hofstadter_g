@@ -16,6 +16,8 @@ Proof.
  induction m; simpl; auto using WF_I, WF_mult.
 Qed.
 
+(** Mconj of QuantumLib is too restrictive (only on Square) *)
+
 Definition Mconj {n m} (M:Matrix n m) : Matrix n m :=
  fun i j => Cconj (M i j).
 
@@ -171,9 +173,9 @@ Proof.
  apply IH; lia.
 Qed.
 
-Lemma reduce_extend n l x (A:Square (S n)) :
+Lemma get_minor_extend n l x (A:Square (S n)) :
  lpermutation n l -> (x <= n)%nat ->
- A x O * Π (fun i => reduce A x 0 i (perm2fun l i)) n =
+ A x O * Π (fun i => get_minor A x 0 i (perm2fun l i)) n =
  Π (fun i => A i (perm2fun (extend_lperm x l) i)) (S n).
 Proof.
  intros Hl Hx.
@@ -189,7 +191,7 @@ Proof.
  eapply perm_trans; [apply Permutation_middle; auto| ].
  apply Permutation_app; apply eq_Permutation.
  - apply map_ext_in. intros a Ha. apply in_seq in Ha.
-   unfold reduce, extend_lperm.
+   unfold get_minor, extend_lperm.
    case Nat.ltb_spec; try lia; intros _.
    case Nat.ltb_spec; try lia; intros _.
    f_equal. unfold perm2fun. rewrite nth_insert.
@@ -202,7 +204,7 @@ Proof.
      rewrite map_length; lia.
    + rewrite <- seq_shift. rewrite map_map.
      apply map_ext_in. intros a Ha. apply in_seq in Ha.
-     unfold reduce, extend_lperm.
+     unfold get_minor, extend_lperm.
      case Nat.ltb_spec; try lia; intros _.
      case Nat.ltb_spec; try lia; intros _.
      f_equal. unfold perm2fun. rewrite nth_insert.
@@ -229,42 +231,9 @@ Proof.
    unfold sum_lperms. rewrite <- Gbigplus_factor. f_equal.
    rewrite map_map. apply map_ext_in. intros l Hl.
    rewrite lperms_ok in Hl. unfold compose.
-   rewrite <- reduce_extend by (auto; lia).
+   rewrite <- get_minor_extend by (auto; lia).
    rewrite zsign_extend by (auto; lia). rewrite parity_z.
    rewrite mult_IZR, RtoC_mult. lca.
-Qed.
-
-Lemma Determinant_transpose n (A:Square n) :
- Determinant (Matrix.transpose A) = Determinant A.
-Proof.
- rewrite !LeibnizFormula. unfold Matrix.transpose.
- rewrite !sum_perms_alt; unfold sum_lperms.
- assert (P := lperms_inv_permut n).
- set (F := compose _ _).
- apply Permutation_map with (f:=F) in P.
- apply Gbigplus_permut in P. rewrite P; clear P.
- rewrite map_map. unfold F; clear F.
- f_equal. apply map_ext_in. intros l Hl. rewrite lperms_ok in Hl.
- assert (Hl' : length l = n).
- { apply Permutation_length in Hl. now rewrite seq_length in Hl. }
- unfold compose.
- rewrite zsign_ext with (f' := qinv n (perm2fun l)); auto using linv_qinv.
- rewrite zsign_qinv by now apply l_q_permutation.
- f_equal.
- unfold Π.
- apply Gbigmult_permut.
- set (F := fun i => _).
- assert (Pm := Permutation_map F Hl). apply Permutation_sym in Pm.
- eapply perm_trans; [apply Pm| ]. clear Pm.
- apply eq_Permutation.
- rewrite <- (perm2list_perm2fun n l) at 1; auto. unfold perm2list, take.
- rewrite map_map. apply map_ext_in. intros a Ha. rewrite in_seq in Ha.
- unfold F. f_equal.
- unfold linv. rewrite perm2fun_perm2list.
- 2:{ apply l_q_permutation in Hl. apply q_f_permutation in Hl.
-     now apply Hl. }
- unfold lqinv, perm2fun. apply index_nth; try lia.
- apply Permutation_sym in Hl. eapply Permutation_NoDup; eauto using seq_NoDup.
 Qed.
 
 Lemma Determinant_row_add {n} (A : Square n) (i j : nat) (c : C) :
@@ -273,7 +242,7 @@ Lemma Determinant_row_add {n} (A : Square n) (i j : nat) (c : C) :
 Proof.
  intros Hi Hj D.
  rewrite <- (transpose_involutive _ _ A) at 1.
- rewrite <- col_add_transpose, Determinant_transpose.
+ rewrite <- col_add_transpose, <- Determinant_transpose.
  rewrite Determinant_col_add; auto.
  apply Determinant_transpose.
 Qed.
@@ -385,10 +354,10 @@ Qed.
 
 (** Determinant and matrix equality *)
 
-Lemma reduce_compat {n} (A B : Square (S n)) : A == B ->
- forall x y, reduce A x y == reduce B x y.
+Lemma get_minor_compat {n} (A B : Square (S n)) : A == B ->
+ forall x y, get_minor A x y == get_minor B x y.
 Proof.
- intros E x y i j Hi Hj. unfold reduce.
+ intros E x y i j Hi Hj. unfold get_minor.
  do 2 (case Nat.ltb_spec; intros); apply E; lia.
 Qed.
 
@@ -401,7 +370,7 @@ Proof.
    apply big_sum_eq_bounded; intros x Hx.
    f_equal.
    + f_equal. apply E; lia.
-   + apply IH. now apply reduce_compat.
+   + apply IH. now apply get_minor_compat.
 Qed.
 
 Global Instance : forall n, Proper (@mat_equiv n n ==> eq) Determinant.
@@ -475,11 +444,11 @@ Proof.
        unfold V, Vandermonde; lca. }
    simpl parity.
    simpl multdiffs.
-   assert (reduce W 0 0 ==
+   assert (get_minor W 0 0 ==
            cols_scale 0 (map (fun y => y-x) l) (Vandermonde n' l)).
    { intros i j Hi Hj.
      rewrite cols_scale_alt by trivial.
-     unfold W, reduce. simpl. rewrite addrows_specS by trivial.
+     unfold W, get_minor. simpl. rewrite addrows_specS by trivial.
      unfold V, Vandermonde. simpl.
      repeat (case Nat.ltb_spec; intros; try lia). simpl.
      rewrite nth_map_indep with (d':=C0); try lia. lca. }
