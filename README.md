@@ -20,7 +20,7 @@ Documentation:
 - A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
 
 - Slides of talks: [PPS'24](talks/4/expose.pdf).
-  Older ones, in French: [PPS'18](talks/1/expose.pdf) [Formath'23](talks/2/expose.pdf) [FSMP'23](talk3/expose.pdf)
+  Older ones, in French: [PPS'18](talks/1/expose.pdf) [Formath'23](talks/2/expose.pdf) [FSMP'23](talks/3/expose.pdf)
 
 
 Usage
