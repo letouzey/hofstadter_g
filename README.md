@@ -19,7 +19,8 @@ Documentation:
 
 - A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
 
-- Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk3/expose.pdf)
+- Slides of talks: [PPS'24](talks/4/expose.pdf).
+  Older ones, in French: [PPS'18](talks/1/expose.pdf) [Formath'23](talks/2/expose.pdf) [FSMP'23](talk3/expose.pdf)
 
 
 Usage
@@ -87,8 +88,7 @@ References:
 License
 -------
 
-The documents in all subdirectories (especially reports/ talk/ talk2/
-talk3/ poster/) are released under the CC-BY 4.0 license,
+The documents in all subdirectories (especially reports/ talks/ poster/) are released under the CC-BY 4.0 license,
 see http://creativecommons.org/licenses/by/4.0/.
 
 The Coq files of this development are released in the Public Domain,
