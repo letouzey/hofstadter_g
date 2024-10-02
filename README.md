@@ -10,11 +10,16 @@ the Fibonacci word.
 Documentation:
 --------------
 
-A first technical report is on HAL: http://hal.inria.fr/hal-01195587
+- Hofstadter's problem for curious readers. Pierre Letouzey.
+  Technical Report, 2015. http://hal.science/hal-01195587
 
-A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
+- Pointwise order of generalized Hofstadter functions G, H and beyond.
+  Pierre Letouzey, Shuo Li, Wolfgang Steiner. Preprint, 2024.
+  https://hal.science/hal-04715451
 
-Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk3/expose.pdf)
+- A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf)
+
+- Several talks (in French): [talk1](talk/expose.pdf) [talk2](talk2/expose.pdf) [talk3](talk3/expose.pdf)
 
 
 Usage
