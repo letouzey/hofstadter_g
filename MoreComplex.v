@@ -1,4 +1,4 @@
-From Coq Require Import Lia Reals Lra Permutation.
+From Coq Require Import Lia Reals Lra Permutation RelationClasses Sorted.
 From Coquelicot Require Complex.
 From QuantumLib Require Import Complex.
 Require Import MoreList.
@@ -339,4 +339,131 @@ Proof.
    rewrite IH by intuition.
    replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
    rewrite Cpow_add_r. unfold decr at 2. ring.
+Qed.
+
+(** Lexicographic order on complex numbers *)
+
+Definition Clt c c' := (Re c < Re c' \/ (Re c = Re c' /\ Im c < Im c'))%R.
+Definition Cgt := flip Clt.
+
+
+Local Instance Clt_order : StrictOrder Clt.
+Proof.
+ split.
+ - intros (x,y). red. unfold Clt, Re, Im. simpl. lra.
+ - intros (x1,y1) (x2,y2) (x3,y3). unfold Clt, Re, Im; simpl. lra.
+Qed.
+
+Local Instance Cgt_order : StrictOrder Cgt.
+Proof.
+ apply flip_StrictOrder, Clt_order.
+Qed.
+
+Lemma Ctotal_order c c' : Clt c c' \/ c = c' \/ Clt c' c.
+Proof.
+ destruct c as (x,y), c' as (x',y'). unfold Clt, Re, Im. simpl.
+ destruct (Rtotal_order x x') as [X|[<-|X] ]; try lra.
+ destruct (Rtotal_order y y') as [Y|[<-|Y] ]; try lra.
+ right. now left.
+Qed.
+
+(** Sorted complex lists (in decreasing lex order) *)
+
+Definition Csorted (l : list C) := Sorted Cgt l.
+
+Lemma Csorted_alt l : Csorted l <-> StronglySorted Cgt l.
+Proof.
+ split.
+ - apply Sorted_StronglySorted; trivial. apply Cgt_order.
+ - apply StronglySorted_Sorted.
+Qed.
+
+Lemma Csorted_nodup l : Csorted l -> NoDup l.
+Proof.
+ rewrite Csorted_alt.
+ induction l; simpl; intros; auto; constructor; inversion_clear H; auto.
+ intros IN. rewrite Forall_forall in *. generalize (H1 _ IN). apply Clt_order.
+Qed.
+
+Lemma Csorted_unique l l' :
+  Csorted l -> Csorted l' -> Permutation l l' -> l = l'.
+Proof.
+ rewrite !Csorted_alt.
+ revert l'. induction l as [|x l IH]; destruct l' as [|x' l']; trivial;
+  intros S S' P.
+ - now apply Permutation_nil_cons in P.
+ - symmetry in P. now apply Permutation_nil_cons in P.
+ - inversion_clear S. inversion_clear S'. rewrite Forall_forall in *.
+   assert (x = x').
+   { assert (X : In x (x'::l')). rewrite <- P; now left.
+     assert (X' : In x' (x::l)). rewrite P; now left.
+     simpl in *.
+     destruct X as [->|X]; trivial.
+     destruct X' as [<-|X']; trivial.
+     specialize (H0 _ X'). specialize (H2 _ X).
+     assert (XX : Cgt x x) by now transitivity x'.
+     now apply Cgt_order in XX. }
+   subst x'. f_equal. apply IH; trivial. eapply Permutation_cons_inv; eauto.
+Qed.
+
+(** Existence of sorted lists of complex numbers : no bool comparison,
+    but at least an existence in Prop. *)
+
+Lemma Cinsert_exists x l :
+  Csorted l -> ~In x l -> exists l', Permutation (x::l) l' /\ Csorted l'.
+Proof.
+ rewrite Csorted_alt. setoid_rewrite Csorted_alt.
+ induction l as [|y l IH].
+ - exists [x]; split; now constructor.
+ - intros Y X.
+   destruct (Ctotal_order x y) as [H|[<-|H]].
+   + inversion_clear Y.
+     destruct IH as (l' & P & L'); trivial. simpl; intuition.
+     exists (y::l'); split.
+     * rewrite <- P. apply perm_swap.
+     * constructor; trivial. rewrite <- P. now constructor.
+   + simpl in X. intuition.
+   + exists (x::y::l). split; trivial.
+     rewrite <- Csorted_alt. constructor. now rewrite Csorted_alt.
+     now constructor.
+Qed.
+
+Lemma Csorted_exists l : NoDup l -> exists l', Permutation l l' /\ Csorted l'.
+Proof.
+ induction 1.
+ - exists []. split; constructor.
+ - destruct IHNoDup as (l' & P & L').
+   destruct (Cinsert_exists x l') as (l2 & P2 & L2); trivial.
+   now rewrite <- P.
+   exists l2. split; trivial. now rewrite <- P2, <- P.
+Qed.
+
+Lemma StronglySorted_nth (R : C -> C -> Prop) (l : list C) :
+ StronglySorted R l <->
+ forall n m, (n < m < length l)%nat -> R (nth n l C0) (nth m l C0).
+Proof.
+ split.
+ - induction 1; simpl length; try lia.
+   intros [|n] [|m]; try lia; intros; simpl nth.
+   + rewrite Forall_forall in H0. apply H0. apply nth_In; lia.
+   + apply IHStronglySorted; lia.
+ - induction l; simpl length; intros H; constructor.
+   + apply IHl. intros n m NM. apply (H (S n) (S m)). lia.
+   + apply Forall_forall. intros x X.
+     destruct (In_nth l x C0 X) as (n & LT & <-). apply (H O (S n)). lia.
+Qed.
+
+Lemma Csorted_rev l : Csorted l <-> Sorted Clt (rev l).
+Proof.
+ rewrite Csorted_alt. split.
+ - rewrite StronglySorted_nth. intros H. apply StronglySorted_Sorted.
+   rewrite StronglySorted_nth.
+   intros n m NM. rewrite rev_length in NM. rewrite !rev_nth by lia.
+   apply H. lia.
+ - intros H. apply Sorted_StronglySorted in H; try apply Clt_order.
+   rewrite !StronglySorted_nth in *.
+   intros n m NM.
+   replace n with (length l - S (length l - S n))%nat by lia.
+   replace m with (length l - S (length l - S m))%nat by lia.
+   rewrite <- !rev_nth by lia. apply H. rewrite rev_length. lia.
 Qed.

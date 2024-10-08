@@ -25,6 +25,19 @@ Proof.
  now rewrite !RtoC_pow, mu_carac, !RtoC_plus.
 Qed.
 
+Lemma root_nz k : ~ Root C0 (ThePoly k).
+Proof.
+ rewrite !ThePoly_root_carac.
+ destruct k; simpl; intros E; ring_simplify in E;
+  apply RtoC_inj_neq in E;trivial; lra.
+Qed.
+
+Lemma root_non_1 k : ~ Root C1 (ThePoly k).
+Proof.
+ rewrite !ThePoly_root_carac. rewrite !Cpow_1_l.
+ intro E. ring_simplify in E. apply RtoC_inj_neq in E; trivial. lra.
+Qed.
+
 Lemma ThePoly_subdeg k : (degree (monom (-C1) k +, [-C1]) <= k)%nat.
 Proof.
  etransitivity; [apply Pplus_degree1| ].
@@ -395,3 +408,247 @@ Proof.
 Qed.
 
 (* Print Assumptions A_div_pow_mu_limit. *)
+
+(** More precise enumeration of roots, in lexicographic decreasing order *)
+
+Lemma root_equal_Cmod_Re k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ Cmod r1 = Cmod r2 -> Re r1 = Re r2.
+Proof.
+ rewrite !ThePoly_root_carac. intros R1 R2 E.
+ assert (E' : (Cmod (r1^k * (r1 - 1)) = Cmod (r2^k * (r2 -1)))).
+ { unfold Rminus, Cminus. rewrite !Cmult_plus_distr_l.
+   rewrite (Cmult_comm _ r1), (Cmult_comm _ r2).
+   simpl in R1,R2. rewrite R1,R2. f_equal. ring. }
+ rewrite !Cmod_mult, !Cmod_pow, <- E in E'.
+ apply Rmult_eq_reg_l in E'.
+ 2:{ apply pow_nonzero. intro C. apply Cmod_eq_0 in C.
+     apply (root_nz k). rewrite ThePoly_root_carac. now subst r1. }
+ assert (E2 : ((Cmod r1)^2 = (Cmod r2)^2)%R) by now rewrite E. clear E.
+ assert (E3 : (Cmod (r1-1)^2 = Cmod (r2-1)^2)%R) by now rewrite E'. clear E'.
+ rewrite !Cmod2_alt in E2,E3.
+ unfold Cminus in *. rewrite !re_plus, !im_plus in *.
+ replace (Im (-(1))) with 0%R in * by (unfold Im; simpl; lra).
+ replace (Re (-(1))) with (-1)%R in * by (unfold Re; simpl; lra).
+ lra.
+Qed.
+
+Lemma root_equal_Cmod_Im k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ Cmod r1 = Cmod r2 -> Rabs (Im r1) = Rabs (Im r2).
+Proof.
+ intros R1 R2 E.
+ assert (E1 : Re r1 = Re r2). eapply root_equal_Cmod_Re; eauto.
+ assert (E2 : ((Cmod r1)^2 = (Cmod r2)^2)%R) by now rewrite E. clear E.
+ rewrite !Cmod2_alt, <-E1 in E2.
+ apply Rsqr_eq_abs_0. rewrite !Rsqr_pow2. lra.
+Qed.
+
+Lemma root_order_Cmod_Re k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ (Cmod r1 < Cmod r2 -> Re r1 < Re r2)%R.
+Proof.
+ rewrite !ThePoly_root_carac. intros R1 R2 LT.
+ assert (k<>O).
+ { intros ->. simpl in *. rewrite !Cmult_1_r in *. subst. lra. }
+ assert (E : (Cmod (r1^k * (r1 - 1)) = Cmod (r2^k * (r2 -1)))).
+ { unfold Rminus, Cminus. rewrite !Cmult_plus_distr_l.
+   rewrite (Cmult_comm _ r1), (Cmult_comm _ r2).
+   simpl in R1,R2. rewrite R1,R2. f_equal. ring. }
+ rewrite !Cmod_mult, !Cmod_pow in E.
+ assert (LT' : (Cmod (r2 - 1) < Cmod (r1 - 1))%R).
+ { apply Rmult_lt_reg_l with (Cmod r1 ^k)%R.
+   - apply pow_lt. apply Cmod_gt_0. intros ->.
+     apply (root_nz k). now rewrite ThePoly_root_carac.
+   - rewrite E. apply Rmult_lt_compat_r.
+     + apply Cmod_gt_0. intros E2. apply Cminus_eq_0 in E2. subst.
+       apply (root_non_1 k). now rewrite ThePoly_root_carac.
+     + apply pow_lt_compat_l; trivial. split; trivial. apply Cmod_ge_0. }
+ assert (LT2 : (Cmod r1^2 < Cmod r2^2)%R).
+ { rewrite <- !Rsqr_pow2. apply Rsqr_lt_abs_1.
+   rewrite !Rabs_right; trivial; apply Rle_ge, Cmod_ge_0. }
+ assert (LT2' : (Cmod (r2-1)^2 < Cmod (r1-1)^2)%R).
+ { rewrite <- !Rsqr_pow2. apply Rsqr_lt_abs_1.
+   rewrite !Rabs_right; trivial; apply Rle_ge, Cmod_ge_0. }
+ rewrite !Cmod2_alt in LT2,LT2'.
+ unfold Cminus in *. rewrite !re_plus, !im_plus in *.
+ replace (Im (-(1))) with 0%R in * by (unfold Im; simpl; lra).
+ replace (Re (-(1))) with (-1)%R in * by (unfold Re; simpl; lra).
+ lra.
+Qed.
+
+Lemma root_equal_Cmod_Re_iff k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ (Cmod r1 = Cmod r2 <-> Re r1 = Re r2)%R.
+Proof.
+ intros R1 R2. split; [ apply (root_equal_Cmod_Re k); eauto | intros E ].
+ destruct (Rtotal_order (Cmod r1) (Cmod r2)) as [H|[H|H] ]; trivial.
+ - apply (root_order_Cmod_Re k) in H; trivial. lra.
+ - apply (root_order_Cmod_Re k) in H; trivial. lra.
+Qed.
+
+Lemma root_order_Cmod_Re_iff k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ (Cmod r1 < Cmod r2 <-> Re r1 < Re r2)%R.
+Proof.
+ intros R1 R2. split; [ apply (root_order_Cmod_Re k); eauto | intros LT ].
+ destruct (Rtotal_order (Cmod r1) (Cmod r2)) as [H|[H|H] ]; trivial.
+ - apply (root_equal_Cmod_Re k) in H; trivial. lra.
+ - apply (root_order_Cmod_Re k) in H; trivial. lra.
+Qed.
+
+Lemma roots_ge_nu k (r:C) :
+ Nat.Odd k -> Root r (ThePoly k) -> (-nu k <= Cmod r)%R.
+Proof.
+ intros K.
+ rewrite ThePoly_root_carac. intros E.
+ apply Rnot_lt_le. intros L.
+ assert (Iv := nu_itvl k K).
+ assert (H : (Cmod (r-1) < 1 - nu k)%R).
+ { apply Rle_lt_trans with (1 + Cmod r)%R; try lra.
+   eapply Rle_trans; [apply Cmod_triangle|]. rewrite Cmod_opp, Cmod_1. lra. }
+ assert (H' : Cmod (r^k) <= (-nu k)^k).
+ { rewrite Cmod_pow. apply pow_incr. split; try lra. apply Cmod_ge_0. }
+ assert (LT : Cmod (r^k*(r-1)) < (-nu k)^k*(1 - nu k)).
+ { rewrite Cmod_mult. apply Rle_lt_mult_compat; split; trivial; try lra.
+   - apply Cmod_gt_0. apply Cpow_nz. intros ->. apply (root_nz k).
+     now rewrite ThePoly_root_carac.
+   - apply Cmod_gt_0. intros E'. rewrite <- Ceq_minus in E'. subst.
+     apply (root_non_1 k). now rewrite ThePoly_root_carac. }
+ revert LT. unfold Cminus. rewrite Cmult_plus_distr_l.
+ simpl in E. rewrite Cmult_comm, E.
+ replace (_ + _ + _)%C with C1 by lca. rewrite Cmod_1.
+ replace (-nu k)%R with ((-1)*nu k)%R by ring.
+ rewrite Rpow_mult_distr, minusone_pow_odd by trivial.
+ replace (_*_)%R with 1%R. lra.
+ ring_simplify. rewrite Rmult_comm, tech_pow_Rmult, nu_carac; trivial. lra.
+Qed.
+
+Lemma other_roots_gt_nu k (r:C) :
+ Nat.Odd k -> Root r (ThePoly k) -> r <> nu k -> (-nu k < Cmod r)%R.
+Proof.
+ intros K R N.
+ assert (GE := roots_ge_nu k r K R).
+ apply Rle_lt_or_eq_dec in GE. destruct GE as [GT|E]; trivial.
+ destruct N.
+ apply ThePoly_root_carac in R.
+ assert (E' : (Cmod (r^k * (r - 1)) = nu k^k * (nu k -1))%R).
+ { unfold Rminus, Cminus. rewrite Rmult_plus_distr_l, Cmult_plus_distr_l.
+   rewrite Rmult_comm, Cmult_comm. simpl in R. rewrite R.
+   replace (_ + _)%C with C1 by ring. rewrite Cmod_1.
+   generalize (nu_carac k K); simpl. intros ->. ring. }
+ replace (nu k^k*(nu k -1))%R with ((-nu k)^k*(1-nu k))%R in E'.
+ 2:{ replace (-nu k)%R with ((-1)*nu k)%R by ring.
+     rewrite Rpow_mult_distr, minusone_pow_odd; trivial; ring. }
+ rewrite Cmod_mult, Cmod_pow, <- E in E'.
+ apply Rmult_eq_reg_l in E'.
+ 2:{ apply pow_nonzero. generalize (nu_itvl k K); lra. }
+ unfold Rminus in E'. rewrite E in E'.
+ assert (1-r = Cmod (1-r)).
+ { apply Cmod_triangle_exact.
+   replace (1-r-1)%C with (-r)%C  by ring.
+   replace (1-r)%C with (-(r-1))%C by ring. rewrite !Cmod_opp. lra. }
+ replace (1-r)%C with (-(r-1))%C in H at 2 by ring. rewrite Cmod_opp in H.
+ rewrite E', <-E in H. rewrite RtoC_plus, RtoC_opp in H.
+ replace r with (1-(1-r))%C by ring. rewrite H. ring.
+Qed.
+
+Definition SortedRoots k l := ThePoly k ≅ linfactors l /\ Csorted l.
+
+Lemma SortedRoots_exists k : exists l, SortedRoots k l.
+Proof.
+ destruct (ThePoly_separated_roots k) as (l & _ & ND & E).
+ destruct (Csorted_exists l ND) as (l' & P & L').
+ exists l'. split; trivial. rewrite E. now apply linfactors_perm.
+Qed.
+
+Lemma SortedRoots_roots k l :
+  SortedRoots k l -> forall r, In r l <-> Root r (ThePoly k).
+Proof.
+ intros (E,_) r. rewrite E. apply linfactors_roots.
+Qed.
+
+Lemma SortedRoots_length k l : SortedRoots k l -> length l = S k.
+Proof.
+ intros (E,_). rewrite <- linfactors_degree, <- E. apply ThePoly_deg.
+Qed.
+
+Lemma SortedRoots_nodup k l : SortedRoots k l -> NoDup l.
+Proof.
+ intros L. apply Csorted_nodup, L.
+Qed.
+
+Lemma SortedRoots_unique k l l' :
+  SortedRoots k l -> SortedRoots k l' -> l = l'.
+Proof.
+ intros L L'.
+ apply Csorted_unique. apply L. apply L'.
+ apply NoDup_Permutation_bis.
+ - eapply SortedRoots_nodup; eauto.
+ - erewrite !SortedRoots_length; eauto.
+ - intro. erewrite !SortedRoots_roots; eauto.
+Qed.
+
+Local Instance Clt_order : RelationClasses.StrictOrder Clt := Clt_order.
+
+Lemma SortedRoots_mu k l : SortedRoots k l -> nth 0 l C0 = mu k.
+Proof.
+ intros SR.
+ assert (H : length l = S k) by apply (SortedRoots_length _ _ SR).
+ destruct l as [|r l]; try easy. clear H.
+ simpl.
+ destruct (Ceq_dec r (mu k)) as [ |N]; [trivial|exfalso].
+ assert (M : In (RtoC (mu k)) (r::l))
+  by apply (SortedRoots_roots _ _ SR), mu_is_root.
+ simpl in M. destruct M as [M|M]; try easy.
+ assert (R : Root r (ThePoly k))
+   by (apply (SortedRoots_roots _ _ SR); now left).
+ assert (LT : Cmod r < mu k) by (apply other_roots_lt_mu; trivial).
+ replace (mu k) with (Cmod (mu k)) in LT.
+ 2:{ rewrite Cmod_R. apply Rabs_right. generalize (mu_itvl k). lra. }
+ eapply root_order_Cmod_Re in LT; eauto. 2:apply mu_is_root.
+ destruct SR as (E,SC). rewrite Csorted_alt in SC. inversion_clear SC.
+ rewrite Forall_forall in H0. specialize (H0 _ M). do 2 red in H0.
+ assert (Clt r r). { transitivity (RtoC (mu k)); trivial. now left. }
+ revert H1. apply Clt_order.
+Qed.
+
+Lemma SortedRoots_nu k l : Nat.Odd k -> SortedRoots k l -> nth k l C0 = nu k.
+Proof.
+ intros K SR.
+ assert (H : length l = S k) by apply (SortedRoots_length _ _ SR).
+ replace k with (length l - 1)%nat at 1 by lia.
+ rewrite <- rev_nth by lia.
+ assert (RO := SortedRoots_roots _ _ SR).
+ destruct SR as (_,CS). rewrite Csorted_rev in CS.
+ rewrite <- rev_length in H.
+ setoid_rewrite In_rev in RO.
+ destruct (rev l) as [|r l']; simpl in H; try lia; clear H. simpl.
+ destruct (Ceq_dec r (nu k)) as [ |N]; [trivial|exfalso].
+ assert (R : Root r (ThePoly k)) by (apply RO; now left).
+ assert (NU : In (RtoC (nu k)) (r::l')).
+ { apply RO, ThePoly_root_carac.
+   now rewrite !RtoC_pow, <- RtoC_plus, nu_carac. }
+ simpl in NU. destruct NU as [NU|NU]; try easy.
+ apply other_roots_gt_nu in R; trivial.
+ rewrite <- Rabs_left in R by (generalize (nu_itvl k K); lra).
+ rewrite <- Cmod_R in R.
+ apply (root_order_Cmod_Re k) in R.
+ 2:{ apply RO. now right. }
+ 2:{ apply RO. now left. }
+ apply Sorted.Sorted_StronglySorted in CS; try apply Clt_order.
+ inversion_clear CS.
+ rewrite Forall_forall in H0. specialize (H0 _ NU).
+ assert (Clt r r). { transitivity (RtoC (nu k)); trivial. now left. }
+ revert H1. apply Clt_order.
+Qed.
+(*
+Lemma SortedRoots_next k l r n :
+  SortedRoots k l -> r = nth n l C0 -> 0 < Im r -> nth (S n) l C0 = Cconj r.
+
+ Car root, donc dedans. Ensuite personne entre les deux, sinon même Re
+ donc même Cmod donc Conj OK
+ Donc racines vont par deux
+*)
+
+(* Dire aussi qu'on a decroissance large en Cmod *)
