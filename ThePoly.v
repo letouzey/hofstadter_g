@@ -461,7 +461,7 @@ Proof.
    - apply pow_lt. apply Cmod_gt_0. intros ->.
      apply (root_nz k). now rewrite ThePoly_root_carac.
    - rewrite E. apply Rmult_lt_compat_r.
-     + apply Cmod_gt_0. intros E2. apply Cminus_eq_0 in E2. subst.
+     + apply Cmod_gt_0. intros E2. apply Ceq_minus in E2. subst.
        apply (root_non_1 k). now rewrite ThePoly_root_carac.
      + apply pow_lt_compat_l; trivial. split; trivial. apply Cmod_ge_0. }
  assert (LT2 : (Cmod r1^2 < Cmod r2^2)%R).
@@ -485,6 +485,24 @@ Proof.
  destruct (Rtotal_order (Cmod r1) (Cmod r2)) as [H|[H|H] ]; trivial.
  - apply (root_order_Cmod_Re k) in H; trivial. lra.
  - apply (root_order_Cmod_Re k) in H; trivial. lra.
+Qed.
+
+Lemma root_equal_or_conj k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ Re r1 = Re r2 -> r1 = r2 \/ r1 = Cconj r2.
+Proof.
+ intros R1 R2 E.
+ assert (E' : Cmod r1 = Cmod r2).
+ { rewrite <- root_equal_Cmod_Re_iff in E; eauto. }
+ eapply root_equal_Cmod_Im in E'; eauto.
+ clear R1 R2.
+ destruct r1 as (x1,y1), r2 as (x2,y2); simpl in *.
+ unfold Cconj. simpl. subst x2.
+ revert E'.
+ destruct (Rle_or_lt 0 y1), (Rle_or_lt 0 y2);
+   do 2 ((rewrite Rabs_right by lra) || (rewrite Rabs_left by lra));
+   intros; subst; intuition.
+ left. f_equal. lra.
 Qed.
 
 Lemma root_order_Cmod_Re_iff k (r1 r2:C) :
@@ -642,6 +660,55 @@ Proof.
  assert (Clt r r). { transitivity (RtoC (nu k)); trivial. now left. }
  revert H1. apply Clt_order.
 Qed.
+
+Lemma root_conj k c : Root c (ThePoly k) -> Root (Cconj c) (ThePoly k).
+Proof.
+ rewrite !ThePoly_root_carac. intros E.
+ now rewrite <- !Cpow_conj, E, Cconj_plus_distr, Cconj_R.
+Qed.
+
+(*
+Lemma SortedRoots_next k l :
+  SortedRoots k l ->
+  forall n, (n+2 < k)%nat ->
+    Im (nth n l C0) <= 0 ->
+    Im (nth (n+1) l C0) > 0 /\
+    nth (n+2) l C0 = Cconj (nth (n+1) l C0).
+Proof.
+ intros SR n N H.
+ set (r0 := nth n l 0) in *.
+ set (r := nth (n + 1) l 0).
+ set (r' := nth (n + 2) l 0).
+ assert (length l = S k) by now apply SortedRoots_length.
+ assert (SR' := SortedRoots_roots k l SR).
+ assert (R0' : Root r0 (ThePoly k)). { apply SR', nth_In. lia. }
+ assert (R : Root r (ThePoly k)). { apply SR', nth_In. lia. }
+ assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
+ destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+ assert (Clt r r0) by (apply SC; lia).
+ assert (Clt r' r) by (apply SC; lia).
+ assert (IN : In (Cconj r) l). { apply SR'. now apply root_conj. }
+ destruct (In_nth l (Cconj r) 0 IN) as (m & M & E').
+ destruct (Rle_or_lt (Im r) 0).
+ - exfalso.
+   admit.
+ - split; trivial.
+
+(* Utile:
+Lemma root_equal_or_conj k (r1 r2:C) :
+ Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
+ Re r1 = Re r2 -> r1 = r2 \/ r1 = Cconj r2.
+*)
+Admitted.
+
+Lemma SortedRoots_high k l :
+  SortedRoots k l ->
+  forall p, (2*p<k)%nat ->
+     let r := nth (2*p+1) l C0 in
+     let r' := nth (2*p+2) l C0 in
+     0 < Im r /\ r' = Cconj r.
+*)
+
 (*
 Lemma SortedRoots_next k l r n :
   SortedRoots k l -> r = nth n l C0 -> 0 < Im r -> nth (S n) l C0 = Cconj r.
