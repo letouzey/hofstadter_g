@@ -681,9 +681,9 @@ Qed.
 
 Lemma SortedRoots_next k l :
   SortedRoots k l ->
-  forall n, (n+2 < k)%nat ->
+  forall n, (n+2 <= k)%nat ->
     Im (nth n l C0) <= 0 ->
-    Im (nth (n+1) l C0) > 0 /\
+    0 < Im (nth (n+1) l C0) /\
     nth (n+2) l C0 = Cconj (nth (n+1) l C0).
 Proof.
  intros SR n N H.
@@ -749,27 +749,95 @@ Proof.
      * destruct r as (x,y). unfold Clt, Cconj in *. simpl in *. lra.
 Qed.
 
-(*
-Lemma SortedRoots_high k l :
+Lemma SortedRoots_im_pos k l :
   SortedRoots k l ->
-  forall p, (2*p<k)%nat ->
+  forall p, (2*p+2<=k)%nat ->
      let r := nth (2*p+1) l C0 in
      let r' := nth (2*p+2) l C0 in
      0 < Im r /\ r' = Cconj r.
 Proof.
- induction p.
- - simpl. intros K.
+ induction p; intros Hp.
+ - simpl in Hp. simpl.
+   apply (SortedRoots_next k l H 0); simpl; try lia.
+   rewrite (SortedRoots_mu k), im_RtoC; trivial. lra.
+ - apply (SortedRoots_next k l H); try lia.
+   destruct IHp as (LT,E); try lia.
+   replace (2*p+2)%nat with (2*S p)%nat in E by lia. rewrite E.
+   rewrite im_conj. lra.
+Qed.
 
+Lemma SortedRoots_Re_sorted k l :
+  SortedRoots k l ->
+  Sorted.StronglySorted (fun c c' => Re c >= Re c') l.
+Proof.
+ intros SR.
+ apply StronglySorted_nth. intros n m H.
+ assert (SR' := SortedRoots_roots k l SR).
+ set (r := nth n l 0).
+ set (r' := nth m l 0).
+ assert (R : Root r (ThePoly k)). { apply SR', nth_In. lia. }
+ assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
+ destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+ assert (LT : Clt r' r) by (apply SC; lia).
+ destruct LT; lra.
+Qed.
+
+Lemma SortedRoots_Cmod_sorted k l :
+  SortedRoots k l ->
+  Sorted.StronglySorted (fun c c' => Cmod c >= Cmod c') l.
+Proof.
+ intros SR.
+ apply StronglySorted_nth. intros n m H.
+ assert (SR' := SortedRoots_roots k l SR).
+ set (r := nth n l 0).
+ set (r' := nth m l 0).
+ assert (R : Root r (ThePoly k)). { apply SR', nth_In. lia. }
+ assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
+ destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+ assert (LT : Clt r' r) by (apply SC; lia).
+ destruct LT as [LT|(EQ,LT)].
+ - rewrite <- root_order_Cmod_Re_iff in LT; eauto. lra.
+ - rewrite <- root_equal_Cmod_Re_iff in EQ; eauto. lra.
+Qed.
+
+Lemma second_best_root k l :
+  (2 <= k)%nat ->
+  SortedRoots k l ->
+  let r := nth 1 l 0 in
+  nth 2 l 0 = Cconj r /\
+  forall n, (3<=n<=k)%nat -> Cmod (nth n l 0) < Cmod r.
+Proof.
+ intros K SR r. split.
+ - apply (SortedRoots_im_pos k l SR 0 K).
+ - assert (SR' := SortedRoots_roots k l SR).
+   assert (LN := SortedRoots_length k l SR).
+   intros n N.
+   set (r' := nth n l 0).
+   assert (R : Root r (ThePoly k)). { apply SR', nth_In. lia. }
+   assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
+   destruct (SortedRoots_im_pos k l SR 0) as (IM,E); try lia.
+   simpl in IM, E. fold r in IM, E.
+   destruct SR as (_,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+   assert (LT : Clt r' r) by (apply SC; lia).
+   destruct LT as [LT|(EQ,LT)].
+   + rewrite <- root_order_Cmod_Re_iff in LT; eauto.
+   + exfalso. eapply root_equal_or_conj in EQ; eauto.
+     destruct EQ as [-> |EQ]; try lra.
+     specialize (SC 2%nat n ltac:(lia)).
+     fold r' in SC. rewrite E, <- EQ in SC.
+     revert SC. apply Cgt_order.
+Qed.
+
+(** TODO: second best root has modulus:
+    < 1 for k=1,2,3
+    = 1 for k=4
+    > 1 for k>=5
+    Our current proof for k>=5 uses the fact that all real strictly
+    below the Plastic Ratio (1.3247...) cannot be a Pisot number,
+    leading to at least a secondary root of modulus >= 1.
+
+    We will propably *not* certify this in Coq for the moment,
+    and rather use an axiom.
 *)
 
 
-(*
-Lemma SortedRoots_next k l r n :
-  SortedRoots k l -> r = nth n l C0 -> 0 < Im r -> nth (S n) l C0 = Cconj r.
-
- Car root, donc dedans. Ensuite personne entre les deux, sinon même Re
- donc même Cmod donc Conj OK
- Donc racines vont par deux
-*)
-
-(* Dire aussi qu'on a decroissance large en Cmod *)
