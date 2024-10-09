@@ -667,7 +667,18 @@ Proof.
  now rewrite <- !Cpow_conj, E, Cconj_plus_distr, Cconj_R.
 Qed.
 
-(*
+Lemma root_img k c :
+  Root c (ThePoly k) -> c<>mu k -> c<>nu k -> Im c <> 0%R.
+Proof.
+ intros R M N E.
+ destruct c as (x,y). simpl in *. subst. change (x,0%R) with (RtoC x) in *.
+ rewrite ThePoly_root_carac in R. rewrite !RtoC_pow,<-RtoC_plus in R.
+ apply RtoC_inj in R.
+ destruct (Nat.Even_or_Odd k) as [E|O].
+ - apply M. f_equal. apply mu_unique_even; trivial. now rewrite P_root_equiv.
+ - destruct (mu_or_nu k x O); trivial; subst; now rewrite ?P_root_equiv.
+Qed.
+
 Lemma SortedRoots_next k l :
   SortedRoots k l ->
   forall n, (n+2 < k)%nat ->
@@ -676,38 +687,81 @@ Lemma SortedRoots_next k l :
     nth (n+2) l C0 = Cconj (nth (n+1) l C0).
 Proof.
  intros SR n N H.
- set (r0 := nth n l 0) in *.
  set (r := nth (n + 1) l 0).
- set (r' := nth (n + 2) l 0).
  assert (length l = S k) by now apply SortedRoots_length.
  assert (SR' := SortedRoots_roots k l SR).
- assert (R0' : Root r0 (ThePoly k)). { apply SR', nth_In. lia. }
  assert (R : Root r (ThePoly k)). { apply SR', nth_In. lia. }
- assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
- destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
- assert (Clt r r0) by (apply SC; lia).
- assert (Clt r' r) by (apply SC; lia).
  assert (IN : In (Cconj r) l). { apply SR'. now apply root_conj. }
- destruct (In_nth l (Cconj r) 0 IN) as (m & M & E').
+ destruct (In_nth l (Cconj r) 0 IN) as (m & M & E'). clear IN.
  destruct (Rle_or_lt (Im r) 0).
  - exfalso.
-   admit.
- - split; trivial.
+   set (r0 := nth n l 0) in *.
+   assert (R0' : Root r0 (ThePoly k)). { apply SR', nth_In. lia. }
+   assert (Im r <> R0).
+   { apply (root_img k); trivial.
+     - assert (EM : nth 0 l 0 = mu k) by now apply (SortedRoots_mu k).
+       destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+       assert (MM : Cgt (nth 0 l 0) (nth (n+1) l 0)) by (apply SC; lia).
+       fold r in MM. rewrite EM in MM. intros ->. revert MM. apply Cgt_order.
+     - destruct (Nat.Even_Odd_dec k) as [E|O] eqn:EO.
+       + unfold nu. rewrite EO. intros ->. now apply (root_nz k).
+       + assert (EN : nth k l 0 = nu k) by now apply (SortedRoots_nu k).
+         destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+         assert (NN : Cgt (nth (n+1) l 0) (nth k l 0)) by (apply SC; lia).
+         fold r in NN. rewrite EN in NN. intros ->. revert NN.
+         apply Cgt_order. }
+   destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+   assert (Clt r r0) by (apply SC; lia).
+   assert (m <= n+1)%nat.
+   { rewrite Nat.le_ngt. intro LT. specialize (SC _ _ (conj LT M)).
+     fold r in SC. rewrite E' in SC.
+     destruct r as (x,y). repeat red in SC. simpl in *. lra. }
+   assert (m <> n+1)%nat.
+   { intros ->. fold r in E'. symmetry in E'. apply is_real_carac in E'.
+     destruct r as (x,y). simpl in *. lra. }
+   assert (m <> n).
+   { intros ->. unfold r0 in H. rewrite E' in *.
+     destruct r as (x,y). simpl in *. lra. }
+   assert (Clt r0 (Cconj r)). { rewrite <- E'. apply SC. lia. }
+   destruct (root_equal_or_conj k r0 r) as [-> | ->]; trivial.
+   + destruct r as (x,y), r0 as (x0,y0). unfold Clt, Cconj in *. simpl in *.
+     lra.
+   + destruct r as (x,y). unfold Clt, Cconj in *. simpl in *. lra.
+   + revert H7. apply Clt_order.
+ - split; trivial. clear H.
+   set (r' := nth (n + 2) l 0) in *.
+   assert (R' : Root r' (ThePoly k)). { apply SR', nth_In. lia. }
+   destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
+   assert (Clt r' r) by (apply SC; lia).
+   assert (n+1 <= m)%nat.
+   { rewrite Nat.le_ngt. intro LT. specialize (SC m (n+1) ltac:(lia))%nat.
+     fold r in SC. rewrite E' in SC.
+     destruct r as (x,y). repeat red in SC. simpl in *. lra. }
+   assert (m <> n+1)%nat.
+   { intros ->. fold r in E'.
+     symmetry in E'. apply is_real_carac in E'. lra. }
+   destruct (Nat.eq_dec m (n+2))%nat.
+   + unfold r'. rewrite <- E'. now f_equal.
+   + assert (Clt (Cconj r) r'). { rewrite <- E'. apply SC. lia. }
+     destruct (root_equal_or_conj k r' r) as [-> | ->]; trivial.
+     * destruct r as (x,y), r' as (x',y'). unfold Clt, Cconj in *. simpl in *.
+     lra.
+     * destruct r as (x,y). unfold Clt, Cconj in *. simpl in *. lra.
+Qed.
 
-(* Utile:
-Lemma root_equal_or_conj k (r1 r2:C) :
- Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
- Re r1 = Re r2 -> r1 = r2 \/ r1 = Cconj r2.
-*)
-Admitted.
-
+(*
 Lemma SortedRoots_high k l :
   SortedRoots k l ->
   forall p, (2*p<k)%nat ->
      let r := nth (2*p+1) l C0 in
      let r' := nth (2*p+2) l C0 in
      0 < Im r /\ r' = Cconj r.
+Proof.
+ induction p.
+ - simpl. intros K.
+
 *)
+
 
 (*
 Lemma SortedRoots_next k l r n :
