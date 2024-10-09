@@ -130,110 +130,61 @@ Qed.
 Lemma αmod_lt : 0 < Cmod α < 1.
 Proof. approx. Qed.
 
-Definition roots3 := [RtoC μ; RtoC ν; α; αbar].
+Definition roots3 := [RtoC μ; α; αbar; RtoC ν].
 
-Lemma distinct_roots :
-  α <> μ /\ αbar <> μ /\ αbar <> α /\
-  α <> ν /\ αbar <> ν /\ ν <> μ.
+Lemma roots3_SortedRoots : SortedRoots 3 roots3.
 Proof.
- unfold α, αbar, RtoC; repeat split.
- - intros [= A B]. now destruct im_α_nz.
- - intros [= A B]. generalize im_α_nz. lra.
- - intros [= B]. generalize im_α_nz. lra.
- - intros [= A B]. now destruct im_α_nz.
- - intros [= A B]. generalize im_α_nz. lra.
- - approx.
-Qed.
-
-Lemma nodup_roots : NoDup roots3.
-Proof.
- destruct distinct_roots as (D1 & D2 & D3 & D4 & D5 & D6).
- assert (RtoC ν <> RtoC μ) by (contradict D6; now apply RtoC_inj).
- repeat constructor; simpl; tauto.
-Qed.
-
-Local Hint Rewrite RtoC_pow : RtoC.
-Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
- RtoC_div using approx : RtoC.
-
-Lemma ThePoly3_linfactors :
-  ThePoly 3 ≅ linfactors roots3.
-Proof.
- destruct (ThePoly_separated_roots_mu 3) as (l & Hl & ND & E & Hμ).
- fold μ in Hμ. rewrite E. apply linfactors_perm.
+ split.
+ 2:{ do 3 constructor.
+     - repeat constructor.
+     - constructor. left. unfold αbar. simpl. approx.
+     - right. unfold α, αbar. simpl. split; trivial. approx.
+     - unfold α. simpl. approx. }
+ destruct (SortedRoots_exists 3) as (l & Hl).
+ case Hl. intros E _. rewrite E. apply linfactors_perm. clear E.
+ assert (LN := SortedRoots_length 3 l Hl).
+ assert (FS := SortedRoots_mu 3 l Hl).
+ assert (K : Nat.Odd 3) by now exists 1%nat.
+ assert (LT := SortedRoots_nu 3 l K Hl).
+ destruct (SortedRoots_im_pos 3 l Hl 0) as (LT',EQ); try lia.
+ simpl in LT', EQ.
  destruct l as [|a [|b [|c [|d [|? l] ] ] ] ]; try (simpl; easy).
- clear Hl. simpl in Hμ. subst a.
- apply perm_skip.
- assert (In (RtoC ν) [RtoC μ;b;c;d]).
- { apply linfactors_roots. rewrite <- E, ThePoly_root_carac.
-   autorewrite with RtoC. f_equal. apply (nu_carac 3).
-   now apply Nat.odd_spec. }
- assert (EF : exists e f, Permutation [RtoC ν; e; f] [b;c;d]).
- { simpl in H. destruct H.
-   + exfalso. apply RtoC_inj in H. revert H. approx.
-   + repeat destruct H; try easy; subst.
-     * now exists c, d.
-     * exists b, d. apply perm_swap.
-     * exists b, c. apply perm_trans with [b;d;c].
-       apply perm_swap. apply perm_skip, perm_swap. }
- destruct EF as (e & f & EF). rewrite <- EF. apply perm_skip.
- assert (EF' : Permutation [RtoC μ; b;c;d] [RtoC μ;RtoC ν; e; f]).
- { now apply perm_skip. }
- rewrite (linfactors_perm _ _ EF') in E.
- apply (Permutation_NoDup EF') in ND. clear H EF EF'.
- assert (He : Root e (ThePoly 3)).
- { rewrite E. apply linfactors_roots. simpl; auto. }
- assert (He' : Root (Cconj e) (ThePoly 3)).
- { rewrite ThePoly_root_carac in *. rewrite <- !Cpow_conj, He. lca. }
- rewrite E in He'. apply linfactors_roots in He'.
- assert (f = Cconj e).
- { simpl in He'; destruct He' as [H|[H|[H|[H|H] ] ] ];
-   trivial; exfalso; trivial.
-   - clear E. rewrite <- Cconj_R in H. apply Cconj_simplify in H.
-     subst. inversion_clear ND. simpl in *. tauto.
-   - clear E. rewrite <- Cconj_R in H. apply Cconj_simplify in H.
-     subst. inversion_clear ND. inversion_clear H0. simpl in *; tauto.
-   - destruct e as (x,y). unfold Cconj in H. simpl in H.
-     injection H as H. replace y with 0 in * by lra. clear H.
-     rewrite ThePoly_root_carac in He.
-     replace (x,0) with (RtoC x) in * by trivial.
-     autorewrite with RtoC in He. apply RtoC_inj in He.
-     rewrite <- (P_root_equiv 3) in He.
-     apply mu_or_nu in He. 2:now apply Nat.odd_spec.
-     change (x = μ \/ x = ν) in He.
-     destruct He as [-> | ->]; inversion_clear ND.
-     + simpl in H; tauto.
-     + inversion_clear H0. simpl in H1; tauto. }
- subst f. clear He' ND.
+ simpl in *. subst. clear LN K. unfold roots3.
+ assert (b = α); subst; try easy.
+ destruct Hl as (E,CS).
  assert (E0 := coef_compat 0 _ _ E).
  assert (E3 := coef_compat 3 _ _ E).
- unfold ThePoly,coef in E0,E3; simpl in E0,E3.
+ unfold ThePoly,coef in E0,E3; simpl in E0,E3. fold μ in *. fold ν in *.
  ring_simplify in E0. field_simplify in E3.
- assert (E3' : (RtoC μ + RtoC ν + e + Cconj e = 1)%C).
+ assert (E3' : (RtoC μ + RtoC ν + b + Cconj b = 1)%C).
  { rewrite Ceq_minus in E3. ring_simplify in E3.
    replace (RtoC (-1)) with (-(1))%C in E3 by lca.
    apply Ceq_minus in E3. rewrite <- E3. lca. }
- clear E E3 He.
- assert (Hx : Re e = re_α).
+ clear E E3.
+ assert (Rb : Re b = re_α).
  { apply RtoC_inj. rewrite re_alt.
-   replace (e+Cconj e)%C with (1-μ-ν)%C by (rewrite <- E3'; lca).
+   replace (b+Cconj b)%C with (1-μ-ν)%C by (rewrite <- E3'; lca).
    unfold re_α. lca. }
- assert (Hm : Cmod e ^2 = Cmod α ^2).
+ assert (Cb : Cmod b ^2 = Cmod α ^2).
  { apply RtoC_inj.
    rewrite αmod2, <- RtoC_pow, Cmod_sqr.
    replace (τ/-ν) with ((-1)*(τ/ν)) by (field; approx).
    rewrite RtoC_mult, RtoC_div by approx.
    rewrite E0, τ_μ, RtoC_inv by approx. field.
    split; apply RtoC_neq; approx. }
- assert (Hy : (Im e)^2 = im_α^2).
- { rewrite !Cmod2_alt, Hx in Hm. unfold α in Hm; simpl in Hm; lra. }
- clear E0 E3' Hm.
- rewrite <- !Rsqr_pow2 in Hy.
- apply Rsqr_eq in Hy.
- destruct Hy as [Hy|Hy]; destruct e as (x,y);
-  unfold Cconj, αbar, α in *; simpl in *; subst;
-  rewrite ?Ropp_involutive; apply perm_swap || reflexivity.
+ assert (Ib : (Im b)^2 = im_α^2).
+ { rewrite !Cmod2_alt, Rb in Cb. unfold α in Cb; simpl in Cb; lra. }
+ clear E0 E3' Cb.
+ rewrite <- !Rsqr_pow2 in Ib.
+ apply Rsqr_eq in Ib.
+ destruct Ib as [Ib|Ib]; destruct b as (x,y);
+  unfold Cconj, αbar, α in *; simpl in *; subst; f_equal. exfalso.
+ revert LT'. apply Rle_not_lt. approx.
 Qed.
+
+Local Hint Rewrite RtoC_pow : RtoC.
+Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
+ RtoC_div using approx : RtoC.
 
 Lemma μ_is_Rroot : μ^4 = μ^3 + 1.
 Proof.
@@ -257,24 +208,38 @@ Qed.
 
 Lemma α_is_Croot : (α^4 = α^3 + 1)%C.
 Proof.
- rewrite <- ThePoly_root_carac, ThePoly3_linfactors.
+ rewrite <- ThePoly_root_carac. destruct roots3_SortedRoots as (->,_).
  apply linfactors_roots. simpl. tauto.
 Qed.
 
 Lemma αbar_is_Croot : (αbar^4 = αbar^3 + 1)%C.
 Proof.
- rewrite <- ThePoly_root_carac, ThePoly3_linfactors.
+ rewrite <- ThePoly_root_carac. destruct roots3_SortedRoots as (->,_).
  apply linfactors_roots. simpl. tauto.
+Qed.
+
+Lemma nodup_roots : NoDup roots3.
+Proof.
+ apply (SortedRoots_nodup 3), roots3_SortedRoots.
+Qed.
+
+Lemma distinct_roots :
+  α <> μ /\ αbar <> μ /\ αbar <> α /\
+  RtoC ν <> α /\ RtoC ν <> αbar /\ ν <> μ.
+Proof.
+ assert (H := nodup_roots).
+ inversion_clear H. inversion_clear H1. inversion_clear H2. simpl in *.
+ intuition.
 Qed.
 
 Lemma A3_eqn_exists :
  exists (a b c d:C),
- forall n, RtoC (A 3 n) = (a*μ^n + b*ν^n + c*α^n + d*αbar^n)%C.
+ forall n, RtoC (A 3 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
 Proof.
  destruct (coefs_LinCombA 3 roots3) as (v & H).
  - reflexivity.
- - apply nodup_roots.
- - apply ThePoly3_linfactors.
+ - apply (SortedRoots_nodup 3), roots3_SortedRoots.
+ - apply roots3_SortedRoots.
  - exists (v O O), (v 1 O)%nat, (v 2 O)%nat, (v 3 O)%nat.
    intros n. rewrite <- H. unfold roots3. simpl.
    rewrite scalprod_alt. cbn -[nu]. ring.

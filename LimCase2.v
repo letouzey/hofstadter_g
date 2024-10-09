@@ -1,7 +1,7 @@
 From Coq Require Import Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex.
 Require Import MoreFun MoreList MoreReals MoreLim MoreComplex.
-Require Import DeltaList GenFib GenG GenAdd Words Mu Approx.
+Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
@@ -184,6 +184,25 @@ Proof.
  replace 1%C with (1^2-2*0)%C by lca.
  rewrite <- roots_sum, <- sigma2_nul. ring.
 Qed.
+
+Definition roots2 := [RtoC μ; α; αbar].
+
+Lemma roots2_sorted : SortedRoots 2 roots2.
+Proof.
+ split.
+ - unfold roots2, ThePoly. simpl.
+   rewrite !Cmult_1_l, !Cmult_1_r, !Cplus_0_l, !Cplus_0_r.
+   replace (- αbar * - α * - μ)%C with (- (μ * α *αbar))%C by lca.
+   replace (- αbar + - α + - μ)%C with (- (μ + α + αbar))%C by lca.
+   replace (- αbar * - α + _)%C with (μ*α + μ*αbar + α*αbar)%C by lca.
+   rewrite roots_sum, roots_prod, sigma2_nul.
+   reflexivity.
+ - do 2 constructor.
+   + repeat constructor.
+   + constructor. right. unfold α, αbar. simpl. split; trivial. approx.
+   + left. unfold α. simpl. approx.
+Qed.
+
 
 (** More root powers *)
 
