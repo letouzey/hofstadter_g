@@ -840,4 +840,66 @@ Qed.
     and rather use an axiom.
 *)
 
+Fixpoint B (k n : nat) :=
+  match n with
+  | 0 => 1-k
+  | S n => B k n + B k (n-k) + if S n =? k then 1 else 0
+  end%nat.
 
+Lemma B_zero k n : (n < k)%nat -> B k n = 0%nat.
+Proof.
+ induction n as [ [|n] IH] using lt_wf_ind.
+ - now destruct k.
+ - intros H. simpl. rewrite !IH by lia.
+   destruct k. easy. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma B_one k n : (k <= n <= 2*k)%nat -> B k n = 1%nat.
+Proof.
+ induction n as [ [|n] IH] using lt_wf_ind; intros H.
+ - now replace k with 0%nat by lia.
+ - simpl.
+   destruct (Nat.le_gt_cases k n).
+   + rewrite IH by lia.
+     rewrite B_zero by lia.
+     destruct k. easy. case Nat.eqb_spec; lia.
+   + rewrite !B_zero by lia.
+     destruct k. lia. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma A_B k n : A k n = B k (n+2*k).
+Proof.
+ induction n as [ [|n] IH] using lt_wf_ind.
+ - rewrite B_one; simpl; trivial. lia.
+ - cbn -["=?"]. rewrite !IH by lia.
+   case Nat.eqb_spec; try lia. intros _. rewrite Nat.add_0_r. f_equal.
+   destruct (Nat.lt_ge_cases n k).
+   + rewrite !B_one; lia.
+   + f_equal. lia.
+Qed.
+
+(*
+Definition coefB k r := r / r^k /((S k)*r-k).
+
+Lemma Equation_B k l :
+  SortedRoots k l ->
+  forall n, RtoC (B k n) = Clistsum (map (fun r => coefB k r * r^n) l).
+Proof.
+Admitted.
+
+Definition coef k r := r^(S k) / ((S k)*r-k).
+
+Lemma Equation_A k l :
+  SortedRoots k l ->
+  forall n, RtoC (A k n) = Clistsum (map (fun r => coef k r * r^n) l).
+Proof.
+ intros H n.
+ erewrite A_B, Equation_B; eauto. f_equal. apply map_ext_in. intros r R.
+ rewrite Cpow_add_r. unfold coefB, coef.
+ unfold Cdiv.
+ rewrite !(Cmult_comm (_*/(_-_))), !Cmult_assoc. f_equal.
+ replace (2*k)%nat with (k+k)%nat by lia. rewrite Cpow_add_r, Cpow_S.
+ field. apply Cpow_nz. apply (SortedRoots_roots k l H) in R. intros ->.
+ revert R. apply root_nz.
+Qed.
+*)
