@@ -321,3 +321,25 @@ Proof.
    rewrite cols_scale_det by (rewrite map_length; lia).
    rewrite IH by trivial. lca.
 Qed.
+
+(** An expression of the inverse matrix, thanks to the adjugate matrix. *)
+
+Definition Minverse {n} (A:Square n) := /Determinant A .* adjugate A.
+
+Lemma Minverse_is_inv {n} (A:Square n) :
+  WF_Matrix A -> invertible A -> Minv A (Minverse A).
+Proof.
+ intros WF H. apply invertible_iff_det_neq_0 in H; trivial.
+ red. unfold Minverse. rewrite Mscale_mult_dist_r, Mscale_mult_dist_l.
+ split.
+ - destruct n.
+   + simpl.
+     apply functional_extensionality. intros i.
+     apply functional_extensionality. intros j.
+     unfold Mmult, scale. simpl. rewrite Cmult_0_r. unfold I.
+     case Nat.ltb_spec; try lia. now case Nat.eqb.
+   + rewrite mult_by_adjugate_r; trivial.
+     rewrite Mscale_assoc, Cinv_l, Mscale_1_l; trivial.
+ - rewrite mult_by_adjugate_l; trivial.
+   rewrite Mscale_assoc, Cinv_l, Mscale_1_l; trivial.
+Qed.
