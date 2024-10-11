@@ -138,23 +138,6 @@ Proof.
    rewrite <- linfactors_degree. now rewrite <- E, ThePoly_deg.
 Qed.
 
-Lemma ThePoly_separated_roots_mu k :
-  exists (l : list C),
-   length l = S k /\ NoDup l /\ ThePoly k ≅ linfactors l /\ nth O l C0 = mu k.
-Proof.
- destruct (ThePoly_separated_roots k) as (l & L & D & E).
- assert (IN : In (RtoC (mu k)) l).
- { rewrite linfactors_roots. rewrite <- E. apply mu_is_root. }
- apply in_split in IN. destruct IN as (l1 & l2 & E').
- set (l' := RtoC (mu k) :: l1 ++ l2).
- assert (P : Permutation l' l).
- { rewrite E'. apply Permutation_middle. }
- exists l'; repeat split.
- - apply Permutation_length in P. lia.
- - apply Permutation_sym, Permutation_NoDup in P; trivial.
- - apply linfactors_perm in P. now rewrite P.
-Qed.
-
 Lemma roots_le_mu k (r:C) :
  Root r (ThePoly k) -> (Cmod r <= mu k)%R.
 Proof.
@@ -250,164 +233,6 @@ Proof.
  - apply is_lim_seq_const.
  - replace R0 with (0+0)%R by lra. apply is_lim_seq_plus'; auto.
 Qed.
-
-Section Roots.
-Variable k : nat.
-Variable allroots : list C.
-Hypothesis allroots_len : length allroots = S k.
-Hypothesis allroots_nodup : NoDup allroots.
-Hypothesis allroots_ok : ThePoly k ≅ linfactors allroots.
-Hypothesis allroots_mu : nth O allroots C0 = mu k.
-
-Let vdmroot := Vandermonde (S k) allroots.
-
-Lemma VdmRoots_det_nz : Determinant vdmroot <> 0.
-Proof.
- unfold vdmroot.
- rewrite Vandermonde_det by trivial.
- now apply multdiffs_nodup.
-Qed.
-
-(** Conjecture (TODO?) : the square of this determinant seems to be
-    [+/- ((k+1)^(k+1)+k^k)].
-    For instance +5 for k=1, -31 for k=2, -283 for k=3, +3381 for k=4
-    See OEIS A056788.
-    At least, this square is clearly an integer, since it's a symmetric
-    polynomial of the roots (determinant is alternating) with coefficients
-    in Z, hence it is a Z polynomial of the elementary symmetric polynomials
-    that here are -1 or 0 or 1 (coefficients of ThePoly). *)
-
-Lemma VdmRoots_invertible : invertible vdmroot.
-Proof.
- apply lin_indep_iff_invertible. apply WF_Vandermonde.
- apply lin_indep_det_neq_0. apply WF_Vandermonde.
- red. split; auto. apply VdmRoots_det_nz.
-Qed.
-
-Lemma coefs_LinComb :
- exists coefs : Vector (S k),
-  forall p, (p <= k)%nat ->
-    scalprod coefs (mkvect _ (pows allroots p)) = S p.
-Proof.
- destruct VdmRoots_invertible as (Vinv & _ & E & _).
- set (vect_1_Sk := mkvect (S k) (map (compose RtoC INR) (seq 1 (S k)))).
- assert (WF_Matrix vect_1_Sk).
- { apply WF_mkvect. now rewrite map_length, seq_length. }
- set (coefs := Mmult Vinv vect_1_Sk).
- exists (make_WF coefs). intros p Hp.
- replace (mkvect _ (pows allroots p)) with (transpose (get_row vdmroot p)).
- 2:{ apply mat_equiv_eq.
-     - apply WF_transpose, WF_get_row, WF_Vandermonde.
-     - apply WF_mkvect. unfold pows. rewrite map_length; lia.
-     - intros i j Hi Hj. replace j with O by lia; clear j Hj.
-       rewrite mkvect_eqn, nth_pows by lia.
-       unfold get_row, vdmroot, Vandermonde. cbn.
-       do 2 case Nat.leb_spec; auto; lia. }
- unfold scalprod. rewrite <- Mmult_transpose.
- rewrite get_row_mult_eq. 2:apply WF_Vandermonde. 2:apply WF_make_WF.
- rewrite (eq_make_WF vdmroot). 2:apply WF_Vandermonde.
- rewrite Mmult_make_WF. unfold coefs.
- rewrite <- Mmult_assoc, E, Mmult_1_l; auto.
- rewrite <- eq_make_WF; auto.
- unfold get_row, transpose. cbn -[RtoC INR seq].
- unfold vect_1_Sk, mkvect, list2D_to_matrix.
- rewrite map_map.
- rewrite nth_map_indep with (d':=O) by (rewrite seq_length; lia).
- now rewrite seq_nth by lia.
-Qed.
-
-Lemma coefs_LinCombA :
- exists coefs : Vector (S k),
-  forall n, scalprod coefs (mkvect _ (pows allroots n)) = A k n.
-Proof.
- destruct coefs_LinComb as (coefs & Init). exists coefs.
- induction n as [n IH] using lt_wf_ind.
- destruct (Nat.leb_spec n k).
- - rewrite A_base by lia. now apply Init.
- - destruct n; try lia. simpl A.
-   rewrite plus_INR, RtoC_plus, <- !IH by lia.
-   replace (mkvect _ (pows allroots (S n))) with
-       (mkvect (S k) (pows allroots n) .+ mkvect _ (pows allroots (n-k))).
-   + unfold scalprod. now rewrite Mmult_plus_distr_l.
-   + apply mat_equiv_eq.
-     * apply WF_plus; apply WF_mkvect; unfold pows; rewrite map_length; lia.
-     * apply WF_mkvect; unfold pows; rewrite map_length; lia.
-     * intros i j Hi Hj. replace j with O by lia.
-       unfold Mplus. rewrite !mkvect_eqn, !nth_pows by lia.
-       set (r := nth i allroots C0).
-       assert (R : Root r (ThePoly k)).
-       { rewrite allroots_ok, <- linfactors_roots. apply nth_In; lia. }
-       rewrite ThePoly_root_carac in R.
-       replace n with (k + (n-k))%nat at 1 3 by lia.
-       rewrite <- Nat.add_succ_l, !Cpow_add_r, R. lca.
-Qed.
-
-Lemma A_div_pow_mu_limit_aux :
- exists (lim:R), is_lim_seq (fun n => A k n / mu k ^n)%R lim.
-Proof.
- destruct coefs_LinCombA as (coefs & E).
- exists (Re (coefs O O)). (* actually (coefs O O) is a real *)
- assert (allroots_mu' : nth 0 allroots C0 = mu k).
- { destruct allroots; simpl in *; auto; try lia. }
- assert (Iv := mu_itvl k).
- assert (mu k <> 0)%R by lra.
- set (rest :=
-      (fun n i => Re (coefs (S i) O * (nth (S i) allroots 0)^n) / mu k^n)%R).
- apply is_lim_seq_ext with
-   (u := (fun n => Re (coefs O O) + big_sum (rest n) k)%R).
- - intros n.
-   rewrite <- (re_RtoC (A k n)). rewrite <- E. clear E.
-   rewrite scalprod_alt, <- big_sum_extend_l;
-   rewrite mkvect_eqn, nth_pows, allroots_mu' by lia.
-   rewrite RtoC_pow, re_plus, re_scal_r, Re_Σ.
-   rewrite Rdiv_plus_distr. f_equal; [field; now apply pow_nonzero|].
-   unfold Rdiv. rewrite (@big_sum_mult_r _ _ _ _ R_is_ring).
-   apply bigsum_ext. intros i Hi. cbn -[Re].
-   unfold rest. unfold Rdiv. f_equal. f_equal. f_equal.
-   now rewrite mkvect_eqn, nth_pows by lia.
- - clear E. rewrite <- (Rplus_0_r (Re _)) at 1.
-   apply is_lim_seq_plus'; [apply is_lim_seq_const|].
-   apply is_lim_seq_Σ_0. intros i Hi.
-   apply is_lim_seq_0_abs with
-     (fun n => Cmod (coefs (S i) O) * (Cmod (nth (S i) allroots 0) / mu k)^n)%R.
-   + intros n. unfold rest. clear rest. set (r := nth _ _ _).
-     unfold Rdiv. rewrite <- re_scal_r.
-     eapply Rle_trans; [apply re_le_Cmod|].
-     rewrite <- Cmult_assoc, Cmod_mult.
-     apply Rmult_le_compat_l. apply Cmod_ge_0.
-     rewrite Cmod_mult.
-     rewrite Rpow_mult_distr.
-     rewrite <- Cmod_pow.
-     apply Rmult_le_compat_l. apply Cmod_ge_0.
-     rewrite Cmod_R. rewrite Rabs_right. rewrite pow_inv; lra.
-     left. apply Rinv_0_lt_compat. apply pow_lt; lra.
-   + clear rest.
-     set (c := Cmod _).
-     set (r := nth _ _ _).
-     replace 0%R with (c * 0)%R at 1 by lra.
-     apply is_lim_seq_mult'; [apply is_lim_seq_const|].
-     apply is_lim_seq_geom.
-     rewrite Rabs_right.
-     2:{ apply Rle_ge, Rcomplements.Rdiv_le_0_compat. apply Cmod_ge_0. lra. }
-     apply -> Rcomplements.Rdiv_lt_1; try lra.
-     apply other_roots_lt_mu.
-     rewrite allroots_ok, <- linfactors_roots. apply nth_In; lia.
-     destruct allroots as [|m l]; simpl in *; try lia.
-     inversion allroots_nodup; subst.
-     assert (In r l) by (unfold r; apply nth_In; lia).
-     intros ->; intuition.
-Qed.
-
-End Roots.
-
-Lemma A_div_pow_mu_limit k :
- exists (lim:R), is_lim_seq (fun n => A k n / mu k ^n)%R lim.
-Proof.
- destruct (ThePoly_separated_roots_mu k) as (l & l_len & l_dp & l_ok & l_mu).
- apply A_div_pow_mu_limit_aux with l; auto.
-Qed.
-
-(* Print Assumptions A_div_pow_mu_limit. *)
 
 (** More precise enumeration of roots, in lexicographic decreasing order *)
 
@@ -827,6 +652,161 @@ Proof.
      fold r' in SC. rewrite E, <- EQ in SC.
      revert SC. apply Cgt_order.
 Qed.
+
+Section Roots.
+Variable k : nat.
+Variable allroots : list C.
+Hypothesis allroots_ok : SortedRoots k allroots.
+
+Let allroots_len := SortedRoots_length _ _ allroots_ok.
+
+Let vdmroot := Vandermonde (S k) allroots.
+
+Lemma VdmRoots_det_nz : Determinant vdmroot <> 0.
+Proof.
+ unfold vdmroot.
+ rewrite Vandermonde_det; trivial.
+ apply multdiffs_nodup. now apply (SortedRoots_nodup k).
+Qed.
+
+(** Conjecture (TODO?) : the square of this determinant seems to be
+    [+/- ((k+1)^(k+1)+k^k)].
+    For instance +5 for k=1, -31 for k=2, -283 for k=3, +3381 for k=4
+    See OEIS A056788.
+    At least, this square is clearly an integer, since it's a symmetric
+    polynomial of the roots (determinant is alternating) with coefficients
+    in Z, hence it is a Z polynomial of the elementary symmetric polynomials
+    that here are -1 or 0 or 1 (coefficients of ThePoly). *)
+
+Lemma VdmRoots_invertible : invertible vdmroot.
+Proof.
+ apply lin_indep_iff_invertible. apply WF_Vandermonde.
+ apply lin_indep_det_neq_0. apply WF_Vandermonde.
+ red. split; auto. apply VdmRoots_det_nz.
+Qed.
+
+Lemma coefs_LinComb :
+ exists coefs : Vector (S k),
+  forall p, (p <= k)%nat ->
+    scalprod coefs (mkvect _ (pows allroots p)) = S p.
+Proof.
+ destruct VdmRoots_invertible as (Vinv & _ & E & _).
+ set (vect_1_Sk := mkvect (S k) (map (compose RtoC INR) (seq 1 (S k)))).
+ assert (WF_Matrix vect_1_Sk).
+ { apply WF_mkvect. now rewrite map_length, seq_length. }
+ set (coefs := Mmult Vinv vect_1_Sk).
+ exists (make_WF coefs). intros p Hp.
+ replace (mkvect _ (pows allroots p)) with (transpose (get_row vdmroot p)).
+ 2:{ apply mat_equiv_eq.
+     - apply WF_transpose, WF_get_row, WF_Vandermonde.
+     - apply WF_mkvect. unfold pows. rewrite map_length.
+       now apply SortedRoots_length.
+     - intros i j Hi Hj. replace j with O by lia; clear j Hj.
+       rewrite mkvect_eqn, nth_pows by lia.
+       unfold get_row, vdmroot, Vandermonde. cbn.
+       do 2 case Nat.leb_spec; auto; lia. }
+ unfold scalprod. rewrite <- Mmult_transpose.
+ rewrite get_row_mult_eq. 2:apply WF_Vandermonde. 2:apply WF_make_WF.
+ rewrite (eq_make_WF vdmroot). 2:apply WF_Vandermonde.
+ rewrite Mmult_make_WF. unfold coefs.
+ rewrite <- Mmult_assoc, E, Mmult_1_l; auto.
+ rewrite <- eq_make_WF; auto.
+ unfold get_row, transpose. cbn -[RtoC INR seq].
+ unfold vect_1_Sk, mkvect, list2D_to_matrix.
+ rewrite map_map.
+ rewrite nth_map_indep with (d':=O) by (rewrite seq_length; lia).
+ now rewrite seq_nth by lia.
+Qed.
+
+Lemma coefs_LinCombA :
+ exists coefs : Vector (S k),
+  forall n, scalprod coefs (mkvect _ (pows allroots n)) = A k n.
+Proof.
+ destruct coefs_LinComb as (coefs & Init). exists coefs.
+ induction n as [n IH] using lt_wf_ind.
+ destruct (Nat.leb_spec n k).
+ - rewrite A_base by lia. now apply Init.
+ - destruct n; try lia. simpl A.
+   rewrite plus_INR, RtoC_plus, <- !IH by lia.
+   replace (mkvect _ (pows allroots (S n))) with
+       (mkvect (S k) (pows allroots n) .+ mkvect _ (pows allroots (n-k))).
+   + unfold scalprod. now rewrite Mmult_plus_distr_l.
+   + apply mat_equiv_eq.
+     * apply WF_plus; apply WF_mkvect; unfold pows; rewrite map_length; lia.
+     * apply WF_mkvect; unfold pows; rewrite map_length; lia.
+     * intros i j Hi Hj. replace j with O by lia.
+       unfold Mplus. rewrite !mkvect_eqn, !nth_pows by lia.
+       set (r := nth i allroots C0).
+       assert (R : Root r (ThePoly k)).
+       { apply (SortedRoots_roots _ _ allroots_ok). apply nth_In; lia. }
+       rewrite ThePoly_root_carac in R.
+       replace n with (k + (n-k))%nat at 1 3 by lia.
+       rewrite <- Nat.add_succ_l, !Cpow_add_r, R. lca.
+Qed.
+
+Lemma A_div_pow_mu_limit_aux :
+ exists (lim:R), is_lim_seq (fun n => A k n / mu k ^n)%R lim.
+Proof.
+ destruct coefs_LinCombA as (coefs & E).
+ exists (Re (coefs O O)). (* actually (coefs O O) is a real *)
+ assert (allroots_mu : nth 0 allroots C0 = mu k) by now apply SortedRoots_mu.
+ assert (Iv := mu_itvl k).
+ assert (mu k <> 0)%R by lra.
+ set (rest :=
+      (fun n i => Re (coefs (S i) O * (nth (S i) allroots 0)^n) / mu k^n)%R).
+ apply is_lim_seq_ext with
+   (u := (fun n => Re (coefs O O) + big_sum (rest n) k)%R).
+ - intros n.
+   rewrite <- (re_RtoC (A k n)). rewrite <- E. clear E.
+   rewrite scalprod_alt, <- big_sum_extend_l;
+   rewrite mkvect_eqn, nth_pows, allroots_mu by lia.
+   rewrite RtoC_pow, re_plus, re_scal_r, Re_Σ.
+   rewrite Rdiv_plus_distr. f_equal; [field; now apply pow_nonzero|].
+   unfold Rdiv. rewrite (@big_sum_mult_r _ _ _ _ R_is_ring).
+   apply bigsum_ext. intros i Hi. cbn -[Re].
+   unfold rest. unfold Rdiv. f_equal. f_equal. f_equal.
+   now rewrite mkvect_eqn, nth_pows by lia.
+ - clear E. rewrite <- (Rplus_0_r (Re _)) at 1.
+   apply is_lim_seq_plus'; [apply is_lim_seq_const|].
+   apply is_lim_seq_Σ_0. intros i Hi.
+   apply is_lim_seq_0_abs with
+     (fun n => Cmod (coefs (S i) O) * (Cmod (nth (S i) allroots 0) / mu k)^n)%R.
+   + intros n. unfold rest. clear rest. set (r := nth _ _ _).
+     unfold Rdiv. rewrite <- re_scal_r.
+     eapply Rle_trans; [apply re_le_Cmod|].
+     rewrite <- Cmult_assoc, Cmod_mult.
+     apply Rmult_le_compat_l. apply Cmod_ge_0.
+     rewrite Cmod_mult.
+     rewrite Rpow_mult_distr.
+     rewrite <- Cmod_pow.
+     apply Rmult_le_compat_l. apply Cmod_ge_0.
+     rewrite Cmod_R. rewrite Rabs_right. rewrite pow_inv; lra.
+     left. apply Rinv_0_lt_compat. apply pow_lt; lra.
+   + clear rest.
+     set (c := Cmod _).
+     set (r := nth _ _ _).
+     replace 0%R with (c * 0)%R at 1 by lra.
+     apply is_lim_seq_mult'; [apply is_lim_seq_const|].
+     apply is_lim_seq_geom.
+     rewrite Rabs_right.
+     2:{ apply Rle_ge, Rcomplements.Rdiv_le_0_compat. apply Cmod_ge_0. lra. }
+     apply -> Rcomplements.Rdiv_lt_1; try lra.
+     apply other_roots_lt_mu.
+     * apply (SortedRoots_roots _ _ allroots_ok). apply nth_In; lia.
+     * rewrite <- allroots_mu. intros E.
+       apply NoDup_nth in E; try lia. now apply (SortedRoots_nodup k).
+Qed.
+
+End Roots.
+
+Lemma A_div_pow_mu_limit k :
+ exists (lim:R), is_lim_seq (fun n => A k n / mu k ^n)%R lim.
+Proof.
+ destruct (SortedRoots_exists k) as (l & Hl).
+ now apply A_div_pow_mu_limit_aux with l.
+Qed.
+
+(* Print Assumptions A_div_pow_mu_limit. *)
 
 (** TODO: second best root has modulus:
     < 1 for k=1,2,3

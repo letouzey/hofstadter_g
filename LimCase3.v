@@ -232,17 +232,16 @@ Proof.
  intuition.
 Qed.
 
+(* TODO: ThePoly.v will soon have expressions of coefs a b c d in terms of
+   roots μ ν α αbar *)
 Lemma A3_eqn_exists :
  exists (a b c d:C),
  forall n, RtoC (A 3 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
 Proof.
- destruct (coefs_LinCombA 3 roots3) as (v & H).
- - reflexivity.
- - apply (SortedRoots_nodup 3), roots3_SortedRoots.
- - apply roots3_SortedRoots.
- - exists (v O O), (v 1 O)%nat, (v 2 O)%nat, (v 3 O)%nat.
-   intros n. rewrite <- H. unfold roots3. simpl.
-   rewrite scalprod_alt. cbn -[nu]. ring.
+ destruct (coefs_LinCombA 3 roots3 roots3_SortedRoots) as (v & H).
+ exists (v O O)%nat, (v 1 O)%nat, (v 2 O)%nat, (v 3 O)%nat.
+ intros n. rewrite <- H. unfold roots3. simpl.
+ rewrite scalprod_alt. cbn -[nu]. now rewrite Cplus_0_l.
 Qed.
 
 (** Note about A3_eqn_exists : if someday precise estimates of coefficients
