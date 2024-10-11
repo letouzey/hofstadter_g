@@ -31,18 +31,15 @@ Usage
 - Use `cd reports/g && pdflatex report` to generate the pdf of the technical report.
 
 Some recent files depend on Coq >= 8.16 and < 8.20 as well as external libraries
-Coquelicot >= 3.3.0 and QuantumLib 1.1.0 or 1.3.0. I advise to fetch them via opam.
+Coquelicot >= 3.3.0 and QuantumLib >= 1.5.1. I advise to fetch them via opam.
 For instance:
 
 ```
 opam pin add coq 8.19.2
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-coquelicot
-opam pin add coq-quantumlib 1.3.0
+opam pin add coq-quantumlib 1.5.1
 ```
-
-Note : the recent versions of QuantumLib (e.g. 1.5.1) require some minor
-modifications here, see branch `for_QuantumLib_1.5.1` in this repository.
 
 Summary of files:
 ----------------
