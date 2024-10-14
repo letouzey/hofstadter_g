@@ -717,9 +717,9 @@ Variable k : nat.
 Variable allroots : list C.
 Hypothesis allroots_ok : SortedRoots k allroots.
 
-Let vdmroot := Vandermonde (S k) allroots.
-Let vdminv := Minverse vdmroot.
-Let coefs0 := get_col vdminv k.
+Definition vdmroot := Vandermonde (S k) allroots.
+Definition vdminv := Minverse vdmroot.
+Definition coefs0 := get_col vdminv k.
 
 Lemma VdmRoots_det_nz : Determinant vdmroot <> 0.
 Proof.
