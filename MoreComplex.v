@@ -406,8 +406,11 @@ Proof.
    subst x'. f_equal. apply IH; trivial. eapply Permutation_cons_inv; eauto.
 Qed.
 
-(** Existence of sorted lists of complex numbers : no bool comparison,
-    but at least an existence in Prop. *)
+(** Existence of sorted lists of complex numbers : thanks to
+    Rlt_le_dec we could write a boolean C comparison and use mergesort
+    on it, but that will not compute.
+    Instead, we prove here an existence in Prop, by mimicking an
+    insertion sort. *)
 
 Lemma Cinsert_exists x l :
   Csorted l -> ~In x l -> exists l', Permutation (x::l) l' /\ Csorted l'.
