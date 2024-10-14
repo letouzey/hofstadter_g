@@ -255,6 +255,15 @@ Proof.
  now apply Cmult_eq_reg_r with c.
 Qed.
 
+Lemma Cinv_eq a b : a*b = 1 -> a = /b.
+Proof.
+ intros E.
+ assert (b<>0).
+ { intros ->. rewrite Cmult_0_r in E. symmetry in E.
+   revert E. apply C1_neq_C0. }
+ apply Cmult_eq_reg_r with b; trivial. rewrite E. field; trivial.
+Qed.
+
 Local Open Scope R.
 
 Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0.
@@ -307,6 +316,18 @@ Proof.
  induction l; simpl; rewrite ?IHl; ring.
 Qed.
 
+Lemma Clistsum_zero {A}(l:list A) : Clistsum (map (fun _ => C0) l) = C0.
+Proof.
+ induction l; simpl; rewrite ?IHl; lca.
+Qed.
+
+Lemma Clistsum_map {A} (f : A -> C) (l:list A) (d:A) :
+  Clistsum (map f l) = big_sum (fun i => f (nth i l d)) (length l).
+Proof.
+ induction l; trivial.
+ simpl length. rewrite big_sum_shift. simpl. now f_equal.
+Qed.
+
 Definition Cpoly x l := Clistsum (List.map (Cpow x) l).
 
 Lemma Cpoly_cons x n l : Cpoly x (n::l) = (x^n + Cpoly x l)%C.
@@ -339,6 +360,26 @@ Proof.
    rewrite IH by intuition.
    replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
    rewrite Cpow_add_r. unfold decr at 2. ring.
+Qed.
+
+(** G_big_mult : Product of a list of complex *)
+
+Lemma Gbigmult_0 (l : list C) : G_big_mult l = C0 <-> In C0 l.
+Proof.
+ induction l; simpl.
+ - split. apply C1_neq_C0. easy.
+ - rewrite <- IHl. apply Cmult_integral.
+Qed.
+
+Lemma Gbigmult_factor_r l c :
+  G_big_mult (map (fun x => x * c) l)%C = (G_big_mult l * c ^ length l)%C.
+Proof.
+ induction l; simpl; rewrite ?IHl; ring.
+Qed.
+
+Lemma Gbigmult_perm l l' : Permutation l l' -> G_big_mult l = G_big_mult l'.
+Proof.
+ induction 1; simpl; ring || congruence.
 Qed.
 
 (** Lexicographic order on complex numbers *)

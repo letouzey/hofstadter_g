@@ -363,6 +363,44 @@ Proof.
    simpl. rewrite Nat.sub_0_r. destruct k; try lia. f_equal. lia.
 Qed.
 
+Lemma insert_at_perm {A} (l:list A) i x :
+  Permutation (insert_at i x l) (x::l).
+Proof.
+ revert i. induction l; destruct i; simpl; try easy.
+ rewrite perm_swap. now apply perm_skip.
+Qed.
+
+(** remove_at : dual of insert_at *)
+
+Fixpoint remove_at {A} i (l:list A) :=
+ match l, i with
+ | [], _ => []
+ | x::l, 0 => l
+ | x::l, S i => x :: remove_at i l
+ end.
+
+Lemma remove_at_nth {A} (l:list A) (d:A) i j :
+ nth j (remove_at i l) d = if j <? i then nth j l d else nth (S j) l d.
+Proof.
+ revert i j. induction l; destruct i, j; simpl; trivial.
+ - now case Nat.ltb.
+ - apply (IHl i j).
+Qed.
+
+Lemma remove_at_length {A} (l:list A) i :
+  (i < length l)%nat -> length (remove_at i l) = pred (length l).
+Proof.
+ revert i. induction l; destruct i; simpl; intros; trivial. rewrite IHl; lia.
+Qed.
+
+Lemma insert_at_remove_at {A} (l:list A) i (d:A) :
+  (i < length l)%nat ->
+  insert_at i (nth i l d) (remove_at i l) = l.
+Proof.
+ revert i. induction l; destruct i; simpl; trivial; try lia.
+ intros Hi. f_equal. apply IHl. lia.
+Qed.
+
 (** Lists with empty intersection *)
 
 Definition EmptyInter {A} (u v : list A) := forall a, ~(In a u /\ In a v).

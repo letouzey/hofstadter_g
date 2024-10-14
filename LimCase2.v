@@ -391,7 +391,7 @@ Proof.
   rewrite !Cmult_assoc.
   change (coefB 2 μ = 2 * im_α / √ 31)%C.
   change (RtoC μ) with (nth 0 roots2 0).
-  rewrite <- (coefs0_alt 2 _ roots2_sorted).
+  rewrite <- (coefs0_coefB 2 _ roots2_sorted).
   apply Cmult_eq_reg_r with (Ci * RtoC (√31))%C.
   2:{ intros E. apply Cmult_integral in E. destruct E as [E|E].
       - injection E. lra.
@@ -417,7 +417,7 @@ Proof.
   rewrite !Cmult_assoc.
   change (coefB 2 α = (αbar - μ) * / det)%C.
   change α with (nth 1 roots2 0).
-  rewrite <- (coefs0_alt 2 _ roots2_sorted).
+  rewrite <- (coefs0_coefB 2 _ roots2_sorted).
   apply Cmult_eq_reg_r with det. 2:apply det_nz.
   unfold Cdiv. rewrite <- Cmult_assoc. rewrite Cinv_l. 2:apply det_nz.
   rewrite Cmult_1_r.

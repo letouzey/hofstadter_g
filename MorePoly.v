@@ -781,3 +781,44 @@ Proof.
  exists l; split; trivial.
  apply linfactors_separated_roots. intros c. rewrite <- E. apply Df.
 Qed.
+
+(** Product of a list of polynomial *)
+
+Definition Plistsum (l : list Polynomial) := fold_right Pplus [] l.
+
+Lemma Plistsum_mult_r {A} (f:A->Polynomial) l p :
+  Plistsum (map f l) *, p ≅ Plistsum (map (fun x => f x *, p) l).
+Proof.
+ induction l; simpl; trivial. easy.
+ rewrite Pmult_plus_distr_r.
+ apply Pplus_eq_compat. easy. apply IHl.
+Qed.
+
+Lemma Peval_Plistsum (l:list Polynomial) c :
+  Peval (Plistsum l) c = Clistsum (map (fun P => Peval P c) l).
+Proof.
+ induction l; simpl; now rewrite ?Pplus_eval, ?IHl.
+Qed.
+
+Lemma Pdiff_linfactors l :
+  Pdiff (linfactors l) ≅
+  Plistsum (map (fun i => linfactors (remove_at i l)) (seq 0 (length l))).
+Proof.
+ induction l; simpl.
+ - apply (last_C0_Peq_front []).
+ - rewrite Pdiff_mult. simpl. rewrite Cplus_0_r.
+   rewrite <- seq_shift, map_map. simpl.
+   rewrite Pplus_comm. apply Pplus_eq_compat.
+   + rewrite <- (Pmult_1_r (linfactors l)) at 2.
+     apply Pmult_eq_compat. easy. apply (last_C0_Peq_front [1]).
+   + rewrite IHl. apply Plistsum_mult_r.
+Qed.
+
+Lemma Peval_linfactors c l :
+  Peval (linfactors l) c = G_big_mult (map (fun y => c-y) l).
+Proof.
+ induction l.
+ - simpl. unfold Peval. simpl. lca.
+ - simpl. rewrite Pmult_eval, IHl, Cmult_comm. f_equal.
+   unfold Peval; simpl. lca.
+Qed.

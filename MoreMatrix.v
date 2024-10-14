@@ -322,6 +322,17 @@ Proof.
    rewrite IH by trivial. lca.
 Qed.
 
+Lemma get_minor_vandermonde n (l:list C) i : (i <= n)%nat ->
+  get_minor (Vandermonde (S n) l) n i = Vandermonde n (remove_at i l).
+Proof.
+ intros Hi.
+ apply mat_equiv_eq.
+ - apply WF_get_minor, WF_Vandermonde; try lia.
+ - apply WF_Vandermonde.
+ - intros x y Hx Hy. unfold get_minor, Vandermonde. rewrite remove_at_nth.
+   repeat (case Nat.ltb_spec; try lia; simpl; trivial).
+Qed.
+
 (** An expression of the inverse matrix, thanks to the adjugate matrix. *)
 
 Definition Minverse {n} (A:Square n) := /Determinant A .* adjugate A.

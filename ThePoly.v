@@ -181,62 +181,6 @@ Proof.
  apply Cmod_triangle_exact in E'. congruence.
 Qed.
 
-Lemma G_big_mult_0 (l : list C) : G_big_mult l = 0 <-> In C0 l.
-Proof.
- induction l; simpl.
- - split. apply C1_neq_C0. easy.
- - rewrite <- IHl. apply Cmult_integral.
-Qed.
-
-Lemma multdiffs_nodup (l : list C) : NoDup l -> multdiffs l <> 0.
-Proof.
- induction 1; simpl.
- - apply C1_neq_C0.
- - intros E. apply Cmult_integral in E. destruct E as [E|E]; try easy.
-   apply G_big_mult_0 in E. rewrite in_map_iff in E.
-   destruct E as (y & E & IN). apply H. apply Ceq_minus in E. now subst.
-Qed.
-
-Definition pows (l:list C) n := map (fun c => c^n) l.
-
-Lemma nth_pows i l p : (i < length l)%nat ->
- nth i (pows l p) 0 = nth i l 0 ^p.
-Proof.
- intros H.
- rewrite <- map_nth with (f := fun c => c ^ p).
- apply nth_indep. unfold pows; rewrite map_length; lia.
-Qed.
-
-Lemma get_row_mult n m p (A : Matrix n m) (B : Matrix m p) k :
- Mmult (get_row A k) B == get_row (Mmult A B) k.
-Proof.
- intros i j Hi Hj. unfold get_row, Mmult. case Nat.eqb_spec; auto; lia.
-Qed.
-
-Lemma get_row_mult_eq n m p (A : Matrix n m) (B : Matrix m p) k :
- WF_Matrix A -> WF_Matrix B ->
- Mmult (get_row A k) B = get_row (Mmult A B) k.
-Proof.
- intros. apply mat_equiv_eq; auto using WF_get_row, WF_mult.
- apply get_row_mult.
-Qed.
-
-Lemma Re_Σ f n : Re (Σ f n) = big_sum (fun i => Re (f i)) n.
-Proof.
- induction n; cbn; trivial. now f_equal.
-Qed.
-
-Lemma is_lim_seq_Σ_0 (f:nat -> nat -> R) n :
- (forall i, (i<n)%nat -> is_lim_seq (fun k => f k i) R0) ->
- is_lim_seq (fun k => big_sum (f k) n) R0.
-Proof.
- intros H. induction n; simpl.
- - apply is_lim_seq_const.
- - replace R0 with (0+0)%R by lra. apply is_lim_seq_plus'; auto.
-Qed.
-
-(** More precise enumeration of roots, in lexicographic decreasing order *)
-
 Lemma root_equal_Cmod_Re k (r1 r2:C) :
  Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
  Cmod r1 = Cmod r2 -> Re r1 = Re r2.
@@ -396,6 +340,8 @@ Proof.
  rewrite E', <-E in H. rewrite RtoC_plus, RtoC_opp in H.
  replace r with (1-(1-r))%C by ring. rewrite H. ring.
 Qed.
+
+(** Enumeration of roots, in lexicographic decreasing order *)
 
 Definition SortedRoots k l := ThePoly k ≅ linfactors l /\ Csorted l.
 
@@ -674,6 +620,9 @@ Proof.
      revert SC. apply Cgt_order.
 Qed.
 
+(** B : Variant of the sequence A, with different initial values,
+    and hence shifted. *)
+
 Fixpoint B (k n : nat) :=
   match n with
   | 0 => 1-k
@@ -712,6 +661,105 @@ Proof.
    + f_equal. lia.
 Qed.
 
+(** Some more properties of parity, multdiffs, big_sum, etc *)
+
+Lemma parity_pow n : parity n = (-1)^n.
+Proof.
+ induction n; rewrite ?parity_S, ?IHn; simpl; ring.
+Qed.
+
+Lemma parity_even n : parity (2*n) = 1.
+Proof.
+ induction n. easy.
+ replace (2 * S n)%nat with (S (S (2 * n)))%nat by lia.
+ rewrite !parity_S, IHn. ring.
+Qed.
+
+Lemma multdiffs_nodup (l : list C) : NoDup l -> multdiffs l <> 0.
+Proof.
+ induction 1; simpl.
+ - apply C1_neq_C0.
+ - intros E. apply Cmult_integral in E. destruct E as [E|E]; try easy.
+   apply Gbigmult_0 in E. rewrite in_map_iff in E.
+   destruct E as (y & E & IN). apply H. apply Ceq_minus in E. now subst.
+Qed.
+
+Lemma multdiffs_eqn c l :
+ multdiffs (c :: l) =
+ G_big_mult (map (fun y => c-y) l) * multdiffs l * parity (length l).
+Proof.
+ simpl. rewrite <- Cmult_assoc, (Cmult_comm (multdiffs l)), Cmult_assoc.
+ f_equal. rewrite parity_pow.
+ set (f := fun y => c-y). rewrite <- (map_length f l).
+ rewrite <- Gbigmult_factor_r, map_map. f_equal. apply map_ext.
+ intro a. unfold f. ring.
+Qed.
+
+Lemma multdiffs_insert_at c l i :
+ (i <= length l)%nat ->
+ multdiffs (insert_at i c l) = multdiffs (c :: l) * parity i.
+Proof.
+ revert i. induction l; destruct i; cbn -[parity]; intros.
+ - simpl. ring.
+ - lia.
+ - simpl. ring.
+ - rewrite parity_S. rewrite IHl by lia. simpl.
+   erewrite Gbigmult_perm.
+   2:apply Permutation_map, insert_at_perm. simpl. ring.
+Qed.
+
+Lemma multdiffs_insert_at' c l i :
+ (i <= length l)%nat ->
+ G_big_mult (map (fun y => c-y) l) * multdiffs l
+ = multdiffs (insert_at i c l) * parity (i + length l).
+Proof.
+ intros. rewrite multdiffs_insert_at, multdiffs_eqn by trivial.
+ rewrite <- !Cmult_assoc. rewrite <- (Cmult_1_r (multdiffs l)) at 1.
+ f_equal. f_equal. rewrite !parity_pow, <- !Cpow_add_r, <-parity_pow.
+ replace (length l + _)%nat with (2*(length l + i))%nat by lia.
+ now rewrite parity_even.
+Qed.
+
+Lemma Re_Σ f n : Re (big_sum f n) = big_sum (fun i => Re (f i)) n.
+Proof.
+ induction n; cbn; trivial. now f_equal.
+Qed.
+
+Lemma is_lim_seq_Σ_0 (f:nat -> nat -> R) n :
+ (forall i, (i<n)%nat -> is_lim_seq (fun k => f k i) R0) ->
+ is_lim_seq (fun k => big_sum (f k) n) R0.
+Proof.
+ intros H. induction n; simpl.
+ - apply is_lim_seq_const.
+ - replace R0 with (0+0)%R by lra. apply is_lim_seq_plus'; auto.
+Qed.
+
+(** pows : n-th powers of the elements of a list *)
+
+Definition pows (l:list C) n := map (fun c => c^n) l.
+
+Lemma nth_pows i l p : (i < length l)%nat ->
+ nth i (pows l p) 0 = nth i l 0 ^p.
+Proof.
+ intros H.
+ rewrite <- map_nth with (f := fun c => c ^ p).
+ apply nth_indep. unfold pows; rewrite map_length; lia.
+Qed.
+
+Lemma get_row_mult n m p (A : Matrix n m) (B : Matrix m p) k :
+ Mmult (get_row A k) B == get_row (Mmult A B) k.
+Proof.
+ intros i j Hi Hj. unfold get_row, Mmult. case Nat.eqb_spec; auto; lia.
+Qed.
+
+Lemma get_row_mult_eq n m p (A : Matrix n m) (B : Matrix m p) k :
+ WF_Matrix A -> WF_Matrix B ->
+ Mmult (get_row A k) B = get_row (Mmult A B) k.
+Proof.
+ intros. apply mat_equiv_eq; auto using WF_get_row, WF_mult.
+ apply get_row_mult.
+Qed.
+
 Section Roots.
 Variable k : nat.
 Variable allroots : list C.
@@ -747,7 +795,7 @@ Qed.
 
 Lemma coefs0_LinComb p :
   (p <= k)%nat ->
-    scalprod coefs0 (mkvect _ (pows allroots p)) = if p =? k then 1 else 0.
+  scalprod coefs0 (mkvect _ (pows allroots p)) = if p =? k then 1 else 0.
 Proof.
  assert (len := SortedRoots_length _ _ allroots_ok).
  assert (VdmWF : WF_Matrix vdmroot) by apply WF_Vandermonde.
@@ -810,143 +858,6 @@ Proof.
        rewrite <- Nat.add_succ_l, !Cpow_add_r, R. lca.
 Qed.
 
-Definition coefB r := r / r^k /((S k)*r-k).
-
-Fixpoint remove_at {A} i (l:list A) :=
- match l, i with
- | [], _ => []
- | x::l, 0 => l
- | x::l, S i => x :: remove_at i l
- end.
-
-Lemma remove_at_nth {A} (l:list A) (d:A) i j :
- nth j (remove_at i l) d = if j <? i then nth j l d else nth (S j) l d.
-Proof.
- revert i j. induction l; destruct i, j; simpl; trivial.
- - now case Nat.ltb.
- - apply (IHl i j).
-Qed.
-
-Lemma remove_at_length {A} (l:list A) i :
-  (i < length l)%nat -> length (remove_at i l) = pred (length l).
-Proof.
- revert i. induction l; destruct i; simpl; intros; trivial. rewrite IHl; lia.
-Qed.
-
-Lemma get_minor_vandermonde n (l:list C) i : (i <= n)%nat ->
-  get_minor (Vandermonde (S n) l) n i = Vandermonde n (remove_at i l).
-Proof.
- intros Hi.
- apply mat_equiv_eq.
- - apply WF_get_minor, WF_Vandermonde; try lia.
- - apply WF_Vandermonde.
- - intros x y Hx Hy. unfold get_minor, Vandermonde. rewrite remove_at_nth.
-   repeat (case Nat.ltb_spec; try lia; simpl; trivial).
-Qed.
-
-Definition Plistsum (l : list Polynomial) := fold_right Pplus [] l.
-
-Lemma Plistsum_mult_r {A} (f:A->Polynomial) l p :
-  Plistsum (map f l) *, p ≅ Plistsum (map (fun x => f x *, p) l).
-Proof.
- induction l; simpl; trivial. easy.
- rewrite Pmult_plus_distr_r.
- apply Pplus_eq_compat. easy. apply IHl.
-Qed.
-
-Lemma Peval_Plistsum (l:list Polynomial) c :
-  Peval (Plistsum l) c = Clistsum (map (fun P => Peval P c) l).
-Proof.
- induction l; simpl; now rewrite ?Pplus_eval, ?IHl.
-Qed.
-
-Lemma Pdiff_linfactors l :
-  Pdiff (linfactors l) ≅
-  Plistsum (map (fun i => linfactors (remove_at i l)) (seq 0 (length l))).
-Proof.
- induction l; simpl.
- - apply (last_C0_Peq_front []).
- - rewrite Pdiff_mult. simpl. rewrite Cplus_0_r.
-   rewrite <- seq_shift, map_map. simpl.
-   rewrite Pplus_comm. apply Pplus_eq_compat.
-   + rewrite <- (Pmult_1_r (linfactors l)) at 2.
-     apply Pmult_eq_compat. easy. apply (last_C0_Peq_front [1]).
-   + rewrite IHl. apply Plistsum_mult_r.
-Qed.
-
-Lemma insert_at_remove_at {A} (l:list A) i (d:A) :
-  (i < length l)%nat ->
-  insert_at i (nth i l d) (remove_at i l) = l.
-Proof.
- revert i. induction l; destruct i; simpl; trivial; try lia.
- intros Hi. f_equal. apply IHl. lia.
-Qed.
-
-Lemma insert_at_perm {A} (l:list A) i x :
-  Permutation (insert_at i x l) (x::l).
-Proof.
- revert i. induction l; destruct i; simpl; try easy.
- rewrite perm_swap. now apply perm_skip.
-Qed.
-
-Lemma Gbigmult_factor_r l c :
-  G_big_mult (map (fun x => x * c) l) = G_big_mult l * c ^ length l.
-Proof.
- induction l; simpl; rewrite ?IHl; ring.
-Qed.
-
-Lemma Gbigmult_perm l l' : Permutation l l' -> G_big_mult l = G_big_mult l'.
-Proof.
- induction 1; simpl; ring || congruence.
-Qed.
-
-Lemma parity_pow n : parity n = (-1)^n.
-Proof.
- induction n; rewrite ?parity_S, ?IHn; simpl; ring.
-Qed.
-
-Lemma parity_even n : parity (2*n) = 1.
-Proof.
- induction n. easy.
- replace (2 * S n)%nat with (S (S (2 * n)))%nat by lia.
- rewrite !parity_S, IHn. ring.
-Qed.
-
-Lemma multdiffs_0 c l :
- G_big_mult (map (fun y => c-y) l) * multdiffs l
- = multdiffs (c :: l) * parity (length l).
-Proof.
- simpl. rewrite <- Cmult_assoc, (Cmult_comm (multdiffs l)), Cmult_assoc.
- f_equal. rewrite parity_pow.
- set (f := fun y => y-c). rewrite <- (map_length f l).
- rewrite <- Gbigmult_factor_r, map_map. f_equal. apply map_ext. intro a.
- unfold f. ring.
-Qed.
-
-Lemma multdiffs_insert_at c l i :
- (i <= length l)%nat ->
- multdiffs (insert_at i c l) = multdiffs (c :: l) * parity i.
-Proof.
- revert i. induction l; destruct i; cbn -[parity]; intros.
- - simpl. ring.
- - lia.
- - simpl. ring.
- - rewrite parity_S. rewrite IHl by lia. simpl.
-   erewrite Gbigmult_perm.
-   2:apply Permutation_map, insert_at_perm. simpl. ring.
-Qed.
-
-Lemma multdiffs_insert_at' c l i :
- (i <= length l)%nat ->
- G_big_mult (map (fun y => c-y) l) * multdiffs l
- = multdiffs (insert_at i c l) * parity (i + length l).
-Proof.
- intros. rewrite multdiffs_0, multdiffs_insert_at by trivial.
- rewrite !parity_pow, Cpow_add_r. rewrite Cmult_assoc. f_equal.
- rewrite <- Cmult_assoc, <- Cpow_add_r, <- parity_pow.
- replace (i+i)%nat with (2*i)%nat by lia. rewrite parity_even. ring.
-Qed.
-
 Lemma coefs0_eqn i :
  (i < S k)%nat ->
  let c := nth i allroots 0 in
@@ -971,20 +882,6 @@ Proof.
    eapply SortedRoots_nodup; eauto.
 Qed.
 
-Lemma Gbigmult_diffs c l :
- G_big_mult (map (fun y => c-y) l) = Peval (linfactors l) c.
-Proof.
- induction l.
- - simpl. unfold Peval. simpl. lca.
- - simpl. rewrite Pmult_eval, IHl, Cmult_comm. f_equal.
-   unfold Peval; simpl. lca.
-Qed.
-
-Lemma Clistsum_zero {A}(l:list A) : Clistsum (map (fun _ => 0) l) = 0.
-Proof.
- induction l; simpl; rewrite ?IHl; lca.
-Qed.
-
 Lemma ThePolyDiff_eqn i :
  (i < S k)%nat ->
  let c := nth i allroots 0 in
@@ -994,7 +891,7 @@ Proof.
  intros Hi c l.
  assert (len := SortedRoots_length _ _ allroots_ok).
  assert (len' : length l = k). { unfold l; rewrite remove_at_length; lia. }
- rewrite Gbigmult_diffs. symmetry.
+ rewrite <- Peval_linfactors. symmetry.
  destruct allroots_ok as (->,_).
  rewrite Pdiff_linfactors, len, Peval_Plistsum, map_map.
  set (f := fun x => _).
@@ -1002,8 +899,8 @@ Proof.
  rewrite seq_app. simpl seq. rewrite map_app, Clistsum_app. simpl.
  rewrite map_ext_in with (g:=fun _ => 0), Clistsum_zero.
  2:{ intros a. rewrite in_seq. intros Ha. unfold f.
-     rewrite <- Gbigmult_diffs.
-     apply G_big_mult_0. rewrite in_map_iff. exists c. split; try lca.
+     rewrite Peval_linfactors.
+     apply Gbigmult_0. rewrite in_map_iff. exists c. split; try lca.
      assert (Hc : c = nth (i-1) (remove_at a allroots) 0).
      { rewrite remove_at_nth.
        case Nat.ltb_spec; try lia; simpl; intros.
@@ -1012,24 +909,17 @@ Proof.
  rewrite map_ext_in with (g:=fun _ => 0), Clistsum_zero.
  unfold f. fold l. lca.
  { intros a. rewrite in_seq. intros Ha. unfold f.
-   rewrite <- Gbigmult_diffs.
-   apply G_big_mult_0. rewrite in_map_iff. exists c. split; try lca.
+   rewrite Peval_linfactors.
+   apply Gbigmult_0. rewrite in_map_iff. exists c. split; try lca.
    assert (Hc : c = nth i (remove_at a allroots) 0).
    { rewrite remove_at_nth.
      case Nat.ltb_spec; try lia; simpl; easy. }
    rewrite Hc. apply nth_In. rewrite remove_at_length, len; lia. }
 Qed.
 
-Lemma Cdiv_eq a b : a*b = 1 -> a = /b.
-Proof.
- intros E.
- assert (b<>0).
- { intros ->. rewrite Cmult_0_r in E. symmetry in E.
-   revert E. apply C1_neq_C0. }
- apply Cmult_eq_reg_r with b; trivial. rewrite E. field; trivial.
-Qed.
+Definition coefB r := r / r^k /((S k)*r-k).
 
-Lemma coefs0_alt i : coefs0 i O = coefB (nth i allroots 0).
+Lemma coefs0_coefB i : coefs0 i O = coefB (nth i allroots 0).
 Proof.
  assert (len := SortedRoots_length _ _ allroots_ok).
  set (r := nth i allroots 0).
@@ -1067,7 +957,7 @@ Proof.
        apply (root_non_kSk k). rewrite <- EQ'.
        rewrite <- SortedRoots_roots; eauto. apply nth_In. lia. }
    intros EQ.
-   apply Cdiv_eq.
+   apply Cinv_eq.
    rewrite <- EQ at 1. f_equal. rewrite Cmult_comm. f_equal.
    unfold Cminus. rewrite Cplus_comm. f_equal. f_equal.
    now rewrite S_INR, RtoC_plus.
@@ -1078,41 +968,31 @@ Proof.
    rewrite nth_overflow by lia. unfold Cdiv. now rewrite !Cmult_0_l.
 Qed.
 
-(* TODO to move *)
-Lemma big_sum_alt {A} (f : A -> C) (l:list A) (d:A) :
-  Clistsum (map f l) = big_sum (fun i => f (nth i l d)) (length l).
-Proof.
- induction l; trivial.
- simpl length. rewrite big_sum_shift. simpl. now f_equal.
-Qed.
-
 Lemma Equation_B n :
   RtoC (B k n) = Clistsum (map (fun r => coefB r * r^n) allroots).
 Proof.
  assert (len := SortedRoots_length _ _ allroots_ok).
  rewrite <- coefs0_LinCombB. rewrite scalprod_alt.
- rewrite big_sum_alt with (d:=0). rewrite len.
+ rewrite Clistsum_map with (d:=0). rewrite len.
  apply big_sum_eq_bounded. intros x Hx.
- rewrite mkvect_eqn, nth_pows, coefs0_alt; trivial. lia.
+ rewrite mkvect_eqn, nth_pows, coefs0_coefB; trivial. lia.
 Qed.
-
-End Roots.
 
 Definition coefA k r := r^(S k) / ((S k)*r-k).
 
-Lemma Equation_A k l :
-  SortedRoots k l ->
-  forall n, RtoC (A k n) = Clistsum (map (fun r => coefA k r * r^n) l).
+Lemma Equation_A n :
+  RtoC (A k n) = Clistsum (map (fun r => coefA k r * r^n) allroots).
 Proof.
- intros H n.
  erewrite A_B, Equation_B; eauto. f_equal. apply map_ext_in. intros r R.
  rewrite Cpow_add_r. unfold coefB, coefA.
  unfold Cdiv.
  rewrite !(Cmult_comm (_*/(_-_))), !Cmult_assoc. f_equal.
  replace (2*k)%nat with (k+k)%nat by lia. rewrite Cpow_add_r, Cpow_S.
- field. apply Cpow_nz. apply (SortedRoots_roots k l H) in R. intros ->.
- revert R. apply root_nz.
+ field. apply Cpow_nz. eapply SortedRoots_roots in R; eauto.
+ intros ->. now apply root_nz in R.
 Qed.
+
+End Roots.
 
 Definition coef_mu k : R := (mu k ^(S k) / ((S k)*mu k -k))%R.
 
@@ -1136,7 +1016,7 @@ Proof.
  set (root := fun i => nth i allroots 0).
  set (coef := fun i => coefA k (root i)).
  assert (E' : forall n, big_sum (fun i => coef i * root i ^n) (S k) = A k n).
- { intros n. now rewrite E, big_sum_alt with (d:=0), allroots_len. }
+ { intros n. now rewrite E, Clistsum_map with (d:=0), allroots_len. }
  clear E.
  set (rest := (fun n i => Re (coef (S i) * (root (S i))^n) / mu k^n)%R).
  apply is_lim_seq_ext with (u := (fun n => coef_mu k + big_sum (rest n) k)%R).
