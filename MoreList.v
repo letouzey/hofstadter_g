@@ -344,7 +344,7 @@ Proof.
  split; apply Permutation_in; auto using Permutation_sym, insert_permut.
 Qed.
 
-Lemma nth_insert {A} n k x (l:list A) d : n <= length l ->
+Lemma nth_insert_at {A} n k x (l:list A) d : n <= length l ->
  nth k (insert_at n x l) d =
  match Nat.compare k n with
  | Lt => nth k l d

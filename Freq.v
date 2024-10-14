@@ -24,10 +24,13 @@ Qed.
    proved to be a real number. More details in [ThePoly.v] *)
 
 Definition A_div_pow_mu_limit :
- forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim
- := ThePoly.A_div_pow_mu_limit.
+ forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim.
+Proof.
+ intros k. exists (ThePoly.coef_mu k). apply ThePoly.A_div_pow_mu_limit.
+Qed.
 
-(* Let's now prove this limit to be >= 1 *)
+(* Let's now prove this limit to be >= 1
+   TODO: now we could also prove it directly on the expression coef_mu *)
 
 Lemma mu_ineq k n : (n <= k)%nat -> mu k ^ n * (mu k - 1) <= 1.
 Proof.

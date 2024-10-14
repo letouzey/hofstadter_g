@@ -232,22 +232,24 @@ Proof.
  intuition.
 Qed.
 
-(* TODO: ThePoly.v will soon have expressions of coefs a b c d in terms of
-   roots μ ν α αbar *)
-Lemma A3_eqn_exists :
- exists (a b c d:C),
+Lemma A3_eqn :
+ let a := coefA 3 μ in
+ let b := coefA 3 α in
+ let c := coefA 3 αbar in
+ let d := coefA 3 ν in
  forall n, RtoC (A 3 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
 Proof.
- destruct (coefs_LinCombA 3 roots3 roots3_SortedRoots) as (v & H).
- exists (v O O)%nat, (v 1 O)%nat, (v 2 O)%nat, (v 3 O)%nat.
- intros n. rewrite <- H. unfold roots3. simpl.
- rewrite scalprod_alt. cbn -[nu]. now rewrite Cplus_0_l.
+ intros a b c d n.
+ rewrite (Equation_A 3 roots3 roots3_SortedRoots). unfold roots3.
+ simpl. fold a b c d. ring.
 Qed.
 
-(** Note about A3_eqn_exists : if someday precise estimates of coefficients
-    a b c d are needed, they can be obtained by inversing the Vandermonde
-    matrix of roots3. And if we just need that a is real and >=1, then
-    see Freq.A_gt_mu_pow. Interestingly, these coefficients are also roots
+(** Note about A3_eqn :
+    coefficients a b c d are obtained by inversing the Vandermonde
+    matrix of roots3. Fortunately, they also have simple expressions
+    in terms of μ α αbar ν respectively.
+    For showing that a is real and >=1, see Freq.A_gt_mu_pow.
+    Interestingly, these coefficients are also roots
     of [X^4-X^3-(162/283)*X^2-(24/283)*X-1/283] (not proved here). *)
 
 (** ** Occurrences of letters in morphic word [Words.kseq 3]
