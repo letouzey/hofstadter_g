@@ -23,14 +23,13 @@ Qed.
    Hence [A k n / mu k ^ n] has a finite limit, and this limit can be
    proved to be a real number. More details in [ThePoly.v] *)
 
-Definition A_div_pow_mu_limit :
- forall k, exists lim:R, is_lim_seq (fun n => A k n / mu k ^n) lim.
+Definition A_div_pow_mu_limit k :
+ is_lim_seq (fun n => A k n / mu k ^n) (ThePoly.coef_mu k).
 Proof.
- intros k. exists (ThePoly.coef_mu k). apply ThePoly.A_div_pow_mu_limit.
+ apply ThePoly.A_div_pow_mu_limit.
 Qed.
 
-(* Let's now prove this limit to be >= 1
-   TODO: now we could also prove it directly on the expression coef_mu *)
+(* Let's now prove this limit to be >= 1 *)
 
 Lemma mu_ineq k n : (n <= k)%nat -> mu k ^ n * (mu k - 1) <= 1.
 Proof.
@@ -62,15 +61,11 @@ Proof.
    rewrite plus_INR. apply Rplus_le_compat; apply IH; lia.
 Qed.
 
-Lemma A_div_pow_mu_gt1 :
- forall k, exists lim:R,
-  1 <= lim /\ is_lim_seq (fun n => A k n / mu k ^n) lim.
+Lemma coef_mu_gt1 k : 1 <= coef_mu k.
 Proof.
- intros k. destruct (A_div_pow_mu_limit k) as (lim,Hlim).
- exists lim; split; trivial.
- change (Rbar.Rbar_le 1 lim).
+ change (Rbar.Rbar_le 1 (coef_mu k)).
  apply is_lim_seq_le with (u:=fun _ => 1) (v:=fun n => A k n/mu k^n);
-  trivial; try apply is_lim_seq_const.
+  try apply is_lim_seq_const; try apply A_div_pow_mu_limit.
  intros. apply Rcomplements.Rle_div_r.
  - apply pow_lt. generalize (mu_itvl k). lra.
  - rewrite Rmult_1_l. apply A_gt_mu_pow.
@@ -80,19 +75,20 @@ Qed.
 
 Lemma A_ratio k : is_lim_seq (fun n => A k (S n) / A k n) (mu k).
 Proof.
- destruct (A_div_pow_mu_gt1 k) as (lim & GT & Hlim).
  apply is_lim_seq_ext with
   (fun n => mu k * ((A k (S n) / mu k^(S n)) / (A k n / mu k^n))).
  { intros n. simpl pow. field; repeat split.
    - generalize (A_pos k n). lra.
    - generalize (pow_lt (mu k) n) (mu_itvl k). lra.
    - generalize (mu_itvl k). lra. }
- replace (mu k) with (mu k * (lim / lim)) at 1 by (field; lra).
+ set (lim := coef_mu k).
+ assert (Hlim : lim <> 0). { unfold lim. generalize (coef_mu_gt1 k); lra. }
+ replace (mu k) with (mu k * (lim / lim)) at 1 by now field.
  change (Rbar.Finite (mu k * (lim / lim))) with
   (Rbar.Rbar_mult (mu k) (lim/lim)).
+ assert (H := A_div_pow_mu_limit k). fold lim in H.
  apply is_lim_seq_scal_l.
- apply is_lim_seq_div'; trivial; try lra.
- now apply is_lim_seq_incr_1 in Hlim.
+ apply is_lim_seq_div'; trivial. now apply is_lim_seq_incr_1 in H.
 Qed.
 
 Lemma ratio_iter f (r:R) :

@@ -994,6 +994,40 @@ Qed.
 
 End Roots.
 
+Lemma coefB_nz k r : Root r (ThePoly k) -> coefB k r <> 0.
+Proof.
+ unfold coefB. intros R. unfold Cdiv. intros E.
+ rewrite <- Cmult_assoc in E. apply Cmult_integral in E.
+ destruct E as [->|E]. now apply root_nz in R.
+ apply Cmult_integral in E. destruct E as [E|E].
+ - apply C1_neq_C0.
+   rewrite <- (Cinv_l (r^k)), E. lca. apply Cpow_nz. intros ->.
+   now apply root_nz in R.
+ - apply C1_neq_C0.
+   rewrite <- (Cinv_l ((S k)*r-k)), E. lca.
+   intros E'. apply Cminus_eq_0 in E'.
+   assert (RtoC (S k) <> 0)%C.
+   { intros EQ. apply RtoC_inj in EQ. now apply RSnz in EQ. }
+   replace r with (k/S k) in R.
+   2:{ apply Cmult_eq_reg_l with (RtoC (S k)); trivial.
+       rewrite E'. now field. }
+   now apply root_non_kSk in R.
+Qed.
+
+Lemma coefA_nz k r : Root r (ThePoly k) -> coefA k r <> 0.
+Proof.
+ intros R.
+ unfold coefA. replace (r^S k)%C with (r^(2*k)*r/r^k).
+ 2:{ replace (2*k)%nat with (k+k)%nat by lia.
+     rewrite Cpow_add. simpl. field. apply Cpow_nz.
+     intros ->. now apply root_nz in R. }
+ unfold Cdiv. rewrite <- !Cmult_assoc, (Cmult_assoc r).
+ change (r^(2*k)*coefB k r <> 0). intros E. apply Cmult_integral in E.
+ destruct E as [E|E].
+ - apply Cpow_nz in E; trivial. intros ->. now apply root_nz in R.
+ - revert E. now apply coefB_nz.
+Qed.
+
 Definition coef_mu k : R := (mu k ^(S k) / ((S k)*mu k -k))%R.
 
 Lemma coef_mu_ok k : RtoC (coef_mu k) = coefA k (mu k).
