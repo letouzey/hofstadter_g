@@ -471,3 +471,83 @@ Proof.
    rewrite <-(pow1 n).
    apply pow_maj_Rabs. rewrite Rabs_right; lra.
 Qed.
+
+(** Some trigonometry : [fun n => |cos(a*n+b)|] stays apart from 0
+    frequently enough when [sin(a)<>0]. *)
+
+Lemma coslin_apart_zero (a b : R) : sin a <> 0 ->
+ exists c:posreal,
+   forall N, exists n, (N<=n)%nat /\ c < Rabs (cos (a * n + b)).
+Proof.
+intros Ha.
+set (f := fun n => Rabs (cos (a*n+b))).
+set (ZeroOne := fun x => 0<=x<=1).
+assert (CZO : compact ZeroOne) by apply compact_P3.
+destruct (Bolzano_Weierstrass f ZeroOne CZO) as (lim,Hlim).
+{ unfold ZeroOne, f. intros. split. apply Rabs_pos.
+  apply Rabs_le, COS_bound. }
+assert (0 <= lim).
+{ apply Rnot_lt_le. intros LT.
+  destruct (Hlim (fun x => x<0) O) as (p & Hp & LT').
+  - assert (LT' : 0 < (-lim/2)) by lra.
+    exists (mkposreal (-lim/2) LT').
+    intros x X. unfold disc in X. simpl in X.
+    apply Rabs_def2 in X. lra.
+  - revert LT'. apply Rle_not_lt, Rabs_pos. }
+destruct (Req_dec lim 0) as [->|NZ].
+- assert (LT : 0 < Rabs (sin a)/2).
+  { generalize (Rabs_pos_lt (sin a)). lra. }
+  exists (mkposreal (Rabs(sin a)/2) LT). intros N.
+  destruct (Req_dec (cos a) 0) as [Ha'|Ha'].
+  + destruct (Hlim (fun x => x < 1/2) N) as (n & Hn & LT').
+    * assert (LT' : 0 < 1/2) by lra.
+      exists (mkposreal (1/2) LT').
+      intros x X. unfold disc in X. simpl in X.
+      apply Rabs_def2 in X. lra.
+    * exists (S n). split. lia. rewrite S_INR. simpl.
+      replace (a*(n+1)+b) with (a+(a*n+b)) by lra.
+      rewrite cos_plus, Ha', Rmult_0_l, Rabs_minus_sym, Rminus_0_r.
+      rewrite Rabs_mult. unfold f in LT'.
+      replace (1/2) with (Rabs (1/2)) in LT' by (rewrite Rabs_right; lra).
+      apply Rsqr_lt_abs_1 in LT'.
+      rewrite cos2 in LT'.
+      assert (LT2 : (1/2)² < (sin(a*n+b))²)  by (unfold Rsqr in *; lra).
+      apply Rsqr_lt_abs_0 in LT2. rewrite Rabs_right in LT2 by lra. nra.
+  + set (c := Rmin (1/2) (Rabs (sin a)/Rabs (cos a)/4)).
+    assert (LT' : 0 < c).
+    { apply Rmin_glb_lt. lra.
+      do 2 (apply Rdiv_lt_0_compat; try lra). now apply Rabs_pos_lt. }
+    destruct (Hlim (fun x => x < c) N) as (n & Hn & LTn).
+    * exists (mkposreal c LT').
+      intros x X. unfold disc in X. simpl in X.
+      apply Rabs_def2 in X. lra.
+    * exists (S n). split. lia. rewrite S_INR. simpl.
+      replace (a*(n+1)+b) with (a+(a*n+b)) by lra.
+      rewrite cos_plus, Rabs_minus_sym.
+      eapply Rlt_le_trans; [|apply Rabs_triang_inv].
+      rewrite !Rabs_mult. fold (f n).
+      assert (LT2 : Rabs (sin (a * n + b)) > 3/4).
+      { replace (3/4) with (Rabs (3/4)) by (rewrite Rabs_right; lra).
+        apply Rsqr_lt_abs_0.
+        rewrite sin2.
+        assert (LTn' : f n < Rabs (1/2)).
+        { rewrite Rabs_right by lra. apply Rlt_le_trans with c; trivial.
+          unfold c. apply Rmin_l. }
+        apply Rsqr_lt_abs_1 in LTn'. unfold Rsqr in *; lra. }
+      assert (Rabs (cos a) * f n < Rabs (sin a)/4).
+      { apply Rlt_le_trans with (Rabs (cos a) * c).
+        apply Rmult_lt_compat_l; trivial. now apply Rabs_pos_lt.
+        apply Rle_trans with
+            (Rabs (cos a) * (Rabs (sin a) / Rabs (cos a)/4)).
+        apply Rmult_le_compat_l. apply Rabs_pos. apply Rmin_r.
+        field_simplify. apply Rle_refl. now apply Rabs_no_R0. }
+      nra.
+- assert (LT : 0 < lim/2) by lra.
+  exists (mkposreal (lim/2) LT).
+  intros N. simpl.
+  destruct (Hlim (fun x => lim/2 < x) N) as (n & Hn & LT').
+  + exists (mkposreal (lim/2) LT).
+    intros x X. unfold disc in X. simpl in X.
+    apply Rabs_def2 in X. lra.
+  + now exists n.
+Qed.

@@ -1183,3 +1183,32 @@ Qed.
     We will propably *not* certify this in Coq for the moment,
     and rather use an axiom.
 *)
+
+(*
+Lemma dA_expo k allroots : (6<=k)%nat -> SortedRoots k allroots ->
+ let r := nth 1 allroots 0 in
+ exists c : posreal,
+ forall N, exists n, (N<=n)%nat /\
+    c * (Cmod r)^n < Rabs (A k (n-1) - tau k * A k n).
+Proof.
+ intros K allroots_ok r.
+ assert (len := SortedRoots_length _ _ allroots_ok).
+ assert (forall n, Rabs (A k (n - 1) - tau k * A k n)
+          = Cmod (Clistsum (map (fun r : C => coefdA k r * r ^ n) (tl allroots)))).
+ { intros n. rewrite <- Cmod_R, (Equation_dA k _ allroots_ok); trivial.
+   lia. }
+ destruct (second_best_root k _ ltac:(lia) allroots_ok) as (E & LT).
+ fold r in E, LT.
+ set (r' := nth 3 allroots 0) in *.
+ assert (E' : tl allroots = r :: Cconj r :: skipn 3 allroots).
+ { rewrite <- E.
+   now do 3 (destruct allroots; simpl in *; try lia). }
+ rewrite E' in H. cbn -[skipn] in H.
+(* TO BE CONTINUED *)
+
+(*
+Lemma coslin_apart_zero (a b : R) : sin a <> 0 ->
+ exists c:posreal,
+   forall N, exists n, (N<=n)%nat /\ c < Rabs (cos (a * n + b)).
+*)
+*)
