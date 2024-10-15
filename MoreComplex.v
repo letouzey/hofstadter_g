@@ -302,16 +302,18 @@ Proof.
  rewrite <- RE. destruct c. simpl in *. now rewrite IM.
 Qed.
 
+Local Close Scope R.
+
 (* Sums of (list C). *)
 
-Definition Clistsum l := List.fold_right Cplus 0%C l.
+Definition Clistsum l := List.fold_right Cplus 0 l.
 
 Lemma Clistsum_cons x l : Clistsum (x::l) = (x + Clistsum l)%C.
 Proof.
  reflexivity.
 Qed.
 
-Lemma Clistsum_app l l' : Clistsum (l++l') = (Clistsum l + Clistsum l')%C.
+Lemma Clistsum_app l l' : Clistsum (l++l') = Clistsum l + Clistsum l'.
 Proof.
  induction l; simpl; rewrite ?IHl; ring.
 Qed.
@@ -328,34 +330,46 @@ Proof.
  simpl length. rewrite big_sum_shift. simpl. now f_equal.
 Qed.
 
+Lemma Clistsum_factor_l c l : c * Clistsum l = Clistsum (map (Cmult c) l).
+Proof.
+ induction l; simpl; trivial. lca. rewrite <- IHl. lca.
+Qed.
+
+Lemma Clistsum_minus {A} (f g : A->C) l :
+ Clistsum (map f l) - Clistsum (map g l) =
+ Clistsum (map (fun x => f x - g x) l).
+Proof.
+ induction l; simpl; trivial. lca. rewrite <- IHl. lca.
+Qed.
+
 Definition Cpoly x l := Clistsum (List.map (Cpow x) l).
 
-Lemma Cpoly_cons x n l : Cpoly x (n::l) = (x^n + Cpoly x l)%C.
+Lemma Cpoly_cons x n l : Cpoly x (n::l) = x^n + Cpoly x l.
 Proof.
  easy.
 Qed.
 
-Lemma Cpoly_app x l l' : Cpoly x (l++l') = (Cpoly x l + Cpoly x l')%C.
+Lemma Cpoly_app x l l' : Cpoly x (l++l') = Cpoly x l + Cpoly x l'.
 Proof.
  unfold Cpoly. now rewrite map_app, Clistsum_app.
 Qed.
 
 Lemma Clistsum_pow_factor c p l :
- Clistsum (List.map (fun n => c^(p+n))%C l) = (c^p * Cpoly c l)%C.
+ Clistsum (List.map (fun n => c^(p+n))%C l) = c^p * Cpoly c l.
 Proof.
  induction l; cbn -[Cpow].
  - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum. rewrite IHl.
+ - change (List.fold_right Cplus 0) with Clistsum. rewrite IHl.
    fold (Cpoly c l). rewrite Cpow_add_r. ring.
 Qed.
 
 Lemma Cpoly_factor_above c p l :
  (forall n, List.In n l -> p <= n)%nat ->
- Cpoly c l = (c^p * Cpoly c (List.map (decr p) l))%C.
+ Cpoly c l = c^p * Cpoly c (List.map (decr p) l).
 Proof.
  induction l as [|a l IH]; cbn -[Cpow]; intros Hl.
  - ring.
- - change (List.fold_right Cplus 0)%C with Clistsum.
+ - change (List.fold_right Cplus 0) with Clistsum.
    fold (Cpoly c l). fold (Cpoly c (map (decr p) l)).
    rewrite IH by intuition.
    replace a with ((a-p)+p)%nat at 1 by (specialize (Hl a); lia).
@@ -372,7 +386,7 @@ Proof.
 Qed.
 
 Lemma Gbigmult_factor_r l c :
-  G_big_mult (map (fun x => x * c) l)%C = (G_big_mult l * c ^ length l)%C.
+  G_big_mult (map (fun x => x * c) l) = G_big_mult l * c ^ length l.
 Proof.
  induction l; simpl; rewrite ?IHl; ring.
 Qed.
@@ -386,7 +400,6 @@ Qed.
 
 Definition Clt c c' := (Re c < Re c' \/ (Re c = Re c' /\ Im c < Im c'))%R.
 Definition Cgt := flip Clt.
-
 
 Local Instance Clt_order : StrictOrder Clt.
 Proof.

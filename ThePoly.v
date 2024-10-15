@@ -978,10 +978,10 @@ Proof.
  rewrite mkvect_eqn, nth_pows, coefs0_coefB; trivial. lia.
 Qed.
 
-Definition coefA k r := r^(S k) / ((S k)*r-k).
+Definition coefA r := r^(S k) / ((S k)*r-k).
 
 Lemma Equation_A n :
-  RtoC (A k n) = Clistsum (map (fun r => coefA k r * r^n) allroots).
+  RtoC (A k n) = Clistsum (map (fun r => coefA r * r^n) allroots).
 Proof.
  erewrite A_B, Equation_B; eauto. f_equal. apply map_ext_in. intros r R.
  rewrite Cpow_add_r. unfold coefB, coefA.
@@ -990,6 +990,73 @@ Proof.
  replace (2*k)%nat with (k+k)%nat by lia. rewrite Cpow_add_r, Cpow_S.
  field. apply Cpow_nz. eapply SortedRoots_roots in R; eauto.
  intros ->. now apply root_nz in R.
+Qed.
+
+Definition coefdA r := coefA r * (/r - tau k).
+
+Lemma coefdA_mu : coefdA (mu k) = 0.
+Proof.
+ unfold coefdA, tau. rewrite RtoC_inv. ring.
+ generalize (mu_itvl k). lra.
+Qed.
+
+Lemma coefdA_sum : k<>O -> Clistsum (map coefdA allroots) = 1-tau k.
+Proof.
+ intros K.
+ rewrite map_ext with (g := fun r => coefA r * /r - tau k * coefA r).
+ 2:{ intros a. unfold coefdA. ring. }
+ rewrite <- Clistsum_minus. f_equal.
+ - rewrite map_ext_in with (g := fun x => coefB x * x ^ (2*k-1)).
+   + rewrite <- Equation_B. rewrite B_one. lca. lia.
+   + intros r R. unfold coefA, coefB.
+     replace (2*k-1)%nat with (k-1+k)%nat by lia. rewrite Cpow_add_r.
+     replace (S k) with (S (S (k-1))) at 1 by lia. rewrite !Cpow_S. field.
+     assert (r<>0).
+     { eapply SortedRoots_roots in R; eauto. intros ->.
+       now apply root_nz in R. }
+     split. now apply Cpow_nz. split; trivial.
+     intros E. apply Cminus_eq_0 in E.
+     assert (RtoC (S k) <> 0)%C.
+     { intros EQ. apply RtoC_inj in EQ. now apply RSnz in EQ. }
+     eapply SortedRoots_roots in R; eauto.
+     replace r with (k/S k) in R.
+     2:{ apply Cmult_eq_reg_l with (RtoC (S k)); trivial.
+         rewrite E. now field. }
+     now apply root_non_kSk in R.
+ - rewrite map_ext with
+     (g := Basics.compose (Cmult (tau k)) (fun x => coefA x * x^0)).
+   2:{ intros. unfold Basics.compose. simpl. lca. }
+   rewrite <- map_map with (g:=Cmult (tau k)) (f:=fun x => coefA x * x^0).
+   rewrite <- Clistsum_factor_l. rewrite <- Equation_A. simpl. lca.
+Qed.
+
+Lemma Equation_dA n :
+  k<>O ->
+  RtoC (A k (n-1) - tau k * A k n) =
+  Clistsum (map (fun r => coefdA r * r^n) (tl allroots)).
+Proof.
+ intros K.
+ assert (E : allroots = RtoC (mu k) :: tl allroots).
+ { assert (len := SortedRoots_length _ _ allroots_ok).
+   destruct allroots; simpl in *; try easy. f_equal.
+   now apply SortedRoots_mu in allroots_ok. }
+ destruct (Nat.eq_dec n 0) as [->|N].
+ - simpl. rewrite Rmult_1_r, RtoC_minus, <- coefdA_sum; trivial.
+   rewrite E at 1. simpl. rewrite coefdA_mu, Cplus_0_l.
+   f_equal. apply map_ext. intros. lca.
+ - rewrite RtoC_minus, RtoC_mult, !Equation_A.
+   rewrite Clistsum_factor_l, map_map, Clistsum_minus.
+   rewrite E at 1. simpl.
+   replace n with (S (n-1)) at 2 by lia. simpl.
+   unfold tau at 1.
+   assert (mu k <> R0) by (generalize (mu_itvl k); lra).
+   rewrite RtoC_inv by trivial.
+   field_simplify. 2:{ intro E'. apply RtoC_inj in E'. lra. }
+   f_equal. apply map_ext_in. intros r R. unfold coefdA.
+   replace n with (S (n-1)) at 2 3 by lia. simpl.
+   field. intros ->. apply (root_nz k).
+   rewrite <- (SortedRoots_roots k allroots allroots_ok).
+   destruct allroots; simpl in *; try easy. now right.
 Qed.
 
 End Roots.
@@ -1026,6 +1093,17 @@ Proof.
  destruct E as [E|E].
  - apply Cpow_nz in E; trivial. intros ->. now apply root_nz in R.
  - revert E. now apply coefB_nz.
+Qed.
+
+Lemma coefdA_nz k r : Root r (ThePoly k) -> r <> mu k -> coefdA k r <> 0.
+Proof.
+ intros R R'. unfold coefdA. intros E. apply Cmult_integral in E.
+ destruct E as [E|E]. apply (coefA_nz k r R E).
+ assert (M : mu k <> R0) by (generalize (mu_itvl k); lra).
+ assert (N : r <> 0). { intros ->. now apply root_nz in R. }
+ apply Cminus_eq_0 in E. unfold tau in E. rewrite RtoC_inv in E; trivial.
+ apply R'. rewrite <- (Cinv_inv r), E, Cinv_inv; trivial.
+ intros E'. now apply RtoC_inj in E'.
 Qed.
 
 Definition coef_mu k : R := (mu k ^(S k) / ((S k)*mu k -k))%R.
