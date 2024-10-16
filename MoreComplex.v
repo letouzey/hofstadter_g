@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation RelationClasses Sorted.
 From Coquelicot Require Complex.
-From QuantumLib Require Import Complex.
-Require Import MoreList.
+From QuantumLib Require Import Complex Polar.
+Require Import MoreList MoreReals.
 
 Module CC := Coquelicot.Complex.
 
@@ -79,6 +79,9 @@ Proof. apply CC.Cmod2_conj. Qed.
 
 Lemma re_alt (c:C) : RtoC (Re c) = (c + Cconj c)/2.
 Proof. apply CC.re_alt. Qed.
+
+Lemma re_alt' (c:C) : c + Cconj c = 2*Re c.
+Proof. rewrite re_alt. field. Qed.
 
 Lemma im_alt (c:C) : RtoC (Im c) = (c - Cconj c)/(2*Ci).
 Proof. apply CC.im_alt. Qed.
@@ -264,6 +267,13 @@ Proof.
  apply Cmult_eq_reg_r with b; trivial. rewrite E. field; trivial.
 Qed.
 
+Lemma polar_eqn (c:C) : Cmod c * Cexp (Polar.get_arg c) = c.
+Proof.
+ destruct (Ceq_dec c 0) as [->|Hc].
+ - now rewrite Cmod_0, Cmult_0_l.
+ - now apply Polar.rect_to_polar_to_rect.
+Qed.
+
 Local Open Scope R.
 
 Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0.
@@ -281,6 +291,12 @@ Proof.
    f_equal. lra.
  - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. injection H.
    lra.
+Qed.
+
+Lemma Cmod_triangle' a b : Cmod a - Cmod b <= Cmod (a + b).
+Proof.
+ generalize (Cmod_triangle (a+b) (-b)). replace (a+b+-b)%C with a by lca.
+ rewrite Cmod_opp. lra.
 Qed.
 
 Lemma Cmod_triangle_exact (c:C) :
@@ -340,6 +356,13 @@ Lemma Clistsum_minus {A} (f g : A->C) l :
  Clistsum (map (fun x => f x - g x) l).
 Proof.
  induction l; simpl; trivial. lca. rewrite <- IHl. lca.
+Qed.
+
+Lemma Clistsum_mod l : (Cmod (Clistsum l) <= Rlistsum (map Cmod l))%R.
+Proof.
+ induction l; simpl.
+ - rewrite Cmod_0; lra.
+ - eapply Rle_trans; [apply Cmod_triangle|]. lra.
 Qed.
 
 Definition Cpoly x l := Clistsum (List.map (Cpow x) l).
@@ -524,3 +547,8 @@ Proof.
    replace m with (length l - S (length l - S m))%nat by lia.
    rewrite <- !rev_nth by lia. apply H. rewrite rev_length. lia.
 Qed.
+
+(** Short notation of nth element in a C list *)
+
+Definition Cnth l i := nth i l C0.
+Infix "$" := Cnth (at level 55) : C_scope.

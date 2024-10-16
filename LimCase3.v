@@ -130,9 +130,9 @@ Qed.
 Lemma αmod_lt : 0 < Cmod α < 1.
 Proof. approx. Qed.
 
-Definition roots3 := [RtoC μ; α; αbar; RtoC ν].
+Definition roots := [RtoC μ; α; αbar; RtoC ν].
 
-Lemma roots3_SortedRoots : SortedRoots 3 roots3.
+Lemma roots_sorted : SortedRoots 3 roots.
 Proof.
  split.
  2:{ do 3 constructor.
@@ -149,7 +149,7 @@ Proof.
  destruct (SortedRoots_im_pos 3 l Hl 0) as (LT',EQ); try lia.
  simpl in LT', EQ.
  destruct l as [|a [|b [|c [|d [|? l] ] ] ] ]; try (simpl; easy).
- simpl in *. subst. clear LN K. unfold roots3.
+ unfold Cnth in *; simpl in *. subst. clear LN K. unfold roots.
  assert (b = α); subst; try easy.
  destruct Hl as (E,CS).
  assert (E0 := coef_compat 0 _ _ E).
@@ -208,19 +208,19 @@ Qed.
 
 Lemma α_is_Croot : (α^4 = α^3 + 1)%C.
 Proof.
- rewrite <- ThePoly_root_carac. destruct roots3_SortedRoots as (->,_).
+ rewrite <- ThePoly_root_carac. destruct roots_sorted as (->,_).
  apply linfactors_roots. simpl. tauto.
 Qed.
 
 Lemma αbar_is_Croot : (αbar^4 = αbar^3 + 1)%C.
 Proof.
- rewrite <- ThePoly_root_carac. destruct roots3_SortedRoots as (->,_).
+ rewrite <- ThePoly_root_carac. destruct roots_sorted as (->,_).
  apply linfactors_roots. simpl. tauto.
 Qed.
 
-Lemma nodup_roots : NoDup roots3.
+Lemma nodup_roots : NoDup roots.
 Proof.
- apply (SortedRoots_nodup 3), roots3_SortedRoots.
+ apply (SortedRoots_nodup 3), roots_sorted.
 Qed.
 
 Lemma distinct_roots :
@@ -240,13 +240,13 @@ Lemma A3_eqn :
  forall n, RtoC (A 3 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
 Proof.
  intros a b c d n.
- rewrite (Equation_A 3 roots3 roots3_SortedRoots). unfold roots3.
+ rewrite (Equation_A 3 roots roots_sorted). unfold roots.
  simpl. fold a b c d. ring.
 Qed.
 
 (** Note about A3_eqn :
     coefficients a b c d are obtained by inversing the Vandermonde
-    matrix of roots3. Fortunately, they also have simple expressions
+    matrix of roots. Fortunately, they also have simple expressions
     in terms of μ α αbar ν respectively.
     For showing that a is real and >=1, see Freq.A_gt_mu_pow.
     Interestingly, these coefficients are also roots

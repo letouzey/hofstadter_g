@@ -425,8 +425,6 @@ Proof.
    rewrite Rdef_pow_add. unfold decr at 2. ring.
 Qed.
 
-
-
 Lemma sum_pow_cons k l n r :
   O<>k -> 0<=r<1 -> Delta k (n::l) ->
   Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
@@ -472,10 +470,34 @@ Proof.
    apply pow_maj_Rabs. rewrite Rabs_right; lra.
 Qed.
 
-(** Some trigonometry : [fun n => |cos(a*n+b)|] stays apart from 0
+Lemma large_enough_exponent (a b:R) :
+  0 < a < 1 -> 0 < b -> exists n:nat, a^n < b.
+Proof.
+ intros Ha Hb.
+ destruct (Rlt_or_le 1 b); [now exists O|].
+ assert (ln b <= 0).
+ { rewrite <- ln_1. apply Rcomplements.ln_le; lra. }
+ assert (ln a < 0).
+ { rewrite <- ln_1. now apply ln_increasing. }
+ exists (S (Z.to_nat (Int_part (ln b / ln a)))).
+ apply ln_lt_inv; trivial; try now apply pow_lt.
+ rewrite ln_pow; try easy.
+ replace (ln b) with (ln a * (ln b / ln a)) at 2.
+ 2:{ field. apply ln_neq_0; lra. }
+ rewrite (Rmult_comm _ (ln a)).
+ apply Rgt_lt, Rmult_lt_gt_compat_neg_l; trivial.
+ rewrite S_INR, INR_IZR_INZ, Z2Nat.id.
+ 2:{ apply int_part_le.
+     replace (ln b / ln a) with ((-ln b)/(-ln a)) by (field; lra).
+     apply Rcomplements.Rdiv_le_0_compat; lra. }
+ rewrite (int_frac (ln b / ln a)) at 1.
+ apply Rplus_lt_compat_l. apply base_fp.
+Qed.
+
+(** Some trigonometry : [fun n => |cos(a*n+b)|] is apart from 0
     frequently enough when [sin(a)<>0]. *)
 
-Lemma coslin_apart_zero (a b : R) : sin a <> 0 ->
+Lemma affine_cos_apart_zero (a b : R) : sin a <> 0 ->
  exists c:posreal,
    forall N, exists n, (N<=n)%nat /\ c < Rabs (cos (a * n + b)).
 Proof.

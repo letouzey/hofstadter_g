@@ -185,12 +185,12 @@ Proof.
  rewrite <- roots_sum, <- sigma2_nul. ring.
 Qed.
 
-Definition roots2 := [RtoC μ; α; αbar].
+Definition roots := [RtoC μ; α; αbar].
 
-Lemma roots2_sorted : SortedRoots 2 roots2.
+Lemma roots_sorted : SortedRoots 2 roots.
 Proof.
  split.
- - unfold roots2, ThePoly. simpl.
+ - unfold roots, ThePoly. simpl.
    rewrite !Cmult_1_l, !Cmult_1_r, !Cplus_0_l, !Cplus_0_r.
    replace (- αbar * - α * - μ)%C with (- (μ * α *αbar))%C by lca.
    replace (- αbar + - α + - μ)%C with (- (μ + α + αbar))%C by lca.
@@ -271,7 +271,7 @@ Proof.
  field_simplify. fold μ.
  rewrite Cconj_mult_distr, Cpow_conj. change (Cconj α) with αbar.
  rewrite <- coef_αbar_conj.
- rewrite (ThePoly.Equation_A 2 roots2 roots2_sorted). simpl.
+ rewrite (ThePoly.Equation_A 2 roots roots_sorted). simpl.
  fold coef_α coef_αbar. ring.
 Qed.
 
@@ -390,8 +390,8 @@ Proof.
   rewrite (Cmult_comm 2). unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
   rewrite !Cmult_assoc.
   change (coefB 2 μ = 2 * im_α / √ 31)%C.
-  change (RtoC μ) with (nth 0 roots2 0).
-  rewrite <- (coefs0_coefB 2 _ roots2_sorted).
+  change (RtoC μ) with (roots$0).
+  rewrite <- (coefs0_coefB 2 _ roots_sorted).
   apply Cmult_eq_reg_r with (Ci * RtoC (√31))%C.
   2:{ intros E. apply Cmult_integral in E. destruct E as [E|E].
       - injection E. lra.
@@ -401,8 +401,8 @@ Proof.
   change im_α with (Im α).
   rewrite <- im_alt'. rewrite <- Cmult_assoc, <- det_eqn.
   unfold det.
-  generalize (coefs0_eqn 2 _ roots2_sorted 0 ltac:(lia)).
-  simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->.
+  generalize (coefs0_eqn 2 _ roots_sorted 0 ltac:(lia)).
+  unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->.
   now rewrite Cmult_1_l.
 Qed.
 
@@ -416,14 +416,14 @@ Proof.
   unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
   rewrite !Cmult_assoc.
   change (coefB 2 α = (αbar - μ) * / det)%C.
-  change α with (nth 1 roots2 0).
-  rewrite <- (coefs0_coefB 2 _ roots2_sorted).
+  change α with (roots$1).
+  rewrite <- (coefs0_coefB 2 _ roots_sorted).
   apply Cmult_eq_reg_r with det. 2:apply det_nz.
   unfold Cdiv. rewrite <- Cmult_assoc. rewrite Cinv_l. 2:apply det_nz.
   rewrite Cmult_1_r.
   replace det with ((α-μ)*(α-αbar)*(αbar-μ))%C by (unfold det; ring).
-  generalize (coefs0_eqn 2 _ roots2_sorted 1 ltac:(lia)).
-  simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->. ring.
+  generalize (coefs0_eqn 2 _ roots_sorted 1 ltac:(lia)).
+  unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->. ring.
 Qed.
 
 Lemma coef_sum : (coef_μ+coef_α+coef_αbar = 1)%C.
