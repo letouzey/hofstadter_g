@@ -1217,7 +1217,7 @@ Proof.
  intros ->. now apply root_nz in R.
 Qed.
 
-Lemma dA_expo k roots : (6<=k)%nat -> SortedRoots k roots ->
+Lemma dA_expo k roots : (3<=k)%nat -> SortedRoots k roots ->
  let r := roots$1 in
  exists c : posreal,
  forall N, exists n, (N<=n)%nat /\
