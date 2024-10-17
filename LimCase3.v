@@ -10,9 +10,9 @@ Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 Local Set Printing Coercions.
 
-(** * Studying case k=3
+(** * Studying case q=3
 
-   We focus here on the case k=3, compute the complex roots of [X^4-X^3-1],
+   We focus here on the case q=3, compute the complex roots of [X^4-X^3-1],
    and express (A 3 n) in term of combinations of powers of these roots.
    Then we study the frequencies in [Words.kseq 3] and the behaviour of
    function [f 3].
@@ -252,7 +252,7 @@ Qed.
     Interestingly, these coefficients are also roots
     of [X^4-X^3-(162/283)*X^2-(24/283)*X-1/283] (not proved here). *)
 
-(** ** Occurrences of letters in morphic word [Words.kseq 3]
+(** ** Occurrences of letters in morphic word [Words.qseq 3]
 
     We will see below how this relates to function [f 3])
     and its iterates.
@@ -262,7 +262,7 @@ Qed.
     of a letter (if it exists) is the limit of frequencies for
     ever-growing finite prefixes of the infinite word.
 
-    Here for [Words.kseq 3], the frequencies of letters [0],[1],[2],[3]
+    Here for [Words.qseq 3], the frequencies of letters [0],[1],[2],[3]
     will be respectively [τ^4],[τ^5],[τ^6],[τ^3]
     (another numbering of letters would make that more uniform).
     For proving that and even more, we now consider the following
@@ -274,10 +274,10 @@ Definition Diff1 w := τ^5 * length w - nbocc 1 w.
 Definition Diff2 w := τ^6 * length w - nbocc 2 w.
 Definition Diff3 w := τ^3 * length w - nbocc 3 w.
 
-Definition diff0 n := Diff0 (take n (kseq 3)).
-Definition diff1 n := Diff1 (take n (kseq 3)).
-Definition diff2 n := Diff2 (take n (kseq 3)).
-Definition diff3 n := Diff3 (take n (kseq 3)).
+Definition diff0 n := Diff0 (take n (qseq 3)).
+Definition diff1 n := Diff1 (take n (qseq 3)).
+Definition diff2 n := Diff2 (take n (qseq 3)).
+Definition diff3 n := Diff3 (take n (qseq 3)).
 
 (** One of these differences can be deduced from the other three. *)
 
@@ -296,7 +296,7 @@ Lemma diff0123 n : diff0 n + diff1 n + diff2 n + diff3 n = 0.
 Proof.
  apply Diff0123.
  apply Forall_nth. intros i d. rewrite take_length. intros H.
- rewrite take_nth by trivial. apply kseq_letters.
+ rewrite take_nth by trivial. apply qseq_letters.
 Qed.
 
 (** Expressing diff0 and co in terms of
@@ -314,7 +314,7 @@ Lemma diff3_alt n : diff3 n = τ^3 * n - fs 3 3 n.
 Proof.
  unfold diff3, Diff3. rewrite take_length.
  rewrite <- count_nbocc.
- now rewrite fs_count_k.
+ now rewrite fs_count_q.
 Qed.
 
 Lemma diff1_alt n : diff1 n = τ^5 * n + fs 3 2 n - f 3 n.
@@ -334,29 +334,29 @@ Proof.
  rewrite <- count_nbocc.
  rewrite (fs_count_above 3 2) by lia.
  rewrite (fs_count_above 3 3) by lia.
- rewrite (count_above_S (kseq 3) 2).
+ rewrite (count_above_S (qseq 3) 2).
  rewrite plus_INR. lra.
 Qed.
 
-(** Equations giving Diff0 and co after a substitution [ksubst 3]. *)
+(** Equations giving Diff0 and co after a substitution [qsubst 3]. *)
 
-Lemma Diff0_ksubst3 w : Diff0 (ksubstw 3 w) = τ * Diff3 w.
+Lemma Diff0_ksubst3 w : Diff0 (qsubstw 3 w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
- rewrite len_ksubst, plus_INR.
- destruct (nbocc_ksubst3 w) as (-> & _ & _ & _).
+ rewrite len_qsubst, plus_INR.
+ destruct (nbocc_qsubst3 w) as (-> & _ & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
  rewrite τ4. lra.
 Qed.
 
 Lemma Diff3_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diff3 (ksubstw 3 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
+  Diff3 (qsubstw 3 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_ksubst.
- destruct (nbocc_ksubst3 w) as (_ & _ & _ & ->).
+ rewrite len_qsubst.
+ destruct (nbocc_qsubst3 w) as (_ & _ & _ & ->).
  rewrite !plus_INR.
  ring_simplify. rewrite τ6, τ5, τ4. ring_simplify.
  rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
@@ -364,12 +364,12 @@ Qed.
 
 Lemma Diff1_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diff1 (ksubstw 3 w) = - τ^5 * Diff3 w + Diff0 w.
+  Diff1 (qsubstw 3 w) = - τ^5 * Diff3 w + Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_ksubst.
- destruct (nbocc_ksubst3 w) as (_ & -> & _ & _).
+ rewrite len_qsubst.
+ destruct (nbocc_qsubst3 w) as (_ & -> & _ & _).
  rewrite !plus_INR.
  ring_simplify. replace (τ^8) with ((τ^4)^2) by ring.
  rewrite τ5, τ4. ring_simplify.
@@ -401,14 +401,14 @@ Qed.
 
 #[local] Hint Resolve WF_B WF_Diffs WF_diffs : wf_db.
 
-Lemma diffs_alt n : diffs n = Diffs (take n (kseq 3)).
+Lemma diffs_alt n : diffs n = Diffs (take n (qseq 3)).
 Proof.
  reflexivity.
 Qed.
 
 Lemma Diffs_ksubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
-  Diffs (ksubstw 3 w) = B × Diffs w.
+  Diffs (qsubstw 3 w) = B × Diffs w.
 Proof.
  intro.
  apply Vect3_eq; auto with wf_db;
@@ -435,8 +435,8 @@ Proof.
    cbn -[pow Cpow].
    rewrite Mmult_1_l by now apply WF_mkvectR.
    now rewrite !Rmult_1_r, !Rminus_0_r.
- - rewrite diffs_alt, kseq_take_A, kword_S, Diffs_ksubst3, IHn in *
-    by (apply kword_letters).
+ - rewrite diffs_alt, qseq_take_A, qword_S, Diffs_ksubst3, IHn in *
+    by (apply qword_letters).
    simpl. now rewrite Mmult_assoc.
 Qed.
 
@@ -745,11 +745,11 @@ Lemma diff0_decomp_eqn n :
                       (decomp 3 n)).
 Proof.
  unfold diff0.
- rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
+ rewrite decomp_prefix_qseq. unfold qwords. rewrite flat_map_concat_map.
  rewrite Diff0_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
- rewrite <- kseq_take_A. apply diff0_A3_powers.
+ rewrite <- qseq_take_A. apply diff0_A3_powers.
 Qed.
 
 Lemma diff0_decomp_eqn' n :

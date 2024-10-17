@@ -59,9 +59,9 @@ Definition dF k j n := ((F k)^^j) (n+1) - ((F k)^^j) n.
 
 Definition A k := GenFib.A (k-1).
 
-Definition subst_τ k w := map S (Words.ksubstw (k-1) (map Nat.pred w)).
+Definition subst_τ k w := map S (Words.qsubstw (k-1) (map Nat.pred w)).
 
-Definition word_x k n := S (Words.kseq (k-1) n).
+Definition word_x k n := S (Words.qseq (k-1) n).
 
 Definition L k := WordGrowth.L (k-1) 1.
 
@@ -99,32 +99,32 @@ Qed.
 Lemma subst_τ_k k : 0<k -> subst_τ k [k] = [k;1].
 Proof.
  intros K. unfold subst_τ. cbn. rewrite <- Nat.sub_1_r.
- rewrite Words.ksubst_k. cbn. f_equal; lia.
+ rewrite Words.qsubst_q. cbn. f_equal; lia.
 Qed.
 
 Lemma subst_τ_nk k i : 0<k -> 0<i<k -> subst_τ k [i] = [i+1].
 Proof.
  intros K I. unfold subst_τ. cbn. rewrite <- Nat.sub_1_r.
- unfold Words.ksubst. case Nat.eqb_spec; intros; try lia.
+ unfold Words.qsubst. case Nat.eqb_spec; intros; try lia.
  cbn. f_equal. lia.
 Qed.
 
-Lemma take_word_x k n : take n (word_x k) = map S (Words.kprefix (k-1) n).
+Lemma take_word_x k n : take n (word_x k) = map S (Words.qprefix (k-1) n).
 Proof.
  unfold word_x, take. now rewrite map_map.
 Qed.
 
 Lemma subst_τ_j_eqn k j w :
  Forall (lt 0) w ->
- (subst_τ k ^^j) w = map S (WordGrowth.knsub (k-1) j (map Nat.pred w)).
+ (subst_τ k ^^j) w = map S (WordGrowth.qnsub (k-1) j (map Nat.pred w)).
 Proof.
  intros Hw.
  induction j.
  - cbn. rewrite map_map. symmetry. erewrite map_ext_in. apply map_id.
    intros x Hx. rewrite Forall_forall in Hw. apply Hw in Hx. lia.
  - simpl. rewrite IHj. unfold subst_τ. rewrite map_map. cbn. rewrite map_id.
-   f_equal. unfold WordGrowth.knsub, Words.ksubstw.
-   set (sub := Words.ksubst (k-1)).
+   f_equal. unfold WordGrowth.qnsub, Words.qsubstw.
+   set (sub := Words.qsubst (k-1)).
    change (Words.apply sub) with (Words.napply sub 1).
    rewrite <- !Words.napply_add. f_equal. lia.
 Qed.
@@ -152,7 +152,7 @@ Qed.
 
 Lemma word_x_0 k : 0<k -> word_x k 0 = k.
 Proof.
- intros K. unfold word_x. rewrite Words.kseq_k_0. lia.
+ intros K. unfold word_x. rewrite Words.qseq_q_0. lia.
 Qed.
 
 Lemma word_x_subst k j n :
@@ -161,7 +161,7 @@ Proof.
  rewrite subst_τ_j_eqn, !take_word_x, L_iter.
  2:{ apply Forall_forall. intros x. rewrite take_word_x, in_map_iff.
      intros (y & <- & _). lia. }
- f_equal. rewrite map_map, map_id. apply WordGrowth.knsub_kprefix.
+ f_equal. rewrite map_map, map_id. apply WordGrowth.qnsub_qprefix.
 Qed.
 
 (** Particular cases:
@@ -187,7 +187,7 @@ Qed.
 
 Lemma word_x_letters k n : 0<k -> 1 <= word_x k n <= k.
 Proof.
- unfold word_x. generalize (Words.kseq_letters (k-1) n). lia.
+ unfold word_x. generalize (Words.qseq_letters (k-1) n). lia.
 Qed.
 
 (** Properties stated in the article *)
@@ -294,7 +294,7 @@ Lemma subst_τ_k_km1 k i : 1 <= i <= k ->
 Proof.
  intros Hi.
  rewrite subst_τ_j_eqn. 2:repeat constructor; lia.
- simpl. rewrite WordGrowth.knsub_k_alt, Words.kword_low by lia.
+ simpl. rewrite WordGrowth.qnsub_q_alt, Words.qword_low by lia.
  simpl. f_equal; try lia. rewrite seq_shift. f_equal; lia.
 Qed.
 
@@ -304,7 +304,7 @@ Proof.
  intros Hi.
  rewrite subst_τ_j_eqn. 2:repeat constructor; lia.
  simpl. replace k with (S (k-1)) at 2 by lia.
- rewrite WordGrowth.knsub_Sk_alt, Words.kword_low by lia.
+ rewrite WordGrowth.qnsub_Sq_alt, Words.qword_low by lia.
  simpl. f_equal; try lia. rewrite seq_shift.
  now replace i with (S (Nat.pred i)) at 2 by lia.
 Qed.
@@ -312,17 +312,17 @@ Qed.
 (** Prop 2.2 *)
 
 Lemma subst_τ_j_k_alt k j : 0<k ->
-  (subst_τ k ^^j) [k] = map S (Words.kword (k-1) j).
+  (subst_τ k ^^j) [k] = map S (Words.qword (k-1) j).
 Proof.
  intros Hk. rewrite subst_τ_j_eqn. 2:repeat constructor; lia.
  f_equal. simpl. replace (Nat.pred k) with (k-1) by lia.
- apply WordGrowth.knsub_kword.
+ apply WordGrowth.qnsub_qword.
 Qed.
 
 Lemma subst_τ_low k j : 1 <= k -> j <= k ->
   (subst_τ k ^^j) [k] = k :: seq 1 j.
 Proof.
- intros. rewrite subst_τ_j_k_alt, Words.kword_low by lia.
+ intros. rewrite subst_τ_j_k_alt, Words.qword_low by lia.
  simpl. f_equal; try lia. now rewrite seq_shift.
 Qed.
 
@@ -330,7 +330,7 @@ Lemma subst_τ_rec k j : 1 <= k <= j ->
   (subst_τ k ^^j) [k] = (subst_τ k ^^(j-1)) [k] ++ (subst_τ k ^^(j-k)) [k].
 Proof.
  intros. rewrite !subst_τ_j_k_alt by lia.
- replace j with (S (j-1)) at 1 by lia. rewrite Words.kword_eqn by lia.
+ replace j with (S (j-1)) at 1 by lia. rewrite Words.qword_eqn by lia.
  rewrite map_app. do 3 f_equal. lia.
 Qed.
 
@@ -352,14 +352,14 @@ Proof.
  assert (H' := H).
  rewrite Forall_app in H'. destruct H' as (H1,H2).
  rewrite !L_eqn_gen, take_S, !subst_τ_j_eqn by auto.
- now rewrite !map_app, !WordGrowth.knsub_app, map_app, app_length.
+ now rewrite !map_app, !WordGrowth.qnsub_app, map_app, app_length.
 Qed.
 
 Lemma L_1_alt k j : (L k ^^j) 1 = A k j.
 Proof.
  assert (forall k, 0<k -> (L k ^^j) 1 = A k j).
  { clear k. intros. rewrite L_eqn_gen. simpl. unfold take. simpl.
- now rewrite word_x_0, subst_τ_j_k_alt, map_length, Words.kword_len by lia. }
+ now rewrite word_x_0, subst_τ_j_k_alt, map_length, Words.qword_len by lia. }
  destruct (Nat.eq_dec k 0) as [->|Hk]; try (apply H; lia).
  apply (H 1). lia.
 Qed.
@@ -497,7 +497,7 @@ Proof.
 Qed.
 
 Lemma Ceqb_count k i n : 1<=i ->
-  C k (Nat.eqb i) n = count (Words.kseq (k-1)) (i-1) n.
+  C k (Nat.eqb i) n = count (Words.qseq (k-1)) (i-1) n.
 Proof.
  intros.
  induction n; trivial.
@@ -507,7 +507,7 @@ Proof.
 Qed.
 
 Lemma Cltb_countabove k i n :
-  C k (Nat.ltb i) n = count_above (Words.kseq (k-1)) i n.
+  C k (Nat.ltb i) n = count_above (Words.qseq (k-1)) i n.
 Proof.
  intros.
  induction n; trivial.
@@ -519,7 +519,7 @@ Qed.
 Lemma Prop_4_1_a k n : 0<k -> (F k^^(k-1)) n = C k (Nat.eqb k) n.
 Proof.
  intros. unfold F. case Nat.eqb_spec; try lia; intros _.
- rewrite Ceqb_count, GenG.fopt_iter by lia. apply Words.fs_count_k.
+ rewrite Ceqb_count, GenG.fopt_iter by lia. apply Words.fs_count_q.
 Qed.
 
 Lemma Prop_4_1_b k j n : j<k -> (F k ^^j) n = C k (Nat.ltb j) n.
@@ -543,7 +543,7 @@ Proof.
  destruct (Nat.eq_dec k 0) as [->|H].
  - simpl. unfold L. simpl. rewrite WordGrowth.L_0_1; lia.
  - unfold L, F. case Nat.eqb_spec; try lia; intros _.
-   rewrite GenG.fopt_iter. apply WordGrowth.L_k_1_rchild.
+   rewrite GenG.fopt_iter. apply WordGrowth.L_q_1_rchild.
 Qed.
 
 Lemma Lkj_Fkj k n : 0<k -> n <= L k (F k n) <= S n.
@@ -708,7 +708,7 @@ Lemma Prop_4_4 k j n : 0<j<k ->
 Proof.
  intros. unfold dF, F. rewrite Nat.add_1_r.
  case Nat.eqb_spec; try lia. intros _. rewrite !GenG.fopt_iter.
- rewrite <- !Words.kseq_above_p_is_delta_fs; try lia.
+ rewrite <- !Words.qseq_above_p_is_delta_fs; try lia.
  unfold word_x. do 2 case Nat.leb_spec; try lia.
 Qed.
 
@@ -720,7 +720,7 @@ Proof.
  destruct (Nat.eq_dec k 1) as [->|K].
  - rewrite !Nat.sub_diag. simpl Nat.iter. lia.
  - rewrite !GenG.fopt_iter.
-   rewrite <- Words.kseq_above_p_is_delta_fs; try lia.
+   rewrite <- Words.qseq_above_p_is_delta_fs; try lia.
    unfold word_x in *. case Nat.leb_spec; lia.
 Qed.
 
@@ -800,8 +800,8 @@ Qed.
 Lemma β_bound' (k:nat) : k<>O -> sqrt k <= (β k)^(k-1) <= k.
 Proof.
  intros K. unfold β. split.
- - replace k with (S (k-1)) at 1 by lia. apply Mu.mu_k_lower_bound.
- - replace k with (S (k-1)) at 3 by lia. apply Mu.mu_k_upper_bound.
+ - replace k with (S (k-1)) at 1 by lia. apply Mu.pow_mu_lower_bound.
+ - replace k with (S (k-1)) at 3 by lia. apply Mu.pow_mu_upper_bound.
 Qed.
 
 Lemma β_limit : is_lim_seq β 1.
@@ -822,7 +822,7 @@ Lemma Fkj_limit (k j : nat) : k<>O ->
   is_lim_seq (fun n => (F k ^^j) n / n) (α k ^j).
 Proof.
  intros K.
- assert (H := Freq.Lim_fkj_div_n (k-1) j).
+ assert (H := Freq.Lim_fqj_div_n (k-1) j).
  apply is_lim_seq_incr_1 in H.
  eapply is_lim_seq_incr_1, is_lim_seq_ext; try apply H.
  intros. cbn -[INR]. f_equal. f_equal. unfold F.
@@ -901,7 +901,7 @@ Lemma Fk_lt_FSk_eventually k : k<>O ->
 Proof.
  intros K. unfold F. do 2 case Nat.eqb_spec; try lia. intros _ _.
  replace (k+1-1) with (S (k-1)) by lia.
- repeat setoid_rewrite GenG.fopt_spec. apply Freq.fk_lt_fSk_eventually.
+ repeat setoid_rewrite GenG.fopt_spec. apply Freq.fq_lt_fSq_eventually.
 Qed.
 
 Lemma fs_lt_fs_eventually k k' j j' : k<>O -> k'<>O ->
@@ -1055,7 +1055,7 @@ Theorem Thm_7_2_a k n : L (k+1) n <= L k n.
 Proof.
  unfold L.
  destruct k. simpl; lia. simpl; rewrite Nat.add_1_r, !Nat.sub_0_r.
- apply WordGrowth.Lk_LSk.
+ apply WordGrowth.Lq_LSq.
 Qed.
 
 Theorem Thm_7_2_a' k n : 0<k -> C (k+1) (Nat.eqb (k+1)) n <= C k (Nat.eqb k) n.
@@ -1068,7 +1068,7 @@ Theorem Thm_7_2_b k n j : 0<k -> 0<n -> j<=k ->
 Proof.
  intros. rewrite !L_iter.
  destruct k; try lia. simpl; rewrite !Nat.add_1_r, !Nat.sub_0_r.
- now apply WordGrowth.Lk_LSk.
+ now apply WordGrowth.Lq_LSq.
 Qed.
 
 Theorem Cor_7_3 k j n : (L (k+1) ^^j) n <= (L k ^^j) n.
@@ -1123,7 +1123,7 @@ Qed.
 Lemma LkSkSk k : 0<k -> (L k ^^(k+1)) (k+1) = S (N k).
 Proof.
  intros Hk. rewrite L_iter. replace (k+1) with ((k-1)+2) by lia.
- rewrite WordGrowth.L_k_k2_k2, N_alt.
+ rewrite WordGrowth.L_q_q2_q2, N_alt.
  replace (k-1+4) with (k+3) by lia.
  generalize (GenFib.triangle_aboveid (k+3)). lia.
 Qed.
@@ -1132,7 +1132,7 @@ Lemma LkSkk k : 0<k -> (L k ^^(k+1)) k = S (N (k-1)).
 Proof.
  intros Hk. rewrite L_iter. replace (k+1) with ((k-1)+2) by lia.
  replace k with ((k-1)+1) at 3 by lia.
- rewrite WordGrowth.L_k_k2_k1, N_alt.
+ rewrite WordGrowth.L_q_q2_q1, N_alt.
  replace (k-1+3) with (k+2) by lia.
  generalize (GenFib.triangle_aboveid (k+2)). lia.
 Qed.
@@ -1212,7 +1212,7 @@ Proof.
  unfold n. clear n.
  replace (S (S k) -1) with (S k) by lia.
  replace (S (S (S k)) -1) with (S (S k)) by lia.
- rewrite !WordGrowth.L_k_1_rchild.
+ rewrite !WordGrowth.L_q_1_rchild.
  apply GenG.rchild_Sq_SSq_last_equality. rewrite N_alt.
  unfold GenG.quad. do 2 f_equal; lia.
 Qed.

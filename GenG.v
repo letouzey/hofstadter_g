@@ -188,10 +188,10 @@ Qed.
 (** A few examples *)
 
 (*
-Compute taqe 26 (f 0).
-Compute taqe 26 (f 1).
-Compute taqe 26 (f 2).
-Compute taqe 26 (f 3).
+Compute take 26 (f 0).
+Compute take 26 (f 1).
+Compute take 26 (f 2).
+Compute take 26 (f 3).
 *)
 (*
 f 0 : [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
@@ -799,7 +799,7 @@ Proof.
  now apply A_sum.
 Qed.
 
-(** More generally, [f] is shifting down Zecqendorf decompositions *)
+(** More generally, [f] is shifting down Zeckendorf decompositions *)
 
 Definition fbis q n := sumA q (map pred (decomp q n)).
 
@@ -1644,7 +1644,7 @@ Proof.
 Qed.
 
 (* The numbers below [quad q] also have rank 0 only when
-   they are 1 or a successor of a [A] number. That's the qey for describing
+   they are 1 or a successor of a [A] number. That's the key for describing
    the "triangular" zone of f. Graphical interpretation : the bottom
    of the tree, where binary nodes are on the left edge. *)
 

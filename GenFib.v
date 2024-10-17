@@ -549,7 +549,7 @@ Proof.
 Qed.
 
 (** Technical lemma for uniqueness of decomposition :
-    A canonical decomposition cannot excess the next Ak. *)
+    A canonical decomposition cannot excess the next Aq. *)
 
 Lemma decomp_max q n l :
   DeltaRev (S q) (n::l) ->
@@ -662,8 +662,8 @@ Qed.
 (** ** Normalisation of a Fibonacci decomposition.
 
     Starting from an relaxed decomposition (with gaps
-    of at least [k]), we can transform it into a canonical
-    decomposition (with gaps of at least [S k]),
+    of at least [q]), we can transform it into a canonical
+    decomposition (with gaps of at least [S q]),
     by simply saturating the basic equation
     [A q n + A q (n-q) = A q (S n)]
     in the right order (highest terms first).
@@ -675,7 +675,7 @@ Qed.
     justify the termination.
 
     Moreover, the lowest term in the decomposition grows by
-    steps of [S k] during the process (or stays equal).
+    steps of [S q] during the process (or stays equal).
 *)
 
 Fixpoint renorm_loop q l n :=
@@ -997,7 +997,7 @@ Qed.
 
 (** ** Classification of decompositions *)
 
-(** The k-ranq of a number is the least index in its k-decomposition. *)
+(** The q-rank of a number is the least index in its q-decomposition. *)
 
 Definition rank q n :=
   match decomp q n with

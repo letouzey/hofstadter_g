@@ -3,41 +3,41 @@ Require Import MoreFun MoreList DeltaList FunG GenFib GenG.
 Import ListNotations.
 Set Implicit Arguments.
 
-(** Study of quasi-additivity for [f k n] function defined in [GenG]:
-    [f k (p+n)] is close to [f k p + f k n].
+(** Study of quasi-additivity for [f q n] function defined in [GenG]:
+    [f q (p+n)] is close to [f q p + f q n].
     Said otherwise, for some fixed p, few values are reached by
-    [f k (p+n)-f k n] when n varies.
-    For this study, we'll turn a strict k-decomposition of n into
+    [f q (p+n)-f q n] when n varies.
+    For this study, we'll turn a strict q-decomposition of n into
     a lax decomp of (p+n).
 *)
 
-(** First, some proofs for [p<=4] that hold for any [k] *)
+(** First, some proofs for [p<=4] that hold for any [q] *)
 
-Lemma fk_add_1 k n : f k n <= f k (1+n) <= 1 + f k n.
+Lemma fq_add_1 q n : f q n <= f q (1+n) <= 1 + f q n.
 Proof.
- destruct (f_step k n); simpl; lia.
+ destruct (f_step q n); simpl; lia.
 Qed.
 
-Lemma fk_add_2 k n : 1 + f k n <= f k (2+n) <= 2 + f k n.
+Lemma fq_add_2 q n : 1 + f q n <= f q (2+n) <= 2 + f q n.
 Proof.
  split.
- - generalize (f_SS k n). simpl. lia.
+ - generalize (f_SS q n). simpl. lia.
  - apply f_le_add.
 Qed.
 
-Lemma fk_add_3 k n : 1 + f k n <= f k (3+n) <= 3 + f k n.
+Lemma fq_add_3 q n : 1 + f q n <= f q (3+n) <= 3 + f q n.
 Proof.
  split.
- - transitivity (f k (2+n)). apply fk_add_2. apply f_mono. lia.
+ - transitivity (f q (2+n)). apply fq_add_2. apply f_mono. lia.
  - apply f_le_add.
 Qed.
 
-Lemma fk_add_4 k n : 2 + f k n <= f k (4+n) <= 4 + f k n.
+Lemma fq_add_4 q n : 2 + f q n <= f q (4+n) <= 4 + f q n.
 Proof.
  split.
- - transitivity (1 + f k (2 + n)).
-   + generalize (fk_add_2 k n). lia.
-   + apply (fk_add_2 k (2+n)).
+ - transitivity (1 + f q (2 + n)).
+   + generalize (fq_add_2 q n). lia.
+   + apply (fq_add_2 q (2+n)).
  - apply f_le_add.
 Qed.
 
@@ -79,8 +79,8 @@ Proof.
    + intros _. destruct cut_lt_ge. simpl in *; auto.
 Qed.
 
-Lemma cut_snd' k p l :
-  Delta k l ->
+Lemma cut_snd' q p l :
+  Delta q l ->
   forall x, In x (snd (cut_lt_ge p l)) -> p <= x.
 Proof.
  generalize (cut_app p l) (cut_snd p l).
@@ -90,63 +90,63 @@ Proof.
  - inversion 1.
  - specialize (H a l2 eq_refl).
    intros x [<-|IN]; auto.
-   transitivity (a+k). lia. eapply Delta_le; eauto.
+   transitivity (a+q). lia. eapply Delta_le; eauto.
 Qed.
 
-(* To add p to a strict k-decomposition (while possibly relaxing it),
-   no need to dig deeper than value [invA_up k p + 3*k-1].
+(* To add p to a strict q-decomposition (while possibly relaxing it),
+   no need to dig deeper than value [invA_up q p + 3*q-1].
    Note : tighter upper bounds than that could probably be found,
    but seem harder to prove *)
 
-Definition bound_idx k p := invA_up k p + 3*k-1.
+Definition bound_idx q p := invA_up q p + 3*q-1.
 
-Definition low_high k p l := cut_lt_ge (bound_idx k p) l.
+Definition low_high q p l := cut_lt_ge (bound_idx q p) l.
 
-Definition addlow k p low :=
+Definition addlow q p low :=
  match rev low with
- | [] => decomp k p
+ | [] => decomp q p
  | a::rlow' =>
-   let u:=invA_up k p +k-1 in
+   let u:=invA_up q p +q-1 in
    if u <? a then
      (* a is big enough : putting (S a) instead of a in the decomposition
         adds at least p (while remaining lax). *)
-     decompminus k (rev rlow'++[S a]) (A k (a-k) - p)
+     decompminus q (rev rlow'++[S a]) (A q (a-q) - p)
    else
      (* a is low enough : we can add an extra term in the decomposition *)
-     decompminus k (low ++[u+k]) (A k (u+k) - p)
+     decompminus q (low ++[u+q]) (A q (u+q) - p)
  end.
 
-Lemma addlow_sum k p l : k<>0 ->
-  let low := fst (low_high k p l) in
-  sumA k (addlow k p low) = p + sumA k low.
+Lemma addlow_sum q p l : q<>0 ->
+  let low := fst (low_high q p l) in
+  sumA q (addlow q p low) = p + sumA q low.
 Proof.
- intros Hk.
- destruct (low_high k p l) as (low,high) eqn:E. simpl.
+ intros Hq.
+ destruct (low_high q p l) as (low,high) eqn:E. simpl.
  unfold addlow.
  destruct (rev low) as [|a rlow'] eqn:E'.
  - apply rev_switch in E'. rewrite decomp_sum, E'. simpl; auto.
  - apply rev_switch in E'. simpl in E'.
-   set (u := invA_up k p + k - 1).
+   set (u := invA_up q p + q - 1).
    case Nat.ltb_spec; intros.
    + rewrite decompminus_sum, E'.
      rewrite !sumA_app.
      cbn - [A]. rewrite A_S.
-     assert (p <= A k (a-k)); try lia.
-     { etransitivity. apply (invA_up_spec k). apply A_mono. lia. }
+     assert (p <= A q (a-q)); try lia.
+     { etransitivity. apply (invA_up_spec q). apply A_mono. lia. }
    + rewrite decompminus_sum. rewrite sumA_app. simpl.
-     assert (p <= A k (u+k)); try lia.
-     { etransitivity. apply (invA_up_spec k). apply A_mono. lia. }
+     assert (p <= A q (u+q)); try lia.
+     { etransitivity. apply (invA_up_spec q). apply A_mono. lia. }
 Qed.
 
-Definition addlow_delta k p l : k<>0 -> Delta (S k) l ->
-  let (low,high) := low_high k p l in
-  Delta k (addlow k p low ++ high).
+Definition addlow_delta q p l : q<>0 -> Delta (S q) l ->
+  let (low,high) := low_high q p l in
+  Delta q (addlow q p low ++ high).
 Proof.
- intros Hk D.
- set (u := bound_idx k p).
+ intros Hq D.
+ set (u := bound_idx q p).
  generalize (cut_app u l) (cut_fst u l) (cut_snd' u D).
- change (cut_lt_ge _ _) with (low_high k p l).
- destruct (low_high k p l) as (low,high). simpl.
+ change (cut_lt_ge _ _) with (low_high q p l).
+ destruct (low_high q p l) as (low,high). simpl.
  intros E Hlow Hhigh.
  unfold addlow.
  destruct (rev low) as [|a rlow'] eqn:E'.
@@ -154,14 +154,14 @@ Proof.
    apply Delta_app_iff. repeat split; auto using decomp_delta with hof.
    intros x x' IN IN'. apply Hhigh in IN'.
    transitivity u; auto with arith.
-   assert (A k x <= p).
-   { rewrite <- (decomp_sum k p). apply sumA_in_le; auto. }
-   assert (x <= invA_up k p).
-   { apply (@A_le_inv k).
+   assert (A q x <= p).
+   { rewrite <- (decomp_sum q p). apply sumA_in_le; auto. }
+   assert (x <= invA_up q p).
+   { apply (@A_le_inv q).
      transitivity p; auto. apply invA_up_spec. }
    unfold bound_idx in u. lia.
  - apply rev_switch in E'. simpl in E'.
-   set (v := invA_up k p + k-1).
+   set (v := invA_up q p + q-1).
    subst l.
    rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
    case Nat.ltb_spec; intros.
@@ -187,44 +187,44 @@ Proof.
        { specialize (D3 x x' IN IN'). lia. }
 Qed.
 
-(* So, all values taken by [f k (p+n)-f k n] when n varies in [nat] are
+(* So, all values taken by [f q (p+n)-f q n] when n varies in [nat] are
    values that are already encountered when n varies in just
-   [0..add_bound k p[. *)
+   [0..add_bound q p[. *)
 
-Definition add_bound k p := A k (bound_idx k p).
+Definition add_bound q p := A q (bound_idx q p).
 
-Definition reduced k p n := sumA k (fst (low_high k p (decomp k n))).
+Definition reduced q p n := sumA q (fst (low_high q p (decomp q n))).
 
-Lemma reduced_lt k p n :
-  reduced k p n < add_bound k p.
+Lemma reduced_lt q p n :
+  reduced q p n < add_bound q p.
 Proof.
  unfold reduced, add_bound.
- assert (D := decomp_delta k n).
- set (l := decomp k n) in *. clearbody l.
- assert (E := cut_app (bound_idx k p) l).
- assert (B := cut_fst (bound_idx k p) l).
- change (cut_lt_ge _ _) with (low_high k p l) in E,B.
- destruct (low_high k p l) as (low,high) eqn:E'. simpl in *.
+ assert (D := decomp_delta q n).
+ set (l := decomp q n) in *. clearbody l.
+ assert (E := cut_app (bound_idx q p) l).
+ assert (B := cut_fst (bound_idx q p) l).
+ change (cut_lt_ge _ _) with (low_high q p l) in E,B.
+ destruct (low_high q p l) as (low,high) eqn:E'. simpl in *.
  rewrite <-E in D.
  rewrite Delta_app_iff in D. destruct D as (D1 & D2 & D3).
  apply sumA_below; auto.
 Qed.
 
-Lemma additivity_reduced k p : k<>0 ->
+Lemma additivity_reduced q p : q<>0 ->
  forall n,
-   let m := reduced k p n in
-   f k (p+n) - f k n = f k (p+m) - f k m.
+   let m := reduced q p n in
+   f q (p+n) - f q n = f q (p+m) - f q m.
 Proof.
- intros Hk n.
- assert (D := decomp_delta k n).
+ intros Hq n.
+ assert (D := decomp_delta q n).
  unfold reduced; simpl.
- rewrite <- (decomp_sum k n) at 1 2.
- set (l := decomp k n) in *. clearbody l.
- assert (E := cut_app (bound_idx k p) l).
- change (cut_lt_ge _ _) with (low_high k p l) in E.
- assert (E' := @addlow_sum k p l Hk).
- assert (D' := @addlow_delta k p l Hk D).
- destruct (low_high k p l) as (low,high). simpl in *.
+ rewrite <- (decomp_sum q n) at 1 2.
+ set (l := decomp q n) in *. clearbody l.
+ assert (E := cut_app (bound_idx q p) l).
+ change (cut_lt_ge _ _) with (low_high q p l) in E.
+ assert (E' := @addlow_sum q p l Hq).
+ assert (D' := @addlow_delta q p l Hq D).
+ destruct (low_high q p l) as (low,high). simpl in *.
  subst l.
  rewrite sumA_app at 1.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
@@ -234,17 +234,17 @@ Proof.
  - rewrite Delta_app_iff in D'. intuith.
 Qed.
 
-Lemma additivity_bounded k p : k<>0 ->
+Lemma additivity_bounded q p : q<>0 ->
  forall n, exists m,
-   m < add_bound k p /\
-   f k (p+n) - f k n = f k (p+m) - f k m.
+   m < add_bound q p /\
+   f q (p+n) - f q n = f q (p+m) - f q m.
 Proof.
- intros Hk n. exists (reduced k p n). split.
+ intros Hq n. exists (reduced q p n). split.
  - apply reduced_lt.
  - now apply additivity_reduced.
 Qed.
 
-(** We could hence prove bounds for [f k (p+n)-f k p] by computation. *)
+(** We could hence prove bounds for [f q (p+n)-f q p] by computation. *)
 
 Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
   match l1,l2 with
@@ -252,13 +252,13 @@ Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
   | _, _ => []
   end.
 
-Definition all_diffs k p bound :=
-  let stk := ftabulate k (p + (bound-1)) in
-  map2 Nat.sub stk (npop p stk).
+Definition all_diffs q p bound :=
+  let stq := ftabulate q (p + (bound-1)) in
+  map2 Nat.sub stq (npop p stq).
 
-Lemma all_diffs_spec k p bound :
-  all_diffs k p bound =
-  map (fun x => f k (p+x)-f k x) (countdown (bound - 1)).
+Lemma all_diffs_spec q p bound :
+  all_diffs q p bound =
+  map (fun x => f q (p+x)-f q x) (countdown (bound - 1)).
 Proof.
  unfold all_diffs.
  rewrite ftabulate_spec.
@@ -270,16 +270,16 @@ Proof.
  - rewrite Nat.add_succ_r. simpl. f_equal; auto.
 Qed.
 
-Definition calc_additivity k p bound := extrems (all_diffs k p bound).
+Definition calc_additivity q p bound := extrems (all_diffs q p bound).
 
-Lemma decide_additivity k p a b : k<>0 ->
- calc_additivity k p (add_bound k p) = (a,b) ->
- forall n, a + f k n <= f k (p+n) <= b + f k n.
+Lemma decide_additivity q p a b : q<>0 ->
+ calc_additivity q p (add_bound q p) = (a,b) ->
+ forall n, a + f q n <= f q (p+n) <= b + f q n.
 Proof.
- intros Hk E n.
- assert (H : f k n <= f k (p+n)) by (apply f_mono; lia).
- assert (a <= f k (p+n) - f k n <= b); try lia.
- { destruct (@additivity_bounded k p Hk n) as (m & Hm & ->).
+ intros Hq E n.
+ assert (H : f q n <= f q (p+n)) by (apply f_mono; lia).
+ assert (a <= f q (p+n) - f q n <= b); try lia.
+ { destruct (@additivity_bounded q p Hq n) as (m & Hm & ->).
    clear n H.
    unfold calc_additivity in E.
    revert E. apply extrems_spec.
@@ -329,10 +329,10 @@ Proof.
 Qed.
 
 (* TODO general bounds for f3(n+m)-f3(n)-f3(m) ??
-   Same for any fk ??
+   Same for any fq ??
 *)
 
-(** Particular case of function H, i.e. k=2 *)
+(** Particular case of function H, i.e. q=2 *)
 
 Definition h := f 2.
 
@@ -349,11 +349,11 @@ Proof.
  generalize (@A_mono 2 (n-2) (n-1)). lia.
 Qed.
 
-Definition bound_idx_k2 p := invA_up 2 p + 3.
+Definition bound_idx_q2 p := invA_up 2 p + 3.
 
-Definition low_high_k2 p l := cut_lt_ge (bound_idx_k2 p) l.
+Definition low_high_q2 p l := cut_lt_ge (bound_idx_q2 p) l.
 
-Definition addlow_k2 p low :=
+Definition addlow_q2 p low :=
  match rev low with
  | [] => decomp 2 p
  | a::rlow' =>
@@ -364,12 +364,12 @@ Definition addlow_k2 p low :=
      decompminus 2 (rev rlow'++[a-1;1+a]) (A2 (a+2) - A2 a - p)
  end.
 
-Lemma addlow_sum_k2 p l :
-  let low := fst (low_high_k2 p l) in
-  sumA 2 (addlow_k2 p low) = p + sumA 2 low.
+Lemma addlow_sum_q2 p l :
+  let low := fst (low_high_q2 p l) in
+  sumA 2 (addlow_q2 p low) = p + sumA 2 low.
 Proof.
- destruct (low_high_k2 p l) as (low,high) eqn:E. simpl.
- unfold addlow_k2.
+ destruct (low_high_q2 p l) as (low,high) eqn:E. simpl.
+ unfold addlow_q2.
  destruct (rev low) as [|a rlow'] eqn:E'.
  - apply rev_switch in E'. rewrite decomp_sum, E'. simpl; auto.
  - apply rev_switch in E'. simpl in E'.
@@ -389,17 +389,17 @@ Proof.
        rewrite Nat.add_comm. lia. }
 Qed.
 
-Definition addlow_delta_k2 p l : Delta 3 l ->
-  let (low,high) := low_high_k2 p l in
-  Delta 2 (addlow_k2 p low ++ high).
+Definition addlow_delta_q2 p l : Delta 3 l ->
+  let (low,high) := low_high_q2 p l in
+  Delta 2 (addlow_q2 p low ++ high).
 Proof.
  intros D.
- set (u := bound_idx_k2 p).
+ set (u := bound_idx_q2 p).
  generalize (cut_app u l) (cut_fst u l) (cut_snd' u D).
- change (cut_lt_ge _ _) with (low_high_k2 p l).
- destruct (low_high_k2 p l) as (low,high). simpl.
+ change (cut_lt_ge _ _) with (low_high_q2 p l).
+ destruct (low_high_q2 p l) as (low,high). simpl.
  intros E Hlow Hhigh.
- unfold addlow_k2.
+ unfold addlow_q2.
  destruct (rev low) as [|a rlow'] eqn:E'.
  - apply rev_switch in E'. subst low. simpl in E. subst high.
    apply Delta_app_iff. repeat split; auto using decomp_delta with hof.
@@ -410,7 +410,7 @@ Proof.
    assert (x <= invA_up 2 p).
    { apply (@A_le_inv 2).
      transitivity p; auto. apply invA_up_spec. }
-   unfold bound_idx_k2 in u. lia.
+   unfold bound_idx_q2 in u. lia.
  - apply rev_switch in E'. simpl in E'.
    set (v := invA_up 2 p).
    subst l.
@@ -423,7 +423,7 @@ Proof.
        rewrite E' in *. eapply Delta_last_le in IN; eauto. lia.
      * intros x x'. rewrite in_app_iff. intros [IN|[<-|[ ]]] IN'.
        { specialize (D3 x x' IN IN'). lia. }
-       { specialize (Hhigh x' IN'). unfold bound_idx_k2 in u. lia. }
+       { specialize (Hhigh x' IN'). unfold bound_idx_q2 in u. lia. }
    + apply decompminus_app_delta.
      rewrite Delta_app_iff. repeat split; autoh.
      * rewrite E' in D1. rewrite Delta_app_iff in D1.
@@ -445,37 +445,37 @@ Proof.
          specialize (D3 (or_intror (or_introl eq_refl)) IN'). lia. }
 Qed.
 
-Definition add_bound_k2 p := A2 (invA_up 2 p + 3).
+Definition add_bound_q2 p := A2 (invA_up 2 p + 3).
 
-Definition reduced_k2 p n := sumA 2 (fst (low_high_k2 p (decomp 2 n))).
+Definition reduced_q2 p n := sumA 2 (fst (low_high_q2 p (decomp 2 n))).
 
-Lemma reduced_lt_k2 p n :
-  reduced_k2 p n < add_bound_k2 p.
+Lemma reduced_lt_q2 p n :
+  reduced_q2 p n < add_bound_q2 p.
 Proof.
- unfold reduced_k2, add_bound_k2. fold (bound_idx_k2 p).
+ unfold reduced_q2, add_bound_q2. fold (bound_idx_q2 p).
  assert (D := decomp_delta 2 n).
  set (l := decomp 2 n) in *. clearbody l.
- assert (E := cut_app (bound_idx_k2 p) l).
- assert (B := cut_fst (bound_idx_k2 p) l).
- change (cut_lt_ge _ _) with (low_high_k2 p l) in E,B.
- destruct (low_high_k2 p l) as (low,high) eqn:E'. simpl fst in *.
+ assert (E := cut_app (bound_idx_q2 p) l).
+ assert (B := cut_fst (bound_idx_q2 p) l).
+ change (cut_lt_ge _ _) with (low_high_q2 p l) in E,B.
+ destruct (low_high_q2 p l) as (low,high) eqn:E'. simpl fst in *.
  apply sumA_below; auto.
  rewrite <-E, Delta_app_iff in D. intuition.
 Qed.
 
-Lemma additivity_reduced_k2 p n :
-  let m := reduced_k2 p n in
+Lemma additivity_reduced_q2 p n :
+  let m := reduced_q2 p n in
   h (p+n) - h n = h (p+m) - h m.
 Proof.
  assert (D := decomp_delta 2 n).
- unfold reduced_k2; simpl.
+ unfold reduced_q2; simpl.
  rewrite <- (decomp_sum 2 n) at 1 2.
  set (l := decomp 2 n) in *. clearbody l.
- assert (E := cut_app (bound_idx_k2 p) l).
- change (cut_lt_ge _ _) with (low_high_k2 p l) in E.
- assert (E' := @addlow_sum_k2 p l).
- assert (D' := @addlow_delta_k2 p l D).
- destruct (low_high_k2 p l) as (low,high). simpl in *.
+ assert (E := cut_app (bound_idx_q2 p) l).
+ change (cut_lt_ge _ _) with (low_high_q2 p l) in E.
+ assert (E' := @addlow_sum_q2 p l).
+ assert (D' := @addlow_delta_q2 p l D).
+ destruct (low_high_q2 p l) as (low,high). simpl in *.
  subst l.
  rewrite sumA_app at 1.
  rewrite Nat.add_assoc, <- E', <- !sumA_app.
@@ -485,24 +485,24 @@ Proof.
  - rewrite Delta_app_iff in D'. intuith.
 Qed.
 
-Lemma additivity_bounded_k2 p :
+Lemma additivity_bounded_q2 p :
  forall n, exists m,
-   m < add_bound_k2 p /\
+   m < add_bound_q2 p /\
    h (p+n) - h n = h (p+m) - h m.
 Proof.
- intros n. exists (reduced_k2 p n). split.
- - apply reduced_lt_k2.
- - now apply additivity_reduced_k2.
+ intros n. exists (reduced_q2 p n). split.
+ - apply reduced_lt_q2.
+ - now apply additivity_reduced_q2.
 Qed.
 
-Lemma decide_additivity_k2 p a b :
- calc_additivity 2 p (add_bound_k2 p) = (a,b) ->
+Lemma decide_additivity_q2 p a b :
+ calc_additivity 2 p (add_bound_q2 p) = (a,b) ->
  forall n, a + h n <= h (p+n) <= b + h n.
 Proof.
  intros E n.
  assert (H : h n <= h (p+n)) by (apply f_mono; lia).
  assert (a <= h (p+n) - h n <= b); try lia.
- { destruct (@additivity_bounded_k2 p n) as (m & Hm & ->).
+ { destruct (@additivity_bounded_q2 p n) as (m & Hm & ->).
    clear n H.
    unfold calc_additivity in E.
    revert E. apply extrems_spec.
@@ -516,81 +516,81 @@ Qed.
 
 Lemma h_add_1 n : h n <= h (1+n) <= 1 + h n.
 Proof.
- apply fk_add_1.
+ apply fq_add_1.
 Qed.
 
 Lemma h_add_2 n : 1 + h n <= h (2+n) <= 2 + h n.
 Proof.
- apply fk_add_2.
+ apply fq_add_2.
 Qed.
 
 Lemma h_add_3 n : 1 + h n <= h (3+n) <= 3 + h n.
 Proof.
- apply fk_add_3.
+ apply fq_add_3.
 Qed.
 
 Lemma h_add_4 n : 2 + h n <= h (4+n) <= 3 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_5 n : 3 + h n <= h (5+n) <= 4 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_6 n : 3 + h n <= h (6+n) <= 5 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_7 n : 4 + h n <= h (7+n) <= 6 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_8 n : 5 + h n <= h (8+n) <= 6 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_9 n : 5 + h n <= h (9+n) <= 7 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_10 n : 6 + h n <= h (10+n) <= 8 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_11 n : 7 + h n <= h (11+n) <= 8 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 Lemma h_add_12 n : 7 + h n <= h (12+n) <= 9 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 (** All the earlier cases were satisfying h(p+n)-h(p)-h(n) = {-1,0,1}
     But for p=18, h(18+n) = h n + h 18 + [-2..0] *)
 Lemma h_add_18 n : 11 + h n <= h (18+n) <= 13 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 (** For comparison with f 3 *)
 Lemma h_add_33 n : 22 + h n <= h (33+n) <= 23 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 (** h(39+n) = h n + h 39 + [0..2] *)
 Lemma h_add_39 n : 26 + h n <= h (39+n) <= 28 + h n.
 Proof.
- apply decide_additivity_k2. now vm_compute.
+ apply decide_additivity_q2. now vm_compute.
 Qed.
 
 (* In general, h(p+n)-h(p)-h(n) is in [-2..2].
@@ -637,8 +637,8 @@ Proof.
    + exists a', (rev l'). apply rev_switch in E. apply E.
 Qed.
 
-Lemma sumA_insert k x l :
- sumA k (insert x l) = A k x + sumA k l.
+Lemma sumA_insert q x l :
+ sumA q (insert x l) = A q x + sumA q l.
 Proof.
  induction l; simpl; auto.
  destruct (x <=? a); simpl; rewrite ?IHl; lia.
@@ -670,13 +670,13 @@ Proof.
    + generalize (h_add_4 n). simpl. lia.
    + lia.
  - intros n.
-   destruct (additivity_bounded_k2 (A2 q) n) as (m & Hm & E).
+   destruct (additivity_bounded_q2 (A2 q) n) as (m & Hm & E).
    cut (A2 (q - 1) + h m - 1 <= h (A2 q + m) <= A2 (q - 1) + h m + 1).
    { generalize (@f_mono 2 n (A2 q + n)) (@f_mono 2 m (A2 q + m)).
      generalize (@A_nz 2 (q-1)). unfold h in *. lia. }
    clear E n.
-   replace (add_bound_k2 (A2 q)) with (A2 (q+3)) in Hm.
-   2:{ unfold add_bound_k2. f_equal. f_equal. rewrite invA_up_A; lia. }
+   replace (add_bound_q2 (A2 q)) with (A2 (q+3)) in Hm.
+   2:{ unfold add_bound_q2. f_equal. f_equal. rewrite invA_up_A; lia. }
    assert (D := decomp_delta 2 m).
    rewrite <- (decomp_sum 2 m). set (l := decomp 2 m) in *.
    destruct (destruct_last l) as [->|(a & l' & E)].
@@ -859,7 +859,7 @@ Qed.
 (* TODO : is there a version for substraction : p = A2 u - A2 v ? *)
 
 
-(** * Comparing (f k) functions when k varies *)
+(** * Comparing (f q) functions when q varies *)
 
 Lemma f0_below_g n : f 0 n <= g n.
 Proof.
@@ -904,7 +904,7 @@ Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 33).
 - clear IH.
-  (* Alas f_triangle_incrk isn't enough : triangle(2+4)-3 = 18 < 33 *)
+  (* Alas f_triangle_incrq isn't enough : triangle(2+4)-3 = 18 < 33 *)
   unfold h. rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
   apply intvl_dec_0. now vm_compute.
 - replace n with (33+(n-33)) by lia.
@@ -996,11 +996,11 @@ Qed.
 
 (** General proof : cf Words.f_grows *)
 
-(** * Strict order between [f k] and [f (S k)].
+(** * Strict order between [f q] and [f (S q)].
 
-    We know that [f k (quad k) = f (S k) (quad k)] thanks to
-    GenG.fk_fSk_last_equality. Now for small specific values of k,
-    we can show there is no more equality for [n > quad k].
+    We know that [f q (quad q) = f (S q) (quad q)] thanks to
+    GenG.fq_fSq_last_equality. Now for small specific values of q,
+    we can show there is no more equality for [n > quad q].
 *)
 
 Lemma f0_add_2 n : f 0 (2+n) = 1 + f 0 n.
@@ -1022,7 +1022,7 @@ Proof.
    rewrite f0_add_2.
    apply Nat.lt_le_trans with (1 + g (n - 2)).
    + specialize (IH (n-2)). lia.
-   + rewrite <- !f_1_g. apply fk_add_2.
+   + rewrite <- !f_1_g. apply fq_add_2.
 Qed.
 
 Lemma g_lt_h n : quad 1 < n -> g n < h n.
@@ -1083,8 +1083,8 @@ destruct (Nat.le_gt_cases n (33+169)).
   apply (f5_add_169 (n-169)).
 Qed.
 
-(** Consequence : GenG.fk_fSk_conjectures and the future
-    WordGrowth.f_L_conjectures can be applied for these small k.
+(** Consequence : GenG.fq_fSq_conjectures and the future
+    WordGrowth.f_L_conjectures can be applied for these small q.
     For instance : *)
 
 Lemma g_lt_h' n : n<>1 -> g n < h (S n).

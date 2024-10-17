@@ -559,9 +559,9 @@ Definition Diff0 w := τ^3 * length w - nbocc 0 w.
 Definition Diff1 w := τ^4 * length w - nbocc 1 w.
 Definition Diff2 w := τ^2 * length w - nbocc 2 w.
 
-Definition diff0 n := Diff0 (take n (kseq 2)).
-Definition diff1 n := Diff1 (take n (kseq 2)).
-Definition diff2 n := Diff2 (take n (kseq 2)).
+Definition diff0 n := Diff0 (take n (qseq 2)).
+Definition diff1 n := Diff1 (take n (qseq 2)).
+Definition diff2 n := Diff2 (take n (qseq 2)).
 
 (** One of these differences can be deduced from the other two.
     We now forget about diff1 and consider only diff0 and diff2
@@ -582,7 +582,7 @@ Lemma diff012 n : diff0 n + diff1 n + diff2 n = 0.
 Proof.
  apply Diff012.
  apply Forall_nth. intros i d. rewrite take_length. intros H.
- rewrite take_nth by trivial. apply kseq_letters.
+ rewrite take_nth by trivial. apply qseq_letters.
 Qed.
 
 (** Expressing diff0 and diff2 in terms of [h] and [h^^2] *)
@@ -599,30 +599,30 @@ Lemma diff2_alt n : diff2 n = τ^2 * n - (h^^2) n.
 Proof.
  unfold diff2, Diff2. rewrite take_length.
  rewrite <- count_nbocc.
- now rewrite fs_count_k.
+ now rewrite fs_count_q.
 Qed.
 
 (** Equations giving Diff0 and Diff1 after a substitution [ksubst 2].
     Note : this could be stated via a matrix someday.
 *)
 
-Lemma Diff0_ksubst2 w : Diff0 (ksubstw 2 w) = τ * Diff2 w.
+Lemma Diff0_qsubst2 w : Diff0 (qsubstw 2 w) = τ * Diff2 w.
 Proof.
  unfold Diff0, Diff2.
- rewrite len_ksubst, plus_INR.
- destruct (nbocc_ksubst2 w) as (-> & _ & _).
+ rewrite len_qsubst, plus_INR.
+ destruct (nbocc_qsubst2 w) as (-> & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
  rewrite τ3. lra.
 Qed.
 
-Lemma Diff2_ksubst2 w :
+Lemma Diff2_qsubst2 w :
   List.Forall (fun a => a <= 2)%nat w ->
-  Diff2 (ksubstw 2 w) = - τ^2 * Diff2 w - Diff0 w.
+  Diff2 (qsubstw 2 w) = - τ^2 * Diff2 w - Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff2.
- rewrite len_ksubst.
- destruct (nbocc_ksubst2 w) as (_ & _ & ->).
+ rewrite len_qsubst.
+ destruct (nbocc_qsubst2 w) as (_ & _ & ->).
  rewrite !plus_INR.
  replace (nbocc 1 w + nbocc 2 w) with (length w - nbocc 0 w).
  2:{ apply len_nbocc_012 in H. rewrite H. rewrite !plus_INR. lra. }
@@ -684,13 +684,13 @@ Lemma diff_A n :
 Proof.
  induction n as [|n IH].
  - simpl A. simpl Cpow.
-   unfold diff0, diff2. simpl take. change (kseq 2 0) with 2%nat.
+   unfold diff0, diff2. simpl take. change (qseq 2 0) with 2%nat.
    unfold Diff0, Diff2. simpl length. simpl nbocc.
    rewrite !Cmult_1_r. rewrite re_coefa0, re_coefa2. simpl; lra.
  - unfold diff0, diff2.
-   rewrite kseq_take_A, kword_S.
-   rewrite Diff0_ksubst2, Diff2_ksubst2 by (apply kword_letters).
-   rewrite <- kseq_take_A. fold (diff0 (A 2 n)) (diff2 (A 2 n)).
+   rewrite qseq_take_A, qword_S.
+   rewrite Diff0_qsubst2, Diff2_qsubst2 by (apply qword_letters).
+   rewrite <- qseq_take_A. fold (diff0 (A 2 n)) (diff2 (A 2 n)).
    destruct IH as (-> & ->).
    simpl Cpow.
    split.
@@ -736,11 +736,11 @@ Lemma diff0_decomp_eqn n :
   diff0 n = Rlistsum (List.map (fun n => 2*Re(coefa0 * α^n)) (decomp 2 n)).
 Proof.
  unfold diff0.
- rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
+ rewrite decomp_prefix_qseq. unfold qwords. rewrite flat_map_concat_map.
  rewrite Diff0_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
- rewrite <- kseq_take_A. apply diff_A.
+ rewrite <- qseq_take_A. apply diff_A.
 Qed.
 
 Lemma diff0_decomp_eqn' n :
@@ -796,7 +796,7 @@ Proof.
  eapply is_lim_seq_bound. apply diff0_indep_bound.
 Qed.
 
-Lemma frequency_0 : is_lim_seq (fun n => count (kseq 2) 0 n / n) (τ^3).
+Lemma frequency_0 : is_lim_seq (fun n => count (qseq 2) 0 n / n) (τ^3).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with (u := fun n => τ^3 - diff0 (S n) / S n).
@@ -1184,11 +1184,11 @@ Lemma diff2_decomp_eqn n :
   diff2 n = Rlistsum (List.map (fun n => 2*Re(coefa2 * α^n)) (decomp 2 n)).
 Proof.
  unfold diff2.
- rewrite decomp_prefix_kseq. unfold kwords. rewrite flat_map_concat_map.
+ rewrite decomp_prefix_qseq. unfold qwords. rewrite flat_map_concat_map.
  rewrite Diff2_concat, List.map_map, List.map_rev, Rlistsum_rev.
  f_equal.
  apply List.map_ext; intros.
- rewrite <- kseq_take_A. apply diff_A.
+ rewrite <- qseq_take_A. apply diff_A.
 Qed.
 
 Lemma diff2_decomp_eqn' n :
@@ -1256,7 +1256,7 @@ Proof.
  eapply is_lim_seq_bound. apply diff2_indep_bound.
 Qed.
 
-Lemma frequency_2 : is_lim_seq (fun n => count (kseq 2) 2 n / n) (τ^2).
+Lemma frequency_2 : is_lim_seq (fun n => count (qseq 2) 2 n / n) (τ^2).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with
@@ -1273,7 +1273,7 @@ Proof.
    apply lim_diff2_div_n.
 Qed.
 
-Lemma frequency_1 : is_lim_seq (fun n => count (kseq 2) 1 n / n) (τ^4).
+Lemma frequency_1 : is_lim_seq (fun n => count (qseq 2) 1 n / n) (τ^4).
 Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_ext with
@@ -1366,17 +1366,17 @@ Qed.
 
 (* Next cases:
 
-For k=3, see LimCase3.v
+For q=3, see LimCase3.v
  an extra negative real root. The complex roots can be expressed
  in function of the real roots. Similar convergence and results than for k=2,
  except that (f 3 n) could be further apart from (nat_part (tau 3 * n)).
 
-For k=4, no Coq proofs yet.
+For q=4, no Coq proofs yet.
  four complex roots : j and (Cconj j) of modulus 1, and
   some α and (Cconj α) of modulus < 1. Note that α can be
-  expressed in function of (tau 4). Apparently, no more finite bound to
-  (f 4 n - tau 4 * n).
+  expressed in function of (tau 4).
+  And (f 4 n - tau 4 * n) is now unbounded.
 
-Afterwards, always some complex root of modulus > 1 (but < mu k).
-And (f k n - tau k * n) seems to diverge.
+Afterwards, always some complex root of modulus > 1 (but < mu q).
+And (f q n - tau q * n) diverges.
 *)
