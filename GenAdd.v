@@ -873,7 +873,7 @@ Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 8).
 - (* compute for all n < 8 or : *)
-  rewrite <- f_1_g. apply f_triangle_incrk. unfold quad; simpl. lia.
+  rewrite <- f_1_g. apply f_triangle_incrq. unfold quad; simpl. lia.
 - replace n with (8+(n-8)) by lia.
   transitivity (5 + g (n - 8)). apply g_add_8.
   transitivity (5 + h (n - 8)). 2:apply h_add_8.
@@ -1089,21 +1089,21 @@ Qed.
 
 Lemma g_lt_h' n : n<>1 -> g n < h (S n).
 Proof.
- rewrite <- f_1_g. apply fk_fSk_conjectures.
+ rewrite <- f_1_g. apply fq_fSq_conjectures.
  intros m Hm. rewrite f_1_g. now apply g_lt_h.
 Qed.
 
 Lemma h_lt_f3' n : n<>1 -> h n < f 3 (S n).
 Proof.
- apply fk_fSk_conjectures, h_lt_f3.
+ apply fq_fSq_conjectures, h_lt_f3.
 Qed.
 
 Lemma f3_lt_f4' n : n<>1 -> f 3 n < f 4 (S n).
 Proof.
- apply fk_fSk_conjectures, f3_lt_f4.
+ apply fq_fSq_conjectures, f3_lt_f4.
 Qed.
 
 Lemma f4_lt_f5' n : n<>1 -> f 4 n < f 5 (S n).
 Proof.
- apply fk_fSk_conjectures, f4_lt_f5.
+ apply fq_fSq_conjectures, f4_lt_f5.
 Qed.

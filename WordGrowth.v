@@ -343,11 +343,11 @@ Proof.
  - destruct n as [|[|[|n]]]; try lia.
    + (* n=0 *) inversion 1.
    + (* n=1 *)
-     intros j _. unfold LBound. rewrite fs_k_1, L_0. auto using L_ge_n.
+     intros j _. unfold LBound. rewrite fs_q_1, L_0. auto using L_ge_n.
    + (* n=2 *)
      intros [|j] _; unfold LBound.
      * simpl. rewrite !L_k_0. lia.
-     * rewrite fs_k_2, L_0 by lia. split; auto. apply L_gt_n; lia.
+     * rewrite fs_q_2, L_0 by lia. split; auto. apply L_gt_n; lia.
  - destruct n; try lia.
    assert (J1 : SteinerThm k 1 (S n)).
    { apply steiner_thm_corestep; try apply IH; lia. }
@@ -379,7 +379,7 @@ Proof.
  intros Hn.
  split.
  - intros <-. apply steiner_thm.
-   destruct m; try lia. now rewrite fs_k_0 in *.
+   destruct m; try lia. now rewrite fs_q_0 in *.
  - intros.
    apply (LBound_unique k j m); trivial.
    apply steiner_thm. unfold LBound in *. lia.
@@ -391,7 +391,7 @@ Qed.
 Lemma fs_L k j n : fs k j (L k j n) = n.
 Proof.
  destruct n.
- - now rewrite L_0, fs_k_0.
+ - now rewrite L_0, fs_q_0.
  - apply steiner_thm_iff; try lia. split; trivial. apply L_lt; lia.
 Qed.
 
@@ -406,7 +406,7 @@ Lemma fs_rightmost_child_carac k j a n :
   fs k j n = a -> fs k j (S n) = S a <-> n = L k j a.
 Proof.
  destruct (Nat.eq_dec a 0) as [->|Ha]; intros E.
- - apply fs_0_inv in E. subst n. now rewrite fs_k_1, L_0.
+ - apply fs_0_inv in E. subst n. now rewrite fs_q_1, L_0.
  - split; intros E'.
    + apply steiner_thm_iff in E, E'; try lia. unfold LBound in *.
      replace (S a - 1) with a in *; lia.
@@ -432,7 +432,7 @@ Proof.
  unfold fsinv.
  case Nat.eqb_spec; [intros ->|intros Hn].
  - split; simpl.
-   + intros [<-|[ ]]. apply fs_k_0.
+   + intros [<-|[ ]]. apply fs_q_0.
    + generalize (@fs_nonzero k m j). lia.
  - rewrite in_seq, steiner_thm_iff; unfold LBound; lia.
 Qed.
@@ -564,7 +564,7 @@ Qed.
 Lemma fs_count_k k n : fs k k n = C k k n.
 Proof.
  destruct (Nat.eq_dec n 0) as [->|N].
- - now rewrite fs_k_0.
+ - now rewrite fs_q_0.
  - apply LBound_Ckk; try lia. apply steiner_thm; lia.
 Qed.
 
@@ -643,7 +643,7 @@ Lemma fs_decreases k j n :
 Proof.
  intros Hj.
  destruct (Nat.eq_dec n 0) as [->|Hn].
- - now rewrite !fs_k_0.
+ - now rewrite !fs_q_0.
  - apply Nat.lt_pred_le. rewrite <- Nat.sub_1_r, (L_lt (S k) (S j)).
    transitivity n; [ apply steiner_thm; lia |].
    eapply Nat.le_lt_trans; [ apply (steiner_thm k j); lia|].
@@ -844,7 +844,7 @@ Lemma fs_count k p n : p < k -> fs k (k+S p) n = C k p (n+S p).
 Proof.
  intros Hp.
  destruct (Nat.eq_dec n 0) as [->|N].
- - unfold C. rewrite Nat.add_0_l, fs_k_0, count_nbocc.
+ - unfold C. rewrite Nat.add_0_l, fs_q_0, count_nbocc.
    rewrite <- (@A_base k p lia), kprefix_A_kword, kword_low by lia.
    rewrite nbocc_notin; trivial. simpl. rewrite in_seq. lia.
  - apply LBound_Ckp; trivial. apply steiner_thm. lia.
@@ -959,7 +959,7 @@ Lemma fs_count_above k p n : p <= k -> fs k p n = count_above (kseq k) p n.
 Proof.
  intros P.
  destruct n.
- - now rewrite fs_k_0.
+ - now rewrite fs_q_0.
  - apply LBound_count_above; trivial. apply steiner_thm; lia.
 Qed.
 
@@ -994,7 +994,7 @@ Qed.
 Lemma L_f_galois k j n m : fs k j n <= m <-> n <= L k j m.
 Proof.
  intros. destruct (Nat.eq_dec n 0) as [->|N].
- - rewrite fs_k_0; lia.
+ - rewrite fs_q_0; lia.
  - split; intros.
    + etransitivity. 2:apply incr_mono; eauto using L_incr.
      apply steiner_thm; lia.
@@ -1018,7 +1018,7 @@ Lemma LL_fsfs_le_bis k k' j j' n :
 Proof.
  simpl; intros H.
  destruct (Nat.eq_dec n 0) as [->|N].
- - now rewrite !fs_k_0.
+ - now rewrite !fs_q_0.
  - apply L_f_galois. etransitivity; [|apply H]. apply steiner_thm; lia.
 Qed.
 
@@ -1196,10 +1196,10 @@ Proof.
  red in Hm.
  apply Nat.le_lteq in Hm. destruct Hm as [Hm|<-].
  - apply (incr_strmono (L (S k) 1)) in Hm. 2:apply L_incr.
-   rewrite L_k_1_rchild, rchild_Sk_Squad in Hm.
+   rewrite L_k_1_rchild, rchild_Sq_Squad in Hm.
    rewrite Nat.lt_nge, LL_fsfs_le_iff, <- Nat.lt_nge.
    apply H. lia.
- - rewrite !L_k_1_rchild. rewrite rchild_SSk_Squad, rchild_Sk_Squad. lia.
+ - rewrite !L_k_1_rchild. rewrite rchild_SSq_Squad, rchild_Sq_Squad. lia.
 Qed.
 
 (* Recip ??
@@ -1255,7 +1255,7 @@ Qed.
 
 Lemma L_k_2k3_1 k : L k (2*k+3) 1 = triangle (k+4) - 2.
 Proof.
- rewrite Lkj1_A. apply A_2kp3_tri.
+ rewrite Lkj1_A. apply A_2q3_tri.
 Qed.
 
 Lemma L_k_k2_k1 k : L k (k+2) (k+1) = triangle (k+3) - 2.

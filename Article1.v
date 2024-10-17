@@ -7,17 +7,17 @@ Require Mu Freq.
 (** * Article1.v *)
 
 (** This file is a wrapper around the rest of the current Coq development,
-    mostly for adapting the parameter k (which starts at 1 in the article
-    and at 0 in the Coq dev) and the word letters (also starting at 1 in
-    the article and at 0 in the Coq dev).
+    mostly for adapting the parameter controlling the number of nested
+    recursive calls.
 
-    In the article, it is way more pedagogical to have k be exactly
-    the number of nested recursive calls for functions F, hence for
-    instance $G = F_2$. And the case $k=0$ is ruled out via preconditions.
-    In the Coq files except this one, we let $k$ start at 0, and
-    consider $k+1$ nested recursive calls. Hence $g = f 1$. This way,
+    In the article and in this Coq file, it is way more pedagogical to have
+    $k$ be exactly the number of nested recursive calls for functions $F$,
+    hence for instance $G = F_2$. And the case $k=0$ is ruled out
+    via preconditions.
+    In all the other Coq files, we use $q=k-1$, which starts at 0, and
+    hence consider $q+1$ nested recursive calls. Hence $g = f 1$. This way,
     no need for preconditions most of the time. The definition of
-    Fibonacci-like numbers [A k n] would be particularly troublesome
+    Fibonacci-like numbers [A q n] would be particularly troublesome
     with the article convention (for k=0, no consistent choice, no easy
     structural decrease, etc).
 
@@ -211,21 +211,21 @@ Lemma Fkj_0 k j : ((F k)^^j) 0 = 0.
 Proof.
  unfold F. case Nat.eqb_spec; intros.
  - rewrite F0_j. now destruct j.
- - rewrite GenG.fopt_iter. apply GenG.fs_k_0.
+ - rewrite GenG.fopt_iter. apply GenG.fs_q_0.
 Qed.
 
 Lemma Fkj_1 k j : ((F k)^^j) 1 = 1.
 Proof.
  unfold F. case Nat.eqb_spec; intros.
  - rewrite F0_j. now destruct j.
- - rewrite GenG.fopt_iter. apply GenG.fs_k_1.
+ - rewrite GenG.fopt_iter. apply GenG.fs_q_1.
 Qed.
 
 Lemma Fkj_2 k j : 1<=j -> ((F k)^^j) 2 = 1.
 Proof.
  intros Hj. unfold F. case Nat.eqb_spec; intros.
  - rewrite F0_j. now destruct j.
- - rewrite GenG.fopt_iter. now apply GenG.fs_k_2.
+ - rewrite GenG.fopt_iter. now apply GenG.fs_q_2.
 Qed.
 
 Lemma Fkj_nonzero k j n : 1 <= n <-> 1 <= (F k ^^j) n.
@@ -235,7 +235,7 @@ Proof.
  - rewrite F0_j. destruct j; simpl; unfold F0; lia.
  - rewrite GenG.fopt_iter. split.
    + generalize (@GenG.fs_nonzero (k-1) n j). lia.
-   + destruct n; try lia. now rewrite GenG.fs_k_0.
+   + destruct n; try lia. now rewrite GenG.fs_q_0.
 Qed.
 
 Lemma Fkj_lt_id k j n : 1<=j -> (2<=n <-> ((F k)^^j) n < n).
@@ -245,7 +245,7 @@ Proof.
  - rewrite F0_j. destruct j; simpl; unfold F0; lia.
  - rewrite GenG.fopt_iter. split.
    + intros. apply GenG.fs_lt; lia.
-   + destruct n as [|[|n]]; try lia. rewrite GenG.fs_k_1. lia.
+   + destruct n as [|[|n]]; try lia. rewrite GenG.fs_q_1. lia.
 Qed.
 
 Lemma dF_eqn k n : 0<n -> dF k 1 n = 1 - dF k k (n-1).
@@ -641,7 +641,7 @@ Lemma dF_k_j_0 k j : dF k j 0 = 1.
 Proof.
  unfold dF, F. case Nat.eqb_spec; intros; subst; simpl.
  - destruct j; trivial. now rewrite !F0_Sj.
- - now rewrite !GenG.fopt_iter, GenG.fs_k_1, GenG.fs_k_0.
+ - now rewrite !GenG.fopt_iter, GenG.fs_q_1, GenG.fs_q_0.
 Qed.
 
 Lemma Fkj_decr k j n : (F k ^^j) n <= Nat.max 1 (n-j).
@@ -1086,7 +1086,7 @@ Proof.
    case Nat.eqb_spec; intros; subst; simpl; trivial.
    unfold F0. destruct n; simpl; try lia.
    replace (Nat.min n 0) with 0 by lia.
-   rewrite <- (GenG.fs_k_1 j 0).
+   rewrite <- (GenG.fs_q_1 j 0).
    apply GenG.fs_mono; lia.
  - apply Prop_7_1; try lia. intros. apply Cor_7_3.
 Qed.
@@ -1201,7 +1201,7 @@ Proof.
  unfold F; simpl. intros. case Nat.eqb_spec; try lia. intros _.
  rewrite !GenG.fopt_spec.
  replace (k-0) with (S (k-1)) by lia.
- apply GenG.fk_fSk_last_equality. rewrite N_alt.
+ apply GenG.fq_fSq_last_equality. rewrite N_alt.
  unfold GenG.quad. do 2 f_equal; lia.
 Qed.
 
@@ -1213,7 +1213,7 @@ Proof.
  replace (S (S k) -1) with (S k) by lia.
  replace (S (S (S k)) -1) with (S (S k)) by lia.
  rewrite !WordGrowth.L_k_1_rchild.
- apply GenG.rchild_Sk_SSk_last_equality. rewrite N_alt.
+ apply GenG.rchild_Sq_SSq_last_equality. rewrite N_alt.
  unfold GenG.quad. do 2 f_equal; lia.
 Qed.
 
@@ -1232,7 +1232,7 @@ Proof.
  intros Hk H n Hn. unfold F. simpl.
  case Nat.eqb_spec; try lia; intros _.
  rewrite !GenG.fopt_spec. replace (k-0) with (S (k-1)) by lia.
- apply GenG.fk_fSk_conjectures; trivial.
+ apply GenG.fq_fSq_conjectures; trivial.
  intros m Hm.
  rewrite <- !GenG.fopt_spec. replace (S (k-1)) with (k-0) by lia.
  specialize (H m). unfold F in *; simpl in *.

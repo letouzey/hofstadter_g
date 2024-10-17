@@ -509,7 +509,7 @@ Proof.
      rewrite E; simpl; lia.
  - rewrite rank_none in E. subst. unfold cumul_diff_fs.
    erewrite cumul_ext, (cumul_cst 1); try lia.
-   intros x _. rewrite fs_k_0, fs_k_1. lia.
+   intros x _. rewrite fs_q_0, fs_q_1. lia.
 Qed.
 
 (** Hence the sum of the n first letters of [kseq k] is
@@ -519,7 +519,7 @@ Lemma cumul_kseq_is_cumul_fs k n :
   cumul (kseq k) n = cumul (fun p => fs k (S p) n) k.
 Proof.
  induction n; cbn -[fs].
- - erewrite cumul_ext; auto using cumul_0, fs_k_0.
+ - erewrite cumul_ext; auto using cumul_0, fs_q_0.
  - rewrite IHn, kseq_is_cumul_diff_fs. unfold cumul_diff_fs.
    rewrite <- cumul_add. apply cumul_ext.
    intros m Hm. generalize (fs_mono_S k (S m) n). lia.
@@ -549,7 +549,7 @@ Lemma fs_count_above k p n :
 Proof.
  intros Hp.
  induction n.
- - simpl. apply fs_k_0.
+ - simpl. apply fs_q_0.
  - simpl. rewrite kseq_bounded_rank.
    unfold bounded_rank.
    destruct (fs_step k p n) as [E|E].

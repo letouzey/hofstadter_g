@@ -226,7 +226,7 @@ Lemma ff_A k p : ff k (A k p) = A k (p-1).
 Proof.
  destruct p as [|p].
  simpl.
- - unfold ff. rewrite (@flip_low k 1), f_k_1; auto.
+ - unfold ff. rewrite (@flip_low k 1), f_q_1; auto.
  - unfold ff.
    rewrite flip_A by auto.
    simpl. rewrite Nat.sub_0_r.
@@ -310,7 +310,7 @@ Proof.
          assert (flip k n <> 2).
          { intros EQ. rewrite EQ in *.
            simpl in NE'.
-           rewrite f_k_1, f_init in NE'; lia. }
+           rewrite f_q_1, f_init in NE'; lia. }
          lia. }
        { rewrite <- NE'. rewrite !f_depth. rewrite flip_depth.
          unfold p in *. lia. }

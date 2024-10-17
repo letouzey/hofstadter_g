@@ -106,7 +106,7 @@ Proof.
    destruct (Nat.eqb_spec a k).
    + right. f_equal. subst a.
      rewrite A_S. replace (S k -k) with 1 by lia.
-     rewrite A_k_1. lia.
+     rewrite A_q_1. lia.
    + left. f_equal. rewrite !A_base; lia.
 Qed.
 
