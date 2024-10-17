@@ -73,7 +73,7 @@ G(n) = n - G(G(n-1)) \hspace{4cm} \text{for all}\ n>0
 
 \myvspace
 
-More generally, with $k+1$ nested recursive calls:
+More generally, with $k$ nested recursive calls:
 
 \myvspace
 
@@ -81,7 +81,7 @@ More generally, with $k+1$ nested recursive calls:
 \begin{equation*}
 \begin{cases}
 F_k(0) = 0 \\
-F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
+F_k(n) = n - F_k^{(k)}(n-1) \hspace{4cm} \text{for all}\ n>0
 \end{cases}
 \end{equation*}
 }
@@ -105,25 +105,25 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
  (9, 6) (10, 7) (11, 8) (12, 8) (13, 9) (14, 10) (15, 11) (16, 11)
  (17, 12) (18, 13) (19, 14) (20, 15) (21, 15) (22, 16) (23, 17)
  (24, 18) (25, 19) (26, 19) (27, 20) (28, 20) (29, 21) (30, 22)};
- \addlegendentry{$F_3$}
+ \addlegendentry{$F_4$}
     \addplot [mark=.,color=orange] coordinates {
 (0, 0) (1, 1) (2, 1) (3, 2) (4, 3) (5, 4) (6, 4) (7, 5) (8, 5)
  (9, 6) (10, 7) (11, 7) (12, 8) (13, 9) (14, 10) (15, 10) (16, 11)
  (17, 12) (18, 13) (19, 13) (20, 14) (21, 14) (22, 15) (23, 16)
  (24, 17) (25, 17) (26, 18) (27, 18) (28, 19) (29, 20) (30, 20) };
- \addlegendentry{$F_2$}
+ \addlegendentry{$F_3$}
  \addplot+[mark=.,domain=0:30,color=red]
  {floor((x+1) * 0.618033988749894903)};
- \addlegendentry{$G=F_1$}
+ \addlegendentry{$G=F_2$}
  \addplot+[mark=.,domain=0:30] {ceil(x/2)};
- \addlegendentry{$F_0$}
+ \addlegendentry{$F_1$}
  \end{axis}
 \end{tikzpicture}
 
 \myvspace
 
-\innerblock{ Theorem (with Shuo Li, nov. 2023!): }
-{$\forall k,\forall n, F_k(n) \le F_{k+1}(n)$}
+\innerblock{ Theorem (with Shuo Li and W. Steiner): }
+{$\forall k\ge 1,\forall n\ge 0, F_k(n) \le F_{k+1}(n)$}
 }%block
 %\note[targetoffsetx = 3cm, targetoffsety = -20cm,
 %       angle = -30, connection, width=12cm]{\Large Nov~2023:~Proved! }
@@ -131,15 +131,15 @@ F_k(n) = n - F_k^{(k+1)}(n-1) \hspace{4cm} \text{for all}\ n>0
 
 \block{Fibonacci-like Sequences}{
 
-For any $k\ge 0$:
+For any $k\ge 1$:
 
 \myvspace
 
 \altinnerblock{Definition: the $A_k$ sequences}{
 \begin{equation*}
 \begin{cases}
-A^k_n = n+1 \hfill \text{when}\ n\le k \\
-A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
+A^k_n = n+1 \hfill \text{when}\ n<k \\
+A^k_{n} = A^k_{n-1} + A^k_{n-k} \hspace{5cm} \text{when}\ n \ge k
 \end{cases}
 \end{equation*}
 }
@@ -147,16 +147,16 @@ A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
 \myvspace
 
 \begin{itemize}
-\item $A^0$ : 1  2  4  8  16  32  64  128  256 $\ldots$
-\item $A^1$ : 1  2  3  5  8  13  21  34  55  89 $\ldots$ (Fibonacci)
-\item $A^2$ : 1  2  3  4  6  9  13  19  28  41 $\ldots$ (Narayana's Cows)
-\item $A^3$ : 1  2  3  4  5  7  10  14  19  26 $\ldots$
+\item $A^1$ : 1  2  4  8  16  32  64  128  256 $\ldots$
+\item $A^2$ : 1  2  3  5  8  13  21  34  55  89 $\ldots$ (Fibonacci)
+\item $A^3$ : 1  2  3  4  6  9  13  19  28  41 $\ldots$ (Narayana's Cows)
+\item $A^4$ : 1  2  3  4  5  7  10  14  19  26 $\ldots$
 \end{itemize}
 
 \myvspace
 
 \innerblock{Theorem: $F_k$ shifts down $A^k$}
-{$\forall k, \forall n, F_k(A^k_n) = A^k_{n-1}$}
+{$\forall k\ge 1, \forall n\ge 0, F_k(A^k_n) = A^k_{n-1}$}
 
 }%block
 
@@ -165,8 +165,8 @@ A^k_{n+1} = A^k_{n} + A^k_{n-k} \hspace{5cm} \text{when}\ n+1 > k
 \newcommand{\Arest}{\ensuremath{\Sigma A^k_i}}
 
 \innerblock{Theorem (Zeckendorf):}{
-Let $k\ge 0$. All $n\ge 0$ has a unique canonical decomposition
-  $\Arest$ (i.e. with indices $i$ apart by at least $k+1$).
+Let $k\ge 1$. All $n\ge 0$ has a unique canonical decomposition
+  $\Arest$ (i.e. with indices $i$ apart by at least $k$).
 }
 
 \myvspace
@@ -178,10 +178,10 @@ decompositions: $F_k(\Arest) = \Sigma A^k_{i-1}$ (with here $0-1 = 0$).
 
 \myvspace
 
-For instance for $k=2$ and $n=18$ :
+For instance for $k=3$ and $n=18$ :
 \begin{itemize}
-\item $18 = A^2_0 + A^2_3 + A^2_6 = 1 + 4 + 13$
-\item $F_3(18) = A^2_0 + A^2_2 + A^2_5 = 1 + 3 + 9 = 13$
+\item $18 = A^3_0 + A^3_3 + A^3_6 = 1 + 4 + 13$
+\item $F_3(18) = A^3_0 + A^3_2 + A^3_5 = 1 + 3 + 9 = 13$
 \item $1+3+9$ no more canonical, possible renormalization
 \end{itemize}
 
@@ -194,7 +194,7 @@ $\rank_k(n)$ : lowest index in the $k$-decomposition of $n$
 \myvspace
 
 \innerblock{Theorem: $F_k$ flat spots}{
-$F_k(n)=F_k(n+1)$ iff $\rank_k(n) = 0$ (i.e. $n = 1 + \Arest$)
+$F_k(n)=F_k(n{+}1)$ iff $\rank_k(n) = 0$ (i.e. $n = 1 + \Arest$)
 }
 
 }%block
@@ -270,13 +270,13 @@ Now, with an ad-hoc trunk and node numbered via BFS:
 
 \block{Linear Equivalents}{
 
-Let $\tau_k$ be the positive root of $X^{k+1}+X-1$. It is hence
-algebraic, and irrational except for $k=0$.
+For $k\ge 1$, let $\alpha_k$ be the positive root of $X^{k}+X-1$.
+It is hence algebraic, and irrational except for $k=1$.
 
 \myvspace
 
 \innerblock{Theorem:}{
-For all $k\ge 0$, when $n\to\infty$ we have $F_k(n) = \tau_k.n + o(n)$
+For all $k\ge 1$, when $n\to\infty$ we have $F_k(n) = \alpha_k.n + o(n)$
 }
 
 \myvspace
@@ -285,27 +285,27 @@ More precisely:
 
 \coloredbox{
 \begin{itemize}
-\item $F_0(n) = \lfloor (n+1)/2 \rfloor = \lceil n/2 \rceil$
+\item $F_1(n) = \lfloor (n+1)/2 \rfloor = \lceil n/2 \rceil$
 \end{itemize}}
-And $A^0_n = 2^n$ and we retrieve the base-2 decomposition !
+And $A^1_n = 2^n$ and we retrieve the base-2 decomposition !
 
 \myvspace
 
 \coloredbox{
 \begin{itemize}
-\item $G(n) = F_1(n) = \lfloor \tau_1.(n+1) \rfloor$
+\item $G(n) = F_2(n) = \lfloor \alpha_2.(n+1) \rfloor$
 \end{itemize}}
-Here $\tau_1=1/\phi=\phi-1 \approx 0.618...$
+Here $\alpha_2=1/\phi=\phi-1 \approx 0.618...$
 
 \myvspace
 
 \coloredbox{
 \begin{itemize}
-\item $F_2(n) - \lfloor \tau_2.n \rfloor \in \{0,1\}$
+\item $F_3(n) - \lfloor \alpha_3.n \rfloor \in \{0,1\}$
 \end{itemize}}
-Here $\tau_2 \approx 0.6823...$, inverse of Pisot number $P_3$. \\
-Let $\delta(n) = F_2(n) - \tau_2.n$.
-Then plotting $(\delta(i),\delta(F_2(i)))$
+Here $\alpha_3 \approx 0.6823...$, inverse of Pisot number $P_3$. \\
+Let $\delta(n) = F_3(n) - \alpha_3.n$.
+Then plotting $(\delta(i),\delta(F_3(i)))$
  leads to this Rauzy fractal \cite{Rauzy,Fogg}!
 
 \includegraphics[width=\linewidth]{fractal.png}
@@ -314,18 +314,18 @@ Then plotting $(\delta(i),\delta(F_2(i)))$
 
 \coloredbox{
 \begin{itemize}
-\item $F_3(n) - \lfloor \tau_3.n \rfloor \in \{-1,0,1,2\}$
+\item $F_4(n) - \lfloor \alpha_4.n \rfloor \in \{-1,0,1,2\}$
 \end{itemize}}
-Here $\tau_3 \approx 0.7244...$, inverse of Pisot number $Q_3$.
+Here $\alpha_4 \approx 0.7244...$, inverse of Pisot number $Q_3$.
 
 \myvspace
 
 \coloredbox{
 \begin{itemize}
-\item After $k\ge 4$, $F_k(n)-\tau_k.n = o(n)$ but not bounded.
+\item After $k\ge 5$, $F_k(n)-\alpha_k.n = o(n)$ but not bounded.
 \end{itemize}}
-Note: $\tau_4$ is the inverse of the Plastic number (smallest Pisot),
-then $\tau_k$ for $k\ge 5$ is above any Pisot inverse.
+Note: $\alpha_5$ is the inverse of the Plastic number (smallest Pisot),
+then $\alpha_k$ for $k\ge 5$ is above any Pisot inverse.
 
 
 }%block
@@ -333,7 +333,7 @@ then $\tau_k$ for $k\ge 5$ is above any Pisot inverse.
 \block[linewidth=-1mm]{}{
 \vspace*{-3cm}
 \begin{center}
-\includegraphics[height=1.5em]{by.png}\ \ Pierre Letouzey, 2023
+\includegraphics[height=1.5em]{by.png}\ \ Pierre Letouzey, 2023-2024 (v2)
 \end{center}
 }
 
@@ -341,71 +341,71 @@ then $\tau_k$ for $k\ge 5$ is above any Pisot inverse.
 
 \block{Morphic Words}{
 
-We take $\mathcal{A}=\{0..k\}$ as alphabet.
+We take $\mathcal{A}=\{1..k\}$ as alphabet.
 
 \myvspace
 
-\altinnerblock{Definition: the substitutions $\sigma_k$}{
+\altinnerblock{Definition: the substitutions $\tau_k$}{
 \begin{equation*}
 \begin{cases}
 \mathcal{A} \to \mathcal{A}^* \\
-\sigma_k(n) = n+1 \hspace{9cm} \text{for}\ n<k \\
-\sigma_k(k) = k.0
+\tau_k(n) = n{+}1 \hspace{9cm} \text{for}\ 1\le n< k \\
+\tau_k(k) = k.1
 \end{cases}
 \end{equation*}
 }
 
 \myvspace
 
-\altinnerblock{Definition: the morphic words $m_k$}{
+\altinnerblock{Definition: the morphic words $x_k$}{
 
-The substitution $\sigma_k$ is prolongeable at k. It hence admits
-an infinite word $m_k$ (called \emph{morphic}) as fixed point:
+The substitution $\tau_k$ is prolongeable at k. It hence admits
+an infinite word $x_k$ (called \emph{morphic}) as fixed point:
 
-$$m_k = \lim_{n\to\infty} \sigma_k^n(k) = \sigma_k(m_k) $$
+$$x_k = \lim_{n\to\infty} \tau_k^n(k) = \tau_k(x_k) $$
 }
 
 \myvspace
 For example:
 \begin{itemize}
-\item $m_1$ is the Fibonacci word (with opposite letters)
-\item And $m_2 = 20122020120122012202...$
+\item $x_2$ is the Fibonacci word (with opposite letters)
+\item And $x_3 = 31233131231233123313...$
 \end{itemize}
 
 \myvspace
 
-\innerblock{Theorem: alternative description of $m_k$}{
-$m_k$ is also the limit of its finite prefixes $M^k_n$ defined as:
+\innerblock{Theorem: alternative description of $x_k$}{
+$x_k$ is also the limit of its finite prefixes $X^k_n$ defined as:
 \begin{equation*}
 \begin{cases}
-M^k_n = k.0...(n-1) \hfill \text{for}\ n\le k \\
-M^k_{n+1} = M^k_{n}.M^k_{n-k} \hspace{7cm} \text{for}\ n+1 > k
+X^k_n = k.1...n \hfill \text{for}\ n < k \\
+X^k_{n} = M^k_{n-1}.M^k_{n-k} \hspace{7cm} \text{for}\ n \ge k
 \end{cases}
 \end{equation*}
 
-Also note that $|M_{k,n}| = A^k_n$
+Also note that $|X^k_n| = A^k_n$
 }
 
 \myvspace
 
 \innerblock{Theorem: linear complexity}{
-The subword complexity of $m_k$ (i.e. its number of distinct factors of
-size $p$) is $p \mapsto k.p+1$.
+The subword complexity of $x_k$ (i.e. its number of distinct factors of
+size $p$) is $p \mapsto p.(k{-}1){+}1$.
 }
-In particular, $m_1$ is Sturmian (as expected).
+In particular, $x_2$ is Sturmian (as expected).
 
 \myvspace
 
-\innerblock{Theorem: relating $m_k$ and $\rank_k$ and $F_k$}{
+\innerblock{Theorem: relating $x_k$ and $\rank_k$ and $F_k$}{
 \begin{itemize}
-\item At position $n>1$, $m_k[n] = min(k,\rank_k(n))$.
-\item In particular this letter is 0 iff $F_k$ is flat there.
-\item Hence the number of 0 in the $n$ first letters of $m_k$ is
+\item At position $n\ge 0$, $x_k[n] = min(k,1{+}\rank_k(n))$.
+\item In particular this letter is 1 iff $F_k$ is flat there.
+\item Hence the number of 1 in the $n$ first letters of $x_k$ is
   $n-F_k(n)$.
-\item For any $p\le k$, counting the letters $\ge p$ gives
+\item For any $p < k$, counting the letters $> p$ gives
   $F_k^{(p)}$.
-\item All letters in $m_k$ have (infinite) frequencies, for instance
-  the frequency of 0 is $1-\tau_k$ (see Saari \cite{Saari}).
+\item All letters in $x_k$ have (infinite) frequencies, for instance
+  the frequency of 1 is $1-\alpha_k$ (see Saari \cite{Saari}).
 \end{itemize}
 }
 
