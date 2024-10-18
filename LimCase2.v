@@ -279,7 +279,7 @@ Lemma A2_div_μ_n n : A 2 n / μ ^n = coef_μ + 2 * Re (coef_α * (α/μ)^n).
 Proof.
  assert (μ <> 0) by approx.
  assert (μ^n <> 0). { now apply pow_nonzero. }
- unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by (negapply RtoC_inj; auto).
+ unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by now injection.
  rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
  rewrite A2_eqn. field; trivial.
 Qed.
@@ -289,7 +289,7 @@ Proof.
  assert (0 < μ) by approx.
  assert (0 < τ) by approx.
  apply Rlt_pow2_inv; try lra.
- rewrite Cmod_div by (negapply RtoC_inj; lra).
+ rewrite Cmod_div by (injection; lra).
  rewrite Cmod_R, Rabs_right by lra.
  unfold Rdiv. rewrite Rpow_mult_distr. rewrite αmod2. approx.
 Qed.
@@ -375,8 +375,8 @@ Qed.
 
 Lemma det_nz : det <> 0.
 Proof.
- rewrite det_eqn. rewrite Cmult_integral. intros [[= E] | E]; try lra.
- apply RtoC_inj in E. apply sqrt_eq_0 in E; lra.
+ rewrite det_eqn. rewrite Cmult_integral. intros [[=E]|[=E]]; try lra.
+ apply sqrt_eq_0 in E; lra.
 Qed.
 
 Lemma coef_μ_eqn : coef_μ = 2 * μ^4 * im_α / sqrt 31.
@@ -384,7 +384,7 @@ Proof.
   apply RtoC_inj. unfold coef_μ. rewrite coef_mu_ok.
   unfold coefA. fold μ.
   replace (μ^3)%C with (μ^4 * μ / μ^2)%C.
-  2:{ field. intro E. apply RtoC_inj in E. revert E. approx. }
+  2:{ field. injection; approx. }
   assert (NZ : √31 <> 0) by (intro E; apply sqrt_eq_0 in E; lra).
   rewrite !RtoC_div, !RtoC_mult, <- !RtoC_pow; trivial.
   rewrite (Cmult_comm 2). unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
@@ -393,11 +393,10 @@ Proof.
   change (RtoC μ) with (roots$0).
   rewrite <- (coefs0_coefB 2 _ roots_sorted).
   apply Cmult_eq_reg_r with (Ci * RtoC (√31))%C.
-  2:{ intros E. apply Cmult_integral in E. destruct E as [E|E].
-      - injection E. lra.
-      - apply NZ. now apply RtoC_inj. }
+  2:{ intros E. apply Cmult_integral in E.
+      destruct E as [[= E]|[= E]]; [lra|easy]. }
   unfold Cdiv. field_simplify.
-  2:{ intros E. apply RtoC_inj in E. apply sqrt_eq_0 in E; lra. }
+  2:{ injection; lra. }
   change im_α with (Im α).
   rewrite <- im_alt'. rewrite <- Cmult_assoc, <- det_eqn.
   unfold det.
@@ -447,9 +446,8 @@ Proof.
      change (Cconj α) with αbar.
      replace (Cconj det) with (-det)%C.
      2:{ rewrite det_eqn. rewrite Cconj_mult_distr, Cconj_R. lca. }
-     rewrite det_eqn. field. split.
-     - intros E. apply RtoC_inj in E. apply sqrt_eq_0 in E; lra.
-     - unfold Ci. injection 1. lra. }
+     rewrite det_eqn. field.
+     split; injection as E; try apply sqrt_eq_0 in E; lra. }
  rewrite roots_prod. field_simplify. rewrite det2. lca. apply det_nz.
 Qed.
 
@@ -459,8 +457,7 @@ Proof.
  rewrite RtoC_div by approx. unfold Cdiv. rewrite Cpow_mul_l.
  rewrite <- RtoC_pow, <- Cpow_mult. simpl Nat.mul.
  set (x := RtoC (Rminus _ _)).
- assert (NZ : x <> 0).
- { intros E. apply RtoC_inj in E. revert E. approx. }
+ assert (NZ : x <> 0) by (injection; approx).
  rewrite Cpow_inv by trivial.
  apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nz; trivial.
  rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nz; trivial.
@@ -500,7 +497,7 @@ Qed.
 
 Lemma coef_squares : (coef_μ^2+coef_α^2+coef_αbar^2 = 55/31)%C.
 Proof.
- apply Cmult_eq_reg_l with (RtoC 31); [|negapply RtoC_inj; lra].
+ apply Cmult_eq_reg_l with (RtoC 31); [|injection; lra].
  field_simplify.
  rewrite coef_μ2, coef_α2, coef_αbar2.
  replace (RtoC 55) with (15*1+7*1+33)%C by lca.
@@ -646,8 +643,7 @@ Proof.
  change (Im α) with im_α.
  unfold Cdiv.
  replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
- 2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_α_nz. }
+ 2:{ field. split; injection; approx. }
  rewrite Ci_inv.
  replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
  rewrite !Cmult_assoc.
@@ -667,8 +663,7 @@ Proof.
  change αbar with (Cconj α) at 2. rewrite im_alt'.
  change (Im α) with im_α.
  replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
- 2:{ field; repeat split; try cconst.
-     negapply RtoC_inj; apply im_α_nz. }
+ 2:{ field. split; injection; approx. }
  rewrite Ci_inv.
  replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
  rewrite !Cmult_assoc.
@@ -748,7 +743,7 @@ Lemma diff0_decomp_eqn' n :
 Proof.
  rewrite diff0_decomp_eqn.
  induction decomp; cbn -[Re].
- - rewrite Cmult_0_r. cconst.
+ - rewrite Cmult_0_r. compute; lra.
  - rewrite Cmult_plus_distr_l, re_plus, Rmult_plus_distr_l.
    f_equal. apply IHl.
 Qed.
@@ -898,7 +893,7 @@ Definition Ceval x '(Coefs a b c) := (a + b * x + c * x^2)%C.
 Lemma of_exp_S n : 2 <= n ->
   of_exp (S n) = add (of_exp n) (of_exp (n-2)).
 Proof.
- destruct n as [|[|n ] ]; lia || easy.
+ destruct n as [|[|n]]; lia || easy.
 Qed.
 
 Lemma Ceval_add x c c' :
@@ -912,7 +907,7 @@ Lemma Cpow_α_reduce n : (α^n = Ceval α (of_exp n))%C.
 Proof.
  induction n as [n IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases n 2).
- - destruct n as [|[|[|n ] ] ]; lca || lia.
+ - destruct n as [|[|[|n]]]; lca || lia.
  - destruct n; try lia. rewrite of_exp_S by lia.
    rewrite Ceval_add, <- !IH by lia. clear IH.
    replace (S n) with (3 + (n-2)) by lia.
@@ -1196,7 +1191,7 @@ Lemma diff2_decomp_eqn' n :
 Proof.
  rewrite diff2_decomp_eqn.
  induction decomp; cbn -[Re].
- - rewrite Cmult_0_r. cconst.
+ - rewrite Cmult_0_r. compute; lra.
  - rewrite Cmult_plus_distr_l, re_plus, Rmult_plus_distr_l.
    f_equal. apply IHl.
 Qed.

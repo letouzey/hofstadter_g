@@ -1,5 +1,4 @@
 From Coq Require Import Lia Reals Lra Permutation.
-From Coquelicot Require Complex.
 From QuantumLib Require Import Complex Matrix Eigenvectors VecSet Polynomial.
 Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
 Require Import GenFib Mu.

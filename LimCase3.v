@@ -1,5 +1,5 @@
 From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
-From QuantumLib Require Import Complex Polynomial Matrix.
+From QuantumLib Require Import Matrix.
 Require Import MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
@@ -148,7 +148,7 @@ Proof.
  assert (LT := SortedRoots_nu 3 l K Hl).
  destruct (SortedRoots_im_pos 3 l Hl 0) as (LT',EQ); try lia.
  simpl in LT', EQ.
- destruct l as [|a [|b [|c [|d [|? l] ] ] ] ]; try (simpl; easy).
+ destruct l as [|a [|b [|c [|d [|? l]]]]]; try (simpl; easy).
  unfold Cnth in *; simpl in *. subst. clear LN K. unfold roots.
  assert (b = α); subst; try easy.
  destruct Hl as (E,CS).
@@ -382,7 +382,7 @@ Definition Diffs w : Vector 3 := mkvectR 3 [Diff3 w; Diff0 w; Diff1 w].
 Definition diffs n : Vector 3 := mkvectR 3 [diff3 n; diff0 n; diff1 n].
 
 Definition B : Square 3 :=
- list2D_to_matrix [ [-τ^3;-1%C;-1%C];[RtoC τ;0;0];[-τ^5;1;0] ]%C.
+ list2D_to_matrix [[-τ^3;-1%C;-1%C];[RtoC τ;0;0];[-τ^5;1;0]]%C.
 
 Lemma WF_B : WF_Matrix B.
 Proof.
@@ -441,15 +441,15 @@ Proof.
 Qed.
 
 Definition U : Square 3 :=
- list2D_to_matrix [ [-α^2;α+1;α];
-                    [-αbar^2;αbar+1; αbar];
-                    [-ν^2;ν+1;RtoC ν] ]%C.
+ list2D_to_matrix [[-α^2;α+1;α];
+                   [-αbar^2;αbar+1; αbar];
+                   [-ν^2;ν+1;RtoC ν]]%C.
 
 Definition D : Square 3 :=
- list2D_to_matrix [ [α;0;0]; [0;αbar;0]; [0;0;RtoC ν] ]%C.
+ list2D_to_matrix [[α;0;0]; [0;αbar;0]; [0;0;RtoC ν]]%C.
 
 Definition Dn n : Square 3 :=
- list2D_to_matrix [ [α^n;0;0]; [0;αbar^n;0]; [0;0;RtoC ν ^n] ]%C.
+ list2D_to_matrix [[α^n;0;0]; [0;αbar^n;0]; [0;0;RtoC ν ^n]]%C.
 
 Lemma WF_U : WF_Matrix U.
 Proof.
@@ -506,7 +506,7 @@ Proof.
  - rewrite <- (P_factor_μ_eq0 αbar);
     [ ring | apply distinct_roots | apply αbar_is_Croot].
  - rewrite <- (P_factor_μ_eq0 ν);
-    [ ring | apply RtoC_inj_neq, distinct_roots | apply ν_is_Croot].
+    [ ring | injection; apply distinct_roots | apply ν_is_Croot].
 Qed.
 
 Definition detU := ((α-αbar)*ν^2+(αbar^2-α^2)*ν+α*αbar*(α-αbar))%C.
@@ -530,21 +530,18 @@ Qed.
 
 Lemma detU_nz : detU <> 0.
 Proof.
- rewrite detU_alt. intros E. rewrite !Cmult_integral in E.
- repeat destruct E as [E|E]; try apply RtoC_inj in E; try lra.
- - now apply im_α_nz.
- - compute in E. injection E; lra.
- - autorewrite with RtoC in E. apply RtoC_inj in E. revert E. approx.
+ rewrite detU_alt, !Cmult_integral. intros E.
+ repeat destruct E as [E|E]; autorewrite with RtoC in E; injection E; approx.
 Qed.
 
 Definition invU_detU : Square 3 :=
  list2D_to_matrix
-  [ [ ν-αbar; -(ν-α); αbar-α];
-    [-αbar*ν*(ν-αbar); α*ν*(ν-α);
+  [[ ν-αbar; -(ν-α); αbar-α];
+   [-αbar*ν*(ν-αbar); α*ν*(ν-α);
        -α*αbar*(αbar-α)];
-    [(ν-αbar)*(αbar*ν+ν+αbar);
+   [(ν-αbar)*(αbar*ν+ν+αbar);
        -(ν-α)*(α*ν+ν+α);
-       (αbar-α)*(α*αbar+αbar+α)] ]%C.
+       (αbar-α)*(α*αbar+αbar+α)]]%C.
 
 Definition invU := /detU .* invU_detU.
 
@@ -647,7 +644,7 @@ Proof.
    [ | apply distinct_roots | apply αbar_is_Croot ].
    unfold UV0a. autorewrite with cconj. ring.
  - rewrite <- (P_factor_μ_eq0 ν);
-   [ | apply RtoC_inj_neq,distinct_roots | apply ν_is_Croot ].
+   [ | injection; apply distinct_roots | apply ν_is_Croot ].
    unfold UV0ν. autorewrite with RtoC. f_equal. ring.
 Qed.
 
@@ -700,7 +697,7 @@ Proof.
    unfold coefν_detU. autorewrite with cconj. rewrite E0. field.
    apply detU_nz. }
  unfold coefsν. rewrite vectν_alt;
- intros Hi; destruct i as [|[|[| ] ] ]; try lia; clear Hi;
+ intros Hi; destruct i as [|[|[|]]]; try lia; clear Hi;
  unfold scale, mkvectR; rewrite mkvect_eqn; simpl nth;
  rewrite im_scal_r; apply Rmult_eq_0_compat_r; trivial.
 Qed.
@@ -961,7 +958,7 @@ Definition Ceval x '(Coefs a b c d) := (a + b * x + c * x^2 + d * x^3)%C.
 Lemma of_exp_S n : 3 <= n ->
   of_exp (S n) = add (of_exp n) (of_exp (n-3)).
 Proof.
- destruct n as [|[|[|n ] ] ]; lia || easy.
+ destruct n as [|[|[|n]]]; lia || easy.
 Qed.
 
 Lemma Ceval_add x c c' :
@@ -975,7 +972,7 @@ Lemma Cpow_α_reduce n : (α^n = Ceval α (of_exp n))%C.
 Proof.
  induction n as [n IH] using lt_wf_ind.
  destruct (Nat.le_gt_cases n 3).
- - destruct n as [|[|[|[|n] ] ] ]; lca || lia.
+ - destruct n as [|[|[|[|n]]]]; lca || lia.
  - destruct n; try lia. rewrite of_exp_S by lia.
    rewrite Ceval_add, <- !IH by lia. clear IH.
    replace (S n) with (4 + (n-3)) by lia.
@@ -1177,10 +1174,7 @@ Proof.
        by (rewrite α_conj; ring).
      rewrite im_alt'. change (Im α) with im_α.
      rewrite detU_alt. field.
-     repeat split.
-     - autorewrite with RtoC. apply RtoC_inj_neq. approx.
-     - injection 1. lra.
-     - apply RtoC_inj_neq. approx. }
+     repeat split; autorewrite with RtoC; injection; approx. }
  unfold UV0ν. autorewrite with RtoC. rewrite re_RtoC.
  approx.
 Qed.

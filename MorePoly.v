@@ -1,5 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
-From QuantumLib Require Import Complex Polynomial FTA.
+From QuantumLib Require Import Complex Polynomial.
+From QuantumLib Require FTA.
 Require Import MoreList MoreComplex.
 Local Open Scope C.
 Local Open Scope poly_scope.
@@ -577,7 +578,7 @@ Proof.
  induction d.
  - exists []. simpl. apply deg0_monic_carac; auto.
  - intros p D M.
-   destruct (Fundamental_Theorem_Algebra p) as (c & Hc); try lia.
+   destruct (FTA.Fundamental_Theorem_Algebra p) as (c & Hc); try lia.
    destruct (Pfactor_root p c Hc) as (q & Hq).
    assert (degree q = d).
    { destruct (Peq_0_dec q) as [Hq0|Hq0].

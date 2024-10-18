@@ -1,20 +1,13 @@
 From Coq Require Import Lia Reals Lra Permutation RelationClasses Sorted.
 From Coquelicot Require Complex.
-From QuantumLib Require Import Complex Polar.
+From QuantumLib Require Import Complex.
+From QuantumLib Require Polar.
 Require Import MoreList MoreReals.
 
 Module CC := Coquelicot.Complex.
 
 Global Notation "0" := C0 : C_scope. (* TODO *)
 Global Notation "1" := C1 : C_scope. (* TODO *)
-
-(* A tactic solving (dis)equalities between C constants *)
-Ltac cconst := compute; injection || f_equal ; lra.
-
-(* Tactic negapply : With f : C->D ; turn a goal ~C into a subgoal ~D *)
-Ltac negapply f :=
- let H := fresh in intro H; apply f in H;
- let c := type of H in revert H; change (not c).
 
 Local Open Scope C.
 
