@@ -31,6 +31,11 @@ Fixpoint linfactors l :=
 
 (** Extra properties *)
 
+Lemma eq_Peq p q : p = q -> p ≅ q.
+Proof.
+ intros ->. apply Peq_refl.
+Qed.
+
 Lemma Peq_iff p q : p ≅ q <-> compactify p = compactify q.
 Proof.
  split. apply Peq_compactify_eq. apply compactify_eq_Peq.

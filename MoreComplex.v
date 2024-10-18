@@ -229,6 +229,12 @@ Proof.
  compute. f_equal; ring.
 Qed.
 
+Lemma Cinv_alt (a : C) : a<>0 ->
+ /a = Cconj a / (Cmod a^2)%R.
+Proof.
+ intros Hb. rewrite Cmod2_conj. field; split;trivial. now apply Cconj_neq_0.
+Qed.
+
 Lemma Cmult_integral (a b : C) : a * b = 0 <-> a = 0 \/ b = 0.
 Proof.
  split.
@@ -332,6 +338,13 @@ Proof.
  induction l; simpl; rewrite ?IHl; lca.
 Qed.
 
+Lemma Clistsum_const {A}(l:list A) c :
+  Clistsum (map (fun _ => c) l) = c * RtoC (INR (length l)).
+Proof.
+ induction l; cbn -[INR]. lca. unfold Clistsum in *.
+ rewrite IHl, S_INR, RtoC_plus. ring.
+Qed.
+
 Lemma Clistsum_map {A} (f : A -> C) (l:list A) (d:A) :
   Clistsum (map f l) = big_sum (fun i => f (nth i l d)) (length l).
 Proof.
@@ -341,14 +354,40 @@ Qed.
 
 Lemma Clistsum_factor_l c l : c * Clistsum l = Clistsum (map (Cmult c) l).
 Proof.
- induction l; simpl; trivial. lca. rewrite <- IHl. lca.
+ induction l; simpl. lca. rewrite <- IHl. lca.
+Qed.
+
+Lemma Clistsum_plus {A} (f g : A->C) l :
+ Clistsum (map f l) + Clistsum (map g l) =
+ Clistsum (map (fun x => f x + g x) l).
+Proof.
+ induction l; simpl. lca. rewrite <- IHl. lca.
 Qed.
 
 Lemma Clistsum_minus {A} (f g : A->C) l :
  Clistsum (map f l) - Clistsum (map g l) =
  Clistsum (map (fun x => f x - g x) l).
 Proof.
- induction l; simpl; trivial. lca. rewrite <- IHl. lca.
+ induction l; simpl. lca. rewrite <- IHl. lca.
+Qed.
+
+Lemma Clistsum_conj l : Cconj (Clistsum l) = Clistsum (map Cconj l).
+Proof.
+ induction l; simpl. lca. rewrite <- IHl. lca.
+Qed.
+
+Lemma Clistsum_Clistsum {A B} (f : A -> B -> C) lA lB :
+ Clistsum (map (fun a => Clistsum (map (f a) lB)) lA)
+ = Clistsum (map (fun b => Clistsum (map (fun a => f a b) lA)) lB).
+Proof.
+ revert lB. induction lA. simpl; intros. now rewrite Clistsum_zero.
+ intros lB. simpl. rewrite IHlA.
+ now rewrite Clistsum_plus.
+Qed.
+
+Lemma RtoC_Rlistsum l : RtoC (Rlistsum l) = Clistsum (map RtoC l).
+Proof.
+ induction l; simpl; trivial. now rewrite RtoC_plus, IHl.
 Qed.
 
 Lemma Clistsum_mod l : (Cmod (Clistsum l) <= Rlistsum (map Cmod l))%R.

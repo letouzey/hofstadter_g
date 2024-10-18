@@ -471,27 +471,35 @@ Proof.
 Qed.
 
 Lemma large_enough_exponent (a b:R) :
+  1 < a -> exists n:nat, b < a^n.
+Proof.
+ intros Ha.
+ destruct (Rlt_or_le b 1); [now exists O|].
+ assert (0 <= ln b).
+ { rewrite <- ln_1. apply Rcomplements.ln_le; lra. }
+ assert (0 < ln a).
+ { rewrite <- ln_1. apply ln_increasing; lra. }
+ exists (S (Z.to_nat (Int_part (ln b / ln a)))).
+ apply ln_lt_inv; try apply pow_lt; try lra.
+ rewrite ln_pow; try lra.
+ replace (ln b) with (ln a * (ln b / ln a)) at 1.
+ 2:{ field. apply ln_neq_0; lra. }
+ rewrite (Rmult_comm _ (ln a)).
+ apply Rmult_lt_compat_l; trivial.
+ rewrite S_INR, INR_IZR_INZ, Z2Nat.id.
+ 2:{ apply int_part_le. apply Rcomplements.Rdiv_le_0_compat; lra. }
+ rewrite (int_frac (ln b / ln a)) at 1.
+ apply Rplus_lt_compat_l. apply base_fp.
+Qed.
+
+Lemma large_enough_exponent' (a b:R) :
   0 < a < 1 -> 0 < b -> exists n:nat, a^n < b.
 Proof.
  intros Ha Hb.
- destruct (Rlt_or_le 1 b); [now exists O|].
- assert (ln b <= 0).
- { rewrite <- ln_1. apply Rcomplements.ln_le; lra. }
- assert (ln a < 0).
- { rewrite <- ln_1. now apply ln_increasing. }
- exists (S (Z.to_nat (Int_part (ln b / ln a)))).
- apply ln_lt_inv; trivial; try now apply pow_lt.
- rewrite ln_pow; try easy.
- replace (ln b) with (ln a * (ln b / ln a)) at 2.
- 2:{ field. apply ln_neq_0; lra. }
- rewrite (Rmult_comm _ (ln a)).
- apply Rgt_lt, Rmult_lt_gt_compat_neg_l; trivial.
- rewrite S_INR, INR_IZR_INZ, Z2Nat.id.
- 2:{ apply int_part_le.
-     replace (ln b / ln a) with ((-ln b)/(-ln a)) by (field; lra).
-     apply Rcomplements.Rdiv_le_0_compat; lra. }
- rewrite (int_frac (ln b / ln a)) at 1.
- apply Rplus_lt_compat_l. apply base_fp.
+ destruct (large_enough_exponent (/a) (/b)) as (n,Hn).
+ { rewrite <- Rinv_1. apply Rinv_lt_contravar; lra. }
+ exists n. rewrite pow_inv in Hn.
+ apply Rcomplements.Rinv_lt_cancel; trivial.
 Qed.
 
 (** Some trigonometry : [fun n => |cos(a*n+b)|] is apart from 0

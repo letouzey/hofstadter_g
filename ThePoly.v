@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation.
 From QuantumLib Require Import Complex Matrix Eigenvectors VecSet Polynomial.
 Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
-Require Import GenFib Mu.
+Require Import GenFib GenG Mu.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -1070,6 +1070,41 @@ Proof.
    destruct roots; simpl in *; try easy. now right.
 Qed.
 
+Lemma sumA_Rlistsum l :
+  INR (sumA q l) = Rlistsum (map (fun n => INR (A q n)) l).
+Proof.
+ induction l; simpl; trivial.
+ now rewrite plus_INR, IHl.
+Qed.
+
+Lemma Equation_delta n :
+ q<>O ->
+ RtoC (f q n - tau q * n) =
+ Clistsum (map (fun m =>
+   Clistsum (map (fun r => coefdA r * r^m) (tl roots)))
+  (decomp q n)).
+Proof.
+ intros Q.
+ rewrite f_decomp. rewrite <- (decomp_sum q n) at 2.
+ set (l := decomp q n).
+ rewrite RtoC_minus, RtoC_mult, !sumA_Rlistsum, !RtoC_Rlistsum, !map_map.
+ rewrite Clistsum_factor_l, map_map, Clistsum_minus.
+ f_equal. apply map_ext. intros m. replace (pred m) with (m-1)%nat by lia.
+ rewrite <- Equation_dA; trivial. now rewrite RtoC_minus, RtoC_mult.
+Qed.
+
+Lemma Equation_delta' n :
+ q<>O ->
+ RtoC (f q n - tau q * n) =
+ Clistsum (map (fun r => coefdA r * Clistsum (map (Cpow r) (decomp q n)))
+               (tl roots)).
+Proof.
+ intros Q.
+ rewrite Equation_delta; trivial.
+ rewrite Clistsum_Clistsum. f_equal. apply map_ext.
+ intros a. now rewrite Clistsum_factor_l, map_map.
+Qed.
+
 End Roots.
 
 Lemma coefB_nz q r : Root r (ThePoly q) -> coefB q r <> 0.
@@ -1191,9 +1226,12 @@ Qed.
     below the Plastic Ratio (1.3247...) cannot be a Pisot number,
     leading to at least a secondary root of modulus >= 1.
 
-    We will propably *not* certify this in Cok for the moment,
+    We will propably *not* certify this in Coq for the moment,
     and rather use an axiom.
 *)
+
+Axiom axiom_large_second_best_root :
+  forall q roots, (5<=q)%nat -> SortedRoots q roots -> 1 < Cmod (roots$1).
 
 Lemma coefA_conj q r :
   Root r (ThePoly q) -> coefA q (Cconj r) = Cconj (coefA q r).
@@ -1271,7 +1309,7 @@ Proof.
      rewrite <- (SortedRoots_mu q _ roots_ok). intros EQ.
      apply NoDup_nth in EQ; try lia. eapply SortedRoots_nodup; eauto.
    - apply Rplus_le_compat_l. apply Clistsum_mod. }
- destruct (large_enough_exponent ratio (c/c_rest)) as (N' & HN'); trivial.
+ destruct (large_enough_exponent' ratio (c/c_rest)) as (N' & HN'); trivial.
  { apply Rdiv_lt_0_compat; trivial. }
  destruct (Cr (max N N')) as (n & Hn & LTn).
  exists n. split; try lia.

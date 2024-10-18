@@ -1,7 +1,6 @@
 From Coq Require Import List Arith Lia Reals Lra.
 Require Import MoreFun MoreList MoreReals MoreLim.
 Require Import GenFib GenG Words Mu ThePoly.
-Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -353,3 +352,42 @@ Proof.
  apply Rmult_lt_reg_r with (/n); try lra.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
+
+(** When parameter q is at least 5, [limsup |f q n - tau q *n| = +infinity].
+    It is sufficient to consider numbers [n] of the form [A q m].
+    The two following proofs currently rely on an axiom stating that
+    the largest secondary root has modulus > 1 when q>=5.
+    We do have a paper proof of this axiom, based on the value of the
+    minimal Pisot number. To investigate someday in Coq, but probably
+    quite non-trivial.
+
+    Note that [limsup |f 4 n - tau 4 * n| = +infinity] as well.
+    The proof is different (and without axiom !), see LimCase4.v
+*)
+
+Lemma dA_limsup_qgen q : (5<=q)%nat ->
+ is_sup_seq (fun n => Rabs (A q (n-1) - tau q * A q n)) Rbar.p_infty.
+Proof.
+ intros Q M. simpl.
+ destruct (SortedRoots_exists q) as (roots & roots_ok).
+ assert (LT := axiom_large_second_best_root q roots Q roots_ok).
+ destruct (dA_expo q roots ltac:(lia) roots_ok) as (c & Hc).
+ set (r := QuantumLib.Complex.Cmod _) in *.
+ destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
+ destruct (Hc N) as (n & Hn & LT').
+ exists n. eapply Rlt_trans; [|apply LT'].
+ rewrite Rmult_comm, <- Rcomplements.Rlt_div_l.
+ 2:{ destruct c; simpl; lra. }
+ eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; trivial; lra.
+Qed.
+
+Lemma delta_limsup_qgen q : (5<=q)%nat ->
+ is_sup_seq (fun n => Rabs (f q n - tau q * n)) Rbar.p_infty.
+Proof.
+ intros Q M. destruct (dA_limsup_qgen q Q M) as (n & Hn). simpl in *.
+ exists (A q n). now rewrite f_A.
+Qed.
+
+(* Print Assumptions delta_limsup_qgen.
+   (* Uses: axiom_large_second_best_root *)
+*)

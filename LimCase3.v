@@ -3,12 +3,9 @@ From QuantumLib Require Import Matrix.
 Require Import MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
-Import Permutation.
-Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
-Local Set Printing Coercions.
 
 (** * Studying case q=3
 

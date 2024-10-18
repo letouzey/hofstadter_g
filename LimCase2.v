@@ -2,7 +2,6 @@ From Coq Require Import Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Complex.
 Require Import MoreFun MoreList MoreReals MoreLim MoreComplex.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx Freq.
-Local Open Scope Z.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -191,12 +190,11 @@ Lemma roots_sorted : SortedRoots 2 roots.
 Proof.
  split.
  - unfold roots, ThePoly. simpl.
-   rewrite !Cmult_1_l, !Cmult_1_r, !Cplus_0_l, !Cplus_0_r.
-   replace (- αbar * - α * - μ)%C with (- (μ * α *αbar))%C by lca.
-   replace (- αbar + - α + - μ)%C with (- (μ + α + αbar))%C by lca.
-   replace (- αbar * - α + _)%C with (μ*α + μ*αbar + α*αbar)%C by lca.
-   rewrite roots_sum, roots_prod, sigma2_nul.
-   reflexivity.
+   apply MorePoly.eq_Peq. f_equal;[|f_equal;[|f_equal]].
+   + rewrite <- roots_prod at 1. ring.
+   + ring_simplify. rewrite <- sigma2_nul. ring.
+   + rewrite <- roots_sum at 1. ring.
+   + f_equal; lca.
  - do 2 constructor.
    + repeat constructor.
    + constructor. right. unfold α, αbar. simpl. split; trivial. approx.
