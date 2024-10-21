@@ -93,12 +93,6 @@ Proof.
  now unfold scalprod, Mmult, transpose.
 Qed.
 
-Lemma bigsum_ext {G} {H : Monoid G} (f g : nat -> G) n :
- (forall x, (x < n)%nat -> f x = g x) -> big_sum f n = big_sum g n.
-Proof.
- induction n; simpl; intros; f_equal; auto.
-Qed.
-
 (** More on determinant *)
 
 Lemma Determinant_row_add {n} (A : Square n) (i j : nat) (c : C) :

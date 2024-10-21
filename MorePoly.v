@@ -815,8 +815,7 @@ Proof.
  - rewrite Pdiff_mult. simpl. rewrite Cplus_0_r.
    rewrite <- seq_shift, map_map. simpl.
    rewrite Pplus_comm. apply Pplus_eq_compat.
-   + rewrite <- (Pmult_1_r (linfactors l)) at 2.
-     apply Pmult_eq_compat. easy. apply (last_C0_Peq_front [1]).
+   + now rewrite (last_C0_Peq_front [C1]), Pmult_1_r.
    + rewrite IHl. apply Plistsum_mult_r.
 Qed.
 
