@@ -6,11 +6,11 @@ Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
-(** * Studying case k=2
+(** * Studying case q=2
 
-   We focus here on the case k=2, compute the complex roots of [X^3-X^2-1],
+   We focus here on the case q=2, compute the complex roots of [X^3-X^2-1],
    and express (A 2 n) in term of combinations of powers of these roots.
-   Then we study the frequencies in [Words.kseq 2], and the behaviour of
+   Then we study the frequencies in [Words.qseq 2], and the behaviour of
    function [h] (i.e. [f 2]).
 *)
 
@@ -534,7 +534,7 @@ Proof.
 Qed.
 
 
-(** ** Occurrences of letters in morphic word [Words.kseq 2]
+(** ** Occurrences of letters in morphic word [Words.qseq 2]
 
     We will see below how this relates to function [h] (a.k.a [f 2])
     and its iterate [h^^2].
@@ -544,7 +544,7 @@ Qed.
     of a letter (if it exists) is the limit of frequencies for
     ever-growing finite prefixes of the infinite word.
 
-    Here for [Words.kseq 2], the frequencies of letters [0],[1],[2]
+    Here for [Words.qseq 2], the frequencies of letters [0],[1],[2]
     will be respectively [τ^3],[τ^4],[τ^2] (another numbering
     of letters would make that more uniform). For proving that and
     even more, we now consider the following differences :
@@ -597,7 +597,7 @@ Proof.
  now rewrite fs_count_q.
 Qed.
 
-(** Equations giving Diff0 and Diff1 after a substitution [ksubst 2].
+(** Equations giving Diff0 and Diff1 after a substitution [qsubst 2].
     Note : this could be stated via a matrix someday.
 *)
 
@@ -1356,20 +1356,3 @@ Proof.
          destruct n. simpl. approx.
          lia. }
 Qed.
-
-(* Next cases:
-
-For q=3, see LimCase3.v
- an extra negative real root. The complex roots can be expressed
- in function of the real roots. Similar convergence and results than for k=2,
- except that (f 3 n) could be further apart from (nat_part (tau 3 * n)).
-
-For q=4, no Coq proofs yet.
- four complex roots : j and (Cconj j) of modulus 1, and
-  some α and (Cconj α) of modulus < 1. Note that α can be
-  expressed in function of (tau 4).
-  And (f 4 n - tau 4 * n) is now unbounded.
-
-Afterwards, always some complex root of modulus > 1 (but < mu q).
-And (f q n - tau q * n) diverges.
-*)

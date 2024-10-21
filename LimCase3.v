@@ -11,7 +11,7 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case q=3, compute the complex roots of [X^4-X^3-1],
    and express (A 3 n) in term of combinations of powers of these roots.
-   Then we study the frequencies in [Words.kseq 3] and the behaviour of
+   Then we study the frequencies in [Words.qseq 3] and the behaviour of
    function [f 3].
 *)
 
@@ -337,7 +337,7 @@ Qed.
 
 (** Equations giving Diff0 and co after a substitution [qsubst 3]. *)
 
-Lemma Diff0_ksubst3 w : Diff0 (qsubstw 3 w) = τ * Diff3 w.
+Lemma Diff0_qsubst3 w : Diff0 (qsubstw 3 w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
  rewrite len_qsubst, plus_INR.
@@ -346,7 +346,7 @@ Proof.
  rewrite τ4. lra.
 Qed.
 
-Lemma Diff3_ksubst3 w :
+Lemma Diff3_qsubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
   Diff3 (qsubstw 3 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
 Proof.
@@ -359,7 +359,7 @@ Proof.
  rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
 Qed.
 
-Lemma Diff1_ksubst3 w :
+Lemma Diff1_qsubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
   Diff1 (qsubstw 3 w) = - τ^5 * Diff3 w + Diff0 w.
 Proof.
@@ -403,14 +403,14 @@ Proof.
  reflexivity.
 Qed.
 
-Lemma Diffs_ksubst3 w :
+Lemma Diffs_qsubst3 w :
   List.Forall (fun a => a <= 3)%nat w ->
   Diffs (qsubstw 3 w) = B × Diffs w.
 Proof.
  intro.
  apply Vect3_eq; auto with wf_db;
   unfold Diffs; cbn -[Cpow];
-  rewrite ?Diff3_ksubst3, ?Diff0_ksubst3, ?Diff1_ksubst3 by trivial;
+  rewrite ?Diff3_qsubst3, ?Diff0_qsubst3, ?Diff1_qsubst3 by trivial;
   autorewrite with RtoC; f_equal; ring.
 Qed.
 
@@ -432,7 +432,7 @@ Proof.
    cbn -[pow Cpow].
    rewrite Mmult_1_l by now apply WF_mkvectR.
    now rewrite !Rmult_1_r, !Rminus_0_r.
- - rewrite diffs_alt, qseq_take_A, qword_S, Diffs_ksubst3, IHn in *
+ - rewrite diffs_alt, qseq_take_A, qword_S, Diffs_qsubst3, IHn in *
     by (apply qword_letters).
    simpl. now rewrite Mmult_assoc.
 Qed.
