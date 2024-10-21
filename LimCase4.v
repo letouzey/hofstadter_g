@@ -28,16 +28,6 @@ Proof.
  reflexivity.
 Qed.
 
-Lemma μ_τ : μ = /τ.
-Proof.
- apply tau_inv.
-Qed.
-
-Lemma τ5 : τ^5 = 1 - τ.
-Proof.
- generalize (tau_carac 4). fold τ. lra.
-Qed.
-
 (** The complex roots of [X^5-X^4-1] *)
 
 Lemma Poly4_factor : ThePoly 4 = (Pmult [C1;-C1;C1] [-C1;-C1;C0;C1])%C.
@@ -86,9 +76,6 @@ Qed.
 
 Lemma α_conj : Cconj α = αbar.
 Proof. reflexivity. Qed.
-
-Lemma αbar_conj : Cconj αbar = α.
-Proof. now rewrite <- (Cconj_involutive α). Qed.
 
 Lemma αmod2 : (Cmod α)^2 = τ.
 Proof.

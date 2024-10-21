@@ -58,10 +58,6 @@ Proof. red. unfold μ. generalize mu_3. lra. Qed.
 #[local] Instance : Approx (-0.819172513397) ν (-0.819172513396).
 Proof. red. unfold ν. generalize nu_3. lra. Qed.
 
-Lemma μ_nz : μ <> 0. Proof. approx. Qed.
-Lemma ν_nz : ν <> 0. Proof. approx. Qed.
-Lemma τ_nz : τ <> 0. Proof. approx. Qed.
-
 (** The complex roots of [X^4-X^3-1] *)
 
 Definition re_α := (1 - μ - ν)/2.
@@ -99,9 +95,6 @@ Proof.
  apply sqrt_lt_R0. generalize im_α_2_pos. lra.
 Qed.
 
-Lemma im_α_nz : im_α <> 0.
-Proof. generalize im_α_pos; lra. Qed.
-
 #[local] Instance : Approx 0.8362620801 (im_α^2) 0.8362620803.
 Proof. rewrite im_α_2. approx. Qed.
 
@@ -123,9 +116,6 @@ Proof. rewrite αmod2. approx. Qed.
 Proof.
  apply pow2_approx_inv; try qle; try apply Cmod_ge_0. approx.
 Qed.
-
-Lemma αmod_lt : 0 < Cmod α < 1.
-Proof. approx. Qed.
 
 Definition roots := [RtoC μ; α; αbar; RtoC ν].
 
@@ -391,12 +381,7 @@ Proof.
  now apply WF_mkvectR.
 Qed.
 
-Lemma WF_diffs n : WF_Matrix (diffs n).
-Proof.
- now apply WF_mkvectR.
-Qed.
-
-#[local] Hint Resolve WF_B WF_Diffs WF_diffs : wf_db.
+#[local] Hint Resolve WF_B WF_Diffs : wf_db.
 
 Lemma diffs_alt n : diffs n = Diffs (take n (qseq 3)).
 Proof.
@@ -932,7 +917,7 @@ Module Coefs.
 (** Quadruplets (a,b,c,d) for "reduced" polynomials a+bα+cα^2+dα^3 *)
 Local Open Scope nat.
 
-Inductive coefs := Coefs (a b c d : nat).
+Variant coefs := Coefs (a b c d : nat).
 
 Definition zero : coefs := Coefs 0 0 0 0.
 

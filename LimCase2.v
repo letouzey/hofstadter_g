@@ -213,10 +213,7 @@ Proof. rewrite Cpow_S. now simpl_root. Qed.
 Lemma α4 : (α^4 = 1 + α + α^2)%C.
 Proof. rewrite Cpow_S. now simpl_root. Qed.
 
-Lemma αbar4 : (αbar^4 = 1 + αbar + αbar^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ4 α4 αbar4 : root.
+#[local] Hint Rewrite μ4 α4 : root.
 
 Lemma μ5 : (μ^5 = 1 + μ + 2*μ^2)%C.
 Proof. rewrite Cpow_S. now simpl_root. Qed.
@@ -224,10 +221,7 @@ Proof. rewrite Cpow_S. now simpl_root. Qed.
 Lemma α5 : (α^5 = 1 + α + 2*α^2)%C.
 Proof. rewrite Cpow_S. now simpl_root. Qed.
 
-Lemma αbar5 : (αbar^5 = 1 + αbar + 2*αbar^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ5 α5 αbar5 : root.
+#[local] Hint Rewrite μ5 α5 : root.
 
 Lemma μ6 : (μ^6 = 2 + μ + 3*μ^2)%C.
 Proof. rewrite Cpow_S. now simpl_root. Qed.
@@ -235,10 +229,7 @@ Proof. rewrite Cpow_S. now simpl_root. Qed.
 Lemma α6 : (α^6 = 2 + α + 3*α^2)%C.
 Proof. rewrite Cpow_S. now simpl_root. Qed.
 
-Lemma αbar6 : (αbar^6 = 2 + αbar + 3*αbar^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ6 α6 αbar6 : root.
+#[local] Hint Rewrite μ6 α6 : root.
 
 (** Explicit decomposition of [A 2 n] into a linear combination
     of root powers. Now just an instance of [ThePoly.Equation_A]. *)
@@ -866,7 +857,7 @@ Module Coefs.
 (** Triplets (a,b,c) for "reduced" polynomials a+bα+cα^2 *)
 Local Open Scope nat.
 
-Inductive coefs := Coefs (a b c : nat).
+Variant coefs := Coefs (a b c : nat).
 
 Definition zero : coefs := Coefs 0 0 0.
 
