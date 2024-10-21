@@ -120,7 +120,7 @@ Proof.
      apply mu_unique in Hc. generalize (mu_itvl q); lra.
      apply Rcomplements.Rdiv_le_0_compat. apply pos_INR. apply RSpos.
    + revert E.
-     apply Cpow_nz.
+     apply Cpow_nonzero.
      contradict Hc. subst c.
      rewrite ThePoly_root_carac.
      destruct q; try lia. simpl.
@@ -298,7 +298,7 @@ Proof.
  { rewrite Cmod_pow. apply pow_incr. split; try lra. apply Cmod_ge_0. }
  assert (LT : Cmod (r^q*(r-1)) < (-nu q)^q*(1 - nu q)).
  { rewrite Cmod_mult. apply Rle_lt_mult_compat; split; trivial; try lra.
-   - apply Cmod_gt_0. apply Cpow_nz. intros ->. apply (root_nz q).
+   - apply Cmod_gt_0. apply Cpow_nonzero. intros ->. apply (root_nz q).
      now rewrite ThePoly_root_carac.
    - apply Cmod_gt_0. intros E'. rewrite <- Ceq_minus in E'. subst.
      apply (root_non_1 q). now rewrite ThePoly_root_carac. }
@@ -999,7 +999,7 @@ Proof.
  unfold Cdiv.
  rewrite !(Cmult_comm (_*/(_-_))), !Cmult_assoc. f_equal.
  replace (2*q)%nat with (q+q)%nat by lia. rewrite Cpow_add_r, Cpow_S.
- field. apply Cpow_nz. eapply SortedRoots_roots in R; eauto.
+ field. apply Cpow_nonzero. eapply SortedRoots_roots in R; eauto.
  intros ->. now apply root_nz in R.
 Qed.
 
@@ -1025,7 +1025,7 @@ Proof.
      assert (r<>0).
      { eapply SortedRoots_roots in R; eauto. intros ->.
        now apply root_nz in R. }
-     split. now apply Cpow_nz. split; trivial.
+     split. now apply Cpow_nonzero. split; trivial.
      intros E. apply Cminus_eq_0 in E.
      assert (RtoC (S q) <> 0)%C.
      { intros EQ. apply RtoC_inj in EQ. now apply RSnz in EQ. }
@@ -1114,7 +1114,7 @@ Proof.
  destruct E as [->|E]. now apply root_nz in R.
  apply Cmult_integral in E. destruct E as [E|E].
  - apply C1_neq_C0.
-   rewrite <- (Cinv_l (r^q)), E. lca. apply Cpow_nz. intros ->.
+   rewrite <- (Cinv_l (r^q)), E. lca. apply Cpow_nonzero. intros ->.
    now apply root_nz in R.
  - apply C1_neq_C0.
    rewrite <- (Cinv_l ((S q)*r-q)), E. lca.
@@ -1132,12 +1132,12 @@ Proof.
  intros R.
  unfold coefA. replace (r^S q)%C with (r^(2*q)*r/r^q).
  2:{ replace (2*q)%nat with (q+q)%nat by lia.
-     rewrite Cpow_add. simpl. field. apply Cpow_nz.
+     rewrite Cpow_add. simpl. field. apply Cpow_nonzero.
      intros ->. now apply root_nz in R. }
  unfold Cdiv. rewrite <- !Cmult_assoc, (Cmult_assoc r).
  change (r^(2*q)*coefB q r <> 0). intros E. apply Cmult_integral in E.
  destruct E as [E|E].
- - apply Cpow_nz in E; trivial. intros ->. now apply root_nz in R.
+ - apply Cpow_nonzero in E; trivial. intros ->. now apply root_nz in R.
  - revert E. now apply coefB_nz.
 Qed.
 
@@ -1234,24 +1234,18 @@ Axiom axiom_large_second_best_root :
   forall q roots, (5<=q)%nat -> SortedRoots q roots -> 1 < Cmod (roots$1).
 
 Lemma coefA_conj q r :
-  Root r (ThePoly q) -> coefA q (Cconj r) = Cconj (coefA q r).
+  coefA q (Cconj r) = Cconj (coefA q r).
 Proof.
- intros R. unfold coefA.
- rewrite Cdiv_conj, Cpow_conj, Cconj_minus_distr, Cconj_mult_distr, !Cconj_R;
-  try easy.
- intros E.
- assert (E' : r = q / S q).
- { apply Cminus_eq_0 in E. rewrite <- E at 1. field.
-   intros E'. apply RtoC_inj in E'. revert E'. apply RSnz. }
- apply (root_non_qSq q). now rewrite <- E'.
+ unfold coefA.
+ rewrite Cdiv_conj, Cpow_conj, Cconj_minus_distr, Cconj_mult_distr, !Cconj_R.
+ easy.
 Qed.
 
 Lemma coefdA_conj q r :
-  Root r (ThePoly q) -> coefdA q (Cconj r) = Cconj (coefdA q r).
+  coefdA q (Cconj r) = Cconj (coefdA q r).
 Proof.
- intros R. unfold coefdA. rewrite coefA_conj by trivial.
- rewrite Cconj_mult_distr, Cconj_minus_distr, Cinv_conj, Cconj_R; try easy.
- intros ->. now apply root_nz in R.
+ unfold coefdA. rewrite coefA_conj.
+ now rewrite Cconj_mult_distr, Cconj_minus_distr, Cinv_conj, Cconj_R.
 Qed.
 
 Lemma dA_expo q roots : (3<=q)%nat -> SortedRoots q roots ->
@@ -1320,8 +1314,7 @@ Proof.
  rewrite roots_eq. clear Cr E.
  set (f := fun r => _).
  cbn -[skipn]. change (fold_right _ _) with Clistsum. unfold f at 1 2.
- rewrite coefdA_conj
-   by (apply (SortedRoots_roots q _ roots_ok); apply nth_In; lia).
+ rewrite coefdA_conj.
  fold d.
  rewrite <- Cpow_conj, <- Cconj_mult_distr, Cplus_assoc, re_alt'.
  eapply Rlt_le_trans; [|apply Cmod_triangle'].
@@ -1344,7 +1337,7 @@ Proof.
      apply Rmult_lt_0_compat; try lra. apply Cmod_gt_0.
      intros E.
      apply Cmult_integral in E. destruct E as [E|E]. now apply Hd.
-     revert E. now apply Cpow_nz. }
+     revert E. now apply Cpow_nonzero. }
  clear theta rho LTn.
  assert (Cmod (Clistsum (map f (skipn 3 roots))) < c * Cmod r ^n); try lra.
  eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map. unfold f.

@@ -257,9 +257,6 @@ Proof.
  unfold coef_αbar, coef_α, coefA.
  rewrite Cdiv_conj, !Cpow_conj, Cconj_minus_distr, Cconj_mult_distr.
  now rewrite !Cconj_R.
- intros E. apply Cminus_eq_0 in E.
- assert (E' : Im (3%nat * α) = 0) by now rewrite E, im_RtoC.
- rewrite im_scal_l in E'. revert E'. approx.
 Qed.
 
 Lemma A2_eqn n : INR (A 2 n) = coef_μ * μ ^n + 2 * Re (coef_α * α^n).
@@ -457,8 +454,8 @@ Proof.
  set (x := RtoC (Rminus _ _)).
  assert (NZ : x <> 0) by (injection; approx).
  rewrite Cpow_inv by trivial.
- apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nz; trivial.
- rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nz; trivial.
+ apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
+ rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
  unfold x. clear NZ x.
  rewrite RtoC_minus, RtoC_mult.
  change (RtoC (INR 2)) with (RtoC 2).
@@ -477,8 +474,8 @@ Proof.
    assert (E' : Im (3%nat * α) = 0) by now rewrite E, im_RtoC.
    rewrite im_scal_l in E'. revert E'. approx. }
  rewrite Cpow_inv by trivial.
- apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nz; trivial.
- rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nz; trivial.
+ apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
+ rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
  unfold x. clear NZ x.
  change (RtoC (INR 2)) with (RtoC 2).
  replace (RtoC (INR 3)) with (RtoC 3) by lca.

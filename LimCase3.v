@@ -689,7 +689,7 @@ Proof.
  assert (E0 : Cconj UV0ν = UV0ν).
  { unfold UV0ν. now autorewrite with cconj. }
  assert (E : Im (/ detU * coefν_detU) = 0).
- { rewrite is_real_carac. autorewrite with cconj; try apply detU_nz.
+ { rewrite is_real_carac. autorewrite with cconj.
    rewrite detU_conj.
    unfold coefν_detU. autorewrite with cconj. rewrite E0. field.
    apply detU_nz. }

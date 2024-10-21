@@ -192,9 +192,7 @@ Proof.
  autorewrite with RtoC.
  rewrite <- coef_mu_ok. fold a.
  rewrite j_conj, coefA_conj.
- 2:{ eapply SortedRoots_roots. apply roots_sorted. unfold roots. simpl;tauto. }
  change αbar with (Cconj α). rewrite coefA_conj.
- 2:{ eapply SortedRoots_roots. apply roots_sorted. unfold roots. simpl;tauto. }
  fold b d. rewrite <- !Cpow_conj, <- !Cconj_mult_distr.
  rewrite !RtoC_plus, !RtoC_mult.
  rewrite <- !re_alt'. ring.
@@ -236,8 +234,6 @@ Proof.
  2:{ apply Delta_S, decomp_u_delta. }
  simpl map.
  rewrite j_conj, <- α_conj. rewrite !coefdA_conj.
- 2:{ eapply SortedRoots_roots. apply roots_sorted. unfold roots. simpl;tauto. }
- 2:{ eapply SortedRoots_roots. apply roots_sorted. unfold roots. simpl;tauto. }
  set (l := decomp_u n).
  set (dj := coefdA 4 j).
  set (dα := coefdA 4 α).
