@@ -1,34 +1,8 @@
-COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
 -I .
 -R . Top
-DeltaList.v
-Fib.v
-FunG.v
-FunG_prog.v
-FlipG.v
-MoreFun.v
 MoreList.v
-MoreReals.v
-Approx.v
-Phi.v
-GenFib.v
-GenG.v
-GenAdd.v
-GenFlip.v
-Shift.v
-Words.v
-WordGrowth.v
-WordSuffix.v
-WordFactor.v
-Special.v
-Mu.v
-MoreLim.v
-MorePoly.v
+MorePermut.v
 MoreMatrix.v
 MoreComplex.v
-ThePoly.v
-Freq.v
-LimCase2.v
-LimCase3.v
-LimCase4.v
-Article1.v
+MorePoly.v
+Leibniz.v

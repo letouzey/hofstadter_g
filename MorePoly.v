@@ -21,6 +21,8 @@ Definition Root c p := p[[c]] = C0.
 
 Definition monic p := topcoef p = C1.
 
+Definition monicify p := [/topcoef p] *, p.
+
 Fixpoint linfactors l :=
   match l with
   | [] => [C1]
@@ -96,6 +98,14 @@ Proof.
  split. apply Peq_nil_reduce. intros (->,H). rewrite H. apply Pzero_alt.
 Qed.
 
+Lemma Peq0_carac' p : p≅[] <-> Forall (eq C0) p.
+Proof.
+ induction p; try easy.
+ rewrite Peq0_cons, IHp. clear IHp. split.
+ - now constructor.
+ - now inversion 1.
+Qed.
+
 Lemma prune_last (c:C) p :
   c<>0 \/ ~p≅[] ->
   prune (p ++ [c]) = (prune p) ++ [c].
@@ -169,6 +179,11 @@ Lemma topcoef_nz (p : Polynomial) :
  ~ p ≅ [] -> topcoef p <> C0.
 Proof.
  intros H. contradict H. now apply topcoef_0_iff.
+Qed.
+
+Lemma topcoef_0 : topcoef [] = C0.
+Proof.
+ easy.
 Qed.
 
 Lemma coef_after_degree n p : (degree p < n)%nat -> coef n p = C0.
@@ -265,6 +280,12 @@ Lemma Popp_coef n p : coef n (-, p) = - coef n p.
 Proof.
  change (-, p) with (monom (- C1) 0 *, p).
  rewrite Pmult_monom_coef by lia. rewrite Nat.sub_0_r. ring.
+Qed.
+
+Lemma Popp_alt p : -, p ≅ List.map Copp p.
+Proof.
+ unfold Popp. rewrite Pscale_alt. apply compactify_eq_Peq. f_equal.
+ apply map_ext. intros. ring.
 Qed.
 
 Lemma Pconst_nonzero (c:C) : c<>C0 -> ~[c]≅[].
@@ -433,6 +454,30 @@ Proof.
    destruct Ceq_dec. now apply C1_neq_C0. easy.
 Qed.
 
+Lemma monicify_degree p : degree (monicify p) = degree p.
+Proof.
+ unfold monicify.
+ destruct (compactify_last p) as [H|H].
+ - apply Peq0_carac in H. rewrite H. now rewrite Pscale_alt.
+ - apply Pscale_degree. now apply nonzero_div_nonzero.
+Qed.
+
+Lemma monicify_eval p c : (monicify p)[[c]] = p[[c]] / topcoef p.
+Proof.
+ unfold monicify. rewrite Pmult_eval. cbn. unfold Cdiv. ring.
+Qed.
+
+Lemma monicify_root p c : Root c (monicify p) <-> Root c p.
+Proof.
+ unfold Root. rewrite monicify_eval.
+ destruct (Peq_0_dec p) as [->|N].
+ - cbn. intuition. unfold Cdiv. rewrite Cinv0. ring.
+ - rewrite <- topcoef_0_iff in N. split.
+   + unfold Cdiv. intros H. apply Cmult_integral in H. destruct H; auto.
+     apply nonzero_div_nonzero in N. easy.
+   + intros ->. apply Cmult_0_l.
+Qed.
+
 Lemma degree_cons c p :
  degree (c::p) = if Peq_0_dec p then O else S (degree p).
 Proof.
@@ -477,6 +522,16 @@ Proof.
    + intros LT. apply IHp. lia.
 Qed.
 
+Lemma topcoef_scale c p : topcoef ([c] *, p) = c * topcoef p.
+Proof.
+ destruct (Ceq_dec c 0) as [->|N].
+ - rewrite Pzero_alt. cbn. ring.
+ - rewrite !topcoef_alt. rewrite Pscale_degree by trivial.
+   rewrite Pscale_alt. unfold coef.
+   replace C0 with (c*C0) at 1 by apply Cmult_0_r.
+   apply map_nth.
+Qed.
+
 Lemma topcoef_mult p q : topcoef (p *, q) = topcoef p * topcoef q.
 Proof.
  unfold topcoef.
@@ -502,6 +557,13 @@ Qed.
 Lemma topcoef_lin a b : a<>C0 -> topcoef [b;a] = a.
 Proof.
  intros. cbn. destruct Ceq_dec; easy.
+Qed.
+
+Lemma monicify_monic p : ~p≅[] -> monic (monicify p).
+Proof.
+ intros H.
+ unfold monic, monicify. rewrite topcoef_mult, topcoef_singl.
+ rewrite <- topcoef_0_iff in H. now field.
 Qed.
 
 Lemma deg0_monic_carac p : degree p = O -> monic p -> p ≅ [C1].
@@ -739,7 +801,7 @@ Proof.
 Qed.
 
 Lemma Peval_Plistsum (l:list Polynomial) c :
-  Peval (Plistsum l) c = Clistsum (map (fun P => Peval P c) l).
+  Peval (Plistsum l) c = fold_right Cplus C0 (map (fun P => Peval P c) l).
 Proof.
  induction l; simpl; now rewrite ?Pplus_eval, ?IHl.
 Qed.
