@@ -4,10 +4,8 @@ homepage: "https://github.com/letouzey/hofstadter_g/"
 dev-repo: "git+https://github.com/letouzey/hofstadter_g.git"
 bug-reports: "https://github.com/letouzey/hofstadter_g/issues"
 license: "CC-PDDC"
-build: [
-  ["./make" "-j%{jobs}%"]
-]
-install: ["./make" "install"]
+build: ["%{make}%" "-j%{jobs}%"]
+install: ["%{make}%" "install"]
 depends: [
   "coq" {>= "8.16"}
   "coq-coquelicot" {>= "3.3"}
@@ -18,8 +16,6 @@ tags: [
   "keyword:morphic words"
   "keyword:Hofstadter"
 ]
-authors: [
-  "Pierre Letouzey <letouzey@irif.fr>"
-]
+authors: "Pierre Letouzey <letouzey@irif.fr>"
 synopsis: "A Coq formalization about Hofstadter's function G and beyond"
 
