@@ -128,29 +128,13 @@ Proof.
  rewrite Cconj_plus_distr. f_equal. compute; f_equal; lra.
 Qed.
 
-Lemma re_α_nz : re_α <> 0.
-Proof.
- unfold re_α. approx.
-Qed.
-
-Lemma im_α_pos : 0 < im_α.
-Proof.
- unfold im_α. apply Rlt_mult_inv_pos; try lra.
- apply sqrt_lt_R0. approx.
-Qed.
-
-Lemma im_α_nz : im_α <> 0.
-Proof.
- generalize im_α_pos; lra.
-Qed.
-
 Lemma distinct_roots :
   α <> μ /\ αbar <> μ /\ α <> αbar.
 Proof.
  unfold α, αbar, RtoC; repeat split.
- - intros [= A B]. now destruct im_α_nz.
- - intros [= A B]. generalize im_α_nz. lra.
- - intros [= B]. generalize im_α_nz. lra.
+ - intros [= A _]. revert A. approx.
+ - intros [= _ A]. revert A. approx.
+ - intros [= A]. revert A. approx.
 Qed.
 
 (** Elementary symmetric functions between roots *)
@@ -263,8 +247,8 @@ Lemma A2_div_μ_n n : A 2 n / μ ^n = coef_μ + 2 * Re (coef_α * (α/μ)^n).
 Proof.
  assert (μ <> 0) by approx.
  assert (μ^n <> 0). { now apply pow_nonzero. }
- unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv by now injection.
- rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r by trivial.
+ unfold Cdiv. rewrite Cpow_mul_l, Cpow_inv.
+ rewrite Cmult_assoc, RtoC_pow, <- RtoC_inv, re_scal_r.
  rewrite A2_eqn. field; trivial.
 Qed.
 
@@ -273,8 +257,7 @@ Proof.
  assert (0 < μ) by approx.
  assert (0 < τ) by approx.
  apply Rlt_pow2_inv; try lra.
- rewrite Cmod_div by (injection; lra).
- rewrite Cmod_R, Rabs_right by lra.
+ rewrite Cmod_div, Cmod_R, Rabs_right by lra.
  unfold Rdiv. rewrite Rpow_mult_distr. rewrite αmod2. approx.
 Qed.
 
@@ -344,9 +327,7 @@ Proof.
    replace (2*Ci*Im α)%C with ((2*Im α)*Ci)%C by ring.
    rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1.
    rewrite Rmult_1_r. change (Im α) with im_α.
-   apply Rmult_le_pos.
-   - rewrite <- Rsqr_pow2. apply Rle_0_sqr.
-   - generalize im_α_pos. nra. }
+   apply Rmult_le_pos; approx. }
  generalize det2.
  destruct det as (x,y). simpl in *. rewrite Cmult_1_r.
  unfold Ci. unfold Cmult; simpl. rewrite !Rmult_0_l, !Rmult_1_l.
@@ -370,7 +351,7 @@ Proof.
   replace (μ^3)%C with (μ^4 * μ / μ^2)%C.
   2:{ field. injection; approx. }
   assert (NZ : √31 <> 0) by (intro E; apply sqrt_eq_0 in E; lra).
-  rewrite !RtoC_div, !RtoC_mult, <- !RtoC_pow; trivial.
+  rewrite !RtoC_div, !RtoC_mult, <- !RtoC_pow.
   rewrite (Cmult_comm 2). unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
   rewrite !Cmult_assoc.
   change (coefB 2 μ = 2 * im_α / √ 31)%C.
@@ -393,9 +374,7 @@ Lemma coef_α_eqn : (coef_α = α^4 * (αbar - μ) / det)%C.
 Proof.
   unfold coef_α, coefA.
   replace (α^3)%C with (α^4 * α / α^2)%C.
-  2:{ field. intro E.
-      generalize re_α_nz. change re_α with (Re α).
-      rewrite E. simpl. lra. }
+  2:{ field. intros [= E _]. revert E. approx. }
   unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
   rewrite !Cmult_assoc.
   change (coefB 2 α = (αbar - μ) * / det)%C.
@@ -423,7 +402,6 @@ Proof.
  replace (_*_)%C with (-(μ*α*αbar)^4* det/det^3)%C.
  2:{ unfold det at 1. change im_α with (Im α).
      rewrite RtoC_div, !RtoC_mult, im_alt.
-     2:{ intros E. apply sqrt_eq_0 in E; lra. }
      rewrite <- RtoC_pow.
      replace (Cconj αbar) with α.
      2:{ unfold α, αbar, Cconj. simpl. f_equal. lra. }
@@ -438,11 +416,11 @@ Qed.
 Lemma coef_μ2 : (31 * coef_μ^2 = 15*μ^2 + 7*μ + 11)%C.
 Proof.
  unfold coef_μ, coef_mu. fold μ.
- rewrite RtoC_div by approx. unfold Cdiv. rewrite Cpow_mul_l.
+ rewrite RtoC_div. unfold Cdiv. rewrite Cpow_mul_l.
  rewrite <- RtoC_pow, <- Cpow_mult. simpl Nat.mul.
  set (x := RtoC (Rminus _ _)).
  assert (NZ : x <> 0) by (injection; approx).
- rewrite Cpow_inv by trivial.
+ rewrite Cpow_inv.
  apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
  rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
  unfold x. clear NZ x.
@@ -462,7 +440,7 @@ Proof.
  { intros E. unfold x in E. apply Cminus_eq_0 in E.
    assert (E' : Im (3%nat * α) = 0) by now rewrite E, im_RtoC.
    rewrite im_scal_l in E'. revert E'. approx. }
- rewrite Cpow_inv by trivial.
+ rewrite Cpow_inv.
  apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
  rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
  unfold x. clear NZ x.
@@ -510,7 +488,7 @@ Qed.
 Lemma coef_μ_poly : coef_μ^3 - coef_μ^2 - (12/31)*coef_μ - 1/31 = 0.
 Proof.
  apply RtoC_inj.
- rewrite !RtoC_minus, !RtoC_mult, !RtoC_div, <- !RtoC_pow by lra.
+ rewrite !RtoC_minus, !RtoC_mult, !RtoC_div, <- !RtoC_pow.
  rewrite <- poly_coefs. ring.
 Qed.
 
@@ -626,15 +604,10 @@ Proof.
  change αbar with (Cconj α). rewrite im_alt'.
  change (Im α) with im_α.
  unfold Cdiv.
- replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
- 2:{ field. split; injection; approx. }
- rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
- rewrite !Cmult_assoc.
- rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_α_nz; lra).
- rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_α_nz.
+ rewrite !Cinv_mult, Ci_inv.
+ replace (/C2*-Ci)%C with (Ci*-/C2)%C by ring.
+ rewrite !Cmult_assoc, <- !RtoC_inv, <- RtoC_opp, !re_scal_r, re_mult_Ci.
+ simpl. field. approx.
 Qed.
 
 Lemma re_coefa0 : 2*Re coefa0 = τ^3.
@@ -646,15 +619,10 @@ Proof.
  rewrite <- Cmod2_conj, αmod2.
  change αbar with (Cconj α) at 2. rewrite im_alt'.
  change (Im α) with im_α.
- replace (/ (2*Ci*im_α))%C with (/Ci * /(2*im_α))%C.
- 2:{ field. split; injection; approx. }
- rewrite Ci_inv.
- replace (-Ci * _)%C with (Ci * -(/(2*im_α)))%C by ring.
- rewrite !Cmult_assoc.
- rewrite <- RtoC_mult, <- RtoC_inv, <- RtoC_opp
-  by (generalize im_α_nz; lra).
- rewrite re_scal_r, re_mult_Ci.
- simpl. field. apply im_α_nz.
+ rewrite !Cinv_mult, Ci_inv.
+ replace (/C2*-Ci)%C with (Ci*-/C2)%C by ring.
+ rewrite !Cmult_assoc, <- !RtoC_inv, <- RtoC_opp, !re_scal_r, re_mult_Ci.
+ simpl. field. approx.
 Qed.
 
 Lemma diff_A n :
@@ -819,7 +787,7 @@ Qed.
 Lemma αmod_lt : 0 < Cmod α < 1.
 Proof.
  split.
- - apply Cmod_gt_0. unfold α. injection 1 as H H'. now apply re_α_nz.
+ - apply Cmod_gt_0. intros [= E]. revert E. approx.
  - apply Rlt_pow2_inv; try lra. rewrite αmod2. approx.
 Qed.
 
@@ -1052,7 +1020,6 @@ Lemma Cmod2_coefa2 :
 Proof.
  unfold coefa2, Cdiv.
  rewrite !Cmod_mult, !Rpow_mult_distr, Cmod_inv.
- 2:{ apply Cminus_eq_contra. apply distinct_roots. }
  rewrite coefa2_inner_mod.
  rewrite im_alt', !Cmod_mult.
  rewrite !Cmod_R, Rabs_right by lra.

@@ -92,12 +92,12 @@ Lemma factor2 : [-C1;-C1;C0;C1]%C = linfactors [RtoC μ;α;αbar].
 Proof.
  simpl. f_equal;[|f_equal;[|f_equal] ]; try ring_simplify.
  - apply Cminus_eq_0. ring_simplify.
-   rewrite (Cmult_comm αbar), <- Cmod2_conj, αmod2, τ_μ, RtoC_inv by approx.
+   rewrite (Cmult_comm αbar), <- Cmod2_conj, αmod2, τ_μ, RtoC_inv.
    field. injection. approx.
  - rewrite Cmult_comm, <- α_conj, <- Cmod2_conj, αmod2.
    rewrite <- Cplus_assoc, <- Cmult_plus_distr_r, (Cplus_comm _ α), re_alt'.
-   change (Re α) with re_α. unfold re_α. rewrite τ_μ, RtoC_inv by approx.
-   rewrite RtoC_div, RtoC_opp by lra. symmetry. apply Cminus_eq_0.
+   change (Re α) with re_α. unfold re_α. rewrite τ_μ, RtoC_inv.
+   rewrite RtoC_div, RtoC_opp. symmetry. apply Cminus_eq_0.
    field_simplify; try (injection; approx).
    rewrite RtoC_pow, μ3. rewrite RtoC_plus. field. injection; approx.
  - apply Cminus_eq_0. ring_simplify.
@@ -128,7 +128,7 @@ Qed.
 
 Local Hint Rewrite RtoC_pow : RtoC.
 Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
- RtoC_div using approx : RtoC.
+ RtoC_div : RtoC.
 
 Lemma μ_is_Rroot : μ^5 = μ^4 + 1.
 Proof.
@@ -249,7 +249,7 @@ Proof.
          rewrite cos_PI3 in E. revert E. lra. }
      unfold Cdiv. rewrite Cmult_comm. f_equal.
      - now rewrite Cconj_minus_distr, Cconj_mult_distr, !Cconj_R.
-     - rewrite RtoC_inv by lra. f_equal.
+     - rewrite RtoC_inv. f_equal.
        rewrite Cmod2_alt. f_equal. simpl. rewrite cos_PI3, sin_PI3.
        field_simplify. rewrite pow2_sqrt by lra. field. }
  remember (Re _) as x eqn:Hx.

@@ -143,8 +143,7 @@ Proof.
  { apply RtoC_inj.
    rewrite αmod2, <- RtoC_pow, Cmod_sqr.
    replace (τ/-ν) with ((-1)*(τ/ν)) by (field; approx).
-   rewrite RtoC_mult, RtoC_div by approx.
-   rewrite E0, τ_μ, RtoC_inv by approx. field.
+   rewrite RtoC_mult, RtoC_div, E0, τ_μ, RtoC_inv. field.
    split; apply RtoC_neq; approx. }
  assert (Ib : (Im b)^2 = im_α^2).
  { rewrite !Cmod2_alt, Rb in Cb. unfold α in Cb; simpl in Cb; lra. }
@@ -158,7 +157,7 @@ Qed.
 
 Local Hint Rewrite RtoC_pow : RtoC.
 Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
- RtoC_div using approx : RtoC.
+ RtoC_div : RtoC.
 
 Lemma μ_is_Rroot : μ^4 = μ^3 + 1.
 Proof.
@@ -440,10 +439,10 @@ Qed.
 Lemma P_factor_μ (x:C) :
  (x^4-x^3-1 = (x - μ) * (x^3 + τ^3*x^2 + τ^2*x + τ))%C.
 Proof.
- ring_simplify. rewrite μ_τ, RtoC_inv by approx.
- field_simplify; try (apply RtoC_neq; approx).
+ ring_simplify. rewrite μ_τ, RtoC_inv.
+ field_simplify; [|injection; approx].
  rewrite RtoC_pow, τ4, RtoC_minus.
- field. apply RtoC_neq; approx.
+ field. injection; approx.
 Qed.
 
 Lemma P_factor_μ_eq0 (x:C) :
@@ -1117,8 +1116,7 @@ Proof.
  rewrite <- α_conj, Cmod_Cconj, αmod2.
  autorewrite with RtoC. rewrite Cmod_R, Rabs_right by approx.
  replace (_*(τ/_)) with ((-ν)*τ) by (field; approx).
- rewrite Cmod_inv, pow_inv by apply detU_nz.
- approx.
+ rewrite Cmod_inv, pow_inv. approx.
 Qed.
 
 #[local] Instance :

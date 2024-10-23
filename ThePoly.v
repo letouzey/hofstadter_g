@@ -104,7 +104,7 @@ Proof.
      assert (Hc' : c = (INR q / INR (S q))%C).
      { rewrite <- E. rewrite <- RtoC_plus, <- S_INR. field.
        intros H'. apply RtoC_inj in H'. generalize (RSpos q). lra. }
-     rewrite <- RtoC_div in Hc'. 2:generalize (RSpos q); lra.
+     rewrite <- RtoC_div in Hc'.
      revert Hc.
      rewrite ThePoly_root_carac, Ceq_minus. unfold Cminus.
      rewrite Copp_plus_distr, Cplus_assoc.
@@ -461,9 +461,9 @@ Lemma root_non_qSq (q:nat) : ~ Root (q/S q) (ThePoly q).
 Proof.
  intros R.
  apply root_img in R.
- - rewrite <- RtoC_div, im_RtoC in R. now apply R. apply RSnz.
+ - rewrite <- RtoC_div, im_RtoC in R. now apply R.
  - assert (H := mu_itvl q). intros E.
-   rewrite <- RtoC_div in E. apply RtoC_inj in E. 2:apply RSnz.
+   rewrite <- RtoC_div in E. apply RtoC_inj in E.
    assert (mu q < 1).
    { rewrite <- E. rewrite <- Rcomplements.Rdiv_lt_1.
      rewrite S_INR. lra. apply RSpos. }
@@ -473,7 +473,7 @@ Proof.
    + assert (H := nu_itvl q OD).
      assert (LE : 0 <= q / S q).
      { apply Rcomplements.Rdiv_le_0_compat. apply pos_INR. apply RSpos. }
-     intros EQ. rewrite <- RtoC_div in EQ. 2:apply RSnz.
+     intros EQ. rewrite <- RtoC_div in EQ.
      apply RtoC_inj in EQ. lra.
 Qed.
 
@@ -1008,7 +1008,6 @@ Definition coefdA r := coefA r * (/r - tau q).
 Lemma coefdA_mu : coefdA (mu q) = 0.
 Proof.
  unfold coefdA, tau. rewrite RtoC_inv. ring.
- generalize (mu_itvl q). lra.
 Qed.
 
 Lemma coefdA_sum : q<>O -> Clistsum (map coefdA roots) = 1-tau q.
@@ -1061,7 +1060,7 @@ Proof.
    replace n with (S (n-1)) at 2 by lia. simpl.
    unfold tau at 1.
    assert (mu q <> R0) by (generalize (mu_itvl q); lra).
-   rewrite RtoC_inv by trivial.
+   rewrite RtoC_inv.
    field_simplify. 2:{ intro E'. apply RtoC_inj in E'. lra. }
    f_equal. apply map_ext_in. intros r R. unfold coefdA.
    replace n with (S (n-1)) at 2 3 by lia. simpl.
@@ -1145,11 +1144,8 @@ Lemma coefdA_nz q r : Root r (ThePoly q) -> r <> mu q -> coefdA q r <> 0.
 Proof.
  intros R R'. unfold coefdA. intros E. apply Cmult_integral in E.
  destruct E as [E|E]. apply (coefA_nz q r R E).
- assert (M : mu q <> R0) by (generalize (mu_itvl q); lra).
- assert (N : r <> 0). { intros ->. now apply root_nz in R. }
- apply Cminus_eq_0 in E. unfold tau in E. rewrite RtoC_inv in E; trivial.
- apply R'. rewrite <- (Cinv_inv r), E, Cinv_inv; trivial.
- intros E'. now apply RtoC_inj in E'.
+ apply Cminus_eq_0 in E. apply R'.
+ now rewrite tau_inv, RtoC_inv, <- E, Cinv_inv.
 Qed.
 
 Definition coef_mu q : R := (mu q ^(S q) / ((S q)*mu q -q))%R.
@@ -1157,10 +1153,7 @@ Definition coef_mu q : R := (mu q ^(S q) / ((S q)*mu q -q))%R.
 Lemma coef_mu_ok q : RtoC (coef_mu q) = coefA q (mu q).
 Proof.
  unfold coef_mu, coefA.
- rewrite !RtoC_pow, <- RtoC_mult, <- RtoC_minus, <- RtoC_div. trivial.
- rewrite S_INR. intros E. apply Rminus_diag_uniq in E.
- assert (mu q < 1) by (generalize (pos_INR q); nra).
- generalize (mu_itvl q). lra.
+ now rewrite !RtoC_pow, <- RtoC_mult, <- RtoC_minus, <- RtoC_div.
 Qed.
 
 Lemma A_div_pow_mu_limit q :

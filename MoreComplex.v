@@ -90,6 +90,84 @@ Add Field C_field2 :
    constants [RtoC_IZR_tac],
    power_tac C_power_theory [Rpow_tac]).
 
+(** Properties in Coquelicot and QuantumLib, for which a precondition
+    can be removed now that [/0 = 0]
+    (cf Coq 8.16 and the future Coquelicot 4) *)
+
+Lemma RtoC_inv (x : R) : RtoC (/ x) = / RtoC x.
+Proof.
+  apply injective_projections ; simpl.
+  2: unfold Rdiv; ring.
+  destruct (Req_dec x 0) as [->|Hx].
+  rewrite Rinv_0.
+  unfold Rdiv; ring.
+  now field.
+Qed.
+
+Lemma RtoC_div (x y : R) : RtoC (x / y) = RtoC x / RtoC y.
+Proof.
+ unfold Cdiv, Rdiv. now rewrite <- RtoC_inv, <- RtoC_mult.
+Qed.
+
+Lemma Cinv_0 : /C0 = C0.
+Proof.
+ now rewrite <- RtoC_inv, Rinv_0.
+Qed.
+
+Lemma Cinv_1 : /C1 = C1.
+Proof.
+ now rewrite <- RtoC_inv, Rinv_1.
+Qed.
+
+Lemma Cmod_inv (c : C) : Cmod (/ c) = Rinv (Cmod c).
+Proof.
+  destruct (Req_dec (Cmod c) 0) as [Hm|Hm].
+  - rewrite Hm, Rinv_0.
+    apply Cmod_eq_0 in Hm.
+    rewrite Hm, Cinv_0.
+    apply Cmod_0.
+  - apply Cmod_inv. contradict Hm. now rewrite Hm, Cmod_0.
+Qed.
+
+Lemma Cmod_div (x y : C) : Cmod (x / y) = Rdiv (Cmod x) (Cmod y).
+Proof.
+ unfold Cdiv, Rdiv. now rewrite Cmod_mult, Cmod_inv.
+Qed.
+
+Lemma Cinv_inv (c : C) : Cinv (Cinv c) = c.
+Proof.
+ destruct (Ceq_dec c 0) as [->|N].
+ - now rewrite !Cinv_0.
+ - now apply Cinv_inv.
+Qed.
+
+Lemma Cinv_mult (x y : C) : Cinv (Cmult x y) = Cmult (Cinv x) (Cinv y).
+Proof.
+  destruct (Ceq_dec x 0) as [->|Zx].
+  { rewrite Cinv_0, !Cmult_0_l. apply Cinv_0. }
+  destruct (Ceq_dec y 0) as [->|Zy].
+  { rewrite Cinv_0, !Cmult_0_r. apply Cinv_0. }
+  now field.
+Qed.
+
+(* Also in QuantumLib, but with a worse precondition *)
+Lemma Cpow_inv (c:C) n : (/c)^n = /(c^n).
+Proof.
+  induction n; simpl; auto.
+  - apply sym_eq, Cinv_1.
+  - now rewrite Cinv_mult, IHn.
+Qed.
+
+Lemma Cinv_conj (a:C) : Cconj (/a) = /Cconj a.
+Proof.
+ symmetry. apply Cinv_Cconj.
+Qed.
+
+Lemma Cdiv_conj (a b : C) : Cconj (a/b) = Cconj a / Cconj b.
+Proof.
+ unfold Cdiv. now rewrite Cconj_mult_distr, Cinv_conj.
+Qed.
+
 (* Properties now in Coquelicot 3.3, but only partly in
    QuantumLib.Complex *)
 
@@ -114,14 +192,6 @@ Proof.
    injection H as Hx Hy.
    apply Rminus_diag_uniq_sym in Hx. apply Rminus_diag_uniq_sym in Hy.
    now f_equal.
-Qed.
-
-(* Also in QuantumLib, but with a worse precondition *)
-Lemma Cpow_inv (c:C) n : c<>0 -> (/c)^n = /(c^n).
-Proof.
- intros Hc. induction n; simpl; auto.
- - symmetry. rewrite <-(Cmult_1_l (/1)). apply Cinv_r, C1_neq_C0.
- - rewrite IHn. field. auto using Cpow_nonzero.
 Qed.
 
 (* Cmod_pow : ok *)
@@ -275,20 +345,6 @@ Lemma Cmod_Ci : Cmod Ci = 1%R.
 Proof.
  unfold Cmod, Ci. simpl fst; simpl snd.
  replace (_ + _)%R with 1%R by (simpl; lra). apply sqrt_1.
-Qed.
-
-(* TODO: Coquelicot.Cinv_conj has an extra precondition to get rid of.
-   QuantumLib.Cinv_Cconj has a less natural direction. *)
-Lemma Cinv_conj (a:C) : Cconj (/a) = /Cconj a.
-Proof.
- symmetry. apply Cinv_Cconj.
-Qed.
-
-(* TODO: Coquelicot.Cdiv_conj has an extra precondition to get rid of.
-   Not in QuantumLib. *)
-Lemma Cdiv_conj (a b : C) : Cconj (a/b) = Cconj a / Cconj b.
-Proof.
- unfold Cdiv. now rewrite Cconj_mult_distr, Cinv_conj.
 Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
