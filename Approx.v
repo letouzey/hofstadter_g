@@ -48,6 +48,29 @@ Proof.
  apply Qle_trans with (Qmax c d); auto. apply Q.le_max_r.
 Qed.
 
+Definition Qsqrt '(Qmake n d) := Qmake (Z.sqrt (n * Zpos d)) d.
+Definition Qsqrt_up '(Qmake n d) := Qmake (Z.sqrt_up (n * Zpos d)) d.
+
+Lemma Qsqrt_ok q : ((Qsqrt q)^2 <= Qmax 0 q)%Q.
+Proof.
+ destruct q as (n,d).
+ destruct (Z.lt_ge_cases n Z0).
+ - now destruct n.
+ - rewrite Q.max_r by now destruct n. unfold Qle. simpl.
+   rewrite Pos2Z.inj_mul, Z.mul_assoc. apply Z.mul_le_mono_nonneg_r; try easy.
+   apply Z.sqrt_spec. now apply Z.mul_nonneg_nonneg.
+Qed.
+
+Lemma Qsqrt_up_ok q : (Qmax 0 q <= (Qsqrt_up q)^2)%Q.
+Proof.
+ destruct q as (n,d).
+ destruct (Z.le_gt_cases n Z0).
+ - now destruct n.
+ - rewrite Q.max_r by now destruct n. unfold Qle. simpl.
+   rewrite Pos2Z.inj_mul, Z.mul_assoc. apply Z.mul_le_mono_nonneg_r; try easy.
+   apply Z.sqrt_up_spec. now apply Z.mul_pos_pos.
+Qed.
+
 (** Deciding comparison on Q *)
 
 Lemma Qle_bool_nimp_lt (x y:Q) : Qle_bool y x = false -> (x < y)%Q.
@@ -251,8 +274,6 @@ Proof.
  unfold Approx. intros A LE LE'. apply Qle_Rle in LE,LE'. lra.
 Qed.
 
-(* TODO: general approx of sqrt ? *)
-
 Lemma pow2_approx_inv {a r b} :
   Approx (a^2) (r^2) (b^2) -> (0 <= a)%Q -> 0 <= r -> (0 <= b)%Q ->
   Approx a r b.
@@ -261,6 +282,26 @@ Proof.
  apply Qle_Rle in Ha,Hb. rewrite !Q2R_pow2 in p.
  rewrite <- !Rsqr_pow2 in p.
  split; apply Rsqr_incr_0; lra.
+Qed.
+
+#[global] Instance sqrt_approx {a r b} :
+ Approx a r b -> Approx (Qsqrt a) (sqrt r) (Qsqrt_up b).
+Proof.
+ intros. apply pow2_approx_inv; try apply sqrt_pos.
+ 2:{ now destruct a as [[]]. }
+ 2:{ destruct b as [[] ]; unfold Qle; simpl; try easy.
+     rewrite Z.mul_1_r. apply Z.sqrt_up_nonneg. }
+ destruct (Rle_lt_dec r 0).
+ - rewrite sqrt_neg_0 by trivial. simpl pow at 1; rewrite Rmult_0_l.
+   destruct H as (H,H'). replace 0 with (Q2R 0) in * by lra. split.
+   + apply Qle_Rle.
+     rewrite <- (Q.max_l 0 a). apply Qsqrt_ok. apply Rle_Qle. lra.
+   + apply Qle_Rle. apply Q.max_lub_l with b. apply Qsqrt_up_ok.
+ - rewrite pow2_sqrt by lra. destruct H as (H,H'). split.
+   + apply Rle_trans with (Q2R (Qmax 0 a)). apply Qle_Rle, Qsqrt_ok.
+     apply Q.max_case; try lra. now intros x y ->.
+   + apply Rle_trans with (Q2R (Qmax 0 b)). 2:apply Qle_Rle, Qsqrt_up_ok.
+     apply Rle_trans with (Q2R b); trivial. apply Qle_Rle, Q.le_max_r.
 Qed.
 
 Ltac approxim r :=

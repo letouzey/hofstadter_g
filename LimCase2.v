@@ -97,14 +97,12 @@ Qed.
 #[local] Instance αmod_approx :
   Approx 0.8260313576541 (Cmod α) 0.8260313576543 |20.
 Proof.
- apply pow2_approx_inv; try qle; try apply Cmod_ge_0.
- rewrite αmod2. approx.
+ rewrite <- (sqrt_pow2 (Cmod α)), αmod2 by apply Cmod_ge_0. approx.
 Qed.
 
 #[local] Instance im_α_approx : Approx 0.79255199 im_α 0.792552.
 Proof.
- apply pow2_approx_inv; try qle. rewrite im_α_2. approx.
- unfold im_α. generalize (sqrt_pos (τ*(3+τ))). lra.
+ approx.
 Qed.
 
 Lemma μ_is_root : (μ ^3 = μ ^2 + 1)%C.

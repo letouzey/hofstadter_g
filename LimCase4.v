@@ -69,10 +69,7 @@ Definition αbar : C := (re_α, - im_α).
 Proof. approx. Qed.
 
 #[local] Instance : Approx 0.56 im_α 0.57.
-Proof.
- unfold im_α. apply pow2_approx_inv; try qle; try apply sqrt_pos.
- rewrite <-Rsqr_pow2, Rsqr_sqrt; approx.
-Qed.
+Proof. approx. Qed.
 
 Lemma α_conj : Cconj α = αbar.
 Proof. reflexivity. Qed.

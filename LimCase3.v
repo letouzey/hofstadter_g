@@ -81,26 +81,15 @@ Proof. approx. Qed.
 #[local] Instance : Approx 0.884419273293 (τ/-ν) 0.884419273296.
 Proof. approx. Qed.
 
-Lemma im_α_2_pos :  re_α ^ 2 < τ/-ν.
+#[local] Instance : Approx 0.9144736628 im_α 0.9144736630.
+Proof. approx. Qed.
+
+#[local] Instance : Approx 0.8362620801 (im_α^2) 0.8362620803.
 Proof. approx. Qed.
 
 Lemma im_α_2 : im_α^2 = τ/(-ν)-re_α^2.
 Proof.
- unfold im_α.
- rewrite pow2_sqrt; generalize im_α_2_pos; lra.
-Qed.
-
-Lemma im_α_pos : 0 < im_α.
-Proof.
- apply sqrt_lt_R0. generalize im_α_2_pos. lra.
-Qed.
-
-#[local] Instance : Approx 0.8362620801 (im_α^2) 0.8362620803.
-Proof. rewrite im_α_2. approx. Qed.
-
-#[local] Instance : Approx 0.9144736628 im_α 0.9144736630.
-Proof.
- apply pow2_approx_inv. approx. qle. generalize im_α_pos; lra. qle.
+ unfold im_α. rewrite pow2_sqrt. lra. approx.
 Qed.
 
 Lemma αmod2 : Cmod α ^2 = τ/-ν.
@@ -109,13 +98,11 @@ Proof.
  rewrite im_α_2. lra.
 Qed.
 
+#[local] Instance : Approx 0.9404356826 (Cmod α) 0.9404356828.
+Proof. approx. Qed.
+
 #[local] Instance : Approx 0.884419273293 (Cmod α ^2) 0.884419273296.
 Proof. rewrite αmod2. approx. Qed.
-
-#[local] Instance : Approx 0.9404356826 (Cmod α) 0.9404356828.
-Proof.
- apply pow2_approx_inv; try qle; try apply Cmod_ge_0. approx.
-Qed.
 
 Definition roots := [RtoC μ; α; αbar; RtoC ν].
 
