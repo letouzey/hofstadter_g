@@ -382,12 +382,12 @@ Local Instance Clt_order : RelationClasses.StrictOrder Clt := Clt_order.
 
 Lemma StronglySorted_nth : forall (R : C -> C -> Prop) l,
  Sorted.StronglySorted R l <->
- (forall n m : nat, (n < m < length l)%nat -> R (l$n) (l$m)).
+ (forall n m : nat, (n < m < length l)%nat -> R (l@n) (l@m)).
 Proof.
  exact StronglySorted_nth.
 Qed.
 
-Lemma SortedRoots_mu q l : SortedRoots q l -> l$0 = mu q.
+Lemma SortedRoots_mu q l : SortedRoots q l -> l@0 = mu q.
 Proof.
  intros SR.
  assert (H : length l = S q) by apply (SortedRoots_length _ _ SR).
@@ -409,7 +409,7 @@ Proof.
  revert H1. apply Clt_order.
 Qed.
 
-Lemma SortedRoots_nu q l : Nat.Odd q -> SortedRoots q l -> l$q = nu q.
+Lemma SortedRoots_nu q l : Nat.Odd q -> SortedRoots q l -> l@q = nu q.
 Proof.
  intros Q SR.
  assert (H : length l = S q) by apply (SortedRoots_length _ _ SR).
@@ -479,32 +479,32 @@ Qed.
 
 Lemma SortedRoots_next q l :
   SortedRoots q l ->
-  forall n, (n+2 <= q)%nat -> Im (l$n) <= 0 ->
-    0 < Im (l$(n+1)) /\ l$(n+2) = Cconj (l$(n+1)).
+  forall n, (n+2 <= q)%nat -> Im (l@n) <= 0 ->
+    0 < Im (l@(n+1)) /\ l@(n+2) = Cconj (l@(n+1)).
 Proof.
  intros SR n N H.
- set (r := l $ (n + 1)).
+ set (r := l @ (n + 1)).
  assert (length l = S q) by now apply SortedRoots_length.
  assert (SR' := SortedRoots_roots q l SR).
  assert (R : Root r (ThePoly q)). { apply SR', nth_In. lia. }
  assert (IN : In (Cconj r) l). { apply SR'. now apply root_conj. }
  destruct (In_nth l (Cconj r) 0 IN) as (m & M & E'). clear IN.
- change (l$m = r^*) in E'.
+ change (l@m = r^*) in E'.
  destruct (Rle_or_lt (Im r) 0).
  - exfalso.
-   set (r0 := l$n) in *.
+   set (r0 := l@n) in *.
    assert (R0' : Root r0 (ThePoly q)). { apply SR', nth_In. lia. }
    assert (Im r <> R0).
    { apply (root_img q); trivial.
-     - assert (EM : l$0 = mu q) by now apply (SortedRoots_mu q).
+     - assert (EM : l@0 = mu q) by now apply (SortedRoots_mu q).
        destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
-       assert (MM : Cgt (l$0) (l$(n+1))) by (apply SC; lia).
+       assert (MM : Cgt (l@0) (l@(n+1))) by (apply SC; lia).
        fold r in MM. rewrite EM in MM. intros ->. revert MM. apply Cgt_order.
      - destruct (Nat.Even_Odd_dec q) as [E|O] eqn:EO.
        + unfold nu. rewrite EO. intros ->. now apply (root_nz q).
-       + assert (EN : l$q = nu q) by now apply (SortedRoots_nu q).
+       + assert (EN : l@q = nu q) by now apply (SortedRoots_nu q).
          destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
-         assert (NN : Cgt (l$(n+1)) (l$q)) by (apply SC; lia).
+         assert (NN : Cgt (l@(n+1)) (l@q)) by (apply SC; lia).
          fold r in NN. rewrite EN in NN. intros ->. revert NN.
          apply Cgt_order. }
    destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
@@ -526,7 +526,7 @@ Proof.
    + destruct r as (x,y). unfold Clt, Cconj in *. simpl in *. lra.
    + revert H7. apply Clt_order.
  - split; trivial. clear H.
-   set (r' := l$(n+2)) in *.
+   set (r' := l@(n+2)) in *.
    assert (R' : Root r' (ThePoly q)). { apply SR', nth_In. lia. }
    destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
    assert (Clt r' r) by (apply SC; lia).
@@ -549,8 +549,8 @@ Qed.
 Lemma SortedRoots_im_pos q l :
   SortedRoots q l ->
   forall p, (2*p+2<=q)%nat ->
-     let r := l$(2*p+1) in
-     let r' := l$(2*p+2) in
+     let r := l@(2*p+1) in
+     let r' := l@(2*p+2) in
      0 < Im r /\ r' = Cconj r.
 Proof.
  induction p; intros Hp.
@@ -570,8 +570,8 @@ Proof.
  intros SR.
  apply StronglySorted_nth. intros n m H.
  assert (SR' := SortedRoots_roots q l SR).
- set (r := l$n).
- set (r' := l$m).
+ set (r := l@n).
+ set (r' := l@m).
  assert (R : Root r (ThePoly q)). { apply SR', nth_In. lia. }
  assert (R' : Root r' (ThePoly q)). { apply SR', nth_In. lia. }
  destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
@@ -586,8 +586,8 @@ Proof.
  intros SR.
  apply StronglySorted_nth. intros n m H.
  assert (SR' := SortedRoots_roots q l SR).
- set (r := l$n).
- set (r' := l$m).
+ set (r := l@n).
+ set (r' := l@m).
  assert (R : Root r (ThePoly q)). { apply SR', nth_In. lia. }
  assert (R' : Root r' (ThePoly q)). { apply SR', nth_In. lia. }
  destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
@@ -600,15 +600,15 @@ Qed.
 Lemma second_best_root q l :
   (3 <= q)%nat ->
   SortedRoots q l ->
-  l$2 = Cconj (l$1) /\ Cmod (l$3) < Cmod (l$1) /\
-  forall n, (3<=n<=q)%nat -> Cmod (l$n) <= Cmod (l$3).
+  l@2 = Cconj (l@1) /\ Cmod (l@3) < Cmod (l@1) /\
+  forall n, (3<=n<=q)%nat -> Cmod (l@n) <= Cmod (l@3).
 Proof.
  intros Q SR. split.
  { apply (SortedRoots_im_pos q l SR 0 ltac:(lia)). }
  assert (SR' := SortedRoots_roots q l SR).
  assert (LN := SortedRoots_length q l SR).
- assert (Cmod (l$3) < Cmod (l$1)).
- { set (r := l$1). set (r' := l$3).
+ assert (Cmod (l@3) < Cmod (l@1)).
+ { set (r := l@1). set (r' := l@3).
    assert (R : Root r (ThePoly q)). { apply SR', nth_In. lia. }
    assert (R' : Root r' (ThePoly q)). { apply SR', nth_In. lia. }
    destruct (SortedRoots_im_pos q l SR 0) as (IM,E); try lia.
@@ -868,7 +868,7 @@ Qed.
 
 Lemma coefs0_eqn i :
  (i < S q)%nat ->
- let c := roots$i in
+ let c := roots@i in
  let l := remove_at i roots in
  coefs0 i O * G_big_mult (map (fun y => c-y) l) = 1.
 Proof.
@@ -894,7 +894,7 @@ Qed.
 
 Lemma ThePolyDiff_eqn i :
  (i < S q)%nat ->
- let c := roots$i in
+ let c := roots@i in
  let l := remove_at i roots in
  G_big_mult (map (fun y => c-y) l) = Peval (Pdiff (ThePoly q)) c.
 Proof.
@@ -929,10 +929,10 @@ Qed.
 
 Definition coefB r := r / r^q /((S q)*r-q).
 
-Lemma coefs0_coefB i : coefs0 i O = coefB (roots$i).
+Lemma coefs0_coefB i : coefs0 i O = coefB (roots@i).
 Proof.
  assert (len := SortedRoots_length _ _ roots_ok).
- set (r := roots$i).
+ set (r := roots@i).
  destruct (Nat.eq_dec q 0) as [Q|Q].
  { unfold coefs0, get_col, vdminv, Minverse. simpl. rewrite Q.
    unfold scale. simpl.
@@ -1161,10 +1161,10 @@ Lemma A_div_pow_mu_limit q :
 Proof.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
  assert (E := Equation_A q roots roots_ok).
- assert (roots_mu : roots$0 = mu q) by now apply SortedRoots_mu.
+ assert (roots_mu : roots@0 = mu q) by now apply SortedRoots_mu.
  assert (roots_len : length roots = S q) by now apply SortedRoots_length.
  assert (mu12 := mu_itvl q).
- set (root := fun i => roots$i).
+ set (root := fun i => roots@i).
  set (coef := fun i => coefA q (root i)).
  assert (E' : forall n, big_sum (fun i => coef i * root i ^n) (S q) = A q n).
  { intros n. now rewrite E, Clistsum_map with (d:=0), roots_len. }
@@ -1224,7 +1224,7 @@ Qed.
 *)
 
 Axiom axiom_large_second_best_root :
-  forall q roots, (5<=q)%nat -> SortedRoots q roots -> 1 < Cmod (roots$1).
+  forall q roots, (5<=q)%nat -> SortedRoots q roots -> 1 < Cmod (roots@1).
 
 Lemma coefA_conj q r :
   coefA q (Cconj r) = Cconj (coefA q r).
@@ -1242,7 +1242,7 @@ Proof.
 Qed.
 
 Lemma dA_expo q roots : (3<=q)%nat -> SortedRoots q roots ->
- let r := roots$1 in
+ let r := roots@1 in
  exists c : posreal,
  forall N, exists n, (N<=n)%nat /\
     c * (Cmod r)^n < Rabs (A q (n-1) - tau q * A q n).
@@ -1273,7 +1273,7 @@ Proof.
    - now destruct c_r.
    - apply Cmod_gt_0; trivial. }
  exists (mkposreal c Hc). intros N. simpl.
- set (r' := roots$3) in *.
+ set (r' := roots@3) in *.
  set (ratio := (Cmod r' / Cmod r)%R).
  assert (R' : Root r' (ThePoly q)).
  { eapply SortedRoots_roots; eauto. apply nth_In. lia. }
@@ -1301,7 +1301,7 @@ Proof.
  destruct (Cr (max N N')) as (n & Hn & LTn).
  exists n. split; try lia.
  rewrite <- Cmod_R, (Equation_dA q _ roots_ok); trivial; try lia.
- assert (roots_eq : roots = roots$0 :: r :: Cconj r :: skipn 3 roots).
+ assert (roots_eq : roots = roots@0 :: r :: Cconj r :: skipn 3 roots).
  { rewrite <- E.
    now do 3 (destruct roots; unfold Cnth in *; simpl in *; try lia). }
  rewrite roots_eq. clear Cr E.
@@ -1338,11 +1338,11 @@ Proof.
                        with (g:=(fun x => ratio^n * Cmod (coefdA q x * r ^ n))%R)|].
  { intros a Ha. unfold ratio. rewrite !Cmod_mult.
    destruct (In_nth _ _ 0 Ha) as (m & Hm & <-).
-   replace (nth m (skipn 3 roots) 0) with (roots$(3+m))
+   replace (nth m (skipn 3 roots) 0) with (roots@(3+m))
     by now rewrite roots_eq at 1.
    rewrite skipn_length in Hm.
    specialize (LE (3+m)%nat ltac:(lia)).
-   set (rm := roots$(3+m)) in *.
+   set (rm := roots@(3+m)) in *.
    set (dm := coefdA q rm). unfold Rdiv.
    rewrite Rpow_mult_distr, pow_inv, !Cmod_pow. field_simplify.
    2:{ apply pow_nonzero. intros E. now apply Cmod_eq_0 in E. }

@@ -746,4 +746,4 @@ Qed.
 (** Short notation of nth element in a C list *)
 
 Definition Cnth l i := nth i l C0.
-Infix "$" := Cnth (at level 55) : C_scope.
+Infix "@" := Cnth (at level 10) : C_scope.
