@@ -98,7 +98,7 @@ Proof.
  rewrite im_α_2. lra.
 Qed.
 
-#[local] Instance : Approx 0.9404356826 (Cmod α) 0.9404356828.
+#[local] Instance αmod_approx : Approx 0.9404356826 (Cmod α) 0.9404356828.
 Proof. approx. Qed.
 
 #[local] Instance : Approx 0.884419273293 (Cmod α ^2) 0.884419273296.
