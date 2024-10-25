@@ -60,7 +60,7 @@ Proof.
    rewrite plus_INR. apply Rplus_le_compat; apply IH; lia.
 Qed.
 
-Lemma coef_mu_gt1 q : 1 <= coef_mu q.
+Lemma coef_mu_ge1 q : 1 <= coef_mu q.
 Proof.
  change (Rbar.Rbar_le 1 (coef_mu q)).
  apply is_lim_seq_le with (u:=fun _ => 1) (v:=fun n => A q n/mu q^n);
@@ -81,7 +81,7 @@ Proof.
    - generalize (pow_lt (mu q) n) (mu_itvl q). lra.
    - generalize (mu_itvl q). lra. }
  set (lim := coef_mu q).
- assert (Hlim : lim <> 0). { unfold lim. generalize (coef_mu_gt1 q); lra. }
+ assert (Hlim : lim <> 0). { unfold lim. generalize (coef_mu_ge1 q); lra. }
  replace (mu q) with (mu q * (lim / lim)) at 1 by now field.
  change (Rbar.Finite (mu q * (lim / lim))) with
   (Rbar.Rbar_mult (mu q) (lim/lim)).
