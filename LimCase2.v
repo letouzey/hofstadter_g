@@ -902,6 +902,12 @@ Proof.
  field_simplify. rewrite ?τ6, ?τ5, ?τ4, ?τ3. field.
 Qed.
 
+#[local] Instance : Approx 1.6848 max3pack 1.6849.
+Proof.
+ apply pow2_approx_inv; try lra; try apply Cmod_ge_0.
+ rewrite max3pack_eqn. approx.
+Qed.
+
 (* Curious note : all the trinoms we consider lead to N - M*τ - K*τ^2
    except (Cmod (1+α^4+α^8))^2 = 8 + 2*τ - 17*τ^2. *)
 
@@ -989,9 +995,11 @@ Proof.
      * rewrite Cmod_pow. field. generalize αmod9_lt; lra.
 Qed.
 
-Lemma diff0_better_bound n :
-  Rabs (diff0 n) <= 2 * Cmod coefa0 * max3pack / (1 - Cmod α ^9).
+Definition TheBound := 2 * Cmod coefa0 * max3pack / (1 - Cmod α ^9).
+
+Lemma diff0_better_bound n : Rabs (diff0 n) <= TheBound.
 Proof.
+ unfold TheBound.
  rewrite diff0_decomp_eqn'.
  rewrite Rabs_mult. rewrite Rabs_right by lra.
  unfold Rdiv. rewrite !Rmult_assoc. apply Rmult_le_compat_l; try lra.
@@ -1029,23 +1037,26 @@ Proof.
  rewrite pow2_abs. rewrite im_α_2. field. approx.
 Qed.
 
-(** And finally, we obtain that diff0 is always strictly less than 1.
-    (experimentally the new bound is around 0.996) *)
+#[local] Instance : Approx 0.9958 TheBound 0.9959.
+Proof.
+ unfold TheBound.
+ apply pow2_approx_inv; try lra.
+ 2:{ unfold Rdiv; rewrite Rmult_assoc.
+     apply Rmult_le_pos. apply Rmult_le_pos. lra. apply Cmod_ge_0.
+     replace 0 with (Cmod (Cpoly α [])). apply best_3pack; constructor.
+     unfold Cpoly. simpl. apply Cmod_0. }
+ unfold Rdiv. rewrite !Rpow_mult_distr. rewrite max3pack_eqn.
+ replace (Cmod α^9) with (((Cmod α)^2)^4*Cmod α) by ring.
+ rewrite αmod2, τ4. unfold coefa0.
+ rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
+ approx.
+Qed.
+
+(** And finally, we obtain that diff0 is always strictly less than 1. *)
 
 Lemma diff0_lt_1 n : Rabs (diff0 n) < 1.
 Proof.
- eapply Rle_lt_trans. apply diff0_better_bound.
- assert (A9 := αmod9_lt).
- apply -> Rcomplements.Rdiv_lt_1; try lra.
- apply Rlt_pow2_inv; try lra.
- clear A9.
- rewrite !Rpow_mult_distr.
- rewrite max3pack_eqn.
- replace (Cmod α^9) with (((Cmod α)^2)^4*Cmod α) by ring.
- rewrite αmod2, τ4.
- unfold coefa0. rewrite Cmod_mult, Rpow_mult_distr, Cmod2_coefa2.
- change αbar with (Cconj α). rewrite Cmod_Cconj, αmod2.
- approx.
+ eapply Rle_lt_trans. apply diff0_better_bound. approx.
 Qed.
 
 (* Print Assumptions diff0_lt_1. *)

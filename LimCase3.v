@@ -979,6 +979,11 @@ Proof.
  unfold max4packa, max4lista. calc_α_poly.
 Qed.
 
+#[local] Instance : Approx 2.58984 max4packa 2.58985.
+Proof.
+ apply pow2_approx_inv; try lra; try apply Cmod_ge_0. approx.
+Qed.
+
 Lemma best_4packa_enum l :
   In l (enum_sparse_subsets0 3 16) -> Cmod (Cpoly α l) <= max4packa.
 Proof.
@@ -1146,7 +1151,7 @@ Proof.
  approx.
 Qed.
 
-#[local] Instance : Approx 1.9968 TheBound 1.99798.
+#[local] Instance : Approx 1.997 TheBound 1.998.
 Proof.
  unfold TheBound. approx.
 Qed.
