@@ -41,7 +41,7 @@ Proof.
  ring_simplify. apply pow_R1_Rle. generalize (mu_itvl q). lra.
 Qed.
 
-Lemma A_gt_mu_pow q n : mu q ^ n <= A q n.
+Lemma A_ge_mu_pow q n : mu q ^ n <= A q n.
 Proof.
  induction n as [[|n] IH] using lt_wf_ind; simpl; try lra.
  destruct (Nat.le_gt_cases n q).
@@ -67,7 +67,7 @@ Proof.
   try apply is_lim_seq_const; try apply A_div_pow_mu_limit.
  intros. apply Rcomplements.Rle_div_r.
  - apply pow_lt. generalize (mu_itvl q). lra.
- - rewrite Rmult_1_l. apply A_gt_mu_pow.
+ - rewrite Rmult_1_l. apply A_ge_mu_pow.
 Qed.
 
 (* Now let's prove that [A q (S n)/A q n] tends to [mu q] *)
