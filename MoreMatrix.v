@@ -1,6 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From QuantumLib Require Import Complex Matrix VecSet.
-Require Import MoreList.
+Require Import MoreList MoreComplex.
 Local Open Scope C.
 
 (** * Complements about QuantumLib matrices *)
@@ -37,14 +37,14 @@ Qed.
 Definition mkvect n l : Vector n := list2D_to_matrix (map (fun x => [x]) l).
 Definition mkvectR n l : Vector n := mkvect n (map RtoC l).
 
-Lemma mkvect_eqn n l i : mkvect n l i O = nth i l 0.
+Lemma mkvect_eqn n l i : mkvect n l i O = l @ i.
 Proof.
  unfold mkvect, list2D_to_matrix.
  set (f := fun x => [x]).
  destruct (Nat.lt_ge_cases i (length l)).
  - rewrite nth_map_indep with (d':=C0); auto.
  - rewrite nth_overflow with (n:=i) by now rewrite map_length.
-   simpl. now rewrite nth_overflow.
+   simpl. unfold Cnth. now rewrite nth_overflow.
 Qed.
 
 Lemma WF_mkvect n l : length l = n -> WF_Matrix (mkvect n l).
@@ -82,6 +82,22 @@ Proof.
  destruct j as [|[|[|?] ] ]; try lia; trivial.
 Qed.
 
+(** [get_col] and multiplication *)
+
+Lemma get_col_mult n m p (A : Matrix n m) (B : Matrix m p) q :
+ Mmult A (get_col B q) == get_col (Mmult A B) q.
+Proof.
+ intros i j Hi Hj. unfold get_col, Mmult. case Nat.eqb_spec; auto; lia.
+Qed.
+
+Lemma get_col_mult_eq n m p (A : Matrix n m) (B : Matrix m p) q :
+ WF_Matrix A -> WF_Matrix B ->
+ Mmult A (get_col B q) = get_col (Mmult A B) q.
+Proof.
+ intros. apply mat_equiv_eq; auto using WF_get_col, WF_mult.
+ apply get_col_mult.
+Qed.
+
 (** Scalar product *)
 
 Definition scalprod {n} (v v' : Vector n) : C :=
@@ -106,55 +122,55 @@ Proof.
  apply Determinant_transpose.
 Qed.
 
-(** Auxiliary matrix manipulations : addrows and cols_scale *)
+(** Auxiliary matrix manipulations : addcols and rows_scale *)
 
-(** addrows changes the rows [M_i] into [M_i - c*M_{i-1}] *)
+(** addcols changes the cols [M_i] into [M_i - c*M_{i-1}] *)
 
-Fixpoint addrowsaux {n} c (M : Square n) k :=
+Fixpoint addcolsaux {n} c (M : Square n) k :=
  match k with
  | 0 => M
- | S k => addrowsaux c (row_add M (S k) k (Copp c)) k
+ | S k => addcolsaux c (col_add M (S k) k (Copp c)) k
  end.
 
-Definition addrows {n} c (M : Square (S n)) := addrowsaux c M n.
+Definition addcols {n} c (M : Square (S n)) := addcolsaux c M n.
 
-Lemma det_addrowsaux k n c (M : Square n) : (k < n)%nat ->
-  Determinant (addrowsaux c M k) = Determinant M.
+Lemma det_addcolsaux k n c (M : Square n) : (k < n)%nat ->
+  Determinant (addcolsaux c M k) = Determinant M.
 Proof.
  revert M.
  induction k; intros M Hk; simpl; try easy.
- rewrite IHk, Determinant_row_add; trivial; lia.
+ rewrite IHk, Determinant_col_add; trivial; lia.
 Qed.
 
-Lemma det_addrows n c (M : Square (S n)) :
-  Determinant (addrows c M) = Determinant M.
+Lemma det_addcols n c (M : Square (S n)) :
+  Determinant (addcols c M) = Determinant M.
 Proof.
- apply det_addrowsaux; lia.
+ apply det_addcolsaux; lia.
 Qed.
 
-Lemma addrowsaux_spec0 k n c (M:Square n) p :
- (addrowsaux c M k) O p = M O p.
+Lemma addcolsaux_spec0 k n c (M:Square n) p :
+ (addcolsaux c M k) p O = M p O.
 Proof.
  revert M.
  induction k; simpl; auto.
- intros M. rewrite IHk. now unfold row_add.
+ intros M. rewrite IHk. now unfold col_add.
 Qed.
 
-Lemma addrows_spec0 n c (M : Square (S n)) p :
- addrows c M O p = M O p.
+Lemma addcols_spec0 n c (M : Square (S n)) p :
+ addcols c M p O = M p O.
 Proof.
- apply addrowsaux_spec0.
+ apply addcolsaux_spec0.
 Qed.
 
-Lemma addrowsaux_specS k n c (M:Square n) p q :
+Lemma addcolsaux_specS k n c (M:Square n) p q :
  (k < n)%nat ->
- (addrowsaux c M k) (S p) q =
- if p <? k then M (S p) q - c * M p q else M (S p) q.
+ (addcolsaux c M k) p (S q) =
+ if q <? k then M p (S q) - c * M p q else M p (S q).
 Proof.
- revert p M.
+ revert q M.
  induction k; simpl; auto.
- intros p M Hk.
- unfold row_add.
+ intros q M Hk.
+ unfold col_add.
  rewrite IHk by lia.
  simpl.
  case Nat.ltb_spec; try lia; case Nat.eqb_spec; try lia; intros.
@@ -164,51 +180,51 @@ Proof.
  - case Nat.ltb_spec; try lia; intros. lca.
 Qed.
 
-Lemma addrows_specS n c (M:Square (S n)) p q :
- (p < n)%nat ->
- addrows c M (S p) q = M (S p) q - c * M p q.
+Lemma addcols_specS n c (M:Square (S n)) p q :
+ (q < n)%nat ->
+ addcols c M p (S q) = M p (S q) - c * M p q.
 Proof.
- unfold addrows. intros Hp. rewrite addrowsaux_specS by lia.
- apply Nat.ltb_lt in Hp. now rewrite Hp.
+ unfold addcols. intros Hq. rewrite addcolsaux_specS by lia.
+ apply Nat.ltb_lt in Hq. now rewrite Hq.
 Qed.
 
-(** cols_scale scales the j-th columns by the j-th element of a list *)
+(** rows_scale scales the i-th rows by the i-th element of a list *)
 
-Fixpoint cols_scale {n} p l (M : Square n) :=
+Fixpoint rows_scale {n} p l (M : Square n) :=
  match l with
  | [] => M
- | c::l => cols_scale (S p) l (col_scale M p c)
+ | c::l => rows_scale (S p) l (row_scale M p c)
  end.
 
-Lemma cols_scale_altgen n p l (M : Square n) :
- cols_scale p l M ==
-  fun i j => (if p <=? j then nth (j-p) l C1 else C1) * M i j.
+Lemma rows_scale_altgen n p l (M : Square n) :
+ rows_scale p l M ==
+  fun i j => (if p <=? i then nth (i-p) l C1 else C1) * M i j.
 Proof.
  revert p M.
  induction l; simpl; intros p M i j Hi Hj.
- - case Nat.leb_spec; intros; try lca. destruct (j-p)%nat; lca.
- - rewrite IHl by trivial. unfold col_scale.
+ - case Nat.leb_spec; intros; try lca. destruct (i-p)%nat; lca.
+ - rewrite IHl by trivial. unfold row_scale.
    do 2 case Nat.leb_spec; intros; try lia;
     case Nat.eqb_spec; intros; try lia; trivial.
-   + destruct (j-p)%nat as [|k] eqn:E; intros; try lia.
+   + destruct (i-p)%nat as [|k] eqn:E; intros; try lia.
      f_equal. f_equal. lia.
    + subst. rewrite Nat.sub_diag. lca.
 Qed.
 
-Lemma cols_scale_alt n l (M : Square n) :
- cols_scale 0 l M == fun i j => nth j l C1 * M i j.
+Lemma rows_scale_alt n l (M : Square n) :
+ rows_scale 0 l M == fun i j => nth i l C1 * M i j.
 Proof.
- intros i j Hi Hj. rewrite cols_scale_altgen; simpl; trivial.
+ intros i j Hi Hj. rewrite rows_scale_altgen; simpl; trivial.
  now rewrite Nat.sub_0_r.
 Qed.
 
-Lemma cols_scale_det n p l (M : Square n) :
+Lemma rows_scale_det n p l (M : Square n) :
  (p + length l <= n)%nat ->
- Determinant (cols_scale p l M) = G_big_mult l * Determinant M.
+ Determinant (rows_scale p l M) = G_big_mult l * Determinant M.
 Proof.
  revert p M.
  induction l; simpl; intros; try lca.
- rewrite IHl by lia. rewrite Determinant_col_scale by lia. lca.
+ rewrite IHl by lia. rewrite Determinant_row_scale by lia. lca.
 Qed.
 
 (** Determinant and matrix equality *)
@@ -240,7 +256,7 @@ Qed.
 (** Vandermonde matrix and its determinant *)
 
 Definition Vandermonde n (l : list C) : Square n :=
-  fun i j => if (i <? n) && (j <? n) then (nth j l C0)^i else C0.
+  fun i j => if (i <? n) && (j <? n) then (l @ i)^j else C0.
 
 Lemma WF_Vandermonde n (l : list C) : WF_Matrix (Vandermonde n l).
 Proof.
@@ -258,20 +274,20 @@ Fixpoint multdiffs (l : list C) :=
 
 For example, with n=4 and l=[x;y;z;t], the Vandermonde matrix is
 
-[[1;  1;  1;  1];
- [x;  y;  z;  t];
- [x^2;y^2;z^2;t^2];
- [x^3;y^3;z^3;t^3]]
+[[1; x; x^2; x^3];
+ [1; y; y^2; y^3];
+ [1; z; z^2; z^3];
+ [1; t; t^2; t^3]]
 
 and its determinant is [(y-x)*(z-x)*(t-x)*(z-y)*(t-y)*(t-z)].
 
-For proving that, we substract each row by x times the previous one,
+For proving that, we substract each col by x times the previous one,
 leading to:
 
-[[1; 1;        1;        1];
- [0; y-x;      z-x;      t-x];
- [0; y*(y-x);  z*(z-x);  t(t-x)];
- [0; y^2*(y-x);z^2*(z-x);t^2*(t-x)]]
+[[1; 0;   0;       0        ];
+ [1; y-x; y*(y-x); y^2*(y-x)];
+ [1; z-x; z*(z-x); z^2*(z-x)];
+ [1; t-x; t*(t-x); t^2*(t-x)]]
 
 After removing the first row and column, the columns can be factorised
 by [y-x] or [z-x] or [t-x], and that leaves us with a Vandermonde of
@@ -289,41 +305,44 @@ Proof.
  - set (n' := S n) in *.
    set (V := Vandermonde (S n') l).
    destruct l as [|x l]; try easy. simpl in Hn. injection Hn as Hn.
-   set (W := addrows x V).
-   rewrite <- (det_addrows n' x V) by lia. fold W.
-   unfold n'. rewrite Det_simplify. fold n'.
+   set (W := addcols x V).
+   rewrite <- (det_addcols n' x V) by lia. fold W.
+   unfold n'. rewrite Determinant_transpose, Det_simplify. fold n'.
+   unfold transpose at 1.
    rewrite big_sum_shift.
    rewrite big_sum_eq_bounded with (g := fun _ => C0).
-   2:{ intros i Hi. unfold W. rewrite addrows_specS by lia.
-       unfold V at 1 2; unfold Vandermonde.
+   2:{ intros i Hi. rewrite !Cmult_integral. left; right.
+       unfold W, V, Vandermonde, Cnth. rewrite addcols_specS by lia.
        repeat (case Nat.ltb_spec; try lia; intros _). simpl. lca. }
    rewrite big_sum_0; auto.
+   rewrite <- get_minor_transpose, <- Determinant_transpose.
    replace (W O O) with C1.
-   2:{ symmetry. unfold W. rewrite addrows_spec0.
+   2:{ symmetry. unfold W. rewrite addcols_spec0.
        unfold V, Vandermonde; lca. }
    simpl parity.
    simpl multdiffs.
    assert (get_minor W 0 0 ==
-           cols_scale 0 (map (fun y => y-x) l) (Vandermonde n' l)).
+           rows_scale 0 (map (fun y => y-x) l) (Vandermonde n' l)).
    { intros i j Hi Hj.
-     rewrite cols_scale_alt by trivial.
-     unfold W, get_minor. simpl. rewrite addrows_specS by trivial.
-     unfold V, Vandermonde. simpl.
+     rewrite rows_scale_alt by trivial.
+     unfold W, get_minor. simpl. rewrite addcols_specS by trivial.
+     unfold V, Vandermonde, Cnth. simpl.
      repeat (case Nat.ltb_spec; intros; try lia). simpl.
      rewrite nth_map_indep with (d':=C0); try lia. lca. }
    rewrite H.
-   rewrite cols_scale_det by (rewrite map_length; lia).
+   rewrite rows_scale_det by (rewrite map_length; lia).
    rewrite IH by trivial. lca.
 Qed.
 
 Lemma get_minor_vandermonde n (l:list C) i : (i <= n)%nat ->
-  get_minor (Vandermonde (S n) l) n i = Vandermonde n (remove_at i l).
+  get_minor (Vandermonde (S n) l) i n = Vandermonde n (remove_at i l).
 Proof.
  intros Hi.
  apply mat_equiv_eq.
  - apply WF_get_minor, WF_Vandermonde; try lia.
  - apply WF_Vandermonde.
- - intros x y Hx Hy. unfold get_minor, Vandermonde. rewrite remove_at_nth.
+ - intros x y Hx Hy. unfold get_minor, Vandermonde, Cnth.
+   rewrite remove_at_nth.
    repeat (case Nat.ltb_spec; try lia; simpl; trivial).
 Qed.
 

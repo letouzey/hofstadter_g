@@ -746,26 +746,11 @@ Qed.
 
 Definition pows (l:list C) n := map (fun c => c^n) l.
 
-Lemma nth_pows i l p : (i < length l)%nat ->
- nth i (pows l p) 0 = (nth i l 0)^p.
+Lemma nth_pows i l p : (i < length l)%nat -> (pows l p)@i = (l@i)^p.
 Proof.
- intros H.
+ intros H. unfold Cnth.
  rewrite <- map_nth with (f := fun c => c ^ p).
  apply nth_indep. unfold pows; rewrite map_length; lia.
-Qed.
-
-Lemma get_row_mult n m p (A : Matrix n m) (B : Matrix m p) q :
- Mmult (get_row A q) B == get_row (Mmult A B) q.
-Proof.
- intros i j Hi Hj. unfold get_row, Mmult. case Nat.eqb_spec; auto; lia.
-Qed.
-
-Lemma get_row_mult_eq n m p (A : Matrix n m) (B : Matrix m p) q :
- WF_Matrix A -> WF_Matrix B ->
- Mmult (get_row A q) B = get_row (Mmult A B) q.
-Proof.
- intros. apply mat_equiv_eq; auto using WF_get_row, WF_mult.
- apply get_row_mult.
 Qed.
 
 Section Roots.
@@ -775,7 +760,7 @@ Hypothesis roots_ok : SortedRoots q roots.
 
 Definition vdmroot := Vandermonde (S q) roots.
 Definition vdminv := Minverse vdmroot.
-Definition coefs0 := get_col vdminv q.
+Definition coefs0 : Vector (S q) := transpose (get_row vdminv q).
 
 Lemma VdmRoots_det_nz : Determinant vdmroot <> 0.
 Proof.
@@ -807,36 +792,35 @@ Lemma coefs0_LinComb p :
 Proof.
  assert (len := SortedRoots_length _ _ roots_ok).
  assert (VdmWF : WF_Matrix vdmroot) by apply WF_Vandermonde.
- destruct (Minverse_is_inv vdmroot VdmWF VdmRoots_invertible) as (E & _).
+ destruct (Minverse_is_inv vdmroot VdmWF VdmRoots_invertible) as (_ & E).
  fold vdminv in E.
- set (V := (fun i j => if (i =? q) && (j =? 0) then 1 else 0) : Vector (S q)).
+ set (V := (fun i j => if (i =? 0) && (j =? q) then 1 else 0) : Matrix 1 (S q)).
  assert (WF_Matrix V).
  { intros x y. unfold V. do 2 case Nat.eqb_spec; simpl; trivial. lia. }
- assert (E0 : coefs0 = Mmult vdminv V).
+ assert (E0 : transpose coefs0 = Mmult V vdminv).
  { apply mat_equiv_eq; trivial.
-   - apply WF_get_col. apply WF_scale, WF_adjugate.
+   - unfold coefs0. rewrite transpose_involutive.
+     apply WF_get_row, WF_scale, WF_adjugate.
    - apply WF_mult; trivial. apply WF_scale, WF_adjugate.
-   - intros i j Hi Hj. unfold coefs0, V, get_col.
-     replace j with 0%nat by lia. simpl.
+   - intros i j Hi Hj. unfold coefs0, V, get_row, transpose.
+     replace i with 0%nat by lia. simpl.
      unfold Mmult. simpl. rewrite Nat.eqb_refl. simpl.
      rewrite big_sum_0_bounded. lca.
      intros x Hx. case Nat.eqb_spec; try lia. simpl. intros. lca. }
  intros Hp.
- replace (mkvect _ (pows roots p)) with (transpose (get_row vdmroot p)).
+ replace (mkvect _ (pows roots p)) with (get_col vdmroot p).
  2:{ apply mat_equiv_eq.
-     - apply WF_transpose, WF_get_row, WF_Vandermonde.
+     - apply WF_get_col, WF_Vandermonde.
      - apply WF_mkvect. unfold pows. rewrite map_length.
        now apply SortedRoots_length.
      - intros i j Hi Hj. replace j with O by lia; clear j Hj.
        rewrite mkvect_eqn, nth_pows by lia.
-       unfold get_row, vdmroot, Vandermonde. cbn.
+       unfold get_row, vdmroot, Vandermonde, Cnth, transpose. cbn.
        do 2 case Nat.leb_spec; auto; lia. }
- unfold scalprod. rewrite <- Mmult_transpose.
- rewrite get_row_mult_eq; trivial.
- 2:{ apply WF_get_col, WF_scale, WF_adjugate. }
- rewrite E0, <- Mmult_assoc, E, Mmult_1_l; trivial.
- unfold get_row, transpose. simpl.
- unfold V. simpl. now case Nat.eqb.
+ unfold scalprod. rewrite E0.
+ rewrite get_col_mult_eq; trivial.
+ 2:{ apply WF_mult, WF_scale, WF_adjugate; trivial. }
+ rewrite Mmult_assoc, E, Mmult_1_r; trivial.
 Qed.
 
 Lemma coefs0_LinCombB n :
@@ -858,7 +842,7 @@ Proof.
      * apply WF_mkvect; unfold pows; rewrite map_length; lia.
      * intros i j Hi Hj. replace j with O by lia.
        unfold Mplus. rewrite !mkvect_eqn, !nth_pows by lia.
-       set (r := nth i roots C0).
+       set (r := roots@i).
        assert (R : Root r (ThePoly q)).
        { apply (SortedRoots_roots _ _ roots_ok). apply nth_In; lia. }
        rewrite ThePoly_root_carac in R.
@@ -875,7 +859,7 @@ Proof.
  intros Hi c l.
  assert (len := SortedRoots_length _ _ roots_ok).
  assert (len' : length l = q). { unfold l; rewrite remove_at_length; lia. }
- unfold coefs0, get_col. simpl.
+ unfold coefs0, get_row, transpose. simpl.
  unfold vdminv, Minverse, adjugate, scale.
  do 2 (case Nat.ltb_spec; try lia); intros _ _. cbn -[Determinant].
  unfold vdmroot.
@@ -885,8 +869,8 @@ Proof.
  change (nth i roots 0) with c. fold l.
  rewrite <- !Cmult_assoc, (Cmult_comm (multdiffs l)).
  rewrite (multdiffs_insert_at' c l i), len' by lia. field_simplify.
- - rewrite parity_pow, <-Cpow_mult, Nat.mul_comm, <- parity_pow.
-   apply parity_even.
+ - rewrite Nat.add_comm, parity_pow, <- Cpow_mul_l.
+   replace (-1*-1) with 1 by ring. apply Cpow_1_l.
  - apply multdiffs_nodup. unfold c, l, Cnth.
    rewrite insert_at_remove_at by lia.
    eapply SortedRoots_nodup; eauto.
@@ -934,7 +918,7 @@ Proof.
  assert (len := SortedRoots_length _ _ roots_ok).
  set (r := roots@i).
  destruct (Nat.eq_dec q 0) as [Q|Q].
- { unfold coefs0, get_col, vdminv, Minverse. simpl. rewrite Q.
+ { unfold coefs0, get_row, transpose, vdminv, Minverse. simpl. rewrite Q.
    unfold scale. simpl.
    case Nat.ltb_spec; simpl; intros.
    - unfold vdmroot, Vandermonde. simpl. replace i with O by lia. simpl.
@@ -972,7 +956,7 @@ Proof.
    rewrite <- EQ at 1. f_equal. rewrite Cmult_comm. f_equal.
    unfold Cminus. rewrite Cplus_comm. f_equal. f_equal.
    now rewrite S_INR, RtoC_plus.
- - unfold coefs0, get_col. simpl.
+ - unfold coefs0, get_row, transpose. simpl.
    unfold vdminv, Minverse, adjugate, scale.
    do 2 (case Nat.ltb_spec; try lia); intros _ Hi.
    cbn -[Determinant]. rewrite Cmult_0_r. unfold coefB, r, Cnth.
