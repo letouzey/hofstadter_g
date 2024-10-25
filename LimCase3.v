@@ -666,7 +666,7 @@ Proof.
    apply detU_nz. }
  unfold coefsν. rewrite vectν_alt;
  intros Hi; destruct i as [|[|[|]]]; try lia; clear Hi;
- unfold scale, mkvectR; rewrite mkvect_eqn; simpl nth;
+ unfold scale, mkvectR; rewrite mkvect_eqn; unfold Cnth; simpl nth;
  rewrite im_scal_r; apply Rmult_eq_0_compat_r; trivial.
 Qed.
 
