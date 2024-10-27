@@ -1177,21 +1177,34 @@ Proof.
  rewrite Rcomplements.Rabs_lt_between in H. lra.
 Qed.
 
-Lemma f3_close_natpart (n:nat) :
- (nat_part (τ*n) - 1 <= f 3 n <= nat_part (τ*n) + 2)%nat.
+Lemma f3_natpart_lower (n:nat) :
+ (nat_part (τ*n) <= 1 + f 3 n)%nat.
 Proof.
 assert (LT := f3_close_τn n).
 assert (LE : 0 <= τ*n).
 { apply Rmult_le_pos. approx. apply pos_INR. }
-split.
-- assert (H : 0 <= τ*n < INR(2 + f 3 n)).
-  { rewrite plus_INR. simpl. lra. }
-  apply nat_part_lt in H. lia.
-- assert (INR(f 3 n - 2) <= τ*n).
-  { destruct (Nat.le_gt_cases (f 3 n) 2).
-    - replace (f 3 n - 2)%nat with O by lia. simpl. lra.
-    - rewrite minus_INR by lia. simpl. lra. }
-  apply nat_part_le in H; auto; lia.
+assert (H : 0 <= τ*n < INR(2 + f 3 n)).
+{ rewrite plus_INR. simpl. lra. }
+apply nat_part_lt in H. lia.
+Qed.
+
+Lemma f3_natpart_higher (n:nat) :
+ (f 3 n <= nat_part (τ*n) + 2)%nat.
+Proof.
+assert (LT := f3_close_τn n).
+assert (LE : 0 <= τ*n).
+{ apply Rmult_le_pos. approx. apply pos_INR. }
+assert (INR(f 3 n - 2) <= τ*n).
+{ destruct (Nat.le_gt_cases (f 3 n) 2).
+  - replace (f 3 n - 2)%nat with O by lia. simpl. lra.
+  - rewrite minus_INR by lia. simpl. lra. }
+apply nat_part_le in H; auto; lia.
+Qed.
+
+Lemma f3_close_natpart (n:nat) :
+ (nat_part (τ*n) - 1 <= f 3 n <= nat_part (τ*n) + 2)%nat.
+Proof.
+split; [|apply f3_natpart_higher]. generalize (f3_natpart_lower n); lia.
 Qed.
 
 (* NB: both lower and upper bounds are reached. *)
