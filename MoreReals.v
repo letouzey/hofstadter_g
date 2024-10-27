@@ -342,6 +342,37 @@ Proof.
    apply Rlt_not_le in LT'. rewrite int_part_le in LT'. lia.
 Qed.
 
+(** Ceil function (from R to Z) : [1+Int_part] except on integers *)
+
+Definition ceil (x:R) : Z :=
+  Int_part x + if Req_EM_T (frac_part x) 0 then 0 else 1.
+
+Lemma ceil_bound (r : R) : r <= IZR (ceil r) < r + 1.
+Proof.
+ unfold ceil.
+ destruct Req_EM_T as [E|N].
+ - rewrite (int_frac r) at 1 4. rewrite plus_IZR, E. lra.
+ - rewrite (int_frac r) at 1 4. rewrite plus_IZR.
+   generalize (base_fp r); lra.
+Qed.
+
+Lemma ceil_iff (r : R) (z : Z) : 0 <= IZR z - r < 1 <-> ceil r = z.
+Proof.
+ split.
+ 2:{ intros <-. generalize (ceil_bound r). lra. }
+ unfold ceil.
+ destruct Req_EM_T as [E|N].
+ - rewrite (int_frac r) at 1 2. rewrite E. clear E.
+   rewrite Z.add_0_r, Rplus_0_r, Z_R_minus.
+   intros (U,V). apply le_IZR in U. apply lt_IZR in V. lia.
+ - rewrite (int_frac r) at 1 2.
+   assert (Hr := base_fp r).
+   intros Hz.
+   assert (Hz' : 0 < IZR z - IZR (Int_part r) < 2) by lra. clear N Hr Hz.
+   rewrite Z_R_minus in Hz'.
+   destruct Hz' as (U,V). apply lt_IZR in U. apply lt_IZR in V. lia.
+Qed.
+
 (** Sum of [List R]. *)
 
 Definition Rlistsum (l: list R) := List.fold_right Rplus 0 l.
