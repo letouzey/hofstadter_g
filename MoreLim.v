@@ -1,10 +1,10 @@
 From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Export Lim_seq.
 Require Import MoreReals.
-Import Rbar.
 
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
+Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** Complements to Coquelicot.Lim_seq *)
 
@@ -29,7 +29,7 @@ Proof.
    rewrite (Rabs_right (S n)) by (generalize (RSpos n); lra).
    apply Rmult_le_compat_r; trivial.
    rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos, RSpos; try lra.
- - apply (is_lim_seq_div _ _ K p_infty); try easy.
+ - apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
    + apply is_lim_seq_const.
    + rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
    + red. red. simpl. now rewrite Rmult_0_r.
@@ -54,7 +54,7 @@ Proof.
    now apply is_lim_seq_incr_1 in H.
 Qed.
 
-Lemma is_lim_seq_sqrt : is_lim_seq (fun n : nat => sqrt n) p_infty.
+Lemma is_lim_seq_sqrt : is_lim_seq (fun n : nat => sqrt n) Rbar.p_infty.
 Proof.
  apply is_lim_seq_p_infty_Reals.
  intros x.
@@ -108,7 +108,7 @@ Qed.
 (** A sequence u of values in R (not Rbar !) cannot have -infinity
     as sup. *)
 
-Lemma sup_no_minfty (u:nat -> R) : Sup_seq u <> m_infty.
+Lemma sup_no_minfty (u:nat -> R) : Sup_seq u <> Rbar.m_infty.
 Proof.
  intro E.
  assert (Hu := Sup_seq_correct u). rewrite E in Hu. simpl in *.
@@ -119,7 +119,7 @@ Qed.
     having +infinity as sup is the same as having +infinity as limsup *)
 
 Lemma Sup_LimSup_pinfty (u:nat -> R) :
- Sup_seq u = p_infty <-> LimSup_seq u = p_infty.
+ Sup_seq u = Rbar.p_infty <-> LimSup_seq u = Rbar.p_infty.
 Proof.
  split.
  - intros Hu. apply is_LimSup_seq_unique.
@@ -140,7 +140,7 @@ Lemma fekete_subadditive_lemma (u:nat->R) :
  LimSup_seq (fun n => u n / n) = LimInf_seq (fun n => u n / n).
 Proof.
  intros U.
- apply Rbar_le_antisym; try apply LimSup_LimInf_seq_le.
+ apply Rbar.Rbar_le_antisym; try apply LimSup_LimInf_seq_le.
  set (f := fun n => u n / n).
  assert (U' : forall a b c, u (a*b+c)%nat <= a * u b + u c).
  { induction a; intros.
@@ -168,7 +168,7 @@ Proof.
        rewrite mult_INR. field. split; now apply not_0_INR.
      - apply Rmult_le_compat_r;[now apply Rlt_le| ].
        apply HM. generalize (Nat.mod_upper_bound n q); lia. }
-     replace (Finite (u q/q)) with
+     replace (Rbar.Finite (u q/q)) with
          (LimSup_seq (fun n => (n- n mod q)/n * (u q / q) + M / n)).
      { apply LimSup_le. exists 1%nat. intros n Hn. apply LE; lia. }
      { apply is_LimSup_seq_unique, is_lim_LimSup_seq.
@@ -186,7 +186,7 @@ Proof.
        rewrite Rabs_right by (apply Rle_ge; apply pos_INR).
        apply le_INR. generalize (Nat.mod_upper_bound n q); lia. }}
  destruct (LimSup_seq f) eqn:E.
- - replace (Finite r) with (LimInf_seq (fun n => r)).
+ - replace (Rbar.Finite r) with (LimInf_seq (fun n => r)).
    2:{ apply is_LimInf_seq_unique, is_LimInf_seq_const. }
    apply LimInf_le. exists 1%nat. intros n Hn. apply H. lia.
  - simpl in H. now destruct (H 1%nat).
