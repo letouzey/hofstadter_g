@@ -72,10 +72,36 @@ Qed.
 
 (** sup and limsup *)
 
+Lemma is_sup_seq_const (c : Rbar.Rbar) : is_sup_seq (fun _ => c) c.
+Proof.
+ destruct c; red.
+ - intros eps. split.
+   + intros _; simpl. destruct eps. simpl. lra.
+   + exists O. simpl. destruct eps. simpl. lra.
+ - intros M; now exists O.
+ - now intros M.
+Qed.
+
+Lemma is_inf_seq_const (c : Rbar.Rbar) : is_inf_seq (fun _ => c) c.
+Proof.
+ destruct c; red.
+ - intros eps. split.
+   + intros _; simpl. destruct eps. simpl. lra.
+   + exists O. simpl. destruct eps. simpl. lra.
+ - now intros M.
+ - intros M; now exists O.
+Qed.
+
 Lemma LimSup_seq_correct (u : nat -> R) : is_LimSup_seq u (LimSup_seq u).
 Proof.
  destruct (ex_LimSup_seq u) as (l, Hl).
  now rewrite (is_LimSup_seq_unique _ _ Hl).
+Qed.
+
+Lemma LimInf_seq_correct (u : nat -> R) : is_LimInf_seq u (LimInf_seq u).
+Proof.
+ destruct (ex_LimInf_seq u) as (l, Hl).
+ now rewrite (is_LimInf_seq_unique _ _ Hl).
 Qed.
 
 Lemma Lim_LimSup (u : nat -> R) :
@@ -115,6 +141,13 @@ Proof.
  specialize (Hu (u O) O). lra.
 Qed.
 
+Lemma inf_no_pinfty (u:nat -> R) : Inf_seq u <> Rbar.p_infty.
+Proof.
+ intro E.
+ assert (Hu := Inf_seq_correct u). rewrite E in Hu. simpl in *.
+ specialize (Hu (u O) O). lra.
+Qed.
+
 (** For a sequence u of values in R (not Rbar  !),
     having +infinity as sup is the same as having +infinity as limsup *)
 
@@ -135,13 +168,30 @@ Proof.
    intros M. destruct (Hu' M O) as (n & _ & H). now exists n.
 Qed.
 
-Lemma fekete_subadditive_lemma (u:nat->R) :
- (forall n m, u (n+m)%nat <= u n + u m) ->
- LimSup_seq (fun n => u n / n) = LimInf_seq (fun n => u n / n).
+Lemma Inf_le_LimInf (u:nat->R) : Rbar.Rbar_le (Inf_seq u) (LimInf_seq u).
 Proof.
- intros U.
- apply Rbar.Rbar_le_antisym; try apply LimSup_LimInf_seq_le.
- set (f := fun n => u n / n).
+ destruct (Inf_seq u) as [r | | ] eqn:E; try constructor.
+ - rewrite LimInf_SupInf_seq.
+   eapply Sup_seq_minor_le with (n:=O).
+   rewrite Inf_seq_ext with (v:=u). 2:{ intros n. do 2 f_equal. lia. }
+   rewrite E. apply Rbar.Rbar_le_refl.
+ - now destruct (inf_no_pinfty u).
+Qed.
+
+Lemma is_inf_seq_minor (u : nat -> Rbar.Rbar) (l : Rbar.Rbar) :
+  is_inf_seq u l -> forall n, Rbar.Rbar_le l (u n).
+Proof.
+ intros Hu n.
+ rewrite <- is_sup_opp_inf_seq in Hu.
+ apply is_sup_seq_major with (n:=n) in Hu.
+ now apply Rbar.Rbar_opp_le.
+Qed.
+
+Lemma Fekete_core (u:nat->R) :
+ (forall n m, u (n+m)%nat <= u n + u m) ->
+ forall q, q<>O -> Rbar.Rbar_le (LimSup_seq (fun n => u n / n)) (u q / q).
+Proof.
+ intros U q Q.
  assert (U' : forall a b c, u (a*b+c)%nat <= a * u b + u c).
  { induction a; intros.
    - simpl. lra.
@@ -149,53 +199,80 @@ Proof.
      eapply Rle_trans. apply U.
      rewrite S_INR, (Rplus_comm a 1), Rmult_plus_distr_r, Rmult_1_l.
      rewrite Rplus_assoc. apply Rplus_le_compat_l. apply IHa. }
- assert (H : forall q, q<>O -> Rbar.Rbar_le (LimSup_seq f) (u q / q)).
- { intros q Q.
-   destruct (finite_max u (q-1)) as (M & HM).
-   assert (LE : forall n, n<>O ->
-                u n / n <= (n-(n mod q))/n * (u q / q) + M/n).
-   { intros n Hn.
-     assert (Hn' : 0 < /n).
-     { apply Rinv_0_lt_compat. destruct n; try lia. apply RSpos. }
-     rewrite (Nat.div_mod_eq n q) at 1. rewrite (Nat.mul_comm q).
-     eapply Rle_trans;
-       [eapply Rmult_le_compat_r;[now apply Rlt_le|apply U']| ].
-     rewrite Rmult_plus_distr_r. apply Rplus_le_compat.
-     - apply Req_le.
-       rewrite <- minus_INR by (apply Nat.mod_le; lia).
-       replace (n-n mod q)%nat with (((n/q)*q)%nat).
-       2:{ rewrite (Nat.div_mod_eq n q) at 2. lia. }
-       rewrite mult_INR. field. split; now apply not_0_INR.
-     - apply Rmult_le_compat_r;[now apply Rlt_le| ].
-       apply HM. generalize (Nat.mod_upper_bound n q); lia. }
-     replace (Rbar.Finite (u q/q)) with
-         (LimSup_seq (fun n => (n- n mod q)/n * (u q / q) + M / n)).
-     { apply LimSup_le. exists 1%nat. intros n Hn. apply LE; lia. }
-     { apply is_LimSup_seq_unique, is_lim_LimSup_seq.
-       rewrite <- (Rplus_0_r (u q / q)) at 1.
-       apply is_lim_seq_plus'.
-       2:{ apply is_lim_seq_bound with (Rabs M); intros; lra. }
-       rewrite <- (Rmult_1_l (u q / q)) at 1.
-       apply is_lim_seq_mult'; try apply is_lim_seq_const.
-
-       apply is_lim_seq_ext_loc with (u := fun n => 1 - (n mod q)/n).
-       { exists 1%nat. intros n Hn. field. apply not_0_INR; lia. }
-       replace 1 with (1-0) at 1 by lra.
-       apply is_lim_seq_minus'; try apply is_lim_seq_const.
-       apply is_lim_seq_bound with q; intros.
-       rewrite Rabs_right by (apply Rle_ge; apply pos_INR).
-       apply le_INR. generalize (Nat.mod_upper_bound n q); lia. }}
- destruct (LimSup_seq f) eqn:E.
- - replace (Rbar.Finite r) with (LimInf_seq (fun n => r)).
-   2:{ apply is_LimInf_seq_unique, is_LimInf_seq_const. }
-   apply LimInf_le. exists 1%nat. intros n Hn. apply H. lia.
- - simpl in H. now destruct (H 1%nat).
- - simpl; trivial.
+ destruct (finite_max u (q-1)) as (M & HM).
+ replace (Rbar.Finite (u q/q)) with
+     (LimSup_seq (fun n => (n- n mod q)/n * (u q / q) + M / n)).
+ { apply LimSup_le. exists 1%nat. intros n Hn.
+   assert (Hn' : 0 < /n).
+   { apply Rinv_0_lt_compat. destruct n; try lia. apply RSpos. }
+   rewrite (Nat.div_mod_eq n q) at 1. rewrite (Nat.mul_comm q).
+   eapply Rle_trans;
+     [eapply Rmult_le_compat_r;[now apply Rlt_le|apply U']| ].
+   rewrite Rmult_plus_distr_r. apply Rplus_le_compat.
+   - apply Req_le.
+     rewrite <- minus_INR by (apply Nat.mod_le; lia).
+     replace (n-n mod q)%nat with (((n/q)*q)%nat).
+     2:{ rewrite (Nat.div_mod_eq n q) at 2. lia. }
+     rewrite mult_INR. field. split; apply not_0_INR; lia.
+   - apply Rmult_le_compat_r;[now apply Rlt_le| ].
+     apply HM. generalize (Nat.mod_upper_bound n q); lia. }
+ { apply is_LimSup_seq_unique, is_lim_LimSup_seq.
+   rewrite <- (Rplus_0_r (u q / q)) at 1.
+   apply is_lim_seq_plus'.
+   2:{ apply is_lim_seq_bound with (Rabs M); intros; lra. }
+   rewrite <- (Rmult_1_l (u q / q)) at 1.
+   apply is_lim_seq_mult'; try apply is_lim_seq_const.
+   apply is_lim_seq_ext_loc with (u := fun n => 1 - (n mod q)/n).
+   { exists 1%nat. intros n Hn. field. apply not_0_INR; lia. }
+   replace 1 with (1-0) at 1 by lra.
+   apply is_lim_seq_minus'; try apply is_lim_seq_const.
+   apply is_lim_seq_bound with q; intros.
+   rewrite Rabs_right by (apply Rle_ge; apply pos_INR).
+   apply le_INR. generalize (Nat.mod_upper_bound n q); lia. }
 Qed.
 
-(*
-Lemma fekete_superadditive_lemma (u:nat->R) :
- (forall n m, u (n+m)%nat >= u n + u m) ->
- LimSup_seq (fun n => u n / n) = LimInf_seq (fun n => u n / n).
+Lemma Fekete_subadditive_lemma (u:nat->R) :
+ (forall n m, u (n+m)%nat <= u n + u m) ->
+ let f := fun n => u n / n in
+ is_lim_seq f (Inf_seq (fun n => f (S n))).
 Proof.
-*)
+ intros U f.
+ assert (U' := Fekete_core u U). fold f in U'.
+ assert (LE : Rbar.Rbar_le (LimSup_seq f) (Inf_seq (fun n => f (S n)))).
+ { replace (LimSup_seq f) with (Inf_seq (fun n => LimSup_seq f)).
+   2:{ apply is_inf_seq_unique, is_inf_seq_const. }
+   apply Inf_seq_le. intros n. apply U'. lia. }
+ assert (E : LimSup_seq f = LimInf_seq f).
+ { apply Rbar.Rbar_le_antisym; try apply LimSup_LimInf_seq_le.
+   destruct (LimSup_seq f) eqn:E.
+   - replace (Rbar.Finite r) with (LimInf_seq (fun n => r)).
+     2:{ apply is_LimInf_seq_unique, is_LimInf_seq_const. }
+     apply LimInf_le. exists 1%nat. intros n Hn. apply U'. lia.
+   - simpl in U'. now destruct (U' 1%nat).
+   - simpl; trivial. }
+ assert (LE' := Inf_le_LimInf (fun n => f (S n))). simpl in LE'.
+ replace (LimInf_seq (fun x => f (S x))) with (LimInf_seq f) in LE'.
+ 2:{ symmetry. apply is_LimInf_seq_unique.
+     rewrite <- is_LimInf_seq_ind_1. apply LimInf_seq_correct. }
+ assert (X : ex_lim_seq f).
+ { apply ex_lim_LimSup_LimInf_seq, E. }
+ replace (Inf_seq (fun n => f (S n))) with (Lim_seq f).
+ now apply Lim_seq_correct.
+ apply Rbar.Rbar_le_antisym. now rewrite Lim_LimSup. now rewrite Lim_LimInf.
+Qed.
+
+Lemma Fekete_superadditive_lemma (u:nat->R) :
+ (forall n m, u (n+m)%nat >= u n + u m) ->
+ let f := fun n => u n / n in
+ is_lim_seq f (Sup_seq (fun n => f (S n))).
+Proof.
+ intros U. cbn -[INR].
+ rewrite is_lim_seq_opp.
+ rewrite Sup_seq_ext with (v:=fun n => Rbar.Rbar_opp (- u(S n)/S n)).
+ 2:{ intros n. cbn -[INR]. f_equal. field. generalize (RSpos n); lra. }
+ rewrite <- Inf_opp_sup.
+ apply is_lim_seq_ext_loc with (u:=fun n => - u n/n).
+ { exists 1%nat. intros n Hn. field. destruct n; try lia.
+   generalize (RSpos n); lra. }
+ apply Fekete_subadditive_lemma. intros n m. specialize (U n m). lra.
+Qed.
