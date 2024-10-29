@@ -11,7 +11,8 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case q=4, compute the complex roots of [X^5-X^4-1],
    and express (A 4 n) in term of combinations of powers of these roots.
-   Then we show that [Rabs (f 4 n - tau 4 * n)] has infinity as limsup.
+   Then we show that [Rabs (f 4 n - tau 4 * n)] has infinity as limsup
+   (or equivalently as sup, see MoreLim.Sup_LimSup_pinfty).
 *)
 
 Definition μ := mu 4.
