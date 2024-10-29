@@ -298,9 +298,12 @@ Proof.
 Qed.
 
 Lemma delta_limsup_q4 :
- is_sup_seq (fun n => Rabs (f 4 n - τ * n)) Rbar.p_infty.
+ is_LimSup_seq (fun n => Rabs (f 4 n - τ * n)) Rbar.p_infty.
 Proof.
- intros M. simpl.
+ replace Rbar.p_infty with (LimSup_seq (fun n => Rabs (f 4 n - τ * n))).
+ apply LimSup_seq_correct.
+ apply Sup_LimSup_pinfty, is_sup_seq_unique.
+ intros M.
  destruct delta_seq_u_bound as (c & c' & LE).
  set (m := (S (Z.to_nat (Int_part ((M+c')/c))))).
  assert (Hm : M < c*m-c').

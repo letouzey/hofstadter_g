@@ -365,7 +365,7 @@ Proof.
   change im_α with (Im α).
   rewrite <- im_alt'. rewrite <- Cmult_assoc, <- det_eqn.
   unfold det.
-  generalize (coefs0_eqn 2 _ roots_sorted 0 ltac:(lia)).
+  generalize (coefs0_eqn 2 _ roots_sorted 0 lia).
   unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->.
   now rewrite Cmult_1_l.
 Qed.
@@ -384,7 +384,7 @@ Proof.
   unfold Cdiv. rewrite <- Cmult_assoc. rewrite Cinv_l. 2:apply det_nz.
   rewrite Cmult_1_r.
   replace det with ((α-μ)*(α-αbar)*(αbar-μ))%C by (unfold det; ring).
-  generalize (coefs0_eqn 2 _ roots_sorted 1 ltac:(lia)).
+  generalize (coefs0_eqn 2 _ roots_sorted 1 lia).
   unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->. ring.
 Qed.
 

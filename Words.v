@@ -1531,13 +1531,13 @@ Lemma count_le_prev_letter q a n : a < q ->
 Proof.
  intros Ha.
  induction n as [[|n] IH] using lt_wf_ind; simpl; trivial.
- assert (IHn := IH n ltac:(lia)).
+ assert (IHn := IH n lia).
  do 2 case Nat.eqb_spec; intros E2 E1; try lia. clear IHn.
  destruct n; simpl.
  - rewrite qseq_q_0 in *. unfold prev_letter in *.
    destruct (Nat.eqb_spec a 0) as [->|E3]; lia.
- - specialize (IH n ltac:(lia)).
-   assert (E3 := qseq_prev_letter q (S n) ltac:(lia)).
+ - specialize (IH n lia).
+   assert (E3 := qseq_prev_letter q (S n) lia).
    rewrite E1 in E3.
    replace (S n -1) with n in E3 by lia. do 2 case Nat.eqb_spec; lia.
 Qed.

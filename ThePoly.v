@@ -531,7 +531,7 @@ Proof.
    destruct SR as (E,SC). rewrite Csorted_alt, StronglySorted_nth in SC.
    assert (Clt r' r) by (apply SC; lia).
    assert (n+1 <= m)%nat.
-   { rewrite Nat.le_ngt. intro LT. specialize (SC m (n+1) ltac:(lia))%nat.
+   { rewrite Nat.le_ngt. intro LT. specialize (SC m (n+1) lia)%nat.
      fold r in SC. rewrite E' in SC.
      destruct r as (x,y). repeat red in SC. simpl in *. lra. }
    assert (m <> n+1)%nat.
@@ -604,7 +604,7 @@ Lemma second_best_root q l :
   forall n, (3<=n<=q)%nat -> Cmod (l@n) <= Cmod (l@3).
 Proof.
  intros Q SR. split.
- { apply (SortedRoots_im_pos q l SR 0 ltac:(lia)). }
+ { apply (SortedRoots_im_pos q l SR 0 lia). }
  assert (SR' := SortedRoots_roots q l SR).
  assert (LN := SortedRoots_length q l SR).
  assert (Cmod (l@3) < Cmod (l@1)).
@@ -619,7 +619,7 @@ Proof.
    - rewrite <- root_order_Cmod_Re_iff in LT; eauto.
    - exfalso. eapply root_equal_or_conj in EQ; eauto.
      destruct EQ as [-> |EQ]; try lra.
-     specialize (SC 2%nat 3%nat ltac:(lia)).
+     specialize (SC 2%nat 3%nat lia).
      fold r' in SC. rewrite E, <- EQ in SC.
      revert SC. apply Cgt_order. }
  split; trivial.
@@ -1233,7 +1233,7 @@ Lemma dA_expo q roots : (3<=q)%nat -> SortedRoots q roots ->
 Proof.
  intros Q roots_ok r.
  assert (len := SortedRoots_length _ _ roots_ok).
- destruct (second_best_root q _ ltac:(lia) roots_ok) as (E & LT & LE).
+ destruct (second_best_root q _ lia roots_ok) as (E & LT & LE).
  fold r in E, LT.
  assert (R : Root r (ThePoly q)).
  { eapply SortedRoots_roots; eauto. apply nth_In. lia. }
@@ -1325,7 +1325,7 @@ Proof.
    replace (nth m (skipn 3 roots) 0) with (roots@(3+m))
     by now rewrite roots_eq at 1.
    rewrite skipn_length in Hm.
-   specialize (LE (3+m)%nat ltac:(lia)).
+   specialize (LE (3+m)%nat lia).
    set (rm := roots@(3+m)) in *.
    set (dm := coefdA q rm). unfold Rdiv.
    rewrite Rpow_mult_distr, pow_inv, !Cmod_pow. field_simplify.

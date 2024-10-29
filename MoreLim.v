@@ -2,6 +2,8 @@ From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Export Lim_seq.
 Require Import MoreReals.
 
+Notation lia := (ltac:(lia)) (only parsing).
+
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -48,7 +50,7 @@ Proof.
  replace 1 with (1-0) by lra.
  apply is_lim_seq_ext with (fun n => 1-/(S n)).
  - intros n. rewrite S_INR. field. rewrite <- S_INR.
-   generalize (lt_0_INR (S n) ltac:(lia)). lra.
+   generalize (lt_0_INR (S n) lia). lra.
  - apply is_lim_seq_minus'; try apply is_lim_seq_const.
    assert (H := is_lim_seq_invn).
    now apply is_lim_seq_incr_1 in H.
@@ -161,7 +163,7 @@ Proof.
    destruct (finite_max u (N-1)) as (M' & HM').
    destruct (Hu' (Rmax M (M'+1))) as (n & Hn). exists n. split.
    + destruct (Nat.le_gt_cases N n); trivial. exfalso.
-     specialize (HM' n ltac:(lia)). generalize (Rmax_r M (M'+1)). lra.
+     specialize (HM' n lia). generalize (Rmax_r M (M'+1)). lra.
    + eapply Rle_lt_trans; [ apply Rmax_l | apply Hn ].
  - intros Hu. apply is_sup_seq_unique.
    assert (Hu' := LimSup_seq_correct u). rewrite Hu in Hu'. simpl in *.

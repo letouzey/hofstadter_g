@@ -855,16 +855,16 @@ Proof.
  replace (α k ^(k+i-1)) with (α k ^ (i-1) - α k ^i).
  2:{ replace (k+i-1)%nat with (k+(i-1))%nat by lia. rewrite pow_add.
      replace (α k ^k) with (1 - α k)
-      by (generalize (α_root k ltac:(lia)); unfold P; lra).
+      by (generalize (α_root k lia); unfold P; lra).
      replace i with (S (i-1)) at 2 by lia. rewrite <- tech_pow_Rmult. ring. }
  eapply is_lim_seq_incr_1, is_lim_seq_ext with
      (fun n => (F k^^(i-1)) (S n) / S n - (F k^^i) (S n) / S n).
  - intros. rewrite Eqn_4_4_alt by trivial. rewrite plus_INR. field.
    generalize (MoreReals.RSpos n); lra.
  - apply is_lim_seq_minus'.
-   + assert (H := Fkj_limit k (i-1) ltac:(lia)).
+   + assert (H := Fkj_limit k (i-1) lia).
      now apply is_lim_seq_incr_1 in H.
-   + assert (H := Fkj_limit k i ltac:(lia)).
+   + assert (H := Fkj_limit k i lia).
      now apply is_lim_seq_incr_1 in H.
 Qed.
 
@@ -981,8 +981,8 @@ Proof.
  - intros n. rewrite Prop_6_3_b; try lia.
    replace (S (S n) -1) with (S n) by lia.
    rewrite minus_INR.
-   + field. generalize (lt_0_INR (S n) ltac:(lia)).
-     generalize (lt_0_INR (S (S n)) ltac:(lia)). lra.
+   + field. generalize (lt_0_INR (S n) lia).
+     generalize (lt_0_INR (S (S n)) lia). lra.
    + generalize (Fkj_le_id k (k-1) (S n)). lia.
  - apply is_lim_seq_minus'; try apply is_lim_seq_const.
    apply is_lim_seq_mult'.

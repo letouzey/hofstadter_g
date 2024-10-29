@@ -1,8 +1,6 @@
 Require Import MoreFun MoreList DeltaList FunG GenFib GenG Words.
 Import ListNotations.
 
-Notation lia := (ltac:(lia)) (only parsing).
-
 (** * WordGrowth *)
 
 (** Follow-up of [Words.v] dedicated to the study of positions
