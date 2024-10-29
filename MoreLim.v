@@ -168,6 +168,33 @@ Proof.
    intros M. destruct (Hu' M O) as (n & _ & H). now exists n.
 Qed.
 
+Lemma is_inf_seq_minor (u : nat -> Rbar.Rbar) (l : Rbar.Rbar) :
+  is_inf_seq u l -> forall n, Rbar.Rbar_le l (u n).
+Proof.
+ intros Hu n.
+ rewrite <- is_sup_opp_inf_seq in Hu.
+ apply is_sup_seq_major with (n:=n) in Hu.
+ now apply Rbar.Rbar_opp_le.
+Qed.
+
+Lemma Inf_seq_major_le (u : nat -> Rbar.Rbar) (M : R) (n : nat) :
+  Rbar.Rbar_le (u n) M -> Rbar.Rbar_le (Inf_seq u) M.
+Proof.
+ intros. apply Rbar.Rbar_le_trans with (u n); trivial.
+ apply is_inf_seq_minor. apply Inf_seq_correct.
+Qed.
+
+Lemma LimSup_le_Sup (u:nat->R) : Rbar.Rbar_le (LimSup_seq u) (Sup_seq u).
+Proof.
+ destruct (Sup_seq u) as [r | | ] eqn:E.
+ - rewrite LimSup_InfSup_seq.
+   eapply Inf_seq_major_le with (n:=O).
+   rewrite Sup_seq_ext with (v:=u). 2:{ intros n. do 2 f_equal. lia. }
+   rewrite E. apply Rbar.Rbar_le_refl.
+ - now destruct (LimSup_seq u).
+ - now destruct (sup_no_minfty u).
+Qed.
+
 Lemma Inf_le_LimInf (u:nat->R) : Rbar.Rbar_le (Inf_seq u) (LimInf_seq u).
 Proof.
  destruct (Inf_seq u) as [r | | ] eqn:E; try constructor.
@@ -176,15 +203,6 @@ Proof.
    rewrite Inf_seq_ext with (v:=u). 2:{ intros n. do 2 f_equal. lia. }
    rewrite E. apply Rbar.Rbar_le_refl.
  - now destruct (inf_no_pinfty u).
-Qed.
-
-Lemma is_inf_seq_minor (u : nat -> Rbar.Rbar) (l : Rbar.Rbar) :
-  is_inf_seq u l -> forall n, Rbar.Rbar_le l (u n).
-Proof.
- intros Hu n.
- rewrite <- is_sup_opp_inf_seq in Hu.
- apply is_sup_seq_major with (n:=n) in Hu.
- now apply Rbar.Rbar_opp_le.
 Qed.
 
 Lemma Fekete_core (u:nat->R) :
