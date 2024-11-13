@@ -36,27 +36,27 @@ Proof.
  unfold ThePoly; simpl. repeat (f_equal; try lca).
 Qed.
 
-Definition j := Cexp (PI/3).
-Definition jbar := Cexp (-PI/3).
+Definition γ := Cexp (PI/3).
+Definition γbar := Cexp (-PI/3).
 
-Lemma j_conj : jbar = Cconj j.
+Lemma γ_conj : γbar = Cconj γ.
 Proof.
- unfold j, jbar. rewrite Cexp_conj_neg. f_equal. lra.
+ unfold γ, γbar. rewrite Cexp_conj_neg. f_equal. lra.
 Qed.
 
-Lemma jmod : Cmod j = 1.
+Lemma γmod : Cmod γ = 1.
 Proof.
  apply Cmod_Cexp.
 Qed.
 
-Lemma factor1 : [C1;-C1;C1]%C = linfactors [j;jbar].
+Lemma factor1 : [C1;-C1;C1]%C = linfactors [γ;γbar].
 Proof.
  simpl. f_equal;[|f_equal].
- - ring_simplify. unfold j, jbar. rewrite <- Cexp_add.
+ - ring_simplify. unfold γ, γbar. rewrite <- Cexp_add.
    replace (_+_) with 0 by lra. now rewrite Cexp_0.
  - apply Cminus_eq_0. ring_simplify.
-   rewrite j_conj, (Cplus_comm _ j), re_alt'.
-   unfold j, Cexp, Re. simpl. rewrite cos_PI3. lca.
+   rewrite γ_conj, (Cplus_comm _ γ), re_alt'.
+   unfold γ, Cexp, Re. simpl. rewrite cos_PI3. lca.
  - f_equal; lca.
 Qed.
 
@@ -108,20 +108,20 @@ Proof.
  - f_equal. lca.
 Qed.
 
-Definition roots := [RtoC μ; j; jbar; α; αbar].
+Definition roots := [RtoC μ; γ; γbar; α; αbar].
 
 Lemma roots_sorted : SortedRoots 4 roots.
 Proof.
  split.
  - rewrite Poly4_factor, factor1, factor2, <- linfactors_app.
    apply linfactors_perm. unfold roots. simpl.
-   apply (Permutation_app_swap_app [j;jbar] [RtoC μ]).
+   apply (Permutation_app_swap_app [γ;γbar] [RtoC μ]).
  - do 3 constructor.
    + do 2 constructor. constructor. constructor. right.
      unfold αbar, α, Re, Im; simpl. split; trivial. approx.
-   + constructor. constructor. rewrite j_conj.
+   + constructor. constructor. rewrite γ_conj.
      unfold α. simpl. rewrite cos_PI3. approx.
-   + rewrite j_conj. right. simpl. split; trivial. rewrite sin_PI3.
+   + rewrite γ_conj. right. simpl. split; trivial. rewrite sin_PI3.
      field_simplify. apply Rmult_lt_compat_r; try nra.
      generalize (sqrt_lt_R0 3). lra.
    + simpl. rewrite cos_PI3. approx.
@@ -141,7 +141,7 @@ Proof.
  autorewrite with RtoC. f_equal. apply μ_is_Rroot.
 Qed.
 
-Lemma j_is_Croot : (j^5 = j^4 + 1)%C.
+Lemma γ_is_Croot : (γ^5 = γ^4 + 1)%C.
 Proof.
  rewrite <- ThePoly_root_carac. destruct roots_sorted as (->,_).
  apply linfactors_roots. simpl. tauto.
@@ -155,11 +155,11 @@ Qed.
 
 Lemma A4_eqn_C :
  let a := coefA 4 μ in
- let b := coefA 4 j in
- let c := coefA 4 jbar in
+ let b := coefA 4 γ in
+ let c := coefA 4 γbar in
  let d := coefA 4 α in
  let e := coefA 4 αbar in
- forall n, RtoC (A 4 n) = (a*μ^n + b*j^n + c*jbar^n + d*α^n + e*αbar^n)%C.
+ forall n, RtoC (A 4 n) = (a*μ^n + b*γ^n + c*γbar^n + d*α^n + e*αbar^n)%C.
 Proof.
  intros a b c d e n.
  rewrite (Equation_A 4 roots roots_sorted). unfold roots.
@@ -168,15 +168,15 @@ Qed.
 
 Lemma A4_eqn_R :
  let a := coef_mu 4 in
- let b := coefA 4 j in
+ let b := coefA 4 γ in
  let d := coefA 4 α in
- forall n, INR (A 4 n) = a*μ^n + 2*Re (b*j^n) + 2*Re (d*α^n).
+ forall n, INR (A 4 n) = a*μ^n + 2*Re (b*γ^n) + 2*Re (d*α^n).
 Proof.
  intros a b d n.
  apply RtoC_inj. rewrite A4_eqn_C.
  autorewrite with RtoC.
  rewrite <- coef_mu_ok. fold a.
- rewrite j_conj, coefA_conj.
+ rewrite γ_conj, coefA_conj.
  change αbar with (Cconj α). rewrite coefA_conj.
  fold b d. rewrite <- !Cpow_conj, <- !Cconj_mult_distr.
  rewrite !RtoC_plus, !RtoC_mult.
@@ -202,15 +202,15 @@ Proof.
    rewrite in_seq in Hy. lia.
 Qed.
 
-Lemma j6 : (j^6)%C = 1.
+Lemma γ6 : (γ^6)%C = 1.
 Proof.
- unfold j. rewrite Cexp_pow, INR_IZR_INZ. simpl.
+ unfold γ. rewrite Cexp_pow, INR_IZR_INZ. simpl.
  replace (PI/3*6) with (2*PI) by field. apply Cexp_2PI.
 Qed.
 
 Lemma delta_seq_u_eqn n :
   f 4 (seq_u n) - τ * (seq_u n) =
-  2*n*Re (coefdA 4 j) +
+  2*n*Re (coefdA 4 γ) +
   2*Re (coefdA 4 α * Clistsum (map (Cpow α) (decomp_u n))).
 Proof.
  apply RtoC_inj. rewrite (Equation_delta' 4 roots roots_sorted); try lia.
@@ -218,33 +218,33 @@ Proof.
  rewrite decomp_carac with (l:=decomp_u n); try easy.
  2:{ apply Delta_S, decomp_u_delta. }
  simpl map.
- rewrite j_conj, <- α_conj. rewrite !coefdA_conj.
+ rewrite γ_conj, <- α_conj. rewrite !coefdA_conj.
  set (l := decomp_u n).
- set (dj := coefdA 4 j).
+ set (dγ := coefdA 4 γ).
  set (dα := coefdA 4 α).
- replace (Clistsum (map (Cpow (Cconj j)) l))
-  with (Cconj (Clistsum (map (Cpow j) l))).
+ replace (Clistsum (map (Cpow (Cconj γ)) l))
+  with (Cconj (Clistsum (map (Cpow γ) l))).
  2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
      intros a. apply Cpow_conj. }
  set (sum := Clistsum (map (Cpow α) l)).
  replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
  2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
      intros a. apply Cpow_conj. }
- replace (Clistsum (map (Cpow j) l)) with (RtoC n).
+ replace (Clistsum (map (Cpow γ) l)) with (RtoC n).
  2:{ clear. unfold l, decomp_u. rewrite map_map.
      rewrite map_ext with (g := fun _ => C1), Clistsum_const, seq_length. lca.
-     intros a. now rewrite Cpow_mult, j6, Cpow_1_l. }
+     intros a. now rewrite Cpow_mult, γ6, Cpow_1_l. }
  rewrite Cconj_R, <- !Cconj_mult_distr.
  simpl Clistsum.
  rewrite (Rmult_comm 2), Rmult_assoc.
  rewrite RtoC_plus, !RtoC_mult, <- !re_alt'. ring.
 Qed.
 
-#[local] Instance : Approx 0.0189 (Re (coefdA 4 j)) 0.0190.
+#[local] Instance : Approx 0.0189 (Re (coefdA 4 γ)) 0.0190.
 Proof.
  unfold coefdA, coefA. fold τ.
  rewrite !INR_IZR_INZ. simpl IZR.
- unfold Cdiv. replace (/(5*j-4))%C with ((/21)%R*(5*Cconj j-4))%C.
+ unfold Cdiv. replace (/(5*γ-4))%C with ((/21)%R*(5*Cconj γ-4))%C.
  2:{ rewrite Cinv_alt.
      2:{ intros E. apply Cminus_eq_0 in E. injection E as E _.
          rewrite cos_PI3 in E. revert E. lra. }
@@ -269,7 +269,7 @@ Lemma delta_seq_u_bound :
  exists (c c' : posreal),
  forall n, Rabs (f 4 (seq_u n) - τ * seq_u n - c*n) <= c'.
 Proof.
- set (c := 2*Re (coefdA 4 j)).
+ set (c := 2*Re (coefdA 4 γ)).
  assert (Hc : 0 < c) by (unfold c; approx).
  exists (mkposreal c Hc). simpl.
  set (c' := 2*(Cmod (coefdA 4 α)/(1-Cmod α^6))).
