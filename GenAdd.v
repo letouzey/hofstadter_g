@@ -254,7 +254,7 @@ Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
 
 Definition all_diffs q p bound :=
   let stq := ftabulate q (p + (bound-1)) in
-  map2 Nat.sub stq (npop p stq).
+  map2 Nat.sub stq (skipn p stq).
 
 Lemma all_diffs_spec q p bound :
   all_diffs q p bound =
@@ -262,9 +262,9 @@ Lemma all_diffs_spec q p bound :
 Proof.
  unfold all_diffs.
  rewrite ftabulate_spec.
- rewrite npop_map.
+ rewrite skipn_map.
  replace p with (p+(bound-1)-(bound-1)) at 2 by lia.
- rewrite npop_countdown by lia.
+ rewrite skipn_countdown by lia.
  induction (bound-1).
  - simpl. destruct p; simpl; auto. f_equal. now destruct countdown.
  - rewrite Nat.add_succ_r. simpl. f_equal; auto.

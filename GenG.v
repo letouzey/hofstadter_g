@@ -577,26 +577,8 @@ Proof.
  induction n; simpl; rewrite ?IHn; lia.
 Qed.
 
-(** Auxiliary function : dropping [n] leftmost elements in a list *)
-
-Fixpoint npop {A} n (l:list A) :=
- match n with
- | 0 => l
- | S n' =>
-   match l with
-   | [] => []
-   | _::l' => npop  n' l'
-   end
- end.
-
-Lemma npop_map {A B} (f:A->B) l p :
- npop p (map f l) = map f (npop p l).
-Proof.
- revert l. induction p; destruct l; simpl in *; auto.
-Qed.
-
-Lemma npop_countdown x y : x <= y ->
-  npop (y - x) (countdown y) = countdown x.
+Lemma skipn_countdown x y : x <= y ->
+  skipn (y - x) (countdown y) = countdown x.
 Proof.
  induction 1.
  - now rewrite Nat.sub_diag.
@@ -615,7 +597,7 @@ Fixpoint fdescend stq p n :=
   | S p =>
     match stq with
     | [] => 0 (* normally won't occur *)
-    | a::_ => fdescend (npop (n-a) stq) p a
+    | a::_ => fdescend (skipn (n-a) stq) p a
     end
   end.
 
@@ -640,8 +622,8 @@ Proof.
      { destruct n; simpl in E; inversion E; auto. }
      rewrite <- H.
      apply IHp.
-     rewrite E. rewrite npop_map. f_equal.
-     apply npop_countdown. subst a. apply f_le.
+     rewrite E. rewrite skipn_map. f_equal.
+     apply skipn_countdown. subst a. apply f_le.
 Qed.
 
 Lemma ftabulate_spec q n : ftabulate q n = map (f q) (countdown n).
