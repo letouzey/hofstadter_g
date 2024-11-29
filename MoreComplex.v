@@ -334,11 +334,14 @@ Qed.
 
 Lemma re_le_Cmod (c:C) : Rabs (Re c) <= Cmod c.
 Proof.
- rewrite <- (Rabs_right (Cmod c)) by (apply Rle_ge; apply Cmod_ge_0).
- apply Rsqr_le_abs_0.
- rewrite !Rsqr_pow2, Cmod2_alt.
- assert (0 <= (Im c)^2) by (rewrite <- Rsqr_pow2; apply Rle_0_sqr).
- lra.
+ apply Rle_trans with (Rmax (Rabs (Re c)) (Rabs (Im c)));
+  [ apply Rmax_l | apply Rmax_Cmod ].
+Qed.
+
+Lemma im_le_Cmod (c:C) : Rabs (Im c) <= Cmod c.
+Proof.
+ apply Rle_trans with (Rmax (Rabs (Re c)) (Rabs (Im c)));
+  [ apply Rmax_r | apply Rmax_Cmod ].
 Qed.
 
 Lemma Cmod_Ci : Cmod Ci = 1%R.
