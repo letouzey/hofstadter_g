@@ -568,6 +568,33 @@ Proof.
    + left. symmetry. apply Ceq_minus. now rewrite Cplus_comm in B.
 Qed.
 
+Lemma extra_roots_implies_null p l :
+ NoDup l -> (forall r, In r l -> Root r p) ->
+ (degree p < length l)%nat ->
+ p ≅ [].
+Proof.
+ intros ND IN LT.
+ rewrite <- topcoef_0_iff.
+ destruct (Ceq_dec (topcoef p) 0) as [E|N]; trivial. exfalso.
+ set (a := topcoef p) in *.
+ set (p' := [/a] *, p).
+ assert (D : degree p' = degree p).
+ { apply Pscale_degree. now apply nonzero_div_nonzero. }
+ assert (M : monic p').
+ { unfold monic. rewrite topcoef_alt, D. unfold p'.
+   rewrite Pscale_alt. unfold coef.
+   rewrite <- (Cmult_0_r (/a)). rewrite map_nth.
+   change (/a * (coef (degree p) p) = 1). rewrite <- topcoef_alt.
+   apply Cinv_l, N. }
+ destruct (All_roots _ M) as (l', E').
+ assert (length l <= length l')%nat.
+ { apply NoDup_incl_length; trivial.
+   intros r Hr. rewrite linfactors_roots, <- E'.
+   apply IN in Hr. unfold Root, p' in *.
+   now rewrite Pmult_eval, Hr, Cmult_0_r. }
+ rewrite <- (linfactors_degree l'), <- E', D in H. lia.
+Qed.
+
 (** derivative of a polynomial *)
 
 Fixpoint Pdiff p :=

@@ -753,6 +753,40 @@ Proof.
  apply nth_indep. unfold pows; rewrite map_length; lia.
 Qed.
 
+Lemma big_sum_kronecker f n m :
+ (m < n)%nat ->
+ (forall i, (i < n)%nat -> i<>m -> f i = 0) ->
+ big_sum f n = f m.
+Proof.
+ revert m.
+ induction n.
+ - lia.
+ - intros m M F. rewrite <- big_sum_extend_r. simpl.
+   destruct (Nat.eq_dec n m) as [<-|M'].
+   + rewrite big_sum_0_bounded. lca. intros i Hi. apply F; lia.
+   + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
+     intros i Hi. apply F; lia.
+Qed.
+
+Lemma Peval_Pdiff_linfactors l i :
+  NoDup l -> (i < length l)%nat ->
+  Peval (Pdiff (linfactors l)) (l@i)
+  = G_big_mult (map (fun y => l@i - y) (remove_at i l)).
+Proof.
+ intros Hl Hi.
+ assert (Hl' := remove_at_length l i Hi).
+ rewrite <- Peval_linfactors.
+ rewrite Pdiff_linfactors, Peval_Plistsum, map_map.
+ rewrite Clistsum_map with (d:=O).
+ rewrite big_sum_kronecker with (m:=i).
+ - now rewrite seq_nth.
+ - now rewrite seq_length.
+ - intros j Hj Hij. rewrite seq_length in Hj.
+   rewrite seq_nth by trivial. simpl.
+   change (Root (l@i) (linfactors (remove_at j l))).
+   rewrite <- linfactors_roots. now apply remove_at_In.
+Qed.
+
 Section Roots.
 Variable q : nat.
 Variable roots : list C.
@@ -876,41 +910,6 @@ Proof.
    eapply SortedRoots_nodup; eauto.
 Qed.
 
-Lemma ThePolyDiff_eqn i :
- (i < S q)%nat ->
- let c := roots@i in
- let l := remove_at i roots in
- G_big_mult (map (fun y => c-y) l) = Peval (Pdiff (ThePoly q)) c.
-Proof.
- intros Hi c l.
- assert (len := SortedRoots_length _ _ roots_ok).
- assert (len' : length l = q). { unfold l; rewrite remove_at_length; lia. }
- rewrite <- Peval_linfactors. symmetry.
- destruct roots_ok as (->,_).
- rewrite Pdiff_linfactors, len, Peval_Plistsum, map_map.
- set (f := fun x => _).
- replace (S q) with (i+(S (q - i)))%nat by lia.
- rewrite seq_app. simpl seq. rewrite map_app, Clistsum_app. simpl.
- rewrite map_ext_in with (g:=fun _ => 0), Clistsum_zero.
- 2:{ intros a. rewrite in_seq. intros Ha. unfold f.
-     rewrite Peval_linfactors.
-     apply Gbigmult_0. rewrite in_map_iff. exists c. split; try lca.
-     assert (Hc : c = nth (i-1) (remove_at a roots) 0).
-     { rewrite remove_at_nth.
-       case Nat.ltb_spec; try lia; simpl; intros.
-       replace (S (i-1)) with i by lia. easy. }
-     rewrite Hc. apply nth_In. rewrite remove_at_length, len; lia. }
- rewrite map_ext_in with (g:=fun _ => 0), Clistsum_zero.
- unfold f. fold l. lca.
- { intros a. rewrite in_seq. intros Ha. unfold f.
-   rewrite Peval_linfactors.
-   apply Gbigmult_0. rewrite in_map_iff. exists c. split; try lca.
-   assert (Hc : c = nth i (remove_at a roots) 0).
-   { rewrite remove_at_nth.
-     case Nat.ltb_spec; try lia; simpl; easy. }
-   rewrite Hc. apply nth_In. rewrite remove_at_length, len; lia. }
-Qed.
-
 Definition coefB r := r / r^q /((S q)*r-q).
 
 Lemma coefs0_coefB i : coefs0 i O = coefB (roots@i).
@@ -930,9 +929,12 @@ Proof.
      unfold Cdiv. now rewrite !Cmult_0_l. }
  destruct (Nat.ltb_spec i (S q)).
  - unfold coefB.
-   generalize (ThePolyDiff_eqn i H) (coefs0_eqn i H).
-   fold r. set (l := remove_at i roots). cbv zeta.
-   intros ->.
+   assert (roots_nodup := SortedRoots_nodup _ _ roots_ok).
+   assert (roots_len := SortedRoots_length _ _ roots_ok).
+   assert (E := Peval_Pdiff_linfactors roots i roots_nodup lia).
+   rewrite <- (proj1 roots_ok) in E. fold r in E.
+   generalize (coefs0_eqn i H).
+   fold r. set (l := remove_at i roots) in *. cbv zeta. rewrite <- E.
    rewrite ThePoly_diff; try lia.
    rewrite Pmult_eval, monom_eval. cbn -[INR coefs0].
    rewrite !Cmult_1_l, !Cmult_1_r, !Cplus_0_l.

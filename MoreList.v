@@ -401,6 +401,36 @@ Proof.
  intros Hi. f_equal. apply IHl. lia.
 Qed.
 
+Lemma remove_at_notIn {A} (l:list A) i d :
+  NoDup l -> i < length l -> ~In (nth i l d) (remove_at i l).
+Proof.
+ intros Hl Hi IN.
+ destruct (In_nth _ _ d IN) as (j & Hj & E).
+ rewrite remove_at_nth in E.
+ rewrite NoDup_nth with (d:=d) in Hl.
+ rewrite remove_at_length in Hj by trivial.
+ destruct (Nat.ltb_spec j i).
+ - specialize (Hl j i lia Hi E). lia.
+ - specialize (Hl (S j) i lia Hi E). lia.
+Qed.
+
+Lemma remove_at_In {A} (l:list A) i j d :
+ i < length l -> j < length l -> i<>j -> In (nth j l d) (remove_at i l).
+Proof.
+ intros Hi Hj Hij.
+ destruct (Nat.ltb j i) eqn:E.
+ - assert (H := remove_at_nth l d i j). rewrite E in H.
+   rewrite <- H. apply nth_In.
+   apply Nat.ltb_lt in E.
+   rewrite remove_at_length; trivial. lia.
+ - rewrite Nat.ltb_nlt, Nat.nlt_ge in E.
+   assert (H := remove_at_nth l d i (j-1)).
+   destruct (Nat.ltb_spec (j-1) i); try lia.
+   replace (S (j-1)) with j in H by lia.
+   rewrite <- H. apply nth_In.
+   rewrite remove_at_length; trivial. lia.
+Qed.
+
 (** Lists with empty intersection *)
 
 Definition EmptyInter {A} (u v : list A) := forall a, ~(In a u /\ In a v).
