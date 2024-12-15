@@ -1205,7 +1205,7 @@ Qed.
     below the Plastic Ratio (1.3247...) cannot be a Pisot number,
     leading to at least a secondary root of modulus >= 1.
 
-    We will propably *not* certify this in Coq for the moment,
+    We will probably *not* certify this in Coq for the moment,
     and rather use an axiom.
 *)
 

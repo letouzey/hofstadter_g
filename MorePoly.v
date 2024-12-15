@@ -210,6 +210,11 @@ Proof.
  unfold monom. rewrite mul_by_x_to_n. cbn. ring.
 Qed.
 
+Lemma Pconst_eval c x : Peval [c] x = c.
+Proof.
+ cbn. lca.
+Qed.
+
 Lemma topcoef_monom c k : topcoef (monom c k) = c.
 Proof.
  destruct (Ceq_dec c 0); subst.
