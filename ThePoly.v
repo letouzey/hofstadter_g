@@ -756,21 +756,6 @@ Proof.
  apply nth_indep. unfold pows; rewrite map_length; lia.
 Qed.
 
-Lemma big_sum_kronecker f n m :
- (m < n)%nat ->
- (forall i, (i < n)%nat -> i<>m -> f i = 0) ->
- big_sum f n = f m.
-Proof.
- revert m.
- induction n.
- - lia.
- - intros m M F. rewrite <- big_sum_extend_r. simpl.
-   destruct (Nat.eq_dec n m) as [<-|M'].
-   + rewrite big_sum_0_bounded. lca. intros i Hi. apply F; lia.
-   + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
-     intros i Hi. apply F; lia.
-Qed.
-
 Lemma Peval_Pdiff_linfactors l i :
   NoDup l -> (i < length l)%nat ->
   Peval (Pdiff (linfactors l)) (l@i)

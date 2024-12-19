@@ -797,3 +797,87 @@ Proof.
  - simpl. rewrite Pmult_eval, IHl, Cmult_comm. f_equal.
    unfold Peval; simpl. lca.
 Qed.
+
+Definition revfactors l := linfactors (map Cinv l).
+
+Lemma Reciprocal_gen l x :
+  ~In 0 l -> x<>0 ->
+  Peval (revfactors l) (/x) =
+  Peval (revfactors l) 0 * Peval (linfactors l) x / x^length l.
+Proof.
+ unfold revfactors.
+ induction l; intros Hl Hx.
+ - simpl. rewrite !Pconst_eval. lca.
+ - simpl. rewrite !Pmult_eval, IHl; trivial.
+   2:{ contradict Hl. now right. }
+   unfold Cdiv. rewrite !Cinv_mult.
+   rewrite <- !Cmult_assoc. f_equal.
+   rewrite (Cmult_comm (Peval _ 0)).
+   rewrite <- !Cmult_assoc. f_equal.
+   rewrite !(Cmult_comm (/ x^length l)).
+   rewrite !Cmult_assoc. f_equal.
+   rewrite !cons_eval. change (Peval [] _) with 0.
+   field. split; trivial. contradict Hl. now left.
+Qed.
+
+(** Partial fraction decomposition for 1/P when P has simple roots *)
+
+Module PartFrac.
+
+Definition coef l i := / G_big_mult (map (fun r => l@i - r) (remove_at i l)).
+
+Lemma coef_nz l i : NoDup l -> (i < length l)%nat -> coef l i <> 0.
+Proof.
+ intros Hl Hi.
+ apply nonzero_div_nonzero.
+ rewrite <- Peval_linfactors.
+ change (~Root (l@i) (linfactors (remove_at i l))).
+ rewrite <- linfactors_roots.
+ apply remove_at_notIn; trivial.
+Qed.
+
+Lemma inv_linfactors (l:list C) : l<>[] -> NoDup l ->
+ forall x, ~In x l ->
+ Cinv (Peval (linfactors l) x) =
+  big_sum (fun i => coef l i / (x - l@i)) (length l).
+Proof.
+ intros Hl0 Hl x Hx.
+ symmetry. apply Cinv_eq.
+ rewrite (@big_sum_mult_r _ _ _ _ C_is_ring).
+ rewrite big_sum_eq_bounded with
+     (g := fun i => Peval ([coef l i] *, linfactors (remove_at i l)) x).
+ 2:{ intros i Hi. rewrite Pmult_eval. simpl. rewrite Pconst_eval.
+     unfold Cdiv. rewrite <- Cmult_assoc. f_equal.
+     rewrite (linfactors_perm l (l@i :: remove_at i l)).
+     2:{ rewrite <- insert_permut with (n:=i).
+         unfold Cnth. now rewrite insert_at_remove_at. }
+     simpl. rewrite Pmult_eval. rewrite cons_eval, Pconst_eval. field.
+     rewrite <- Ceq_minus. contradict Hx. subst. now apply nth_In. }
+ rewrite <- Psum_eval.
+ rewrite Ceq_minus. unfold Cminus. rewrite <- (Pconst_eval (-(1)) x).
+ rewrite <- Pplus_eval.
+ rewrite (extra_roots_implies_null _ l); trivial.
+ - intros r Hr. destruct (In_nth l r 0 Hr) as (i & Hi & E).
+   red. rewrite Pplus_eval, Pconst_eval, Psum_eval.
+   rewrite big_sum_kronecker with (m:=i); trivial.
+   + rewrite Pmult_eval, Pconst_eval, Peval_linfactors, <- E.
+     unfold coef. rewrite Cinv_l; try lca.
+     rewrite <- (Cinv_inv (G_big_mult _)). apply nonzero_div_nonzero.
+     now apply coef_nz.
+   + intros j Hj Hij. rewrite Pmult_eval.
+     apply Cmult_integral. right.
+     change (Root r (linfactors (remove_at j l))).
+     rewrite <- linfactors_roots, <- E.
+     apply remove_at_In; trivial.
+ - set (p := big_sum _ _).
+   assert (degree p <= pred (length l))%nat.
+   { apply Psum_degree.
+     intros i Hi.
+     rewrite Pscale_degree by now apply coef_nz.
+     now rewrite linfactors_degree, remove_at_length. }
+   generalize (Pplus_degree1 p [-(1)]).
+   generalize (degree_length [-(1)]). simpl.
+   rewrite <- length_zero_iff_nil in Hl0. lia.
+Qed.
+
+End PartFrac.

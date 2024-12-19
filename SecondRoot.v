@@ -401,67 +401,9 @@ Proof.
  unfold df. case Nat.ltb_spec; try lia; intros. rewrite !A_base; lia.
 Qed.
 
-(** Partial Fraction Decomposition *)
+(** Power series decomposition of 1/RevPoly and h and g *)
 
-Definition gencoef l i := / G_big_mult (map (fun r => l@i - r) (remove_at i l)).
-
-Lemma gencoef_nz l i : NoDup l -> (i < length l)%nat -> gencoef l i <> 0.
-Proof.
- intros Hl Hi.
- apply nonzero_div_nonzero.
- rewrite <- Peval_linfactors.
- change (~Root (l@i) (linfactors (remove_at i l))).
- rewrite <- linfactors_roots.
- apply remove_at_notIn; trivial.
-Qed.
-
-Lemma inv_linfactors_partfrac (l:list C) : l<>[] -> NoDup l ->
- forall x, ~In x l ->
- Cinv (Peval (linfactors l) x) =
-  big_sum (fun i => gencoef l i / (x - l@i)) (length l).
-Proof.
- intros Hl0 Hl x Hx.
- symmetry. apply Cinv_eq.
- rewrite (@big_sum_mult_r _ _ _ _ C_is_ring).
- rewrite big_sum_eq_bounded with
-     (g := fun i => Peval ([gencoef l i] *, linfactors (remove_at i l)) x).
- 2:{ intros i Hi. rewrite Pmult_eval. simpl. rewrite Pconst_eval.
-     unfold Cdiv. rewrite <- Cmult_assoc. f_equal.
-     rewrite (linfactors_perm l (l@i :: remove_at i l)).
-     2:{ rewrite <- insert_permut with (n:=i).
-         unfold Cnth. now rewrite insert_at_remove_at. }
-     simpl. rewrite Pmult_eval. rewrite cons_eval, Pconst_eval. field.
-     rewrite <- Ceq_minus. contradict Hx. subst. now apply nth_In. }
- rewrite <- Psum_eval.
- rewrite Ceq_minus. unfold Cminus. rewrite <- (Pconst_eval (-(1)) x).
- rewrite <- Pplus_eval.
- rewrite (extra_roots_implies_null _ l); trivial.
- - intros r Hr. destruct (In_nth l r 0 Hr) as (i & Hi & E).
-   red. rewrite Pplus_eval, Pconst_eval, Psum_eval.
-   rewrite big_sum_kronecker with (m:=i); trivial.
-   + rewrite Pmult_eval, Pconst_eval, Peval_linfactors, <- E.
-     unfold gencoef. rewrite Cinv_l; try lca.
-     rewrite <- (Cinv_inv (G_big_mult _)). apply nonzero_div_nonzero.
-     now apply gencoef_nz.
-   + intros j Hj Hij. rewrite Pmult_eval.
-     apply Cmult_integral. right.
-     change (Root r (linfactors (remove_at j l))).
-     rewrite <- linfactors_roots, <- E.
-     apply remove_at_In; trivial.
- - set (p := big_sum _ _).
-   assert (degree p <= pred (length l))%nat.
-   { apply Psum_degree.
-     intros i Hi.
-     rewrite Pscale_degree by now apply gencoef_nz.
-     now rewrite linfactors_degree, remove_at_length. }
-   generalize (Pplus_degree1 p [-(1)]).
-   generalize (degree_length [-(1)]). simpl.
-   rewrite <- length_zero_iff_nil in Hl0. lia.
-Qed.
-
-(** Partial Fraction Decomposition of 1/RevPoly and h and g *)
-
-Section PartialFraction.
+Section PowerSeriesDecomp.
 Variable q : nat.
 Variable Hq : q<>O.
 Variable roots : list C.
@@ -487,10 +429,10 @@ Qed.
 Definition coef r := / ((S q)*r-q).
 
 Definition coef_alt i :
-  (i < S q)%nat -> coef (roots@i) = gencoef (map Cinv roots) i.
+  (i < S q)%nat -> coef (roots@i) = PartFrac.coef (map Cinv roots) i.
 Proof.
  intros Hi.
- unfold coef, gencoef. f_equal.
+ unfold coef, PartFrac.coef. f_equal.
  rewrite <- Peval_Pdiff_linfactors.
  2:{ apply FinFun.Injective_map_NoDup.
      intros a b E. now rewrite <- (Cinv_inv a), E, Cinv_inv.
@@ -539,7 +481,7 @@ Proof.
  rewrite <- (Cmult_assoc (-mu q)), Cinv_r, Cmult_1_r.
  2:{ change (x - / mu q <> 0). rewrite <- Ceq_minus.
      intros ->. apply Hx. rewrite RevRoot_carac, Cinv_inv. apply mu_is_root. }
- rewrite inv_linfactors_partfrac.
+ rewrite PartFrac.inv_linfactors.
  2:{ generalize (SortedRoots_length _ _ roots_ok).
      destruct roots as [|a [|b l] ]; simpl; easy || lia. }
  2:{ apply FinFun.Injective_map_NoDup.
@@ -558,7 +500,7 @@ Proof.
  rewrite Hr' at 1. unfold coef'. rewrite coef_alt.
  2:{ rewrite <- (SortedRoots_length _ _ roots_ok).
      rewrite E. simpl. lia. }
- unfold gencoef. rewrite E at 2. simpl.
+ unfold PartFrac.coef. rewrite E at 2. simpl.
  unfold Cnth in *. rewrite !nth_map_indep with (d':=0); trivial.
  2:{ rewrite E. simpl. lia. }
  rewrite <- Hr'. unfold r at 2. set (m := G_big_mult _).
@@ -842,11 +784,14 @@ Proof.
  intros. symmetry. now apply CPowerSeries_unique, g_is_powerseries.
 Qed.
 
-Lemma Hyp_alt :
+End PowerSeriesDecomp.
+
+Lemma Hyp_alt q roots :
+ SortedRoots q roots ->
  ThePoly_SndRootsLt1 q ->
  forall r, In r (tl roots) -> Cmod r < 1.
 Proof.
- intros Hyp r R.
+ intros roots_ok Hyp r R.
  assert (L := SortedRoots_length _ _ roots_ok).
  assert (ND := SortedRoots_nodup _ _ roots_ok).
  assert (M := SortedRoots_mu _ _ roots_ok).
@@ -855,8 +800,6 @@ Proof.
  - rewrite (proj1 roots_ok), <- linfactors_roots. now right.
  - inversion_clear ND. rewrite <- M. unfold Cnth. simpl. now intros ->.
 Qed.
-
-End PartialFraction.
 
 (** Siegel's Lemma 1. Fortunately it is enough here to derive
     a contradiction when 5<=q, no need to formalize the rest of
@@ -919,9 +862,6 @@ Proof.
    - intros r R. rewrite Cmod_mult, Hz, Rmult_1_r. now apply Hyp'. }
 Qed.
 
-(* Print Assumptions One. *)
-
-Section RStuff.
 Local Open Scope R.
 
 Lemma One' q : q<>O -> ThePoly_SndRootsLt1 q ->
@@ -1074,10 +1014,6 @@ Proof.
    rewrite <- (One_aux_eqn q (mu q)) in H' by lia. unfold dg in H. lra.
 Qed.
 
-End RStuff.
-
-(* Print Assumptions LargeSndRoot_after_5. *)
-
 (* ThePoly can be factorized in Z when q = 4 mod 6,
    one factor being (X^2-X+1)=(X-Cexp(PI/3))(X-Cexp(-PI/3)), ie
    roots of modulus 1, while the minimal polynomial of mu is the other
@@ -1089,6 +1025,8 @@ End RStuff.
    we can factor away the apparent poles (Cexp (+/-PI/3)) of f,
    and f is continuously prolongeable on the unit circle.
 *)
+
+Open Scope C.
 
 Lemma ThePoly_root_mod1_carac q z :
   Root z (ThePoly q) -> Cmod z = 1%R -> z^2 = z-1.
@@ -1373,8 +1311,6 @@ Proof.
  eapply perm_trans. apply perm_swap. apply perm_skip. apply perm_swap.
 Qed.
 
-Definition revfactors l := linfactors (map Cinv l).
-
 Definition TheRest := linfactors rootrest.
 Definition RevRest := revfactors rootrest.
 
@@ -1435,26 +1371,6 @@ Proof.
  unfold g. now rewrite fbis_f.
 Qed.
 
-Lemma Reciprocal_gen l x :
-  ~In 0 l -> x<>0 ->
-  Peval (revfactors l) (/x) =
-  Peval (revfactors l) 0 * Peval (linfactors l) x / x^length l.
-Proof.
- unfold revfactors.
- induction l; intros Hl Hx.
- - simpl. rewrite !Pconst_eval. lca.
- - simpl. rewrite !Pmult_eval, IHl; trivial.
-   2:{ contradict Hl. now right. }
-   unfold Cdiv. rewrite !Cinv_mult.
-   rewrite <- !Cmult_assoc. f_equal.
-   rewrite (Cmult_comm (Peval _ 0)).
-   rewrite <- !Cmult_assoc. f_equal.
-   rewrite !(Cmult_comm (/ x^length l)).
-   rewrite !Cmult_assoc. f_equal.
-   rewrite !cons_eval. change (Peval [] _) with 0.
-   field. split; trivial. contradict Hl. now left.
-Qed.
-
 Lemma RevRest_carac x :
   x <> 0 -> Peval RevRest (/x) = - Peval TheRest x / x^(q-1).
 Proof.
@@ -1513,6 +1429,9 @@ Proof.
    rewrite Cmod_inv. lra.
 Qed.
 
+(** Showing that gbis has a power series decomposition on the whole
+    unit circle. The coefficients [dgbis] are quite complex, but we will
+    equate them with coefficients [dg] thanks to powerseries unicity. *)
 
 Definition pseries_multfactor c (a:nat->C) :=
  fun n => if n =? 0 then -c * a O else a (n-1)%nat - c * a n.
@@ -1578,7 +1497,7 @@ Qed.
 
 Definition dhbis n :=
   let l := map Cinv (tl rootrest) in
-  - mu q * big_sum (fun i => - gencoef l i * (/ l@i)^S n) (q-2).
+  - mu q * big_sum (fun i => - PartFrac.coef l i * (/ l@i)^S n) (q-2).
 
 Definition dgbis := pseries_linfactors dhbis rootrest.
 
@@ -1591,7 +1510,7 @@ Proof.
  apply ex_series_scal_r.
  apply (ex_series_le (V:=R_CNM)) with
   (b:=fun n =>
-        big_sum (fun i => Cmod (-gencoef l i * (/l@i)^S n)) (q-2)).
+        big_sum (fun i => Cmod (-PartFrac.coef l i * (/l@i)^S n)) (q-2)).
  { intros n. unfold compose. change norm with Rabs.
    rewrite Rabs_pos_eq by apply Cmod_ge_0. apply Cmod_bigsum. }
  apply ex_series_bigsum.
@@ -1633,7 +1552,7 @@ Proof.
  assert (L : (length (tl rootrest) = q-2)%nat).
  { unfold rootrest. cbn -[skipn]. rewrite skipn_length.
    rewrite (SortedRoots_length _ _ roots_ok). lia. }
- rewrite inv_linfactors_partfrac, map_length.
+ rewrite PartFrac.inv_linfactors, map_length.
  2:{ intros E. apply (f_equal (@length _)) in E.
      rewrite map_length, L in E. simpl in E. lia. }
  2:{ apply FinFun.Injective_map_NoDup.
@@ -1693,139 +1612,6 @@ Lemma gbis_powerseries (x:C) :
   Cmod x <= 1 -> gbis x = CPowerSeries dgbis x.
 Proof.
  intros. symmetry. now apply CPowerSeries_unique, gbis_is_powerseries.
-Qed.
-
-Lemma is_CPowerSeries_proj (a:nat->C)(x:R) :
-  ex_series (fun n => Cmod (a n) * Rabs x^n)%R ->
-  is_CPowerSeries a x (PSeries (Re∘a) x, PSeries (Im∘a) x).
-Proof.
- intros H.
- unfold is_CPowerSeries. rewrite is_lim_Cseq_proj. simpl. split.
- - eapply is_lim_seq_ext with (u:=sum_n (fun k => (Re∘a) k * x^k)%R).
-   { intros n. unfold compose. rewrite re_sum_n. apply sum_n_ext.
-     clear n. intros n. unfold compose.
-     now rewrite <- re_scal_r, <- RtoC_pow. }
-   unfold PSeries, Series. apply Lim_seq_correct'. rewrite <- ex_series_alt.
-   eapply (ex_series_le (V:=R_CNM)); eauto.
-   { intros n. change norm with Rabs.
-     rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
-     apply Rmult_le_compat_r; try apply Rabs_pos. apply re_le_Cmod. }
- - eapply is_lim_seq_ext with (u:=sum_n (fun k => (Im∘a) k * x^k)%R).
-   { intros n. unfold compose. rewrite im_sum_n. apply sum_n_ext.
-     clear n. intros n. unfold compose.
-     now rewrite <- im_scal_r, <- RtoC_pow. }
-   unfold PSeries, Series. apply Lim_seq_correct'. rewrite <- ex_series_alt.
-   eapply (ex_series_le (V:=R_CNM)); eauto.
-   { intros n. change norm with Rabs.
-     rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
-     apply Rmult_le_compat_r; try apply Rabs_pos. apply im_le_Cmod. }
-Qed.
-
-Lemma CPowerSeries_proj (a:nat->C)(x:R) :
-  ex_series (fun n => Cmod (a n) * Rabs x^n)%R ->
-  CPowerSeries a x = (PSeries (Re∘a) x, PSeries (Im∘a) x).
-Proof.
- intros. now apply CPowerSeries_unique, is_CPowerSeries_proj.
-Qed.
-
-Lemma CV_disk_le_radius (a:nat->R) (x:R) :
- CV_disk a x -> Rbar.Rbar_le x (CV_radius a).
-Proof.
- intros H.
- unfold CV_radius, Lub.Lub_Rbar.
- destruct (Lub.ex_lub_Rbar _) as (lu & Hlu). now apply Hlu.
-Qed.
-
-Lemma CV_radius_ge_1 (a : nat -> R) :
-  ex_series (Rabs∘a) -> Rbar.Rbar_le 1%R (CV_radius a).
-Proof.
- intros H. apply CV_disk_le_radius.
- red. eapply ex_series_ext; eauto. intros n. now rewrite pow1, Rmult_1_r.
-Qed.
-
-Lemma CV_radius_le (a b : nat -> R) :
- (forall n, Rabs (a n) <= Rabs (b n)) ->
- Rbar.Rbar_le (CV_radius b) (CV_radius a).
-Proof.
- intros H.
- unfold CV_radius, Lub.Lub_Rbar.
- destruct Lub.ex_lub_Rbar as (ubb & Hb & Hb').
- destruct Lub.ex_lub_Rbar as (uba & Ha & Ha'). simpl.
- - red in Hb, Ha. apply Hb'. red. intros x Hx. apply Ha.
-   clear - H Hx. unfold CV_disk in *.
-   eapply (ex_series_le (V:=R_CNM)); eauto.
-   intros n. change norm with Rabs. rewrite Rabs_Rabsolu, !Rabs_mult.
-   apply Rmult_le_compat_r; trivial using Rabs_pos.
-Qed.
-
-Lemma CPowerSeries_coef_ext (a b : nat -> C) :
- Rbar.Rbar_lt 0%R (CV_radius (Cmod∘a)) ->
- Rbar.Rbar_lt 0%R (CV_radius (Cmod∘b)) ->
- locally 0%R (fun (x:R) => CPowerSeries a x = CPowerSeries b x) ->
- forall n, a n = b n.
-Proof.
- intros Ha Hb E n.
- rewrite (surjective_pairing (a n)), (surjective_pairing (b n)).
- assert (L: locally 0%R
-             (fun x : R => PSeries (Re ∘ a) x = PSeries (Re ∘ b) x
-                        /\ PSeries (Im ∘ a) x = PSeries (Im ∘ b) x)).
- { destruct E as (eps & E).
-   set (ra := match CV_radius (Cmod∘a) with Rbar.Finite r => r | _ => 1%R end).
-   assert (Ra : 0 < ra).
-   { unfold ra. destruct (CV_radius (Cmod∘a)); try easy. lra. }
-   set (rb := match CV_radius (Cmod∘b) with Rbar.Finite r => r | _ => 1%R end).
-   assert (Rb : 0 < rb).
-   { unfold rb. destruct (CV_radius (Cmod∘b)); try easy. lra. }
-   assert (LT : 0 < Rmin eps (Rmin ra rb)).
-   { apply Rmin_glb_lt. apply eps. now apply Rmin_glb_lt. }
-   set (eps' := mkposreal _ LT).
-   exists eps'. intros y Y. change (Rabs (y-0) < eps') in Y.
-   assert (Y0 : Rabs (y - 0) < eps).
-   { apply Rlt_le_trans with eps'; trivial. apply Rmin_l. }
-   specialize (E y Y0). clear Y0.
-   rewrite !CPowerSeries_proj in E; trivial; try lra.
-   + now injection E.
-   + clear E Ha. clearbody ra.
-     rewrite Rminus_0_r in Y.
-     assert (ex_pseries (Cmod∘b) (Rabs y)).
-     { apply CV_radius_inside. rewrite Rabs_Rabsolu.
-       apply Rbar.Rbar_lt_le_trans with eps'; trivial.
-       apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
-       apply Rbar.Rbar_le_trans with rb; [apply Rmin_r|].
-       unfold rb. destruct CV_radius; simpl; trivial; lra. }
-     red in H. eapply ex_series_ext; eauto.
-     intros k. unfold compose. unfold scal. simpl.
-     change mult with Rmult.
-     rewrite pow_n_pow. ring.
-   + clear E Hb. clearbody rb.
-     rewrite Rminus_0_r in Y.
-     assert (ex_pseries (Cmod∘a) (Rabs y)).
-     { apply CV_radius_inside. rewrite Rabs_Rabsolu.
-       apply Rbar.Rbar_lt_le_trans with eps'; trivial.
-       apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
-       apply Rbar.Rbar_le_trans with ra; [apply Rmin_l|].
-       unfold ra. destruct CV_radius; simpl; trivial; lra. }
-     red in H. eapply ex_series_ext; eauto.
-     intros k. unfold compose. unfold scal. simpl.
-     change mult with Rmult.
-     rewrite pow_n_pow. ring. }
- f_equal.
- - apply (PSeries_ext_recip (Re∘a) (Re∘b) n).
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
-     apply CV_radius_le. intros k. unfold compose.
-     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
-     apply CV_radius_le. intros k. unfold compose.
-     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
-   + destruct L as (eps & L). exists eps. apply L.
- - apply (PSeries_ext_recip (Im∘a) (Im∘b) n).
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
-     apply CV_radius_le. intros k. unfold compose.
-     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
-     apply CV_radius_le. intros k. unfold compose.
-     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
-   + destruct L as (eps & L). exists eps. apply L.
 Qed.
 
 Lemma dgbis_dg : forall n, dgbis n = dg q n.

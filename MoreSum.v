@@ -460,3 +460,18 @@ Proof.
  - rewrite Cmod_0. lra.
  - eapply Rle_trans; [apply Cmod_triangle|apply Rplus_le_compat_r, IHn].
 Qed.
+
+Lemma big_sum_kronecker f n m :
+ (m < n)%nat ->
+ (forall i, (i < n)%nat -> i<>m -> f i = 0) ->
+ big_sum f n = f m.
+Proof.
+ revert m.
+ induction n.
+ - lia.
+ - intros m M F. rewrite <- big_sum_extend_r. simpl.
+   destruct (Nat.eq_dec n m) as [<-|M'].
+   + rewrite big_sum_0_bounded. lca. intros i Hi. apply F; lia.
+   + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
+     intros i Hi. apply F; lia.
+Qed.

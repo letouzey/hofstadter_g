@@ -932,3 +932,143 @@ Proof.
      rewrite <- Cpow_add. f_equal. lia. }
  apply is_lim_Cseq_mult; trivial using is_lim_Cseq_const.
 Qed.
+
+Local Open Scope R.
+
+(** More on CV_radius *)
+
+Lemma CV_disk_le_radius (a:nat->R) (x:R) :
+ CV_disk a x -> Rbar.Rbar_le x (CV_radius a).
+Proof.
+ intros H.
+ unfold CV_radius, Lub.Lub_Rbar.
+ destruct (Lub.ex_lub_Rbar _) as (lu & Hlu). now apply Hlu.
+Qed.
+
+Lemma CV_radius_ge_1 (a : nat -> R) :
+  ex_series (Rabs∘a) -> Rbar.Rbar_le 1 (CV_radius a).
+Proof.
+ intros H. apply CV_disk_le_radius.
+ red. eapply ex_series_ext; eauto. intros n. now rewrite pow1, Rmult_1_r.
+Qed.
+
+Lemma CV_radius_le (a b : nat -> R) :
+ (forall n, Rabs (a n) <= Rabs (b n)) ->
+ Rbar.Rbar_le (CV_radius b) (CV_radius a).
+Proof.
+ intros H.
+ unfold CV_radius, Lub.Lub_Rbar.
+ destruct Lub.ex_lub_Rbar as (ubb & Hb & Hb').
+ destruct Lub.ex_lub_Rbar as (uba & Ha & Ha'). simpl.
+ - red in Hb, Ha. apply Hb'. red. intros x Hx. apply Ha.
+   clear - H Hx. unfold CV_disk in *.
+   eapply (ex_series_le (V:=R_CNM)); eauto.
+   intros n. change norm with Rabs. rewrite Rabs_Rabsolu, !Rabs_mult.
+   apply Rmult_le_compat_r; trivial using Rabs_pos.
+Qed.
+
+(** C power series projection (when point x is a Real) *)
+
+Lemma is_CPowerSeries_proj (a:nat->C)(x:R) :
+  ex_series (fun n => Cmod (a n) * Rabs x^n) ->
+  is_CPowerSeries a x (PSeries (Re∘a) x, PSeries (Im∘a) x).
+Proof.
+ intros H.
+ unfold is_CPowerSeries. rewrite is_lim_Cseq_proj. simpl. split.
+ - eapply is_lim_seq_ext with (u:=sum_n (fun k => (Re∘a) k * x^k)%R).
+   { intros n. unfold compose. rewrite re_sum_n. apply sum_n_ext.
+     clear n. intros n. unfold compose.
+     now rewrite <- re_scal_r, <- RtoC_pow. }
+   unfold PSeries, Series. apply Lim_seq_correct'. rewrite <- ex_series_alt.
+   eapply (ex_series_le (V:=R_CNM)); eauto.
+   { intros n. change norm with Rabs.
+     rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
+     apply Rmult_le_compat_r; try apply Rabs_pos. apply re_le_Cmod. }
+ - eapply is_lim_seq_ext with (u:=sum_n (fun k => (Im∘a) k * x^k)%R).
+   { intros n. unfold compose. rewrite im_sum_n. apply sum_n_ext.
+     clear n. intros n. unfold compose.
+     now rewrite <- im_scal_r, <- RtoC_pow. }
+   unfold PSeries, Series. apply Lim_seq_correct'. rewrite <- ex_series_alt.
+   eapply (ex_series_le (V:=R_CNM)); eauto.
+   { intros n. change norm with Rabs.
+     rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
+     apply Rmult_le_compat_r; try apply Rabs_pos. apply im_le_Cmod. }
+Qed.
+
+Lemma CPowerSeries_proj (a:nat->C)(x:R) :
+  ex_series (fun n => Cmod (a n) * Rabs x^n) ->
+  CPowerSeries a x = (PSeries (Re∘a) x, PSeries (Im∘a) x).
+Proof.
+ intros. now apply CPowerSeries_unique, is_CPowerSeries_proj.
+Qed.
+
+(** Unicity of coefficients of C power series *)
+
+Lemma CPowerSeries_coef_ext (a b : nat -> C) :
+ Rbar.Rbar_lt 0 (CV_radius (Cmod∘a)) ->
+ Rbar.Rbar_lt 0 (CV_radius (Cmod∘b)) ->
+ locally 0 (fun (x:R) => CPowerSeries a x = CPowerSeries b x) ->
+ forall n, a n = b n.
+Proof.
+ intros Ha Hb E n.
+ rewrite (surjective_pairing (a n)), (surjective_pairing (b n)).
+ assert (L: locally 0 (fun x : R => PSeries (Re ∘ a) x = PSeries (Re ∘ b) x
+                                 /\ PSeries (Im ∘ a) x = PSeries (Im ∘ b) x)).
+ { destruct E as (eps & E).
+   set (ra := match CV_radius (Cmod∘a) with Rbar.Finite r => r | _ => 1 end).
+   assert (Ra : 0 < ra).
+   { unfold ra. destruct (CV_radius (Cmod∘a)); try easy. lra. }
+   set (rb := match CV_radius (Cmod∘b) with Rbar.Finite r => r | _ => 1 end).
+   assert (Rb : 0 < rb).
+   { unfold rb. destruct (CV_radius (Cmod∘b)); try easy. lra. }
+   assert (LT : 0 < Rmin eps (Rmin ra rb)).
+   { apply Rmin_glb_lt. apply eps. now apply Rmin_glb_lt. }
+   set (eps' := mkposreal _ LT).
+   exists eps'. intros y Y. change (Rabs (y-0) < eps') in Y.
+   assert (Y0 : Rabs (y - 0) < eps).
+   { apply Rlt_le_trans with eps'; trivial. apply Rmin_l. }
+   specialize (E y Y0). clear Y0.
+   rewrite !CPowerSeries_proj in E; trivial; try lra.
+   + now injection E.
+   + clear E Ha. clearbody ra.
+     rewrite Rminus_0_r in Y.
+     assert (ex_pseries (Cmod∘b) (Rabs y)).
+     { apply CV_radius_inside. rewrite Rabs_Rabsolu.
+       apply Rbar.Rbar_lt_le_trans with eps'; trivial.
+       apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
+       apply Rbar.Rbar_le_trans with rb; [apply Rmin_r|].
+       unfold rb. destruct CV_radius; simpl; trivial; lra. }
+     red in H. eapply ex_series_ext; eauto.
+     intros k. unfold compose. unfold scal. simpl.
+     change mult with Rmult.
+     rewrite pow_n_pow. ring.
+   + clear E Hb. clearbody rb.
+     rewrite Rminus_0_r in Y.
+     assert (ex_pseries (Cmod∘a) (Rabs y)).
+     { apply CV_radius_inside. rewrite Rabs_Rabsolu.
+       apply Rbar.Rbar_lt_le_trans with eps'; trivial.
+       apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
+       apply Rbar.Rbar_le_trans with ra; [apply Rmin_l|].
+       unfold ra. destruct CV_radius; simpl; trivial; lra. }
+     red in H. eapply ex_series_ext; eauto.
+     intros k. unfold compose. unfold scal. simpl.
+     change mult with Rmult.
+     rewrite pow_n_pow. ring. }
+ f_equal.
+ - apply (PSeries_ext_recip (Re∘a) (Re∘b) n).
+   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
+     apply CV_radius_le. intros k. unfold compose.
+     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
+   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
+     apply CV_radius_le. intros k. unfold compose.
+     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
+   + destruct L as (eps & L). exists eps. apply L.
+ - apply (PSeries_ext_recip (Im∘a) (Im∘b) n).
+   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
+     apply CV_radius_le. intros k. unfold compose.
+     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
+   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
+     apply CV_radius_le. intros k. unfold compose.
+     rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
+   + destruct L as (eps & L). exists eps. apply L.
+Qed.
