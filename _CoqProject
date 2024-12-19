@@ -23,6 +23,7 @@ WordFactor.v
 Special.v
 Mu.v
 MoreSum.v
+MoreIntegral.v
 MoreLim.v
 MorePoly.v
 MoreMatrix.v
