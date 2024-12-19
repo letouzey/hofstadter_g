@@ -55,6 +55,7 @@ Proof.
    now apply is_RInt_fct_extend_pair.
 Qed.
 
+(* unused
 Lemma ex_CInt_proj (f : R -> C) (a b : R) :
  ex_CInt f a b <-> ex_RInt (Re ∘ f) a b /\ ex_RInt (Im ∘ f) a b.
 Proof.
@@ -63,6 +64,7 @@ Proof.
    split; [now exists (Re c) | now exists (Im c)].
  - intros ((x & Hx),(y & Hy)). exists (x,y). now rewrite is_CInt_proj.
 Qed.
+*)
 
 Lemma CInt_proj (f : R -> C) (a b : R) :
  ex_CInt f a b ->
@@ -93,6 +95,7 @@ Proof.
  rewrite is_CInt_RtoC_gen. simpl. intuition.
 Qed.
 
+(* unused
 Lemma ex_CInt_RtoC (f : R -> R) (a b : R) :
  ex_CInt (RtoC ∘ f) a b <-> ex_RInt f a b.
 Proof.
@@ -101,6 +104,7 @@ Proof.
  - now exists (Re If).
  - now exists (RtoC If).
 Qed.
+*)
 
 Lemma CInt_RtoC (f : R -> R) (a b : R) :
  ex_RInt f a b -> CInt (RtoC ∘ f) a b = RtoC (RInt f a b).
@@ -131,12 +135,14 @@ Proof.
  now rewrite (is_CInt_unique g a b Ig).
 Qed.
 
+(* unused
 Lemma CInt_plus (f g : R -> C) (a b : R) :
  ex_CInt f a b -> ex_CInt g a b ->
  CInt (fun x => f x + g x) a b = CInt f a b + CInt g a b.
 Proof.
  intros Hf Hg. now apply is_CInt_unique, is_CInt_plus.
 Qed.
+*)
 
 Lemma is_CInt_minus (f g : R -> C) (a b : R) :
  ex_CInt f a b -> ex_CInt g a b ->
@@ -261,6 +267,7 @@ Proof.
  apply (sum_n_zero (G:=R_AbelianMonoid)).
 Qed.
 
+(* unused
 Lemma sum_n_C0 n : sum_n (fun n => C0) n = C0.
 Proof.
  apply (sum_n_zero (G:=Complex.C_AbelianMonoid)).
@@ -271,6 +278,7 @@ Proof.
  rewrite sum_n_proj. unfold compose. rewrite !sum_n_const.
  unfold Cmult, Re, Im. simpl. lca.
 Qed.
+*)
 
 Lemma sum_n_conj (a : nat -> C) n :
  Cconj (sum_n a n) = sum_n (Cconj ∘ a) n.
@@ -290,11 +298,13 @@ Proof.
  now rewrite sum_n_proj.
 Qed.
 
+(* unused
 Lemma RtoC_sum_n (a : nat -> R) n :
  RtoC (sum_n a n) = sum_n (RtoC∘a) n.
 Proof.
  rewrite sum_n_proj. unfold compose. simpl. now rewrite sum_n_R0.
 Qed.
+*)
 
 Lemma sum_n_Cmult_l a (b : nat -> C) n :
   sum_n (fun k => a * b k) n = a * sum_n b n.
@@ -502,10 +512,12 @@ Proof.
  apply is_lim_seq_ext with (u:= fun _ => Im c). easy. apply is_lim_seq_const.
 Qed.
 
+(* unused
 Lemma Lim_Cseq_const (c:C) : Lim_Cseq (fun _ => c) = c.
 Proof.
  apply is_lim_Cseq_unique, is_lim_Cseq_const.
 Qed.
+*)
 
 Lemma is_lim_Cseq_plus (a b : nat -> C) (la lb : C) :
  is_lim_Cseq a la -> is_lim_Cseq b lb ->
@@ -520,6 +532,7 @@ Proof.
    + now apply is_lim_seq_plus'.
 Qed.
 
+(* unused
 Lemma Lim_Cseq_plus (a b : nat -> C) :
  ex_lim_Cseq a -> ex_lim_Cseq b ->
  Lim_Cseq (fun n => a n + b n) = Lim_Cseq a + Lim_Cseq b.
@@ -529,6 +542,7 @@ Proof.
  - apply Lim_Cseq_correct. now exists la.
  - apply Lim_Cseq_correct. now exists lb.
 Qed.
+*)
 
 Lemma is_lim_Cseq_minus (a b : nat -> C) (la lb : C) :
  is_lim_Cseq a la -> is_lim_Cseq b lb ->
@@ -659,6 +673,7 @@ Proof.
  - apply is_lim_seq_minus'; trivial. apply is_lim_seq_const.
 Qed.
 
+(* unused
 Lemma Series_rest (a : nat -> R) :
  ex_series a ->
  forall n, (Series a - sum_n a n = Rbar.real (Lim_seq (sum_n_m a (S n))))%R.
@@ -668,13 +683,14 @@ Proof.
  apply Series_rest0 with (n:=n) in H. apply is_lim_seq_unique in H.
  now rewrite H.
 Qed.
+*)
 
 (** Series on C *)
 
 Lemma is_Cseries_alt (a : nat -> C) (l : C) :
  is_series a l <-> is_lim_Cseq (sum_n a) l.
 Proof.
- easy.
+ reflexivity.
 Qed.
 
 Definition CSeries (a : nat -> C) : C := Lim_Cseq (sum_n a).
@@ -705,6 +721,7 @@ Proof.
  intros m. rewrite sum_Sn. unfold plus. simpl. generalize (Ha (S m)). lra.
 Qed.
 
+(* unused
 Lemma pos_series_pos_lim (a : nat -> R) l :
   is_series a l -> (forall n, 0 <= a n) -> 0 <= l.
 Proof.
@@ -713,6 +730,7 @@ Proof.
  rewrite sum_O. apply Ha.
  now apply (pos_series_pos_sum _ _ H).
 Qed.
+*)
 
 Lemma ex_series_Cmod (a : nat -> C) :
  ex_series (Cmod ∘ a) -> ex_series a.
@@ -754,16 +772,6 @@ Proof.
     try apply H'.
    exists n. intros m Hm. unfold compose. f_equal.
    symmetry. now apply (sum_n_m_sum_n (G:=Complex.C_AbelianGroup)).
-Qed.
-
-Lemma CSeries_rest (a : nat -> C) :
- ex_series a ->
- forall n, CSeries a - sum_n a n = Lim_Cseq (sum_n_m a (S n)).
-Proof.
- intros (l,H) n. simpl in l.
- rewrite (CSeries_unique a l H).
- apply CSeries_rest0 with (n:=n) in H. apply is_lim_Cseq_unique in H.
- now rewrite H.
 Qed.
 
 Lemma CSeries_RtoC_impl (a : nat -> R) (l:C) :
@@ -902,12 +910,6 @@ Proof.
  - intros n. unfold compose. now rewrite Cmod_pow.
  - rewrite <- is_lim_seq_incr_1. apply is_lim_seq_geom.
    now rewrite Rabs_right by apply Rle_ge, Cmod_ge_0.
-Qed.
-
-Lemma PowerSeries_invlin r x : r<>0 -> Cmod (r*x) < 1 ->
- CPowerSeries (fun n => r^S n) x = / (/r - x).
-Proof.
- intros. now apply CPowerSeries_unique, is_powerseries_invlin.
 Qed.
 
 (** Delaying a sequence with extra initial zeros.
@@ -1097,11 +1099,6 @@ Qed.
 Lemma ex_CInt_Cexp (n : nat) a b : ex_CInt (fun x => Cexp (n * x)) a b.
 Proof.
  apply (ex_RInt_continuous (V:=C_CNM)). intros. apply continuous_Cexpn.
-Qed.
-
-Lemma CInt_Cexp_0 : CInt (fun _ => Cexp 0) 0 (2 * PI) = 2*PI.
-Proof.
- rewrite CInt_const, Cexp_0, <- RtoC_minus, Rminus_0_r, RtoC_mult. lca.
 Qed.
 
 Lemma is_CInt_Cexp_gen (n : nat) a b : n<>O -> Cexp (n*a) = Cexp (n*b) ->
@@ -1711,24 +1708,6 @@ Proof.
  rewrite E at 1. rewrite S_INR, RtoC_plus. ring.
 Qed.
 
-Lemma inv_RevPoly_partfrac x : ~Root x (RevPoly q) ->
- /(x^S q + x - 1) = Clistsum (map (fun r => coef r / (x - /r)) roots).
-Proof.
- intros Hx.
- rewrite <- RevPoly_eval, RevPoly_alt, inv_linfactors_partfrac.
- 2:{ generalize (SortedRoots_length _ _ roots_ok). now destruct roots. }
- 2:{ apply FinFun.Injective_map_NoDup.
-     intros a b E. now rewrite <- (Cinv_inv a), E, Cinv_inv.
-     eapply SortedRoots_nodup; eauto. }
- 2:{ now rewrite linfactors_roots, <- RevPoly_alt. }
- rewrite Clistsum_map with (d:=0).
- rewrite map_length. apply big_sum_eq_bounded.
- intros i Hi.
- unfold Cnth. rewrite nth_map_indep with (d':=0); trivial.
- f_equal. symmetry. apply coef_alt.
- now rewrite <- (SortedRoots_length _ _ roots_ok).
-Qed.
-
 Definition coef' r := coef r * (1 - mu q / r).
 
 Lemma h_partfrac x : ~Root x (RevPoly q) ->
@@ -1946,14 +1925,6 @@ Proof.
    { intros n. now rewrite sum_n_Cmult_l. }
    apply is_lim_Cseq_mult. apply is_lim_Cseq_const.
    apply is_powerseries_invlin. now apply tl_roots_nz. now apply Hr.
-Qed.
-
-Lemma h_powerseries (x:C) :
- x<>tau q ->
- (forall r, In r (tl roots) -> Cmod (r*x) < 1) ->
- h q x = CPowerSeries (dh q) x.
-Proof.
- intros. symmetry. now apply CPowerSeries_unique, h_is_powerseries.
 Qed.
 
 Lemma dg_eqn n :
