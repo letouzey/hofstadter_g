@@ -1838,33 +1838,11 @@ Proof.
      * intros E'. apply RtoC_inj in E'. generalize (mu_itvl q); lra.
 Qed.
 
-Lemma ex_series_Rabs_dh :
-  (forall r, In r (tl roots) -> Cmod r < 1) ->
-  ex_series (Rabs ∘ dh q).
-Proof.
- intros Hr.
- apply (ex_series_le (V:=R_CNM)) with
-  (b:=fun n =>
-        Rlistsum (map (fun r => Cmod (coef' r * r) * (Cmod r)^n)%R (tl roots))).
- { intros n. unfold compose. change norm with Rabs.
-   rewrite Rabs_pos_eq by apply Rabs_pos.
-   rewrite <- Cmod_R.
-   rewrite dh_eqn. eapply Rle_trans; [eapply Clistsum_mod|].
-   rewrite map_map. apply Rlistsum_le. intros r R.
-   rewrite Cpow_S, !Cmod_mult, Cmod_opp, Cmod_pow.
-   ring_simplify. lra. }
- apply ex_series_Rlistsum.
- intros r R.
- apply (ex_series_scal (V:=R_NM)).
- apply ex_series_geom. rewrite Rabs_pos_eq by apply Cmod_ge_0.
- now apply Hr.
-Qed.
-
-Lemma ex_pseries_Rabs_dh x :
-  (forall r, In r (tl roots) -> Cmod r <= 1) -> Rabs x < 1 ->
+Lemma ex_pseries_Rabs_dh (x:R) :
+  (forall r, In r (tl roots) -> Cmod (r*x) < 1) ->
   ex_series (fun n => Rabs (dh q n * x^n)).
 Proof.
- intros Hr Hx.
+ intros H.
  apply (ex_series_le (V:=R_CNM)) with
   (b:=fun n =>
    Rlistsum (map (fun r => Cmod (coef' r * r) * (Cmod (r * x))^n)%R (tl roots))).
@@ -1878,10 +1856,17 @@ Proof.
  apply ex_series_Rlistsum.
  intros r R.
  apply (ex_series_scal (V:=R_NM)).
- apply ex_series_geom. rewrite Rabs_pos_eq by apply Cmod_ge_0.
- rewrite Cmod_mult, Cmod_R.
- apply Rle_lt_trans with (1 * Rabs x)%R; try lra.
- apply Rmult_le_compat_r. try apply Rabs_pos. now apply Hr.
+ apply ex_series_geom. rewrite Rabs_pos_eq by apply Cmod_ge_0. now apply H.
+Qed.
+
+Lemma ex_series_Rabs_dh :
+  (forall r, In r (tl roots) -> Cmod r < 1) ->
+  ex_series (Rabs ∘ dh q).
+Proof.
+ intros H.
+ eapply ex_series_ext; [|apply (ex_pseries_Rabs_dh 1); trivial].
+ - intros n. simpl. now rewrite pow1, Rmult_1_r.
+ - intros r. rewrite Cmult_1_r. apply H.
 Qed.
 
 Lemma h_is_powerseries (x:C) :
@@ -1973,32 +1958,11 @@ Proof.
        ring.
 Qed.
 
-Lemma ex_series_Rabs_dg :
-  (forall r, In r (tl roots) -> Cmod r < 1) ->
-  ex_series (Rabs ∘ dg q).
-Proof.
- intros Hr.
- apply (ex_series_le (V:=R_CNM)) with
-  (b:=(fun n =>
-       delay (Rabs∘dh q) (S q) n + delay (Rabs∘dh q) q n + Rabs (dh q n))%R).
- { intros n.
-   rewrite !(delay_comp Rabs) by apply Rabs_R0.
-   unfold compose. change norm with Rabs.
-   rewrite Rabs_pos_eq by apply Rabs_pos.
-   rewrite <- Cmod_R, dg_eqn, <- !RtoC_minus, Cmod_R. unfold Rminus.
-   eapply Rle_trans; [eapply Rabs_triang|rewrite Rabs_Ropp].
-   apply Rplus_le_compat_r.
-   eapply Rle_trans; [eapply Rabs_triang|rewrite Rabs_Ropp; lra]. }
- destruct (ex_series_Rabs_dh Hr) as (l & Hl).
- apply (ex_series_plus (V:=R_NM)); [apply (ex_series_plus (V:=R_NM))|];
-  exists l; trivial; now apply delay_series_R.
-Qed.
-
-Lemma ex_pseries_Rabs_dg x :
-  (forall r, In r (tl roots) -> Cmod r <= 1) -> Rabs x < 1 ->
+Lemma ex_pseries_Rabs_dg (x:R) :
+  (forall r, In r (tl roots) -> Cmod (r*x) < 1) ->
   ex_series (fun n => Rabs (dg q n * x^n)).
 Proof.
- intros Hr Hx.
+ intros H.
  apply (ex_series_le (V:=R_CNM)) with
   (b:=(fun n =>
        (delay (Rabs∘dh q) (S q) n + delay (Rabs∘dh q) q n + Rabs (dh q n))
@@ -2015,7 +1979,7 @@ Proof.
  eapply ex_series_ext.
  { intros n. symmetry. rewrite 2 Rmult_plus_distr_r. rewrite <- Rabs_mult.
    rewrite <- RPow_abs. reflexivity. }
- destruct (ex_pseries_Rabs_dh x Hr Hx) as (l & Hl).
+ destruct (ex_pseries_Rabs_dh x H) as (l & Hl).
  apply (ex_series_plus (V:=R_NM)); [apply (ex_series_plus (V:=R_NM))|].
  - exists (Rabs x^S q * l)%R. apply delay_powerseries_R.
    eapply is_series_ext; eauto.
@@ -2024,6 +1988,16 @@ Proof.
    eapply is_series_ext; eauto.
    { intros n. unfold compose. now rewrite Rabs_mult, RPow_abs. }
  - exists l; trivial; now apply delay_series_R.
+Qed.
+
+Lemma ex_series_Rabs_dg :
+  (forall r, In r (tl roots) -> Cmod r < 1) ->
+  ex_series (Rabs ∘ dg q).
+Proof.
+ intros H.
+ eapply ex_series_ext; [|apply (ex_pseries_Rabs_dg 1); trivial].
+ - intros n. simpl. now rewrite pow1, Rmult_1_r.
+ - intros r. rewrite Cmult_1_r. apply H.
 Qed.
 
 Lemma g_is_powerseries (x:C) :
@@ -3115,8 +3089,8 @@ Proof.
    [|apply (ex_pseries_Rabs_dg q lia roots roots_ok) with (x:=(/2)%R)].
    + intros n. unfold compose. rewrite !Rabs_mult.
      now rewrite Cmod_R, Rabs_Rabsolu.
-   + apply Hyp_alt'.
-   + rewrite Rabs_pos_eq; lra.
+   + intros r Hr. apply Hyp_alt' in Hr.
+     rewrite Cmod_mult, Cmod_R, Rabs_pos_eq; lra.
  - assert (LT : 0 < 1/2) by lra.
    set (e := mkposreal _ LT).
    exists e. intros y Hy. change (Rabs (y-0) < 1/2) in Hy.
