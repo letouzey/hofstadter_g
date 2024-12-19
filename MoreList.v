@@ -1119,6 +1119,13 @@ Proof.
    rewrite IHn. f_equal. lia.
 Qed.
 
+Lemma skipn_nodup {A} (l:list A) n : NoDup l -> NoDup (skipn n l).
+Proof.
+ revert l.
+ induction n; try easy; intros [|a l]; simpl; try easy.
+ intros D. inversion_clear D. now apply IHn.
+Qed.
+
 Lemma firstn_Prefix {A} n (l : list A) : Prefix (firstn n l) l.
 Proof.
  exists (skipn n l). apply firstn_skipn.

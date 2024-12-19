@@ -9,12 +9,15 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 Definition ThePoly (q:nat) : Polynomial :=
  monom C1 (q+1) +, monom (-C1) q +, [-C1].
 
+Lemma ThePoly_eval q x : Peval (ThePoly q) x = x^(S q)-x^q-1.
+Proof.
+ unfold ThePoly. rewrite !Pplus_eval, !monom_eval.
+ rewrite Nat.add_1_r, Cmult_1_l. rewrite Pconst_eval. ring.
+Qed.
+
 Lemma ThePoly_root_carac r q : Root r (ThePoly q) <-> r^(S q) = r^q + 1.
 Proof.
- unfold ThePoly, Root. rewrite !Pplus_eval, !monom_eval.
- symmetry. rewrite Ceq_minus.
- rewrite Nat.add_1_r, Cmult_1_l. cbn.
- rewrite <- !Copp_mult_distr_l, !Cmult_1_l, Cplus_0_l.
+ unfold Root. rewrite ThePoly_eval. rewrite (Ceq_minus _ (_+_)).
  unfold Cminus. now rewrite Copp_plus_distr, Cplus_assoc.
 Qed.
 

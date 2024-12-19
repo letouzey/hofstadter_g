@@ -1489,59 +1489,13 @@ Proof.
      rewrite RevPoly_eqn, H by trivial. ring.
 Qed.
 
-(** Predicates about secondary roots of ThePoly and RevPoly *)
+(** Predicates about secondary roots of ThePoly *)
 
 Definition ThePoly_SndRootsLt1 q :=
   forall x, Root x (ThePoly q) -> x<>mu q -> Cmod x < 1.
 
 Definition ThePoly_ExSndRootGe1 q :=
   exists x, Root x (ThePoly q) /\ x<>mu q /\ 1 <= Cmod x.
-
-Definition RevPoly_SndRootsGt1 q :=
-  forall x, Root x (RevPoly q) -> x<>tau q -> 1 < Cmod x.
-
-Definition RevPoly_ExSndRootLe1 q :=
-  exists x, Root x (RevPoly q) /\ x<>tau q /\ Cmod x <= 1.
-
-Lemma ThePoly_SndRoots_rev q :
-  ThePoly_SndRootsLt1 q <-> RevPoly_SndRootsGt1 q.
-Proof.
- split; intros H x X NE.
- - assert (Hx' : x<>0). { intros ->. now apply (revroot_nz q). }
-   rewrite RevRoot_carac in X.
-   unfold tau in NE.
-   rewrite <- Rinv_1, <- (Cinv_inv x), Cmod_inv.
-   apply Rinv_lt_contravar.
-   + rewrite Rmult_1_r. now apply Cmod_gt_0, nonzero_div_nonzero.
-   + apply H; trivial. contradict NE. now rewrite RtoC_inv, <- NE, Cinv_inv.
- - assert (Hx' : x<>0). { intros ->. now apply (root_nz q). }
-   rewrite <- (Cinv_inv x), <- RevRoot_carac in X.
-   rewrite <- Rinv_1, <- (Cinv_inv x), Cmod_inv.
-   apply Rinv_lt_contravar.
-   + rewrite Rmult_1_l. now apply Cmod_gt_0, nonzero_div_nonzero.
-   + apply H; trivial. contradict NE. rewrite tau_inv, RtoC_inv, <- NE.
-     now rewrite (Cinv_inv x).
-Qed.
-
-Lemma ThePoly_SndRoot_rev q :
-  ThePoly_ExSndRootGe1 q <-> RevPoly_ExSndRootLe1 q.
-Proof.
- split; intros (x & Hx & N & LE).
- - assert (Hx' : x<>0). { intros ->. now apply (root_nz q). }
-   exists (/x); repeat split.
-   + apply RevRoot_carac. now rewrite Cinv_inv.
-   + unfold tau. rewrite RtoC_inv.
-     contradict N. now rewrite <- (Cinv_inv x), N, Cinv_inv.
-   + rewrite Cmod_inv, <- Rinv_1.
-     apply Rinv_le_contravar; trivial. lra.
- - assert (Hx' : x<>0). { intros ->. now apply (revroot_nz q). }
-   exists (/x); repeat split.
-   + now apply RevRoot_carac.
-   + unfold tau in N. rewrite RtoC_inv in N.
-     contradict N. now rewrite <- N, Cinv_inv.
-   + rewrite Cmod_inv, <- Rinv_1.
-     apply Rinv_le_contravar; trivial. now apply Cmod_gt_0.
-Qed.
 
 Lemma ThePoly_SndRoots_neg q :
   ThePoly_ExSndRootGe1 q <-> ~ThePoly_SndRootsLt1 q.
@@ -2341,24 +2295,6 @@ Proof.
    field. }
 Qed.
 
-Lemma discriminant_neg (a b c : R) :
- 0 < a ->
- b^2 < 4*a*c ->
- forall x, 0 < a*x^2+b*x+c.
-Proof.
- intros A D x.
- assert (0 < c).
- { apply Rmult_lt_reg_l with a; trivial. ring_simplify. nra. }
- apply Rmult_lt_reg_l with (4*c)%R; try lra.
- rewrite Rmult_0_r, !Rmult_plus_distr_l, <- Rmult_assoc.
- destruct (Req_dec x 0) as [->|X].
- - ring_simplify. nra.
- - apply Rle_lt_trans with (b^2*x^2 + 4*c*(b*x)+4*c*c)%R.
-   + replace (_+_)%R with ((b*x+2*c)^2)%R by ring. apply pow2_ge_0.
-   + do 2 apply Rplus_lt_compat_r.
-     apply Rmult_lt_compat_r; trivial; nra.
-Qed.
-
 Lemma LargeSndRoot_after_5 q : (5<=q)%nat -> ThePoly_ExSndRootGe1 q.
 Proof.
  intros Hq.
@@ -2497,52 +2433,6 @@ Definition ThePoly_SndRootsLe1 q :=
 
 Definition ThePoly_ExSndRootGt1 q :=
   exists x, Root x (ThePoly q) /\ x <> mu q /\ 1 < Cmod x.
-
-Definition RevPoly_SndRootsGe1 q :=
-  forall x, Root x (RevPoly q) -> x <> tau q -> 1 <= Cmod x.
-
-Definition RevPoly_ExSndRootLt1 q :=
-  exists x, Root x (RevPoly q) /\ x <> tau q /\ Cmod x < 1.
-
-Lemma ThePoly_SndRoots_rev' q :
-  ThePoly_SndRootsLe1 q <-> RevPoly_SndRootsGe1 q.
-Proof.
- split; intros H x X NE.
- - assert (Hx' : x<>0). { intros ->. now apply (revroot_nz q). }
-   rewrite RevRoot_carac in X.
-   unfold tau in NE.
-   rewrite <- Rinv_1, <- (Cinv_inv x), Cmod_inv.
-   apply Rinv_le_contravar.
-   + now apply Cmod_gt_0, nonzero_div_nonzero.
-   + apply H; trivial. contradict NE. now rewrite RtoC_inv, <- NE, Cinv_inv.
- - assert (Hx' : x<>0). { intros ->. now apply (root_nz q). }
-   rewrite <- (Cinv_inv x), <- RevRoot_carac in X.
-   rewrite <- Rinv_1, <- (Cinv_inv x), Cmod_inv.
-   apply Rinv_le_contravar; try lra.
-   apply H; trivial. contradict NE. rewrite tau_inv, RtoC_inv, <- NE.
-   now rewrite (Cinv_inv x).
-Qed.
-
-Lemma ThePoly_SndRoot_rev' q :
-  ThePoly_ExSndRootGt1 q <-> RevPoly_ExSndRootLt1 q.
-Proof.
- split; intros (x & Hx & N & LE).
- - assert (Hx' : x<>0). { intros ->. now apply (root_nz q). }
-   exists (/x); repeat split.
-   + apply RevRoot_carac. now rewrite Cinv_inv.
-   + unfold tau. rewrite RtoC_inv.
-     contradict N. now rewrite <- (Cinv_inv x), N, Cinv_inv.
-   + rewrite Cmod_inv, <- Rinv_1.
-     apply Rinv_lt_contravar; trivial. lra.
- - assert (Hx' : x<>0). { intros ->. now apply (revroot_nz q). }
-   exists (/x); repeat split.
-   + now apply RevRoot_carac.
-   + unfold tau in N. rewrite RtoC_inv in N.
-     contradict N. now rewrite <- N, Cinv_inv.
-   + rewrite Cmod_inv, <- Rinv_1.
-     apply Rinv_lt_contravar; trivial.
-     rewrite Rmult_1_r. now apply Cmod_gt_0.
-Qed.
 
 Lemma ThePoly_SndRoots_neg' q :
   ThePoly_ExSndRootGt1 q <-> ~ThePoly_SndRootsLe1 q.
@@ -2754,13 +2644,6 @@ Proof.
  field. simpl. split.
  - intros [=E]. generalize (mu_itvl q); lra.
  - rewrite <- Ceq_minus. contradict Hx. now apply Cinv_eq.
-Qed.
-
-(* TODO move *)
-Lemma ThePoly_eval x : Peval (ThePoly q) x = x^(S q)-x^q-1.
-Proof.
- unfold ThePoly. rewrite !Pplus_eval, !monom_eval.
- rewrite Nat.add_1_r, Cmult_1_l. rewrite Pconst_eval. ring.
 Qed.
 
 Lemma fbis_f x :
@@ -2992,20 +2875,6 @@ Proof.
  - apply (ex_series_plus (V:=R_NM)).
    + apply IHm. intros i Hi. apply Hf. lia.
    + apply Hf. lia.
-Qed.
-
-(* TODO move *)
-Lemma skipn_nodup {A} (l:list A) n : NoDup l -> NoDup (skipn n l).
-Proof.
- revert l.
- induction n; try easy; intros [|a l]; simpl; try easy.
- intros D. inversion_clear D. now apply IHn.
-Qed.
-
-(* TODO move *)
-Lemma Cinv_Copp c : /-c = -/c.
-Proof.
- destruct (Ceq_dec c 0) as [->|N]; try lca. now field.
 Qed.
 
 Lemma Cmod_bigsum (f : nat -> C) n :

@@ -119,6 +119,11 @@ Proof.
  now rewrite <- RtoC_inv, Rinv_1.
 Qed.
 
+Lemma Cinv_Copp c : /-c = -/c.
+Proof.
+ destruct (Ceq_dec c 0) as [->|N]; try lca. now field.
+Qed.
+
 Lemma Cmod_inv (c : C) : Cmod (/ c) = Rinv (Cmod c).
 Proof.
   destruct (Req_dec (Cmod c) 0) as [Hm|Hm].

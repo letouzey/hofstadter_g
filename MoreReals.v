@@ -612,3 +612,23 @@ destruct (Req_dec lim 0) as [->|NZ].
     apply Rabs_def2 in X. lra.
   + now exists n.
 Qed.
+
+(** Strict positivity of 2nd-degree polynomial *)
+
+Lemma discriminant_neg (a b c : R) :
+ 0 < a ->
+ b^2 < 4*a*c ->
+ forall x, 0 < a*x^2+b*x+c.
+Proof.
+ intros A D x.
+ assert (0 < c).
+ { apply Rmult_lt_reg_l with a; trivial. ring_simplify. nra. }
+ apply Rmult_lt_reg_l with (4*c)%R; try lra.
+ rewrite Rmult_0_r, !Rmult_plus_distr_l, <- Rmult_assoc.
+ destruct (Req_dec x 0) as [->|X].
+ - ring_simplify. nra.
+ - apply Rle_lt_trans with (b^2*x^2 + 4*c*(b*x)+4*c*c)%R.
+   + replace (_+_)%R with ((b*x+2*c)^2)%R by ring. apply pow2_ge_0.
+   + do 2 apply Rplus_lt_compat_r.
+     apply Rmult_lt_compat_r; trivial; nra.
+Qed.
