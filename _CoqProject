@@ -22,6 +22,7 @@ WordSuffix.v
 WordFactor.v
 Special.v
 Mu.v
+MoreSum.v
 MoreLim.v
 MorePoly.v
 MoreMatrix.v

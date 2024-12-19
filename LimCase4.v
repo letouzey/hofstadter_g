@@ -1,6 +1,6 @@
 From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
 From QuantumLib Require Import Polynomial.
-Require Import MoreFun MoreList MoreReals MoreComplex.
+Require Import MoreFun MoreList MoreReals MoreComplex MoreSum.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
 Local Open Scope R.

@@ -4,8 +4,8 @@ From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From QuantumLib Require Import Complex Polynomial.
 Import Continuity.
-Require Import MoreList MoreReals MoreLim MoreComplex MorePoly ThePoly.
-Require Import GenFib Mu.
+Require Import MoreList MoreReals MoreLim MoreSum MoreComplex MorePoly.
+Require Import ThePoly GenFib Mu.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -218,170 +218,6 @@ Proof.
    rewrite im_conj. now apply (is_RInt_opp (V:=R_NM)).
 Qed.
 
-(** More on Coquelicot [sum_n_m] and [sum_n] *)
-
-Lemma sum_n_minus (a b : nat -> C) n :
- sum_n a n - sum_n b n = sum_n (fun n => a n - b n) n.
-Proof.
- induction n.
- - now rewrite !sum_O.
- - rewrite !sum_Sn. rewrite <- IHn. change plus with Cplus. ring.
-Qed.
-
-Lemma sum_n_m_triangle (a : nat -> C) n m :
-  Cmod (sum_n_m a n m) <= sum_n_m (Cmod ∘ a) n m.
-Proof.
- destruct (Nat.le_gt_cases n m).
- - induction H.
-   + rewrite !sum_n_n. apply Rle_refl.
-   + rewrite !sum_n_Sm; try lia.
-     eapply Rle_trans; [apply Cmod_triangle | apply Rplus_le_compat];
-       try apply IHle. apply Rle_refl.
- - rewrite !sum_n_m_zero; trivial.
-   change (Cmod zero) with (Cmod 0). rewrite Cmod_0. apply Rle_refl.
-Qed.
-
-Lemma sum_n_triangle (a : nat -> C) n :
-  Cmod (sum_n a n) <= sum_n (Cmod ∘ a) n.
-Proof.
- unfold sum_n. apply sum_n_m_triangle.
-Qed.
-
-Lemma sum_n_proj (a : nat -> C) n :
- sum_n a n = (sum_n (Re ∘ a) n, sum_n (Im ∘ a) n).
-Proof.
- induction n.
- - rewrite !sum_O. apply surjective_pairing.
- - now rewrite !sum_Sn, IHn.
-Qed.
-
-Lemma sum_n_zero {G:AbelianMonoid} n : @sum_n G (fun _ => zero) n = zero.
-Proof.
- induction n.
- - now rewrite sum_O.
- - rewrite sum_Sn, IHn. apply plus_zero_l.
-Qed.
-
-Lemma sum_n_R0 n : sum_n (fun _ => R0) n = R0.
-Proof.
- apply (sum_n_zero (G:=R_AbelianMonoid)).
-Qed.
-
-(* unused
-Lemma sum_n_C0 n : sum_n (fun n => C0) n = C0.
-Proof.
- apply (sum_n_zero (G:=Complex.C_AbelianMonoid)).
-Qed.
-
-Lemma sum_n_Cconst n (c:C) : sum_n (fun _ => c) n = S n * c.
-Proof.
- rewrite sum_n_proj. unfold compose. rewrite !sum_n_const.
- unfold Cmult, Re, Im. simpl. lca.
-Qed.
-*)
-
-Lemma sum_n_conj (a : nat -> C) n :
- Cconj (sum_n a n) = sum_n (Cconj ∘ a) n.
-Proof.
- induction n.
- - now rewrite !sum_O.
- - rewrite !sum_Sn. rewrite <- IHn. apply Cconj_plus_distr.
-Qed.
-
-Lemma re_sum_n (a : nat -> C) n : Re (sum_n a n) = sum_n (Re ∘ a) n.
-Proof.
- now rewrite sum_n_proj.
-Qed.
-
-Lemma im_sum_n (a : nat -> C) n : Im (sum_n a n) = sum_n (Im ∘ a) n.
-Proof.
- now rewrite sum_n_proj.
-Qed.
-
-(* unused
-Lemma RtoC_sum_n (a : nat -> R) n :
- RtoC (sum_n a n) = sum_n (RtoC∘a) n.
-Proof.
- rewrite sum_n_proj. unfold compose. simpl. now rewrite sum_n_R0.
-Qed.
-*)
-
-Lemma sum_n_Cmult_l a (b : nat -> C) n :
-  sum_n (fun k => a * b k) n = a * sum_n b n.
-Proof.
- apply (sum_n_mult_l (K:=Complex.C_Ring)).
-Qed.
-
-Lemma sum_n_Cmult_r (a : nat -> C) b n :
-  sum_n (fun k => a k * b) n = sum_n a n * b.
-Proof.
- apply (sum_n_mult_r (K:=Complex.C_Ring)).
-Qed.
-
-Lemma sum_n_m_le (a a' : nat -> R) :
-  (forall n, a n <= a' n) -> forall n m, sum_n_m a n m <= sum_n_m a' n m.
-Proof.
- intros Ha n m.
- destruct (Nat.le_gt_cases n m).
- - induction H.
-   + now rewrite !sum_n_n.
-   + rewrite !sum_n_Sm; try lia.
-     now apply Rplus_le_compat.
- - rewrite !sum_n_m_zero; trivial. lra.
-Qed.
-
-Lemma sum_n_le (a a' : nat -> R) :
-  (forall n, a n <= a' n) -> forall n, sum_n a n <= sum_n a' n.
-Proof.
- intros Ha n. unfold sum_n. now apply sum_n_m_le.
-Qed.
-
-Lemma sum_n_Cpow x n : (1-x) * sum_n (Cpow x) n = 1 - x^S n.
-Proof.
- induction n.
- - rewrite sum_O. lca.
- - rewrite sum_Sn. change plus with Cplus.
-   rewrite Cmult_plus_distr_l, IHn, !Cpow_S. ring.
-Qed.
-
-Lemma sum_INR n : (sum_n INR n = n*(n+1)/2)%R.
-Proof.
- induction n.
- - rewrite sum_O. simpl. lra.
- - rewrite sum_Sn. rewrite IHn. change plus with Rplus.
-   rewrite S_INR. lra.
-Qed.
-
-Lemma sum_square n : (sum_n (fun k => k^2) n = n*(n+1)*(2*n+1)/6)%R.
-Proof.
- induction n.
- - rewrite sum_O. simpl. lra.
- - rewrite sum_Sn. rewrite IHn. change plus with Rplus.
-   rewrite S_INR. lra.
-Qed.
-
-Lemma sum_n_m_shift {G : AbelianMonoid} (a : nat -> G) n m p :
-  (p <= n <= m)%nat ->
-  sum_n_m (fun k => a (k-p)%nat) n m = sum_n_m a (n-p) (m-p).
-Proof.
- intros (Hp,H).
- induction H.
- - now rewrite !sum_n_n.
- - replace (S m -p)%nat with (S (m-p))%nat by lia.
-   rewrite !sum_n_Sm; try lia. rewrite IHle by lia. f_equal. f_equal. lia.
-Qed.
-
-Lemma Clistsum_sum_n (f : nat -> C -> C) l n :
- sum_n (fun k => Clistsum (map (f k) l)) n =
- Clistsum (map (fun x => sum_n (fun k => f k x) n) l).
-Proof.
- induction n.
- - rewrite sum_O. f_equal. apply map_ext. intros x. now rewrite sum_O.
- - rewrite !sum_Sn, IHn. change plus with Cplus.
-   rewrite Clistsum_plus. f_equal. apply map_ext. intros x.
-   now rewrite !sum_Sn.
-Qed.
-
 (** Limits of C sequences *)
 
 Lemma C_ball (c c' : C) (eps : R) :
@@ -592,6 +428,17 @@ Proof.
    apply IHl. intros x Hx. apply H; now right.
 Qed.
 
+Lemma is_lim_Cseq_bigsum (f : nat -> nat -> C) (lims : nat -> C) m :
+ (forall i, (i < m)%nat -> is_lim_Cseq (fun n => f n i) (lims i)) ->
+ is_lim_Cseq (fun n => big_sum (f n) m) (big_sum lims m).
+Proof.
+ induction m; intros Hf.
+ - apply is_lim_Cseq_const.
+ - simpl. apply is_lim_Cseq_plus.
+   + apply IHm. intros i Hi. apply Hf. lia.
+   + apply Hf. lia.
+Qed.
+
 (** More on R series *)
 
 Lemma is_series_alt (a:nat->R) (l:R) :
@@ -604,6 +451,13 @@ Lemma ex_series_alt (a:nat->R) :
  ex_series a <-> ex_finite_lim_seq (sum_n a).
 Proof.
  reflexivity.
+Qed.
+
+Lemma is_series_R0 : is_series (fun _ => 0%R) 0%R.
+Proof.
+ rewrite is_series_alt.
+ apply is_lim_seq_ext with (fun _ => 0%R); try apply is_lim_seq_const.
+ intros n. symmetry. apply (sum_n_zero (G:=R_AbelianMonoid)).
 Qed.
 
 Lemma ex_series_Rlistsum {A} (f : nat -> A -> R) (l : list A) :
@@ -619,6 +473,17 @@ Proof.
    apply (ex_series_plus (V:=R_NM)).
    + apply Hf. now left.
    + apply IHl. intros x Hx. apply Hf. now right.
+Qed.
+
+Lemma ex_series_bigsum (f : nat -> nat -> R) m :
+ (forall i, (i < m)%nat -> ex_series (fun n => f n i)) ->
+ ex_series (fun n => big_sum (f n) m).
+Proof.
+ induction m; intros Hf; simpl.
+ - exists 0%R. apply is_series_R0.
+ - apply (ex_series_plus (V:=R_NM)).
+   + apply IHm. intros i Hi. apply Hf. lia.
+   + apply Hf. lia.
 Qed.
 
 Lemma ex_series_le_eventually {K : AbsRing} {V : CompleteNormedModule K}
@@ -2770,65 +2635,6 @@ Definition dhbis n :=
   - mu q * big_sum (fun i => - gencoef l i * (/ l@i)^S n) (q-2).
 
 Definition dgbis := pseries_linfactors dhbis rootrest.
-
-Lemma sum_n_big_sum (f : nat -> nat -> C) (n m : nat) :
-  sum_n (fun k => big_sum (f k) m) n =
-  big_sum (fun i => sum_n (fun k => f k i) n) m.
-Proof.
- induction n; simpl.
- - rewrite sum_O. apply big_sum_eq_bounded.
-   intros i _. now rewrite sum_O.
- - rewrite sum_Sn, IHn. change plus with Cplus.
-   rewrite <- (@big_sum_plus _ _ _ C_is_comm_group).
-   apply big_sum_eq_bounded.
-   intros i _. now rewrite sum_Sn.
-Qed.
-
-Lemma sum_n_big_sum_adhoc (f : nat -> nat -> C) (g : nat -> C) n m :
-  sum_n (fun k => big_sum (f k) m * g k) n =
-  big_sum (fun i => sum_n (fun k => f k i * g k) n) m.
-Proof.
- rewrite <- sum_n_big_sum. apply sum_n_ext. intros k.
- exact (big_sum_mult_r (g k) (f k) m).
-Qed.
-
-Lemma is_lim_Cseq_bigsum (f : nat -> nat -> C) (lims : nat -> C) m :
- (forall i, (i < m)%nat -> is_lim_Cseq (fun n => f n i) (lims i)) ->
- is_lim_Cseq (fun n => big_sum (f n) m) (big_sum lims m).
-Proof.
- induction m; intros Hf.
- - apply is_lim_Cseq_const.
- - simpl. apply is_lim_Cseq_plus.
-   + apply IHm. intros i Hi. apply Hf. lia.
-   + apply Hf. lia.
-Qed.
-
-Lemma is_series_R0 : is_series (fun _ => 0%R) 0%R.
-Proof.
- apply filterlim_locally. intros eps. exists O. intros n _.
- rewrite (sum_n_zero (G:=R_AbelianMonoid)).
- change (Rabs (0-0) < eps).
- rewrite Rminus_0_r, Rabs_R0. apply eps.
-Qed.
-
-Lemma ex_series_bigsum (f : nat -> nat -> R) m :
- (forall i, (i < m)%nat -> ex_series (fun n => f n i)) ->
- ex_series (fun n => big_sum (f n) m).
-Proof.
- induction m; intros Hf; simpl.
- - exists 0%R. apply is_series_R0.
- - apply (ex_series_plus (V:=R_NM)).
-   + apply IHm. intros i Hi. apply Hf. lia.
-   + apply Hf. lia.
-Qed.
-
-Lemma Cmod_bigsum (f : nat -> C) n :
- Cmod (big_sum f n) <= big_sum (Cmod∘f) n.
-Proof.
- induction n; simpl.
- - rewrite Cmod_0. lra.
- - eapply Rle_trans; [apply Cmod_triangle|apply Rplus_le_compat_r, IHn].
-Qed.
 
 Lemma ex_series_Cmod_dhbis : ex_series (Cmod ∘ dhbis).
 Proof.

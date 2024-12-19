@@ -1,5 +1,5 @@
 From Coq Require Import List Arith Lia Reals Lra.
-Require Import MoreFun MoreList MoreReals MoreLim.
+Require Import MoreFun MoreList MoreReals MoreSum MoreLim.
 Require Import GenFib GenG Words Mu ThePoly.
 Require SecondRoot.
 Local Open Scope R.

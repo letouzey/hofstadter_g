@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation.
 From QuantumLib Require Import Complex Matrix Eigenvectors VecSet Polynomial.
-Require Import MoreList MoreReals MoreLim MoreComplex MorePoly MoreMatrix.
-Require Import GenFib GenG Mu.
+Require Import MoreList MoreReals MoreLim MoreComplex MoreSum MorePoly.
+Require Import MoreMatrix GenFib GenG Mu.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
