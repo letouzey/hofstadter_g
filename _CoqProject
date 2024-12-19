@@ -27,6 +27,7 @@ MorePoly.v
 MoreMatrix.v
 MoreComplex.v
 ThePoly.v
+SecondRoot.v
 Freq.v
 LimCase2.v
 LimCase3.v

@@ -1,6 +1,7 @@
 From Coq Require Import List Arith Lia Reals Lra.
 Require Import MoreFun MoreList MoreReals MoreLim.
 Require Import GenFib GenG Words Mu ThePoly.
+Require SecondRoot.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -355,14 +356,16 @@ Qed.
 
 (** When parameter q is at least 5, [limsup |f q n - tau q *n| = +infinity].
     It is sufficient to consider numbers [n] of the form [A q m].
-    The two following proofs currently rely on an axiom stating that
-    the largest secondary root has modulus > 1 when q>=5.
-    We do have a paper proof of this axiom, based on the value of the
-    minimal Pisot number. To investigate someday in Coq, but probably
-    quite non-trivial.
+
+    The two following proofs used to rely on an axiom stating that
+    the largest secondary root has modulus > 1 when q>=5. This axiom
+    has been replaced by a full proof, see SecondRoot.v.
+    So these proofs now depend only on the 4 usual logical axioms
+    just as the whole Coq theory of classical real numbers.
 
     Note that [limsup |f 4 n - tau 4 * n| = +infinity] as well.
-    The proof is different (and without axiom !), see LimCase4.v
+    The proof is quite different, since the largest secondary root
+    has modulus just 1. See LimCase4.v.
 *)
 
 Lemma dA_limsup_qgen q : (5<=q)%nat ->
@@ -370,7 +373,7 @@ Lemma dA_limsup_qgen q : (5<=q)%nat ->
 Proof.
  intros Q M. simpl.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
- assert (LT := axiom_large_second_best_root q roots Q roots_ok).
+ assert (LT := SecondRoot.large_second_best_root q roots Q roots_ok).
  destruct (dA_expo q roots lia roots_ok) as (c & Hc).
  set (r := QuantumLib.Complex.Cmod _) in *.
  destruct (large_enough_exponent r (M/c)) as (N', HN'); trivial.
@@ -389,6 +392,4 @@ Proof.
  exists (A q n). split. generalize (A_lt_id q n); lia. now rewrite f_A.
 Qed.
 
-(* Print Assumptions delta_limsup_qgen.
-   (* Uses: axiom_large_second_best_root *)
-*)
+(* Print Assumptions delta_limsup_qgen. *)

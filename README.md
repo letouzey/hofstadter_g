@@ -31,7 +31,7 @@ Usage
 - Use `cd reports/g && pdflatex report` to generate the pdf of the technical report.
 
 Some recent files depend on Coq >= 8.16 and < 8.20 as well as external libraries
-Coquelicot >= 3.3.0 and QuantumLib >= 1.5.1. I advise to fetch them via opam.
+Coquelicot >= 3.4.0 and QuantumLib >= 1.5.1. I advise to fetch them via opam.
 For instance:
 
 ```
@@ -69,6 +69,7 @@ Summary of files:
 5. Hoftadter G-like functions and real numbers
   - [ThePoly.v](ThePoly.v): start studying polynomial `X^(q+1)-X^q-1`
   - [Mu.v](Mu.v): real roots of this polynomial
+  - [SecondRoot.v](SecondRoot.v): a second root of this polynomial has modulus>1 for q>=5
   - [Freq.v](Freq.v): frequencies of letters in `qseq q`, limit of `(f q n)/n`.
   - [LimCase2.v](LimCase2.v): Hofstadter H (i.e. `f 2`) at dist <1 of `n*τ_2`
   - [LimCase3.v](LimCase3.v): `f 3` at dist <2 of `n*τ_3`

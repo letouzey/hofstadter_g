@@ -1197,21 +1197,6 @@ Qed.
 
 (* Print Assumptions A_div_pow_mu_limit. *)
 
-(** TODO: second best root has modulus:
-    < 1 for q=1,2,3
-    = 1 for q=4
-    > 1 for q>=5
-    Our current proof for q>=5 uses the fact that all real strictly
-    below the Plastic Ratio (1.3247...) cannot be a Pisot number,
-    leading to at least a secondary root of modulus >= 1.
-
-    We will probably *not* certify this in Coq for the moment,
-    and rather use an axiom.
-*)
-
-Axiom axiom_large_second_best_root :
-  forall q roots, (5<=q)%nat -> SortedRoots q roots -> 1 < Cmod (roots@1).
-
 Lemma coefA_conj q r :
   coefA q (Cconj r) = Cconj (coefA q r).
 Proof.
