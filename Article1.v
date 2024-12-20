@@ -489,7 +489,10 @@ Qed.
 
 (** Section 4 *)
 
+Module Count.
 Definition C k (f:nat->bool) n := length (filter f (take n (word_x k))).
+End Count.
+Import Count.
 
 Lemma C_le k f n : C k f n <= n.
 Proof.
