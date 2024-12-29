@@ -11,8 +11,8 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case q=4, compute the complex roots of [X^5-X^4-1],
    and express (A 4 n) in term of combinations of powers of these roots.
-   Then we show that [Rabs (f 4 n - tau 4 * n)] has infinity as limsup
-   (or equivalently as sup, see MoreLim.Sup_LimSup_pinfty).
+   Then we show that [Rabs (f 4 n - tau 4 * n)] has infinity as sup
+   (or equivalently as limsup, see MoreLim.Sup_LimSup_pinfty).
 *)
 
 Definition μ := mu 4.
@@ -298,13 +298,10 @@ Proof.
  rewrite Rsqr_pow2, αmod2. approx.
 Qed.
 
-Lemma delta_limsup_q4 :
- is_LimSup_seq (fun n => Rabs (f 4 n - τ * n)) Rbar.p_infty.
+Lemma delta_sup_q4 :
+ is_sup_seq (fun n => Rabs (f 4 n - τ * n)) Rbar.p_infty.
 Proof.
- replace Rbar.p_infty with (LimSup_seq (fun n => Rabs (f 4 n - τ * n))).
- apply LimSup_seq_correct.
- apply Sup_LimSup_pinfty, is_sup_seq_unique.
- intros M.
+ intros M. simpl.
  destruct delta_seq_u_bound as (c & c' & LE).
  set (m := (S (Z.to_nat (Int_part ((M+c')/c))))).
  assert (Hm : M < c*m-c').
@@ -329,4 +326,4 @@ Proof.
  apply Rle_ge, Rmult_le_pos. destruct c; simpl; lra. apply pos_INR.
 Qed.
 
-(* Print Assumptions delta_limsup_q4. *)
+(* Print Assumptions delta_sup_q4. *)

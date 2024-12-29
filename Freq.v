@@ -354,7 +354,7 @@ Proof.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
 
-(** When parameter q is at least 5, [limsup |f q n - tau q *n| = +infinity].
+(** When parameter q is at least 5, [sup |f q n - tau q *n| = +infinity].
     It is sufficient to consider numbers [n] of the form [A q m].
 
     The two following proofs used to rely on an axiom stating that
@@ -363,33 +363,31 @@ Qed.
     So these proofs now depend only on the 4 usual logical axioms
     just as the whole Coq theory of classical real numbers.
 
-    Note that [limsup |f 4 n - tau 4 * n| = +infinity] as well.
+    Note that [sup |f 4 n - tau 4 * n| = +infinity] as well.
     The proof is quite different, since the largest secondary root
     has modulus just 1. See LimCase4.v.
 *)
 
-Lemma dA_limsup_qgen q : (5<=q)%nat ->
- is_LimSup_seq (fun n => Rabs (A q (n-1) - tau q * A q n)) Rbar.p_infty.
+Lemma dA_sup_qgen q : (5<=q)%nat ->
+ is_sup_seq (fun n => Rabs (A q (n-1) - tau q * A q n)) Rbar.p_infty.
 Proof.
  intros Q M. simpl.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
  assert (LT := SecondRoot.large_second_best_root q roots Q roots_ok).
  destruct (dA_expo q roots lia roots_ok) as (c & Hc).
  set (r := QuantumLib.Complex.Cmod _) in *.
- destruct (large_enough_exponent r (M/c)) as (N', HN'); trivial.
- intros N.
- destruct (Hc (Nat.max N N')) as (n & Hn & LT').
- exists n. split. lia. eapply Rlt_trans; [|apply LT'].
- rewrite Rmult_comm, <- Rcomplements.Rlt_div_l.
- 2:{ destruct c; simpl; lra. }
- eapply Rlt_le_trans; [apply HN'|]. apply Rle_pow; lia || lra.
+ destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
+ destruct (Hc N) as (n & Hn & Hn').
+ exists n. eapply Rlt_trans; [|apply Hn'].
+ rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
+ eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.
 Qed.
 
-Lemma delta_limsup_qgen q : (5<=q)%nat ->
- is_LimSup_seq (fun n => Rabs (f q n - tau q * n)) Rbar.p_infty.
+Lemma delta_sup_qgen q : (5<=q)%nat ->
+ is_sup_seq (fun n => Rabs (f q n - tau q * n)) Rbar.p_infty.
 Proof.
- intros Q M N. destruct (dA_limsup_qgen q Q M N) as (n & Hn & H).
- exists (A q n). split. generalize (A_lt_id q n); lia. now rewrite f_A.
+ intros Q M. destruct (dA_sup_qgen q Q M) as (n & Hn). simpl in *.
+ exists (A q n). now rewrite f_A.
 Qed.
 
-(* Print Assumptions delta_limsup_qgen. *)
+(* Print Assumptions delta_sup_qgen. *)
