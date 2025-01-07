@@ -504,3 +504,58 @@ Proof.
    + do 2 apply Rplus_lt_compat_r.
      apply Rmult_lt_compat_r; trivial; nra.
 Qed.
+
+(** More precise interval for exp 1 than exp_le_3 *)
+
+Lemma exp_m1_itvl : 11/30 <= exp(-1) <= 3/8.
+Proof.
+ set (f := fun i => / INR (fact i)).
+ unfold exp; case (exist_exp (-1)) as (x,e); simpl; unfold exp_in in e.
+ replace (11/30) with (sum_f_R0 (tg_alt f) 5).
+ 2:{ unfold tg_alt,f; simpl. field. }
+ replace (3/8) with (sum_f_R0 (tg_alt f) 4).
+ 2:{ unfold tg_alt,f; simpl. field. }
+ apply (alternated_series_ineq f x 2).
+ - unfold Un_decreasing; intros;
+     apply Rmult_le_reg_l with (INR (fact n)).
+   { apply INR_fact_lt_0. }
+   apply Rmult_le_reg_l with (INR (fact (S n))).
+   { apply INR_fact_lt_0. }
+   rewrite Rinv_r.
+   2:{ apply INR_fact_neq_0. }
+   unfold f. rewrite Rmult_1_r; rewrite Rmult_comm; rewrite Rmult_assoc;
+     rewrite Rinv_l.
+   2:{ apply INR_fact_neq_0. }
+   rewrite Rmult_1_r; apply le_INR; apply fact_le; apply Nat.le_succ_diag_r.
+ - unfold f. intros eps H1.
+   assert (H0 := cv_speed_pow_fact 1); unfold Un_cv; unfold Un_cv in H0;
+     intros; elim (H0 _ H1); intros; exists x0; intros;
+       unfold R_dist in H2; unfold R_dist;
+         replace (/ INR (fact n)) with (1 ^ n / INR (fact n));
+         try apply H; trivial.
+    unfold Rdiv; rewrite pow1; rewrite Rmult_1_l; reflexivity.
+  - unfold f. intros eps H0.
+    unfold infinite_sum in e; unfold Un_cv, tg_alt; intros; elim (e _ H0);
+      intros; exists x0; intros;
+      replace (sum_f_R0 (fun i:nat => (-1) ^ i * / INR (fact i)) n) with
+      (sum_f_R0 (fun i:nat => / INR (fact i) * (-1) ^ i) n);auto.
+    apply sum_eq; intros; apply Rmult_comm.
+Qed.
+
+Lemma exp_1_itvl : 8/3 <= exp 1 <= 30/11.
+Proof.
+ replace 1 with (-(-1)) by lra. rewrite exp_Ropp.
+ replace (8/3) with (/(3/8)) by lra.
+ replace (30/11) with (/(11/30)) by lra.
+ generalize exp_m1_itvl. split; apply Rinv_le_contravar; try lra.
+Qed.
+
+Lemma exp_1_gt_2 : 2 < exp 1.
+Proof.
+ generalize exp_1_itvl. lra.
+Qed.
+
+Lemma exp_1_lt_3 : exp 1 < 3.
+Proof.
+ generalize exp_1_itvl. lra.
+Qed.

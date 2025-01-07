@@ -719,3 +719,44 @@ Proof.
    + apply pow_mu_upper_bound.
    + rewrite tech_pow_Rmult, mu_carac; lra.
 Qed.
+
+Lemma tau_better_lower_bound q : (2<=q)%nat -> 1-ln(q+1)/(q+1) < tau q.
+Proof.
+ intros Hq.
+ apply le_INR in Hq. change (INR 2) with 2 in Hq.
+ set (a := 1 - ln(q+1)/(q+1)).
+ assert (Ha : 0<a<1).
+ { unfold a. split.
+   - assert (ln (q+1)/(q+1) < 1); try lra.
+     { apply -> Rcomplements.Rdiv_lt_1; try lra.
+       rewrite <- (ln_exp (q+1)) at 2. apply ln_increasing. lra.
+       generalize (exp_ineq1 (q+1)); lra. }
+   - apply tech_Rgt_minus, Rdiv_lt_0_compat; try lra.
+     rewrite <- ln_1. apply ln_increasing; lra. }
+ set (Q := fun x => x^(S q)+x-1).
+ assert (LT : Q a < 0).
+ { unfold Q. assert (a ^S q < 1 - a); try lra.
+   apply ln_lt_inv; try lra.  apply pow_lt; lra.
+   rewrite Rcomplements.ln_pow, S_INR; try lra.
+   apply Rle_lt_trans with (-ln (q+1)).
+   - rewrite Rmult_comm. apply Rcomplements.Rle_div_r; try lra.
+     eapply Rle_trans. apply Rcomplements.ln_le. lra.
+     apply exp_ineq1_le. rewrite ln_exp; lra.
+   - unfold a. replace (1-(1-_)) with (ln (q+1)/(q+1)) by lra.
+     assert (LT : 1 < ln (q+1)).
+     { rewrite <- (ln_exp 1) at 1. apply ln_increasing.
+       apply exp_pos. generalize exp_1_lt_3; lra. }
+     rewrite Rcomplements.ln_div; try lra.
+     apply ln_increasing in LT; try lra. rewrite ln_1 in LT. lra. }
+ destruct (IVT_interv Q a 1) as (r & (R1,R2) & R3).
+ { intros b Hb. apply derivable_continuous_pt.
+   apply derivable_pt_minus; try apply derivable_pt_const.
+   apply derivable_pt_plus; try apply derivable_pt_id.
+   apply derivable_pt_pow. }
+ { lra. }
+ { trivial. }
+ { unfold Q. rewrite pow1. lra. }
+ assert (E : r = tau q).
+ { apply tau_unique. lra. unfold Ptau, Q in *. lra. }
+ apply Rle_lt_or_eq_dec in R1. destruct R1; subst; lra.
+Qed.
