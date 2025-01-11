@@ -73,18 +73,8 @@ Qed.
 
 Lemma is_lim_seq_sqrt : is_lim_seq (fun n : nat => sqrt n) Rbar.p_infty.
 Proof.
- apply is_lim_seq_p_infty_Reals.
- intros x.
- exists ((2+nat_part x)^2)%nat.
- intros n Hn.
- destruct (Rle_or_lt 0 x) as [Hx|Hx].
- 2:{ generalize (sqrt_pos n); lra. }
- rewrite <- (sqrt_Rsqr x Hx).
- apply sqrt_lt_1_alt. rewrite Rsqr_pow2. split. nra.
- apply le_INR in Hn. rewrite pow_INR, plus_INR in Hn.
- change (INR 2) with 2 in Hn.
- eapply Rlt_le_trans; eauto. apply pow_lt_compat_l; try lia.
- split; trivial. generalize (nat_part_INR x Hx). nra.
+ apply (is_lim_comp_seq sqrt INR Rbar.p_infty);
+ auto using is_lim_sqrt_p, is_lim_id, is_lim_seq_INR. now exists O.
 Qed.
 
 (** Results about limits of exp and logarithm *)
@@ -156,6 +146,12 @@ Proof.
  - replace (Rbar.Finite 0) with (Rbar.Rbar_div 6 Rbar.p_infty).
    2:{ simpl. f_equal. lra. }
    apply is_lim_div; try easy. apply is_lim_const. apply is_lim_ln_p.
+Qed.
+
+Lemma lim_ln : is_lim_seq (fun n => ln n) Rbar.p_infty.
+Proof.
+ apply (is_lim_comp_seq ln INR Rbar.p_infty);
+ trivial using is_lim_ln_p, is_lim_seq_INR. now exists O.
 Qed.
 
 Lemma lim_ln_div_n : is_lim_seq (fun n => ln n / n) 0.

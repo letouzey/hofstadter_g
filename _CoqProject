@@ -30,6 +30,7 @@ MoreMatrix.v
 MoreComplex.v
 ThePoly.v
 SecondRoot.v
+RootEquiv.v
 Freq.v
 LimCase2.v
 LimCase3.v

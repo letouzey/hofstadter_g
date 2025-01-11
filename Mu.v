@@ -726,6 +726,9 @@ Proof.
    + rewrite tech_pow_Rmult, mu_carac; lra.
 Qed.
 
+(** A better lower bound for tau. Actually, this lower bound is even
+    an equivalent of tau for large q, see file RootEquiv.v *)
+
 Lemma tau_better_lower_bound q : (2<=q)%nat -> 1-ln(q+1)/(q+1) < tau q.
 Proof.
  intros Hq.
