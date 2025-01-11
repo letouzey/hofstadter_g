@@ -162,13 +162,13 @@ Proof.
      rewrite Cmod_Cexp; lra.
      apply Rabs_def2 in HN. lra. }
    apply Rle_trans with (l*eps' + eps'*l)%R.
-   apply Rplus_le_compat.
-   - apply Rmult_le_compat; try apply Cmod_ge_0; easy.
-   - apply Rmult_le_compat; try apply Cmod_ge_0; try easy.
-     { unfold h. rewrite sum_n_ext with (b := fun k => a k * Cexp (-t)^k).
-       2:{ intros m. rewrite Cexp_pow. f_equal. f_equal. lra. }
-       apply CPowerSeries_bound1; trivial. rewrite Cmod_Cexp; lra. }
-     apply -> Rcomplements.Rle_div_r; try lra. ring_simplify.
+   - apply Rplus_le_compat.
+     + apply Rmult_le_compat; try apply Cmod_ge_0; easy.
+     + apply Rmult_le_compat; try apply Cmod_ge_0; try easy.
+       { unfold h. rewrite sum_n_ext with (b := fun k => a k * Cexp (-t)^k).
+         2:{ intros m. rewrite Cexp_pow. f_equal. f_equal. lra. }
+         apply CPowerSeries_bound1; trivial. rewrite Cmod_Cexp; lra. }
+   - apply -> Rcomplements.Rle_div_r; try lra. ring_simplify.
      unfold eps'. simpl. unfold Rdiv. rewrite <- Rmult_assoc.
      apply <- Rcomplements.Rle_div_l.
      2:{ apply Rlt_gt. apply Rlt_le_trans with 1%R. lra. apply Rmax_l. }

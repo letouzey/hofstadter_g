@@ -4,12 +4,15 @@ From Coquelicot Require Rcomplements.
 Require Import MoreList DeltaList.
 Import ListNotations.
 
+(** * Complements about Coq reals *)
+
+(* Fix the lack of proper bullets in Coquelicot, inherited from math-comp *)
+Global Set Bullet Behavior "Strict Subproofs".
+
 Local Open Scope Z.
 Local Open Scope R.
 Local Coercion IZR : Z >-> R.
 Local Coercion INR : nat >-> R.
-
-(** Complements about Coq reals *)
 
 Lemma Rdist_pos_pos a b : 0<=a -> 0<=b -> R_dist a b <= Rmax a b.
 Proof.
