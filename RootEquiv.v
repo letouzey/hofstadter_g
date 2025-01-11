@@ -284,15 +284,15 @@ End K.
 
 (** The final asymptotic equivalence : *)
 
-Lemma root_equiv :
+Lemma root_tau_equiv :
  exists o : nat -> R,
    is_lim_seq o 0 /\
-   forall k, (3 <= k)%nat -> tau (k-1) = 1 - ln k / k + ln k / k * o k.
+   forall k, (1 < k)%nat -> tau (k-1) = 1 - ln k / k + ln k / k * o k.
 Proof.
  set (o:=fun k => 1 - (1 - tau (k-1)) * k / ln k).
  exists o. split.
  2:{ intros k Hk. unfold o. field.
-     apply lt_INR in Hk. change (INR 2) with 2 in Hk.
+     apply lt_INR in Hk. change (INR 1) with 1 in Hk.
      split; try apply ln_neq_0; lra. }
  apply is_lim_seq_le_le_loc with
    (fun n => 1-(1-a2 n)*n/ln n)
@@ -347,6 +347,47 @@ Proof.
      apply le_INR in Hn; simpl in *; lra.
 Qed.
 
-(* Print Assumptions root_equiv. *)
+(* Print Assumptions root_tau_equiv. *)
 
-(* TODO : positive root of X^n-X^(n-1)-1 equivalent to 1+ln n/n *)
+(** This lead to a [1+ln n/n] equivalent for the positive root of
+    X^n-X^(n-1)-1. *)
+
+Lemma inv_eqn x : x<>1 -> /(1-x) = 1+x+x^2/(1-x).
+Proof.
+ intros Hx. field. contradict Hx. lra.
+Qed.
+
+Lemma root_mu_equiv :
+ exists o : nat -> R,
+   is_lim_seq o 0 /\
+   eventually (fun k => mu (k-1) = 1 + ln k / k + ln k / k * o k).
+Proof.
+ destruct root_tau_equiv as (o & Ho & E).
+ set (u := fun n:nat => ln n/n * (1 - o n)).
+ assert (U : is_lim_seq u 0).
+ { replace 0 with (0*(1-0)) by lra.
+   apply is_lim_seq_mult'; [|apply is_lim_seq_minus'];
+    trivial using is_lim_seq_const, lim_ln_div_n. }
+ set (o' := fun n => -o n + (1-o n)*u n/(1-u n)).
+ exists o'. split.
+ - replace 0 with (-0+(1-0)*0/(1-0)) by lra.
+   apply is_lim_seq_plus'.
+   + now apply is_lim_seq_opp'.
+   + apply is_lim_seq_div'; try lra.
+     * apply is_lim_seq_mult'; trivial.
+       apply is_lim_seq_minus'; trivial using is_lim_seq_const.
+     * apply is_lim_seq_minus'; trivial using is_lim_seq_const.
+ - rewrite <- is_lim_seq_spec in U. destruct (U posreal_one) as (N,HN).
+   exists (N+2)%nat. intros n Hn. specialize (HN n lia). simpl in HN.
+   rewrite Rminus_0_r in HN. apply Rabs_def2 in HN.
+   assert (E' : tau (n-1) = 1 - u n).
+   { unfold u. rewrite E; try lia. field. apply not_0_INR; lia. }
+   rewrite tau_inv, E', inv_eqn; try lra.
+   unfold o', u. field. split. apply not_0_INR; lia.
+   replace (n - _) with (n * (1 - u n)).
+   2:{ unfold u. field. apply not_0_INR; lia. }
+   intros D. apply Rmult_integral in D. destruct D as [D|D]; try lra.
+   revert D. apply not_0_INR; lia.
+Qed.
+
+(* Print Assumptions root_mu_equiv. *)
