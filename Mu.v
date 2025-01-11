@@ -672,12 +672,10 @@ Proof.
  apply is_lim_seq_le_le with (fun _ => 1) (fun q => 1 + /sqrt (S q)).
  - split. generalize (mu_itvl n); lra. apply mu_upper_bound; lia.
  - apply is_lim_seq_const.
- - replace (Rbar.Finite 1) with (Rbar.Finite (1+0)) by (f_equal; lra).
+ - replace 1 with (1+0) at 1 by lra.
    apply is_lim_seq_plus'; try apply is_lim_seq_const.
-   change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
-   apply is_lim_seq_inv; try easy.
-   rewrite <- is_lim_seq_incr_1 with (u:=fun n => sqrt n).
-   apply is_lim_seq_sqrt.
+   rewrite <- is_lim_seq_incr_1 with (u:=fun n => /sqrt n).
+   apply lim_inv_sqrt.
 Qed.
 
 Lemma tau_limit : is_lim_seq tau 1.

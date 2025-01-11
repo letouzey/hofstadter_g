@@ -247,42 +247,34 @@ Qed.
 Lemma Lim_fq_div_n_nz q : q<>O -> is_lim_seq (fun n => f q n / n) (tau q).
 Proof.
  intros Hq.
- rewrite is_lim_seq_incr_1.
- apply is_lim_seq_ext with (u := fun n => 1 - count (qseq q) 0 (S n) / S n).
- { intros n.
-   assert (0 < INR (S n)) by apply RSpos.
-   replace 1 with (S n / S n) by (field; lra).
-   rewrite <- (f_count_0 q (S n) Hq) at 1.
+ apply is_lim_seq_ext_loc with (fun n => 1 - count (qseq q) 0 n / n).
+ { exists 1%nat. intros n Hn.
+   assert (0 < n) by (apply lt_0_INR; lia).
+   replace 1 with (n / n) by (field; lra).
+   rewrite <- (f_count_0 q n Hq) at 1.
    rewrite plus_INR. lra. }
- assert (T : tau q = 1 - (tau q)^(S q)) by (generalize (tau_carac q); lra).
- rewrite T.
+ replace (tau q) with (1 - (tau q)^(S q)) by (generalize (tau_carac q); lra).
  apply is_lim_seq_minus'. apply is_lim_seq_const.
- generalize (freq_qseq_0 q Hq).
- now rewrite is_lim_seq_incr_1.
+ now apply freq_qseq_0.
 Qed.
 
 Lemma Lim_f0_div_n : is_lim_seq (fun n => f 0 n / n) (1/2).
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_le_le with (u := fun n => 1/2)
-                             (w := fun n => (1+/(S n))/2).
- - intros. set (n' := S n).
+ apply is_lim_seq_le_le_loc with (u := fun n => 1/2)
+                                 (w := fun n => (1+/n)/2).
+ - exists 1%nat. intros n Hn.
    rewrite f_0_div2.
-   assert (0 < INR n') by apply RSpos.
-   split; apply Rmult_le_reg_l with (2 * INR n'); trivial;
+   assert (0 < n) by (apply lt_0_INR; lia).
+   split; apply Rmult_le_reg_l with (2 * INR n); trivial;
     field_simplify; try lra;
      change 2 with (INR 2); rewrite <- mult_INR;
      try (change 1 with (INR 1); rewrite <- plus_INR); apply le_INR;
-     generalize (Nat.div2_odd (S n')); rewrite Nat.div2_div;
-     destruct Nat.odd; simpl Nat.b2n; intros Hn; lia.
+     generalize (Nat.div2_odd (S n)); rewrite Nat.div2_div;
+     destruct Nat.odd; simpl Nat.b2n; intros Hn'; lia.
  - apply is_lim_seq_const.
- - replace (1/2) with ((1+0)*(/2)) by lra.
-   change (Rbar.Finite ((1+0)*(/2))) with (Rbar.Rbar_mult (1+0) (/2)).
-   apply is_lim_seq_scal_r.
-   apply is_lim_seq_plus'. apply is_lim_seq_const.
-   change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
-   apply is_lim_seq_inv; try easy.
-   rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+ - apply is_lim_seq_div'; try lra; try apply is_lim_seq_const.
+   replace 1 with (1+0) at 1 by lra.
+   apply is_lim_seq_plus'; trivial using is_lim_seq_const, is_lim_seq_invn.
 Qed.
 
 Lemma Lim_fq_div_n q : is_lim_seq (fun n => f q n / n) (tau q).
@@ -320,17 +312,17 @@ Qed.
 Lemma Lim_fqj_div_n q j : is_lim_seq (fun n => fs q j n / n) ((tau q)^j).
 Proof.
  induction j.
- - simpl. rewrite is_lim_seq_incr_1.
-   eapply is_lim_seq_ext, is_lim_seq_const.
-   intros. change (1 = S n / S n). field. generalize (RSpos n); lra.
- - rewrite is_lim_seq_incr_1. simpl "^".
-   apply is_lim_seq_ext with
-    (fun n => (f q (S n) / S n)*(fs q j (f q (S n)) / f q (S n))).
-   + intros. rewrite iter_S. field. split.
-     * generalize (RSpos n); lra.
-     * apply not_0_INR. generalize (@f_nonzero q (S n)); lia.
+ - simpl.
+   eapply is_lim_seq_ext_loc, is_lim_seq_const.
+   exists 1%nat. intros n Hn. field. apply not_0_INR; lia.
+ - simpl pow.
+   apply is_lim_seq_ext_loc with
+    (fun n => (f q n / n)*(fs q j (f q n) / f q n)).
+   + exists 1%nat. intros n Hn. rewrite iter_S. field. split.
+     * apply not_0_INR; lia.
+     * apply not_0_INR. generalize (@f_nonzero q n); lia.
    + apply is_lim_seq_mult'.
-     * assert (H := Lim_fq_div_n q). now rewrite is_lim_seq_incr_1 in H.
+     * apply Lim_fq_div_n.
      * eapply (is_lim_seq_subseq (fun n => fs q j n / n)); trivial.
        intros P (N,HP). repeat red. exists (2*N)%nat. intros n Hn. apply HP.
        transitivity (f q (2*N)). apply f_double_le. apply f_mono; lia.

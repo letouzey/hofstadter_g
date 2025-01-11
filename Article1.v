@@ -826,10 +826,9 @@ Lemma Fkj_limit (k j : nat) : k<>O ->
 Proof.
  intros K.
  assert (H := Freq.Lim_fqj_div_n (k-1) j).
- apply is_lim_seq_incr_1 in H.
- eapply is_lim_seq_incr_1, is_lim_seq_ext; try apply H.
- intros. cbn -[INR]. f_equal. f_equal. unfold F.
- case Nat.eqb_spec; rewrite ?GenG.fopt_iter; lia.
+ eapply is_lim_seq_ext; try apply H.
+ intros n. simpl. f_equal. f_equal. unfold F.
+ case Nat.eqb_spec; rewrite ?GenG.fopt_iter; intros; now subst.
 Qed.
 
 Lemma Lkj_limit (k j : nat) : k<>O ->
@@ -838,15 +837,15 @@ Proof.
  intros K.
  rewrite α_β. unfold Rdiv at 2. rewrite Rmult_1_l, pow_inv.
  change (Rbar.Finite (/ _)) with (Rbar.Rbar_inv ((α k)^j)).
- eapply is_lim_seq_incr_1, is_lim_seq_ext with
-     (fun n => / ((F k^^j) ((L k ^^j) (S n)) / (L k ^^j) (S n))).
- - intros. rewrite Fkj_Lkj by lia. field. split.
-   + generalize (MoreReals.RSpos n); lra.
-   + change 0 with (INR O). apply not_INR. generalize (L_ge_n k j (S n)). lia.
+ eapply is_lim_seq_ext_loc with
+     (fun n => / ((F k^^j) ((L k ^^j) n) / (L k ^^j) n)).
+ - exists 1%nat. intros n Hn. rewrite Fkj_Lkj by lia. field. split.
+   + apply not_0_INR; lia.
+   + apply not_0_INR. generalize (L_ge_n k j n). lia.
  - apply is_lim_seq_inv.
    + apply (is_lim_seq_subseq (fun n => (F k ^^j) n / n)).
      * intros P (N,HP). exists N. intros n Hn. apply HP.
-       generalize (L_ge_n k j (S n)). lia.
+       generalize (L_ge_n k j n). lia.
      * now apply Fkj_limit.
    + intros [= E]. generalize (pow_lt (α k) j) (α_itvl k). lra.
 Qed.
@@ -860,25 +859,19 @@ Proof.
      replace (α k ^k) with (1 - α k)
       by (generalize (α_root k lia); unfold P; lra).
      replace i with (S (i-1)) at 2 by lia. rewrite <- tech_pow_Rmult. ring. }
- eapply is_lim_seq_incr_1, is_lim_seq_ext with
-     (fun n => (F k^^(i-1)) (S n) / S n - (F k^^i) (S n) / S n).
- - intros. rewrite Eqn_4_4_alt by trivial. rewrite plus_INR. field.
-   generalize (MoreReals.RSpos n); lra.
- - apply is_lim_seq_minus'.
-   + assert (H := Fkj_limit k (i-1) lia).
-     now apply is_lim_seq_incr_1 in H.
-   + assert (H := Fkj_limit k i lia).
-     now apply is_lim_seq_incr_1 in H.
+ eapply is_lim_seq_ext_loc with
+     (fun n => (F k^^(i-1)) n / n - (F k^^i) n / n).
+ - exists 1%nat. intros n Hn. rewrite Eqn_4_4_alt by trivial.
+   rewrite plus_INR. field. apply not_0_INR. lia.
+ - apply is_lim_seq_minus'; apply Fkj_limit; lia.
 Qed.
 
 Lemma freq_k k : k<>O ->
  is_lim_seq (fun n => C k (Nat.eqb k) n /n) (α k ^(k-1)).
 Proof.
  intros K.
- assert (H := Fkj_limit k (k-1) K).
- apply is_lim_seq_incr_1 in H.
- eapply is_lim_seq_incr_1, is_lim_seq_ext; try apply H.
- intros. cbn -[INR C]. f_equal. f_equal. apply Prop_4_1_a. lia.
+ eapply is_lim_seq_ext; try apply (Fkj_limit k (k-1) K).
+ intros. cbn -[INR C]. f_equal. f_equal. apply Prop_4_1_a; lia.
 Qed.
 
 Lemma α_km1_βm1 k : α k ^(k-1) = β k - 1.
