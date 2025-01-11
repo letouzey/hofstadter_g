@@ -1,7 +1,8 @@
 From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Complex.
 From Coquelicot Require Export Lim_seq.
-From Coquelicot Require Import Hierarchy Continuity Series PSeries.
+From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
+From Coquelicot Require Import ElemFct.
 From QuantumLib Require Import Complex Polynomial.
 Import Continuity.
 Require Import MoreList MoreReals MoreComplex MoreSum.
@@ -19,14 +20,19 @@ Notation C_CNM := Coquelicot.Complex.C_R_CompleteNormedModule.
 
 (** Complements to Coquelicot.Lim_seq *)
 
+Lemma is_lim_seq_opp' u (l:R) :
+ is_lim_seq u l -> is_lim_seq (fun n => -u n) (-l).
+Proof.
+ intros H. now apply is_lim_seq_opp in H.
+Qed.
+
 Lemma is_lim_seq_0_abs u v :
  (forall n, Rabs (u n) <= v n) -> is_lim_seq v 0 -> is_lim_seq u 0.
 Proof.
  intros H Hv.
  apply is_lim_seq_le_le with (u := fun n => -v n) (w := v); trivial.
- - intros n. now apply Rcomplements.Rabs_le_between.
- - rewrite is_lim_seq_opp in Hv. simpl in Hv.
-   replace (-0) with 0 in Hv by lra. trivial.
+ - intros n. now apply Rabs_le_between.
+ - replace 0 with (-0) by lra. now apply is_lim_seq_opp'.
 Qed.
 
 Lemma is_lim_seq_bound u K :
@@ -79,6 +85,149 @@ Proof.
  change (INR 2) with 2 in Hn.
  eapply Rlt_le_trans; eauto. apply pow_lt_compat_l; try lia.
  split; trivial. generalize (nat_part_INR x Hx). nra.
+Qed.
+
+(** Results about limits of exp and logarithm *)
+
+Lemma exp_taylor2 : is_lim (fun x => (exp x - 1 - x) / x^2) 0 (1/2).
+Proof.
+ set (a := fun n => /fact n).
+ assert (Ha : forall y, ex_pseries (V:=R_NM) a y).
+ { intros y. exists (exp y). apply is_exp_Reals. }
+ apply is_lim_ext_loc with (PSeries (PS_decr_1 (PS_decr_1 (V:=R_NM) a))).
+ - exists posreal_one. intros y _ Hy'.
+   rewrite exp_Reals. fold a.
+   rewrite (PSeries_decr_1 a), (PSeries_decr_1 (PS_decr_1 (V:=R_NM) a));
+    trivial.
+   2:{ apply ex_pseries_decr_1; trivial.
+       right. exists (/y). now apply Rinv_l. }
+   change (a O) with (/1).
+   change (PS_decr_1 (V:=R_NM) a 0) with (/1).
+   rewrite Rinv_1. now field.
+ - replace (1/2) with ((PS_decr_1 (PS_decr_1 (V:=R_NM) a)) O).
+   2:{ unfold a, PS_decr_1. simpl. lra. }
+   rewrite <- PSeries_0.
+   apply is_lim_continuity, PSeries_continuity.
+   rewrite !CV_radius_decr_1.
+   replace (CV_radius a) with (Rbar.p_infty); try easy.
+   { symmetry. apply CV_radius_infinite_DAlembert.
+     - apply exp_cof_no_R0.
+     - eapply is_lim_seq_ext.
+       { intros n. symmetry. unfold a. unfold Rdiv. now rewrite simpl_fact. }
+       rewrite <- is_lim_seq_abs_0.
+       rewrite <- (is_lim_seq_incr_1 Rinv).
+       apply is_lim_seq_invn. }
+Qed.
+
+Lemma exp_above_square_ineg x : 0<x -> x/6 <= exp x / x^2.
+Proof.
+ intros Hx.
+ replace (x/6) with (x^3/6/x^2) by (field; lra).
+ apply Rmult_le_compat_r. apply Rlt_le, Rinv_0_lt_compat; nra.
+ eapply Rle_trans; [|apply (exp_ge_taylor x 3); lra]. simpl. nra.
+Qed.
+
+Lemma exp_above_square :
+  is_lim (fun x => exp x / x^2) Rbar.p_infty Rbar.p_infty.
+Proof.
+ apply is_lim_le_p_loc with (fun x => x/6).
+ - exists 0. apply exp_above_square_ineg.
+ - replace Rbar.p_infty with (Rbar.Rbar_div Rbar.p_infty 6) at 2.
+   2:{ simpl. destruct Rle_dec; try lra.
+       destruct Rle_lt_or_eq_dec; trivial; lra. }
+   apply is_lim_div. apply is_lim_id. apply is_lim_const.
+   intros [=E]; lra. simpl; intros [=E]; lra.
+Qed.
+
+Lemma ln2_below_id :
+  is_lim (fun x => (ln x)^2 / x) Rbar.p_infty 0.
+Proof.
+ apply (is_lim_le_le_loc (fun _ => 0) (fun x => 6 / ln x)).
+ - exists 1. intros x Hx. split.
+   + apply Rdiv_le_0_compat; try lra.
+     rewrite <- Rsqr_pow2. apply Rle_0_sqr.
+   + assert (Hx' : 0 < ln x).
+     { rewrite <- ln_1. apply ln_increasing; lra. }
+     assert (LE := exp_above_square_ineg (ln x) Hx').
+     rewrite exp_ln in LE by lra.
+     rewrite <- Rinv_div, <- (Rinv_div _ 6).
+     apply Rinv_le_contravar; lra.
+ - apply is_lim_const.
+ - replace (Rbar.Finite 0) with (Rbar.Rbar_div 6 Rbar.p_infty).
+   2:{ simpl. f_equal. lra. }
+   apply is_lim_div; try easy. apply is_lim_const. apply is_lim_ln_p.
+Qed.
+
+Lemma lim_ln_div_n : is_lim_seq (fun n => ln n / n) 0.
+Proof.
+ apply (is_lim_comp_seq (fun x => ln x/x) INR Rbar.p_infty);
+ trivial using is_lim_seq_INR, is_lim_div_ln_p. now exists O.
+Qed.
+
+Lemma lim_lnln_div_n : is_lim_seq (fun n => ln (ln n) / n) 0.
+Proof.
+ apply is_lim_seq_le_le_loc with (fun _ => 0) (fun n => ln n/n);
+ trivial using is_lim_seq_const, lim_ln_div_n.
+ exists 3%nat. intros n Hn. apply le_INR in Hn.
+ replace (INR 3) with 3 in Hn by (simpl; lra).
+ split.
+ - apply Rdiv_le_0_compat; try lra.
+   rewrite <- ln_1. apply ln_le; try lra.
+   rewrite <- (ln_exp 1). apply ln_le. apply exp_pos.
+   generalize exp_1_itvl; lra.
+ - apply Rmult_le_compat_r. apply Rlt_le, Rinv_0_lt_compat. lra.
+   apply ln_le. rewrite <- ln_1. apply ln_increasing; lra.
+   rewrite <- (ln_exp n) at 2. apply ln_le; try lra.
+   generalize (exp_ineq1_le n); lra.
+Qed.
+
+Lemma lim_ln2_div_n : is_lim_seq (fun n => ln n ^ 2 / n) 0.
+Proof.
+ apply (is_lim_comp_seq (fun x => (ln x)^2/x) INR Rbar.p_infty).
+ apply ln2_below_id. now exists O. apply is_lim_seq_INR.
+Qed.
+
+Lemma lim_inv_ln : is_lim_seq (fun n => / ln n) 0.
+Proof.
+ change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
+ apply is_lim_seq_inv; try easy.
+ apply (is_lim_comp_seq ln INR Rbar.p_infty);
+ trivial using is_lim_seq_INR, is_lim_ln_p. now exists O.
+Qed.
+
+Lemma lim_inv_sqrt : is_lim_seq (fun n => /sqrt n) 0.
+Proof.
+ change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
+ apply is_lim_seq_inv; try easy. apply is_lim_seq_sqrt.
+Qed.
+
+Lemma lim_ln_div_sqrt : is_lim_seq (fun n => ln n / sqrt n) 0.
+Proof.
+ apply is_lim_seq_ext_loc with (fun n => sqrt (ln n ^2 / n)).
+ { exists 1%nat. intros n Hn.
+   rewrite sqrt_div_alt by (apply lt_0_INR; lia).
+   rewrite sqrt_pow2; trivial. rewrite <- ln_1. apply ln_le; try lra.
+   now apply (le_INR 1). }
+ rewrite <- sqrt_0. apply is_lim_seq_continuous.
+ apply continuity_pt_sqrt; lra.
+ apply lim_ln2_div_n.
+Qed.
+
+Lemma lim_lnln_div_sqrt : is_lim_seq (fun n => ln (ln n) / sqrt n) 0.
+Proof.
+ apply is_lim_seq_le_le_loc with (fun _ => 0) (fun n => ln n/sqrt n);
+ trivial using is_lim_seq_const, lim_ln_div_sqrt.
+ exists 3%nat. intros n Hn. apply le_INR in Hn.
+ replace (INR 3) with 3 in Hn by (simpl; lra).
+ split.
+ - apply Rdiv_le_0_compat. 2:{ apply sqrt_lt_R0; lra. }
+   rewrite <- ln_1. apply ln_le; try lra.
+   rewrite <- (ln_exp 1). apply ln_le. apply exp_pos.
+   generalize exp_1_itvl; lra.
+ - apply Rmult_le_compat_r. apply Rlt_le, Rinv_0_lt_compat, sqrt_lt_R0; lra.
+   apply ln_le. rewrite <- ln_1. apply ln_increasing; lra.
+   rewrite <- (ln_exp n) at 2. apply ln_le; try lra.
+   generalize (exp_ineq1_le n); lra.
 Qed.
 
 (** sup and limsup *)
@@ -385,7 +534,7 @@ Proof.
  assert (H' := ex_series_lim_0 _ H).
  destruct (H' (Rgt 1)) as (N, HP).
  { exists (mkposreal 1 ltac:(lra)). simpl. intros y Y.
-   apply Rcomplements.Rabs_lt_between in Y.
+   apply Rabs_lt_between in Y.
    change minus with Rminus in Y; lra. }
  exists N. intros n Hn. specialize (HP n Hn).
  change norm with Rabs. rewrite Rabs_right.
@@ -513,7 +662,7 @@ Proof.
    rewrite <- (Rabs_right eps') in H1,H2 by (generalize (cond_pos eps'); lra).
    apply Rsqr_lt_abs_1 in H1,H2. rewrite !Rsqr_pow2 in H1,H2.
    change (pos eps') with (/2 * eps)%R in H1,H2. nra. }
- apply Rcomplements.Rabs_lt_between. split.
+ apply Rabs_lt_between. split.
  - apply Ropp_lt_cancel. rewrite Ropp_involutive, Ropp_minus_distr.
    rewrite <- (Cmod_opp (f n)).
    apply Rle_lt_trans with (Cmod (l - f n)); [apply Cmod_triangle'|].
@@ -598,8 +747,7 @@ Proof.
                                      - (Im ∘ a) n * (Im ∘ b) n)%R.
    + intros n. apply re_mult.
    + apply is_lim_seq_plus'. now apply is_lim_seq_mult'.
-     change (Rbar.Finite (- _)) with (Rbar.Rbar_opp (Im la * Im lb)%R).
-     rewrite <- is_lim_seq_opp. now apply is_lim_seq_mult'.
+     apply is_lim_seq_opp'. now apply is_lim_seq_mult'.
  - apply is_lim_seq_ext with (fun n => (Re ∘ a) n * (Im ∘ b) n
                                      + (Im ∘ a) n * (Re ∘ b) n)%R.
    + intros n. apply im_mult.

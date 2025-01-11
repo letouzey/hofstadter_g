@@ -745,29 +745,21 @@ Qed.
 
 Lemma frequency_0 : is_lim_seq (fun n => count (qseq 2) 0 n / n) (τ^3).
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with (u := fun n => τ^3 - diff0 (S n) / S n).
- - intros n.
+ apply is_lim_seq_ext_loc with (u := fun n => τ^3 - diff0 n / n).
+ - exists 1%nat. intros n Hn.
    unfold diff0, Diff0. rewrite take_length.
-   rewrite <- count_nbocc. field. apply RSnz.
- - replace (Rbar.Finite (τ^3)) with (Rbar.Finite (τ^3 + -0))
-    by (f_equal; lra).
-   eapply is_lim_seq_plus'. apply is_lim_seq_const.
-   change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
-   apply -> is_lim_seq_opp.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
-   apply lim_diff0_div_n.
+   rewrite <- count_nbocc. field. apply not_0_INR; lia.
+ - replace (τ^3) with (τ^3 + -0) at 1 by lra.
+   apply is_lim_seq_plus'. apply is_lim_seq_const.
+   apply is_lim_seq_opp'. apply lim_diff0_div_n.
 Qed.
 
 Lemma Lim_h_div_n : is_lim_seq (fun n => h n / n) τ.
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with (u := fun n => τ + diff0 (S n) / S n).
- - intros n. rewrite diff0_alt. field. apply RSnz.
- - replace (Rbar.Finite τ) with (Rbar.Finite (τ + 0)) by (f_equal; lra).
-   eapply is_lim_seq_plus'. apply is_lim_seq_const.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
-   apply lim_diff0_div_n.
+ apply is_lim_seq_ext_loc with (u := fun n => τ + diff0 n / n).
+ - exists 1%nat. intros n Hn. rewrite diff0_alt. field. apply not_0_INR; lia.
+ - replace τ with (τ + 0) at 1 by lra.
+   eapply is_lim_seq_plus'. apply is_lim_seq_const. apply lim_diff0_div_n.
 Qed.
 
 (** NB : Classical reals are now Dedekind cuts,
@@ -1215,56 +1207,37 @@ Qed.
 
 Lemma frequency_2 : is_lim_seq (fun n => count (qseq 2) 2 n / n) (τ^2).
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with
-  (u := fun n => τ^2 - diff2 (S n) / INR (S n)).
- - intros n.
+ apply is_lim_seq_ext_loc with (fun n => τ^2 - diff2 n / n).
+ - exists 1%nat. intros n Hn.
    unfold diff2, Diff2. rewrite take_length.
-   rewrite <- count_nbocc. field. apply RSnz.
- - replace (Rbar.Finite (τ^2)) with (Rbar.Finite (τ^2 + -0))
-    by (f_equal; lra).
-   eapply is_lim_seq_plus'. apply is_lim_seq_const.
-   change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
-   apply -> is_lim_seq_opp.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
-   apply lim_diff2_div_n.
+   rewrite <- count_nbocc. field. apply not_0_INR; lia.
+ - replace (τ^2) with (τ^2 + -0) at 1 by lra.
+   apply is_lim_seq_plus'. apply is_lim_seq_const.
+   apply is_lim_seq_opp'. apply lim_diff2_div_n.
 Qed.
 
 Lemma frequency_1 : is_lim_seq (fun n => count (qseq 2) 1 n / n) (τ^4).
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with
-  (u := fun n => τ^4 + diff0 (S n) / INR (S n) + diff2 (S n) / INR (S n)).
- - intros n.
-   field_simplify; try apply RSnz. f_equal.
+ apply is_lim_seq_ext_loc with (fun n => τ^4 + diff0 n / n + diff2 n / n).
+ - exists 1%nat. intros n Hn.
+   field_simplify; try (apply not_0_INR; lia). f_equal.
    rewrite Rplus_assoc.
-   replace (diff0 (S n) + diff2 (S n)) with (-diff1 (S n))
-     by (generalize (diff012 (S n)); lra).
+   replace (diff0 n + diff2 n) with (-diff1 n)
+     by (generalize (diff012 n); lra).
    unfold diff1, Diff1. rewrite take_length.
    rewrite <- count_nbocc. field.
- - replace (Rbar.Finite (τ^4)) with (Rbar.Finite (τ^4 + 0 + 0))
-    by (f_equal; lra).
-   apply is_lim_seq_plus'. apply is_lim_seq_plus'. apply is_lim_seq_const.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff0 n / n)).
-   apply lim_diff0_div_n.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
-   apply lim_diff2_div_n.
+ - replace (τ^4) with (τ^4 + 0 + 0) at 1 by lra.
+   apply is_lim_seq_plus';[ apply is_lim_seq_plus'|];
+    trivial using is_lim_seq_const, lim_diff0_div_n, lim_diff2_div_n.
 Qed.
 
 Lemma Lim_h2_div_n : is_lim_seq (fun n => (h^^2) n / n) (τ^2).
 Proof.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_ext with
-  (u := fun n => τ^2 - diff2 (S n) / INR (S n)).
- - intros n. rewrite diff2_alt. field. rewrite S_INR.
-   generalize (pos_INR n). lra.
- - replace (Rbar.Finite (τ^2)) with (Rbar.Finite (τ^2 - 0))
-    by (f_equal; lra).
-   eapply is_lim_seq_plus'. apply is_lim_seq_const.
-   change (Rbar.Finite (-0)) with (Rbar.Rbar_opp 0).
-   apply -> is_lim_seq_opp.
-   rewrite <- (is_lim_seq_incr_1 (fun n => diff2 n / n)).
-   apply lim_diff2_div_n.
+ apply is_lim_seq_ext_loc with (fun n => τ^2 - diff2 n / n).
+ - exists 1%nat. intros n Hn. rewrite diff2_alt. field. apply not_0_INR; lia.
+ - replace (τ^2) with (τ^2 - 0) at 1 by lra.
+   apply is_lim_seq_plus'. apply is_lim_seq_const.
+   apply is_lim_seq_opp'. apply lim_diff2_div_n.
 Qed.
 
 Lemma h2_alt n : INR ((h^^2) n) = τ^2 * n - diff2 n.
