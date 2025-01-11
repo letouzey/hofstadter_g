@@ -1158,7 +1158,7 @@ Proof.
    apply is_lim_seq_Σ_0. intros i Hi.
    apply is_lim_seq_0_abs with
      (fun n => Cmod (coef (S i)) * (Cmod (root (S i)) / mu q)^n)%R.
-   + intros n. unfold rest. clear rest.
+   + exists O. intros n _. unfold rest. clear rest.
      unfold Rdiv. rewrite <- re_scal_r.
      eapply Rle_trans; [apply re_le_Cmod|].
      rewrite <- Cmult_assoc, Cmod_mult.

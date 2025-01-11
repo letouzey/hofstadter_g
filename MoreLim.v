@@ -27,11 +27,12 @@ Proof.
 Qed.
 
 Lemma is_lim_seq_0_abs u v :
- (forall n, Rabs (u n) <= v n) -> is_lim_seq v 0 -> is_lim_seq u 0.
+ Hierarchy.eventually (fun n => Rabs (u n) <= v n) ->
+ is_lim_seq v 0 -> is_lim_seq u 0.
 Proof.
  intros H Hv.
- apply is_lim_seq_le_le with (u := fun n => -v n) (w := v); trivial.
- - intros n. now apply Rabs_le_between.
+ apply is_lim_seq_le_le_loc with (u := fun n => -v n) (w := v); trivial.
+ - destruct H as (N,H). exists N. intros n Hn. apply Rabs_le_between, H, Hn.
  - replace 0 with (-0) by lra. now apply is_lim_seq_opp'.
 Qed.
 
@@ -39,16 +40,15 @@ Lemma is_lim_seq_bound u K :
  (forall n, Rabs (u n) <= K) -> is_lim_seq (fun n => u n / n) 0.
 Proof.
  intros H.
- apply is_lim_seq_incr_1.
- apply is_lim_seq_0_abs with (fun n => K / S n).
- - intros n. specialize (H (S n)). unfold Rdiv.
-   rewrite Rabs_mult, Rabs_inv by apply RSnz.
-   rewrite (Rabs_right (S n)) by (generalize (RSpos n); lra).
+ apply is_lim_seq_0_abs with (fun n => K / n).
+ - exists 1%nat. intros n Hn. specialize (H n). unfold Rdiv.
+   rewrite Rabs_mult, Rabs_inv.
+   rewrite (Rabs_right n). 2:{ apply Rle_ge, pos_INR. }
    apply Rmult_le_compat_r; trivial.
-   rewrite <- (Rmult_1_l (/ _)). apply Rle_mult_inv_pos, RSpos; try lra.
+   apply Rlt_le, Rinv_0_lt_compat, lt_0_INR; lia.
  - apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
    + apply is_lim_seq_const.
-   + rewrite <- is_lim_seq_incr_1. apply is_lim_seq_INR.
+   + apply is_lim_seq_INR.
    + red. red. simpl. now rewrite Rmult_0_r.
 Qed.
 
@@ -639,7 +639,7 @@ Proof.
  intros H.
  apply is_lim_Cseq_proj. simpl.
  split; apply is_lim_seq_0_abs with (v := Cmod ∘ f); trivial;
- intros; apply re_le_Cmod || apply im_le_Cmod.
+ exists O; intros; apply re_le_Cmod || apply im_le_Cmod.
 Qed.
 
 Lemma is_lim_Cseq_Cmod (f : nat -> C) (l : C) :
