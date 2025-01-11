@@ -111,6 +111,12 @@ Proof.
    - remember (S q) as q'. simpl. generalize (tau_itvl q); nra. }
 Qed.
 
+Lemma tau_incr' q q' : (q <= q')%nat -> tau q <= tau q'.
+Proof.
+ induction 1; try lra.
+ apply Rle_trans with (tau m); trivial. apply Rlt_le, tau_incr.
+Qed.
+
 Lemma mu_decr q : mu (S q) < mu q.
 Proof.
  rewrite !tau_inv. apply Rinv_lt_contravar. 2:apply tau_incr.
