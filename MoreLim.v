@@ -197,6 +197,11 @@ Proof.
  apply is_lim_seq_inv; try easy. apply is_lim_seq_sqrt.
 Qed.
 
+Lemma continuous_alt f x : continuous f x <-> continuity_pt f x.
+Proof.
+ symmetry. apply continuity_pt_filterlim.
+Qed.
+
 Lemma lim_ln_div_sqrt : is_lim_seq (fun n => ln n / sqrt n) 0.
 Proof.
  apply is_lim_seq_ext_loc with (fun n => sqrt (ln n ^2 / n)).
@@ -204,9 +209,9 @@ Proof.
    rewrite sqrt_div_alt by (apply lt_0_INR; lia).
    rewrite sqrt_pow2; trivial. rewrite <- ln_1. apply ln_le; try lra.
    now apply (le_INR 1). }
- rewrite <- sqrt_0. apply is_lim_seq_continuous.
- apply continuity_pt_sqrt; lra.
- apply lim_ln2_div_n.
+ rewrite <- sqrt_0. apply is_lim_seq_continuous. apply continuous_alt.
+ - apply continuous_sqrt.
+ - apply lim_ln2_div_n.
 Qed.
 
 Lemma lim_lnln_div_sqrt : is_lim_seq (fun n => ln (ln n) / sqrt n) 0.

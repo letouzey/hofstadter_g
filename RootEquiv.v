@@ -67,10 +67,8 @@ Lemma o2_lim : is_lim_seq o2 0.
 Proof.
  set (o1' := fun n => ln (1-o1 n)).
  assert (O1' : is_lim_seq o1' 0).
- { rewrite <- ln_1.
-   apply is_lim_seq_continuous.
-   - apply derivable_continuous_pt.
-     exists (/1). apply derivable_pt_lim_ln. lra.
+ { rewrite <- ln_1. apply is_lim_seq_continuous.
+   - apply continuous_alt, continuous_ln; lra.
    - replace 1 with (1-0) at 1 by lra.
      apply is_lim_seq_minus'. apply is_lim_seq_const. apply o1_lim. }
  set (b1 := fun (n:nat) => -(ln n / n) + o1' n/n).
@@ -134,10 +132,8 @@ Lemma o3_lim : is_lim_seq o3 0.
 Proof.
  set (o2' := fun n => ln (1-o2 n / ln n)).
  assert (O2' : is_lim_seq o2' 0).
- { rewrite <- ln_1.
-   apply is_lim_seq_continuous.
-   - apply derivable_continuous_pt.
-     exists (/1). apply derivable_pt_lim_ln. lra.
+ { rewrite <- ln_1. apply is_lim_seq_continuous.
+   - apply continuous_alt, continuous_ln; lra.
    - replace 1 with (1-0*0) at 1 by lra.
      apply is_lim_seq_minus'. apply is_lim_seq_const.
      apply is_lim_seq_mult'. apply o2_lim. apply lim_inv_ln. }
