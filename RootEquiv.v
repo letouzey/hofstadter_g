@@ -1,6 +1,6 @@
 From Coq Require Import Lia Reals Lra Ranalysis5 QArith Qcanon.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity ElemFct.
-From Coquelicot Require Import PSeries.
+From Coquelicot Require Import PSeries Derive AutoDerive.
 Require Import MoreFun MoreReals MoreLim Mu.
 
 Local Open Scope R.
@@ -383,3 +383,332 @@ Proof.
 Qed.
 
 (* Print Assumptions root_mu_equiv. *)
+
+(** Bonus : The sequence u_(n+1) = (1-u_n)^(1/k) converges to the
+    positive root of X^k+X-1.
+    Here we prove that for the initial point u_0=1-1/e used earlier
+    and for 3<=k (in order to have u_0 < root).
+    These constraints could be improved someday to 1<=k and any 0<u_0<1 *)
+
+Section K.
+Variable k:nat.
+Hypothesis Hk : (3<=k)%nat.
+Let Hk' : 3<=k. Proof. apply le_INR in Hk. simpl in Hk. lra. Qed.
+Let root := tau (k-1).
+
+Local Notation F := (F k).
+
+Definition u n := (F^^n) a0.
+
+(** Position of F(F(x)) with respect to x.
+    For easier computations, we work on (1-x^k) instead of F.
+    NB: This (1-x^k) is not suitable for a approximation sequence
+    (root is a repulsive fixpoint while fixpoints 0 and 1 are attractive).
+*)
+
+Definition H x := 1-x^k.
+Definition H2 x := 1 - (1-x^k)^k.
+
+Lemma H2_alt x : H2 x = H (H x).
+Proof. reflexivity. Qed.
+
+Lemma H_F x : 0<x<1 -> H (F x) = x.
+Proof.
+ intros Hx. unfold F, H.
+ rewrite <- Rpower_pow, Rpower_mult by apply exp_pos.
+ rewrite Rinv_l by (apply not_0_INR; lia).
+ rewrite Rpower_1; lra.
+Qed.
+
+Lemma F_H x : 0<x<1 -> F (H x) = x.
+Proof.
+ intros Hx. unfold F, H.
+ replace (1-_) with (x^k) by lra.
+ rewrite <- Rpower_pow, Rpower_mult, Rinv_r, Rpower_1; lra.
+Qed.
+
+Lemma F_H_lt x y : 0<x<1 -> 0<y<1 -> x < F y <-> y < H x.
+Proof.
+ intros Hx Hy. unfold F, H. split; intros LT.
+ - assert (x^k < 1-y); try lra.
+   rewrite <- (Rpower_1 (1-y)) by lra.
+   rewrite <- (Rinv_l k) at 2 by lra.
+   rewrite <- Rpower_mult, Rpower_pow by lra.
+   apply pow_lt_compat_l; try lia. lra.
+ - rewrite <- (Rpower_1 x) by lra.
+   rewrite <- (Rinv_r k) at 1 by lra.
+   rewrite <- Rpower_mult, Rpower_pow by lra.
+   apply Rlt_Rpower_l; try split; try lra.
+   apply Rinv_0_lt_compat. apply lt_0_INR; lia.
+   apply pow_lt; lra.
+Qed.
+
+Lemma F_H_lt' x y : 0<x<1 -> 0<y<1 -> F x < y <-> H y < x.
+Proof.
+ intros Hx Hy. split; intros LT.
+ - apply Rlt_not_le in LT. apply Rnot_le_lt. contradict LT.
+   apply Rle_lt_or_eq_dec in LT. destruct LT as [LT | ->].
+   + apply F_H_lt in LT; trivial. now apply Rlt_le.
+   + rewrite F_H; lra.
+ - apply Rlt_not_le in LT. apply Rnot_le_lt. contradict LT.
+   apply Rle_lt_or_eq_dec in LT. destruct LT as [LT | ->].
+   + apply F_H_lt in LT; trivial. now apply Rlt_le.
+   + rewrite H_F; lra.
+Qed.
+
+Definition dH2 x := k^2*(x*(1-x^k))^(k-1).
+
+Lemma dH2_ok x : 0<=x<=1 -> is_derive H2 x (dH2 x).
+Proof.
+ intros Hx. unfold H2, dH2. auto_derive; trivial.
+ replace (Nat.pred k)%nat with (k-1)%nat by lia.
+ rewrite Rpow_mult_distr. now ring_simplify. (* mais pas ring ?! *)
+Qed.
+
+Definition d2H2 x := k^2*(k-1)*(1-(k+1)*x^k)*(x*(1-x^k))^(k-2).
+
+Lemma d2H2_ok x : 0<=x<=1 -> is_derive dH2 x (d2H2 x).
+Proof.
+ intros Hx. unfold dH2, d2H2. auto_derive; trivial.
+ replace (Nat.pred k)%nat with (k-1)%nat by lia.
+ replace (Nat.pred (k-1))%nat with (k-2)%nat by lia.
+ rewrite minus_INR by lia. change (INR 1) with 1.
+ rewrite <- !Rmult_assoc. f_equal.
+ replace (x^k) with (x*x^(k-1)); try ring.
+ { now replace k with (S (k-1)) at 2 by lia. }
+Qed.
+
+Lemma H2_compare_id :
+  (forall x, 0 < x < root -> H2 x < x) /\
+  (forall x, root < x < 1 -> x < H2 x).
+Proof.
+ assert (Hroot := root_itvl k Hk). fold root in Hroot.
+ set (f := fun x => H2(x)-x).
+ set (df := fun x => dH2(x)-1).
+ assert (E0 : f 0 = 0).
+ { unfold f, H2. rewrite pow_i, !Rminus_0_r, pow1 by lia. lra. }
+ assert (E1 : f 1 = 0).
+ { unfold f, H2. rewrite pow1. replace (1-1) with 0 by lra.
+   rewrite pow_i by lia. lra. }
+ assert (Er : f root = 0).
+ { unfold f,H2.
+   assert (E := tau_carac (k-1)). replace (S (k-1)) with k in E by lia.
+   fold root in E. replace (1 - root^k) with root; lra. }
+ assert (Df : forall x, 0<=x<=1 -> is_derive f x (df x)).
+ { intros x Hx. apply (is_derive_plus (V:=R_NM)). apply dH2_ok; lra.
+   auto_derive; trivial. }
+ assert (D2f : forall x, 0<=x<=1 -> is_derive df x (d2H2 x)).
+ { intros y Hy. rewrite <- (Rminus_0_r (d2H2 y)).
+   apply (is_derive_plus (V:=R_NM)). apply d2H2_ok; lra.
+   auto_derive; trivial. lra. }
+ (* Rolle *)
+ destruct (Rolle_weak f df 0 root) as (x1 & X1 & X1');
+  intros; try apply Df; try lra.
+ (* Rolle, bis *)
+ destruct (Rolle_weak f df root 1) as (x2 & X2 & X2');
+  intros; try apply Df; try lra.
+ (* Rolle, ter *)
+ destruct (Rolle_weak df d2H2 x1 x2) as (x3 & X3 & X3');
+  intros; try apply D2f; try lra.
+ assert (E3 : (k+1)*x3^k = 1).
+ { unfold d2H2 in X3'.
+   apply Rmult_integral in X3'. destruct X3' as [X3'|X3'].
+   - apply Rmult_integral in X3'. destruct X3' as [X3'|X3']; try lra.
+     apply Rmult_integral in X3'. destruct X3' as [X3'|X3']; try lra.
+     generalize (pow_lt k 2); lra.
+   - exfalso; revert X3'. apply pow_nonzero. intros X3'.
+     apply Rmult_integral in X3'. destruct X3' as [X3'|X3']; try lra.
+     assert (LT : x3^k < 1); try lra.
+     { rewrite <- (pow1 k). apply pow_lt_compat_l; try lra. lia. } }
+ assert (P2 : forall x, 0<x<x3 -> 0 < d2H2 x).
+ { intros x Hx. unfold d2H2.
+   repeat (apply Rmult_lt_0_compat); try lra.
+   - apply Rlt_Rminus. rewrite <- E3 at 2. apply Rmult_lt_compat_l; try lra.
+     apply pow_lt_compat_l. lra. lia.
+   - apply pow_lt. apply Rmult_lt_0_compat; try lra.
+     apply Rlt_Rminus. rewrite <- (pow1 k). apply pow_lt_compat_l. lra. lia. }
+ assert (N2 : forall x, x3<x<1 -> d2H2 x < 0).
+ { intros x Hx. unfold d2H2.
+   rewrite <- (Ropp_involutive (Rmult _ _)). apply Ropp_lt_gt_0_contravar.
+   apply Rlt_gt. rewrite Ropp_mult_distr_l, Ropp_mult_distr_r.
+   repeat (apply Rmult_lt_0_compat); try lra.
+   - assert (1 < (k+1)*x^k); try lra.
+     rewrite <- E3 at 1. apply Rmult_lt_compat_l; try lra.
+     apply pow_lt_compat_l. lra. lia.
+   - apply pow_lt. apply Rmult_lt_0_compat; try lra.
+     apply Rlt_Rminus. rewrite <- (pow1 k). apply pow_lt_compat_l. lra. lia. }
+ clear X3' E3.
+ assert (N1a : forall x, 0<x<x1 -> df x < 0).
+ { intros x Hx. rewrite <- X1'.
+   apply (incr_function_le df x x1 d2H2); simpl; intros;
+     try apply D2f; try apply P2; lra. }
+ assert (P1 : forall x, x1<x<x2 -> 0 < df x).
+ { intros x Hx.
+   destruct (Rle_or_lt x x3) as [Hx'|Hx'].
+   + destruct (MVT_weak df d2H2 x1 x) as (c & Hc & Hc'); try lra.
+     { intros. apply D2f; lra. }
+     rewrite X1', Rminus_0_r in Hc'. rewrite Hc'.
+     apply Rmult_lt_0_compat; try lra. apply P2; lra.
+   + rewrite <- X2'.
+     apply Ropp_lt_cancel.
+     apply (incr_function_le (fun x => -df x) x x2 (fun x => -d2H2 x)); simpl;
+       intros; try lra.
+     * apply (is_derive_opp (V:=R_NM)). apply D2f; lra.
+     * rewrite <- Ropp_0. apply Ropp_lt_contravar. apply N2; lra. }
+ assert (N1b : forall x, x2<x<1 -> df x < 0).
+ { intros x Hx. rewrite <- X2'.
+   apply Ropp_lt_cancel.
+   apply (incr_function_le (fun x => -df x) x2 x (fun x => -d2H2 x)); simpl;
+   intros; try lra.
+   - apply (is_derive_opp (V:=R_NM)). apply D2f; lra.
+   - rewrite <- Ropp_0. apply Ropp_lt_contravar. apply N2; lra. }
+ clear X1' X2' x3 X3 P2 N2.
+ split.
+ - intros x Hx. clear N1b.
+   apply Rminus_lt. change (f x < 0).
+   destruct (Rle_or_lt x x1) as [Hx'|Hx'].
+   + destruct (MVT_weak f df 0 x) as (c & Hc & Hc'); try lra.
+     { intros. apply Df; lra. }
+     rewrite E0, !Rminus_0_r in Hc'. rewrite Hc'.
+     replace 0 with (0*x) by lra. apply Rmult_lt_compat_r; try lra.
+     apply N1a; lra.
+   + destruct (MVT_weak f df x root) as (c & Hc & Hc'); try lra.
+     { intros. apply Df; lra. }
+     rewrite Er in Hc'. apply Rminus_lt_0. rewrite Hc'.
+     apply Rmult_lt_0_compat; try apply P1; lra.
+ - intros x Hx. clear N1a.
+   apply Rminus_lt_0. change (0 < f x).
+   destruct (Rle_or_lt x x2) as [Hx'|Hx'].
+   + destruct (MVT_weak f df root x) as (c & Hc & Hc'); try lra.
+     { intros. apply Df; lra. }
+     rewrite Er, !Rminus_0_r in Hc'. rewrite Hc'.
+     apply Rmult_lt_0_compat; try apply P1; lra.
+   + destruct (MVT_weak f df x 1) as (c & Hc & Hc'); try lra.
+     { intros. apply Df; lra. }
+     rewrite E1 in Hc'. apply Rminus_lt. rewrite Hc'.
+     replace 0 with (0*(1-x)) by lra. apply Rmult_lt_compat_r; try lra.
+     apply N1b; lra.
+Qed.
+
+Lemma H2_low x : 0 < x < root -> H2 x < x.
+Proof. apply H2_compare_id. Qed.
+
+Lemma H2_high x : root < x < 1 -> x < H2 x.
+Proof. apply H2_compare_id. Qed.
+
+Lemma FF_low x : 0 < x < root -> x < F (F x).
+Proof.
+ intros Hx. assert (Hroot := root_itvl k Hk). fold root in Hroot.
+ apply F_H_lt; try lra. split. apply exp_pos. apply F_1; trivial. lra.
+ apply F_H_lt'; try lra. 2:apply H2_low; lra. split.
+ - unfold H. assert (x^k < 1^k). apply pow_lt_compat_l; try lra. lia.
+   rewrite pow1 in *. lra.
+ - unfold H. assert (0<x^k). apply pow_lt; lra. lra.
+Qed.
+
+Lemma FF_high x : root < x < 1 -> F (F x) < x.
+Proof.
+ intros Hx. assert (Hroot := root_itvl k Hk). fold root in Hroot.
+ apply F_H_lt'; try lra.
+ split. apply exp_pos. apply F_1; trivial. lra.
+ apply F_H_lt; try lra. 2:apply H2_high; lra. split.
+ - unfold H. assert (x^k < 1^k). apply pow_lt_compat_l; try lra. lia.
+   rewrite pow1 in *. lra.
+ - unfold H. assert (0<x^k). apply pow_lt; lra. lra.
+Qed.
+
+Lemma FF_fixpoint x : 0<x<1 -> F (F x) = x <-> x = root.
+Proof.
+ intros Hx. split.
+ - intros E. destruct (Rtotal_order x root) as [LT|[EQ|LT]]; trivial.
+   + generalize (FF_low x). lra.
+   + generalize (FF_high x). lra.
+ - intros ->. now rewrite 2 F_fixpoint.
+Qed.
+
+Lemma F_continuous x : 0<x<1 -> continuous F x.
+Proof.
+ intros Hx. unfold F, Rpower.
+ apply continuous_comp; [ | apply continuous_exp ].
+ apply (continuous_mult (K:=R_AbsRing)); [ apply continuous_const | ].
+ apply continuous_comp; [ | apply continuous_ln; lra ].
+ apply (continuous_plus (V:=R_NM)); [ apply continuous_const | ].
+ apply (continuous_opp (V:=R_NM)), continuous_id.
+Qed.
+
+Definition u2 n := u (2*n).
+
+Lemma u2_below_root n : 0 < u2 n < root.
+Proof.
+ induction n.
+ - unfold u2. simpl. unfold a0.
+   generalize exp_m1_itvl (root_itvl k Hk). fold root. lra.
+ - unfold u2. simpl. replace (n + _)%nat with (S (2*n))%nat by lia.
+   now apply F_high, F_low.
+Qed.
+
+Lemma u2_incr n : u2 n < u2 (S n).
+Proof.
+ unfold u2. replace (2*S n)%nat with (S (S (2*n)))%nat by lia.
+ apply FF_low. apply u2_below_root.
+Qed.
+
+Lemma u2_lim : is_lim_seq u2 root.
+Proof.
+ assert (X : ex_lim_seq u2).
+ { apply ex_lim_seq_incr. intros n. apply Rlt_le, u2_incr. }
+ destruct X as (l,Hl).
+ assert (Rbar.Rbar_le a0 l).
+ { apply is_lim_seq_le with (fun _ => a0) u2;
+    trivial using is_lim_seq_const. intros.
+   induction n. apply Rle_refl. generalize (u2_incr n); lra. }
+ assert (Rbar.Rbar_le l root).
+ { apply is_lim_seq_le with u2 (fun _ => root);
+    trivial using is_lim_seq_const. intros. apply Rlt_le, u2_below_root. }
+ destruct l as [ l | | ]; try easy. simpl in *.
+ assert (0 < l < 1).
+ { assert (Hroot := root_itvl k Hk). fold root in Hroot. split; try lra.
+   unfold a0 in *. generalize exp_m1_itvl. lra. }
+ assert (Hl' : is_lim_seq u2 (F (F l))).
+ { apply (is_lim_seq_incr_1 u2).
+   apply is_lim_seq_ext with (fun n => F (F (u2 n))).
+   { intros n. unfold u2.
+     replace (2*S n)%nat with (S (S (2*n)))%nat by lia. easy. }
+   apply (is_lim_seq_continuous (fun x => F (F x)) u2); trivial.
+   apply continuous_alt, continuous_comp; apply F_continuous; try lra.
+   split. apply exp_pos. apply F_1; trivial. }
+ assert (E : F (F l) = l).
+ { apply is_lim_seq_unique in Hl, Hl'. congruence. }
+ apply FF_fixpoint in E; subst; trivial.
+Qed.
+
+Lemma u2bis_lim : is_lim_seq (fun n => u (S (2*n))) root.
+Proof.
+ unfold root. rewrite <- F_fixpoint; trivial. fold root.
+ apply (is_lim_seq_continuous F u2); try apply u2_lim.
+ apply continuous_alt, F_continuous.
+ generalize (root_itvl k Hk). fold root. lra.
+Qed.
+
+(** We glue everything : u is an alternating sequence converging to root *)
+
+Lemma u_lim : is_lim_seq u root.
+Proof.
+ assert (U := u2_lim).
+ assert (U' := u2bis_lim).
+ unfold u2 in *.
+ rewrite <- is_lim_seq_spec in *.
+ intro eps.
+ destruct (U eps) as (N,HN).
+ destruct (U' eps) as (N',HN').
+ exists (Nat.max (2*N) (2*N'+1)). intros n Hn.
+ destruct (Nat.Even_or_Odd n) as [Ev|Od].
+ - assert (Hn' : (n = 2 * (Nat.div2 n))%nat).
+   { rewrite <- Nat.double_twice. now apply Nat.Even_double. }
+   rewrite Hn'. apply HN. apply Nat.mul_le_mono_pos_l with 2%nat; lia.
+ - assert (Hn' : (n = S (2 * (Nat.div2 n))%nat)).
+   { rewrite <- Nat.double_twice. now apply Nat.Odd_double. }
+   rewrite Hn'. apply HN'. apply Nat.mul_le_mono_pos_l with 2%nat; lia.
+Qed.
+
+End K.

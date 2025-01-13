@@ -2,7 +2,7 @@ From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Complex.
 From Coquelicot Require Export Lim_seq.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
-From Coquelicot Require Import ElemFct.
+From Coquelicot Require Import ElemFct Derive.
 From QuantumLib Require Import Complex Polynomial.
 Import Continuity.
 Require Import MoreList MoreReals MoreComplex MoreSum.
@@ -1221,3 +1221,33 @@ Proof.
      rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
    + destruct L as (eps & L). exists eps. apply L.
 Qed.
+
+(** Customized versions of Rolle Lemma and Mean-Value-Theorem.
+    - For simplicity, we ask for derivability also on the interval borders
+      (instead of just continuity).
+    - Unlike many other MVT (e.g. Coquelicot's one) the existing point c
+      is strictly inside a b. *)
+
+Lemma MVT_weak (f df : R -> R) (a b : R) :
+ (forall x, a <= x <= b -> is_derive f x (df x)) ->
+ a < b ->
+ exists c, a < c < b /\ f b - f a = df c * (b-a).
+Proof.
+ intros Df Hab.
+ destruct (MVT_cor2 f df a b) as (c & Hc & Hc'); trivial.
+ { intros. apply is_derive_Reals. apply Df; lra. }
+ now exists c.
+Qed.
+
+Lemma Rolle_weak (f df : R -> R) (a b : R) :
+  (forall x, a <= x <= b -> is_derive f x (df x)) ->
+  a < b ->
+  f a = f b ->
+  exists c, a < c < b /\ df c = 0.
+Proof.
+ intros Hf Hab E.
+ destruct (MVT_weak f df a b) as (c & Hc & Hc'); trivial.
+ exists c; split; trivial. replace (f b - f a) with 0 in Hc' by lra.
+ symmetry in Hc'. apply Rmult_integral in Hc'. destruct Hc'; trivial; lra.
+Qed.
+
