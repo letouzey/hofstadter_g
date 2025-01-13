@@ -29,28 +29,28 @@ Qed.
 (** Instead of a proper Landau o(1) notation, we explicit the residual
     functions and show below that all of them converge to 0 *)
 
-Definition o1 (n:nat) := n * (a1 n - 1) + 1.
-Definition o2 (n:nat) := n * (a2 n - 1 + ln n / n).
-Definition o3 (n:nat) := n * (a3 n - 1 + ln n / n - ln (ln n)/n).
+Definition ϵ1 (n:nat) := n * a1 n - n + 1.
+Definition ϵ2 (n:nat) := n * a2 n - n + ln n.
+Definition ϵ3 (n:nat) := n * a3 n - n + ln n - ln (ln n).
 
 (** The asymptotic expressions of a1 a2 a3 *)
 
-Lemma a1_eqn n : n<>O -> a1 n = 1 - /n + o1(n)/n.
-Proof. intros Hn. unfold o1. field. apply not_0_INR; lia. Qed.
+Lemma a1_eqn n : n<>O -> a1 n = 1 - /n + ϵ1(n)/n.
+Proof. intros Hn. unfold ϵ1. field. apply not_0_INR; lia. Qed.
 
-Lemma a2_eqn n : n<>O -> a2 n = 1 - ln n / n + o2(n)/n.
-Proof. intros Hn. unfold o2. field. apply not_0_INR; lia. Qed.
+Lemma a2_eqn n : n<>O -> a2 n = 1 - ln n / n + ϵ2(n)/n.
+Proof. intros Hn. unfold ϵ2. field. apply not_0_INR; lia. Qed.
 
-Lemma a3_eqn n : n<>O -> a3 n = 1 - ln n / n + ln (ln n) / n + o3(n)/n.
-Proof. intros Hn. unfold o3. field. apply not_0_INR; lia. Qed.
+Lemma a3_eqn n : n<>O -> a3 n = 1 - ln n / n + ln (ln n) / n + ϵ3(n)/n.
+Proof. intros Hn. unfold ϵ3. field. apply not_0_INR; lia. Qed.
 
 (** Convergence to 0 *)
 
-Lemma o1_lim : is_lim_seq o1 0.
+Lemma ϵ1_lim : is_lim_seq ϵ1 0.
 Proof.
  set (f := fun x => (exp x - 1) / x).
  apply is_lim_seq_ext_loc with (fun n => (-1)*(f (-/n))+1).
- { exists 1%nat. intros n Hn. unfold o1, f. rewrite a1_alt.
+ { exists 1%nat. intros n Hn. unfold ϵ1, f. rewrite a1_alt.
    field. apply not_0_INR; lia. }
  replace 0 with ((-1)*1+1) by lra.
  apply is_lim_seq_plus'; try apply is_lim_seq_const.
@@ -63,23 +63,23 @@ Proof.
  - replace 0 with (-0) by lra. apply is_lim_seq_opp', is_lim_seq_invn.
 Qed.
 
-Lemma o2_lim : is_lim_seq o2 0.
+Lemma ϵ2_lim : is_lim_seq ϵ2 0.
 Proof.
- set (o1' := fun n => ln (1-o1 n)).
- assert (O1' : is_lim_seq o1' 0).
+ set (ϵ1' := fun n => ln (1-ϵ1 n)).
+ assert (E1' : is_lim_seq ϵ1' 0).
  { rewrite <- ln_1. apply is_lim_seq_continuous.
    - apply continuous_alt, continuous_ln; lra.
    - replace 1 with (1-0) at 1 by lra.
-     apply is_lim_seq_minus'. apply is_lim_seq_const. apply o1_lim. }
- set (b1 := fun (n:nat) => -(ln n / n) + o1' n/n).
+     apply is_lim_seq_minus'. apply is_lim_seq_const. apply ϵ1_lim. }
+ set (b1 := fun (n:nat) => -(ln n / n) + ϵ1' n/n).
  assert (E : forall n, n<>O -> b1 n = ln (1-a1 n)/n).
- { intros n Hn. unfold b1, o1'. rewrite a1_eqn; trivial.
+ { intros n Hn. unfold b1, ϵ1'. rewrite a1_eqn; trivial.
    assert (Hn' : 0 < n) by (apply lt_0_INR; lia).
    apply Rmult_eq_reg_l with (INR n); try lra. field_simplify; try lra.
-   rewrite Rplus_comm. fold (ln (1 - o1 n) - ln n).
+   rewrite Rplus_comm. fold (ln (1 - ϵ1 n) - ln n).
    rewrite <- ln_div; try lra.
    - f_equal; field; lra.
-   - unfold o1. ring_simplify. replace (_+_) with (n*(1-a1 n)) by ring.
+   - unfold ϵ1. ring_simplify. replace (_+_) with (n*(1-a1 n)) by ring.
      apply Rmult_lt_0_compat; trivial.
      apply Rlt_Rminus. rewrite <- exp_0, a1_alt. apply exp_increasing.
      apply Ropp_lt_gt_0_contravar.
@@ -90,7 +90,7 @@ Proof.
    - apply is_lim_seq_opp', lim_ln_div_n.
    - apply is_lim_seq_mult'; trivial. apply is_lim_seq_invn. }
  assert (B1' : eventually (fun n => b1 n <> 0)).
- { apply is_lim_seq_spec in O1'. destruct (O1' posreal_one) as (N,HN).
+ { apply is_lim_seq_spec in E1'. destruct (E1' posreal_one) as (N,HN).
    exists (N+3)%nat. intros n Hn [=E'].
    assert (Hn' : INR 3 <= n) by (apply le_INR; lia). simpl in Hn'.
    unfold b1 in E'.
@@ -103,16 +103,16 @@ Proof.
    assert (E1 := exp_1_itvl).
    rewrite <- (ln_exp 1). apply ln_increasing; lra. }
  apply is_lim_seq_ext_loc with
-  (fun n => (b1 n^2 * n)*((exp (b1 n) - 1 - b1 n)/(b1 n)^2) + o1' n).
+  (fun n => (b1 n^2 * n)*((exp (b1 n) - 1 - b1 n)/(b1 n)^2) + ϵ1' n).
  { destruct B1' as (N,HN). exists (S N). intros n Hn.
-   unfold o2, a2, Rpower. rewrite (Rmult_comm (/n)).
+   unfold ϵ2, a2, Rpower. rewrite (Rmult_comm (/n)).
    change (_ */ _) with (ln (1-a1 n) / n). rewrite <- E by lia.
    unfold b1 at 3. field. split. apply not_0_INR; lia. apply HN; lia. }
  replace 0 with (0 * (1/2) + 0) by lra.
  apply is_lim_seq_plus'; trivial.
  apply is_lim_seq_mult'.
  { apply is_lim_seq_ext_loc with
-    (fun (n:nat) => (ln n)^2/n - 2 * (ln n / n) * o1' n + (o1' n)^2/n).
+    (fun (n:nat) => (ln n)^2/n - 2 * (ln n / n) * ϵ1' n + (ϵ1' n)^2/n).
    { exists 1%nat. intros n Hn.
      unfold b1. field. apply not_0_INR; lia. }
    replace 0 with (0-2*0*0+0) by lra.
@@ -128,25 +128,25 @@ Proof.
    intros n Hn [=E']. now apply (HN n Hn). }
 Qed.
 
-Lemma o3_lim : is_lim_seq o3 0.
+Lemma ϵ3_lim : is_lim_seq ϵ3 0.
 Proof.
- set (o2' := fun n => ln (1-o2 n / ln n)).
- assert (O2' : is_lim_seq o2' 0).
+ set (ϵ2' := fun n => ln (1-ϵ2 n / ln n)).
+ assert (E2' : is_lim_seq ϵ2' 0).
  { rewrite <- ln_1. apply is_lim_seq_continuous.
    - apply continuous_alt, continuous_ln; lra.
    - replace 1 with (1-0*0) at 1 by lra.
      apply is_lim_seq_minus'. apply is_lim_seq_const.
-     apply is_lim_seq_mult'. apply o2_lim. apply lim_inv_ln. }
- set (b2 := fun (n:nat) => -(ln n / n) + ln (ln n)/n + o2' n/n).
+     apply is_lim_seq_mult'. apply ϵ2_lim. apply lim_inv_ln. }
+ set (b2 := fun (n:nat) => -(ln n / n) + ln (ln n)/n + ϵ2' n/n).
  assert (E : eventually (fun n => b2 n = ln (1-a2 n)/n)).
- { assert (O2:=o2_lim).
-   apply is_lim_seq_spec in O2. destruct (O2 posreal_one) as (N,HN).
+ { assert (E2:=ϵ2_lim).
+   apply is_lim_seq_spec in E2. destruct (E2 posreal_one) as (N,HN).
    exists (N+3)%nat. intros n Hn.
-   unfold b2, o2'. rewrite a2_eqn; try lia.
+   unfold b2, ϵ2'. rewrite a2_eqn; try lia.
    assert (Hn' : 3 <= n).
    { replace 3 with (INR 3) by (simpl; lra). apply le_INR; lia. }
    apply Rmult_eq_reg_l with n; try lra. field_simplify; try lra.
-   replace (1-(1-_+_)) with (ln n/n * (1 - o2 n/ln n)).
+   replace (1-(1-_+_)) with (ln n/n * (1 - ϵ2 n/ln n)).
    2:{ field. split; try lra. apply ln_neq_0; lra. }
    assert (1 < ln n).
    { rewrite <- (ln_exp 1). apply ln_increasing; generalize exp_1_itvl; lra. }
@@ -163,7 +163,7 @@ Proof.
    - apply is_lim_seq_mult'; trivial. apply is_lim_seq_invn. }
  assert (B2s : is_lim_seq (fun n => b2 n * sqrt n) 0).
  { apply is_lim_seq_ext_loc with
-    (fun (n:nat) => - (ln n/sqrt n) + ln (ln n) / sqrt n + o2' n / sqrt n).
+    (fun (n:nat) => - (ln n/sqrt n) + ln (ln n) / sqrt n + ϵ2' n / sqrt n).
    { exists 1%nat. intros n Hn.
      symmetry. unfold b2. rewrite <- (pow2_sqrt n) at 2 4 5 by apply pos_INR.
      field. apply le_INR in Hn. change (INR 1) with 1 in Hn.
@@ -176,7 +176,7 @@ Proof.
    - apply lim_inv_sqrt. }
  assert (B2' : eventually (fun n => b2 n <> 0)).
  { clear E B2 B2s.
-   apply is_lim_seq_spec in O2'. destruct (O2' posreal_one) as (N,HN).
+   apply is_lim_seq_spec in E2'. destruct (E2' posreal_one) as (N,HN).
    exists (N+2)%nat. intros n Hn.
    specialize (HN n lia). simpl in HN. rewrite Rminus_0_r in HN.
    apply Rabs_def2 in HN.
@@ -188,10 +188,10 @@ Proof.
      apply (lt_INR 1); lia.
    - revert E. apply Rinv_neq_0_compat. apply not_0_INR. lia. }
  apply is_lim_seq_ext_loc with
-  (fun n => (b2 n^2 * n)*((exp (b2 n) - 1 - b2 n)/(b2 n)^2) + o2' n).
+  (fun n => (b2 n^2 * n)*((exp (b2 n) - 1 - b2 n)/(b2 n)^2) + ϵ2' n).
  { destruct E as (N,E).
    destruct B2' as (N',HN'). exists (N+N'+2)%nat. intros n Hn.
-   unfold o3, a3, Rpower. rewrite (Rmult_comm (/n)).
+   unfold ϵ3, a3, Rpower. rewrite (Rmult_comm (/n)).
    change (_ */ _) with (ln (1-a2 n) / n). rewrite <- E by lia.
    unfold b2 at 3. field. split. apply not_0_INR; lia. apply HN'; lia. }
  replace 0 with (0 * (1/2) + 0) by lra.
@@ -281,13 +281,13 @@ End K.
 (** The final asymptotic equivalence : *)
 
 Lemma root_tau_equiv :
- exists o : nat -> R,
-   is_lim_seq o 0 /\
-   forall k, (1 < k)%nat -> tau (k-1) = 1 - ln k / k + ln k / k * o k.
+ exists ϵ : nat -> R,
+   is_lim_seq ϵ 0 /\
+   forall k, (1 < k)%nat -> tau (k-1) = 1 - ln k / k * (1 - ϵ k).
 Proof.
- set (o:=fun k => 1 - (1 - tau (k-1)) * k / ln k).
- exists o. split.
- 2:{ intros k Hk. unfold o. field.
+ set (ϵ := fun k => 1 - (1 - tau (k-1)) * k / ln k).
+ exists ϵ. split.
+ 2:{ intros k Hk. unfold ϵ. field.
      apply lt_INR in Hk. change (INR 1) with 1 in Hk.
      split; try apply ln_neq_0; lra. }
  apply is_lim_seq_le_le_loc with
@@ -295,7 +295,7 @@ Proof.
    (fun n => 1-(1-a3 n)*n/ln n).
  { exists 3%nat. intros n Hn.
    assert (R := root_bounds n lia).
-   unfold o.
+   unfold ϵ.
    set (t := tau _) in *.
    unfold Rdiv. rewrite !Rmult_assoc.
    set (c := _ */_).
@@ -304,14 +304,14 @@ Proof.
      apply Rinv_0_lt_compat. rewrite <- ln_1.
      apply ln_increasing; try lra. apply (lt_INR 1). lia. }
    nra. }
- - apply is_lim_seq_ext_loc with (fun n => o2 n/ln n).
+ - apply is_lim_seq_ext_loc with (fun n => ϵ2 n/ln n).
    { exists 2%nat. intros n Hn. rewrite a2_eqn by lia. field.
      split. apply not_0_INR; lia.
      apply ln_neq_0. apply (not_INR _ 1); lia. apply lt_0_INR; lia. }
-   apply is_lim_seq_0_abs with (fun n => Rabs (o2 n)).
-   2:{ rewrite <- is_lim_seq_abs_0. apply o2_lim. }
+   apply is_lim_seq_0_abs with (fun n => Rabs (ϵ2 n)).
+   2:{ rewrite <- is_lim_seq_abs_0. apply ϵ2_lim. }
    exists 3%nat. intros n Hn. unfold Rdiv. rewrite Rabs_mult.
-   set (c := Rabs (o2 _)).
+   set (c := Rabs (ϵ2 _)).
    rewrite <- (Rmult_1_r c) at 2.
    apply Rmult_le_compat_l. apply Rabs_pos.
    rewrite Rabs_inv, Rabs_pos_eq.
@@ -321,7 +321,7 @@ Proof.
    rewrite <- (ln_exp 1). apply Rcomplements.ln_le. apply exp_pos.
    apply Rle_trans with 3. generalize exp_le_3; lra.
    apply le_INR in Hn; simpl in *; lra.
- - apply is_lim_seq_ext_loc with (fun n:nat => ln (ln n)/ln n + o3 n/ln n).
+ - apply is_lim_seq_ext_loc with (fun n:nat => ln (ln n)/ln n + ϵ3 n/ln n).
    { exists 2%nat. intros n Hn. rewrite a3_eqn by lia. field.
      split. apply not_0_INR; lia.
      apply ln_neq_0. apply (not_INR _ 1); lia. apply lt_0_INR. lia. }
@@ -329,10 +329,10 @@ Proof.
    apply is_lim_seq_plus'.
    + apply is_lim_comp_seq with (f:=fun x => ln x / x) (x:=Rbar.p_infty);
      trivial using is_lim_div_ln_p, lim_ln. now exists O.
-   + apply is_lim_seq_0_abs with (fun n => Rabs (o3 n)).
-     2:{ rewrite <- is_lim_seq_abs_0. apply o3_lim. }
+   + apply is_lim_seq_0_abs with (fun n => Rabs (ϵ3 n)).
+     2:{ rewrite <- is_lim_seq_abs_0. apply ϵ3_lim. }
      exists 3%nat. intros n Hn. unfold Rdiv. rewrite Rabs_mult.
-     set (c := Rabs (o3 n)).
+     set (c := Rabs (ϵ3 n)).
      rewrite <- (Rmult_1_r c) at 2.
      apply Rmult_le_compat_l. apply Rabs_pos.
      rewrite Rabs_inv, Rabs_pos_eq.
@@ -348,24 +348,19 @@ Qed.
 (** This lead to a [1+ln n/n] equivalent for the positive root of
     X^n-X^(n-1)-1. *)
 
-Lemma inv_eqn x : x<>1 -> /(1-x) = 1+x+x^2/(1-x).
-Proof.
- intros Hx. field. contradict Hx. lra.
-Qed.
-
 Lemma root_mu_equiv :
- exists o : nat -> R,
-   is_lim_seq o 0 /\
-   eventually (fun k => mu (k-1) = 1 + ln k / k + ln k / k * o k).
+ exists ϵ : nat -> R,
+   is_lim_seq ϵ 0 /\
+   eventually (fun k => mu (k-1) = 1 + ln k / k * (1 + ϵ k)).
 Proof.
- destruct root_tau_equiv as (o & Ho & E).
- set (u := fun n:nat => ln n/n * (1 - o n)).
+ destruct root_tau_equiv as (ϵ & Hϵ & E).
+ set (u := fun n:nat => ln n/n * (1 - ϵ n)).
  assert (U : is_lim_seq u 0).
  { replace 0 with (0*(1-0)) by lra.
    apply is_lim_seq_mult'; [|apply is_lim_seq_minus'];
     trivial using is_lim_seq_const, lim_ln_div_n. }
- set (o' := fun n => -o n + (1-o n)*u n/(1-u n)).
- exists o'. split.
+ set (ϵ' := fun n => -ϵ n + (1-ϵ n)*u n/(1-u n)).
+ exists ϵ'. split.
  - replace 0 with (-0+(1-0)*0/(1-0)) by lra.
    apply is_lim_seq_plus'.
    + now apply is_lim_seq_opp'.
@@ -378,8 +373,9 @@ Proof.
    rewrite Rminus_0_r in HN. apply Rabs_def2 in HN.
    assert (E' : tau (n-1) = 1 - u n).
    { unfold u. rewrite E; try lia. field. apply not_0_INR; lia. }
-   rewrite tau_inv, E', inv_eqn; try lra.
-   unfold o', u. field. split. apply not_0_INR; lia.
+   rewrite tau_inv, E'.
+   replace (/(1-u n)) with (1 + u n + (u n)^2/(1-u n)) by (field; lra).
+   unfold ϵ', u. field. split. apply not_0_INR; lia.
    replace (n - _) with (n * (1 - u n)).
    2:{ unfold u. field. apply not_0_INR; lia. }
    intros D. apply Rmult_integral in D. destruct D as [D|D]; try lra.
