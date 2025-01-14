@@ -315,10 +315,10 @@ Proof.
    rewrite <- (Rmult_1_r c) at 2.
    apply Rmult_le_compat_l. apply Rabs_pos.
    rewrite Rabs_inv, Rabs_pos_eq.
-   2:{ rewrite <- ln_1. apply Rcomplements.ln_le; try lra.
+   2:{ rewrite <- ln_1. apply ln_le; try lra.
        apply (le_INR 1); lia. }
    replace 1 with (/1) by lra. apply Rinv_le_contravar; try lra.
-   rewrite <- (ln_exp 1). apply Rcomplements.ln_le. apply exp_pos.
+   rewrite <- (ln_exp 1). apply ln_le. apply exp_pos.
    apply Rle_trans with 3. generalize exp_le_3; lra.
    apply le_INR in Hn; simpl in *; lra.
  - apply is_lim_seq_ext_loc with (fun n:nat => ln (ln n)/ln n + ϵ3 n/ln n).
