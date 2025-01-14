@@ -256,8 +256,9 @@ Proof.
  remember (Re _) as x eqn:Hx.
  simpl in Hx.
  rewrite cos_PI3, sin_PI3 in Hx. field_simplify in Hx.
- 2:{ replace (sqrt 3 * sqrt 3) with (Rsqr (sqrt 3)) in Hx by trivial.
-     rewrite Rsqr_sqrt in Hx; lra. }
+ 2:{ try revert Hx. (* compat 8.16 vs. 8.19 *)
+     replace (sqrt 3 * sqrt 3) with (Rsqr (sqrt 3)) by trivial.
+     rewrite Rsqr_sqrt; lra. }
  change (8%nat) with (2*4)%nat in Hx.
  change (6%nat) with (2*3)%nat in Hx.
  change (4%nat) with (2*2)%nat in Hx.
