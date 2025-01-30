@@ -1044,7 +1044,7 @@ Proof.
  approx.
 Qed.
 
-(** And finally, we obtain that diff0 is always strictly less than 1. *)
+(** And finally, we obtain that |diff0| is always strictly less than 1. *)
 
 Lemma diff0_lt_1 n : Rabs (diff0 n) < 1.
 Proof.
@@ -1052,6 +1052,17 @@ Proof.
 Qed.
 
 (* Print Assumptions diff0_lt_1. *)
+
+(** Even the sup of |diff0| is strictly less than 1. *)
+
+Lemma sup_diff0_lt_1 :
+ Rbar.Rbar_lt (Sup_seq (fun n => Rabs (diff0 n))) 1.
+Proof.
+ apply Rbar.Rbar_le_lt_trans with (Sup_seq (fun _ => TheBound)).
+ - apply Sup_seq_le. intros n. simpl. apply diff0_better_bound.
+ - replace (Sup_seq _) with (Rbar.Finite TheBound); simpl. approx.
+   symmetry. apply is_sup_seq_unique. apply is_sup_seq_const.
+Qed.
 
 (* Consequences for h : *)
 

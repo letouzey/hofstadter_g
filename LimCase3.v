@@ -1085,7 +1085,7 @@ Proof.
    apply Rabs_pos. apply best_4packν, decomp_delta.
 Qed.
 
-(** And finally, we obtain that diff0 is always strictly less than 2.
+(** And finally, we obtain that |diff0| is always strictly less than 2.
     (experimentally the new bound is around 1.997) *)
 
 #[local] Instance : Approx 12.2669622508 (Cmod detU ^2) 12.266962256.
@@ -1162,6 +1162,17 @@ Proof.
 Qed.
 
 (* Print Assumptions diff0_lt_2. *)
+
+(** Even the sup of |diff0| is strictly less than 2. *)
+
+Lemma sup_diff0_lt_2 :
+ Rbar.Rbar_lt (Sup_seq (fun n => Rabs (diff0 n))) 2.
+Proof.
+ apply Rbar.Rbar_le_lt_trans with (Sup_seq (fun _ => TheBound)).
+ - apply Sup_seq_le. intros n. simpl. apply diff0_better_bound.
+ - replace (Sup_seq _) with (Rbar.Finite TheBound); simpl. approx.
+   symmetry. apply is_sup_seq_unique. apply is_sup_seq_const.
+Qed.
 
 (* Consequences for f3 : *)
 
