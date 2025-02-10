@@ -1338,7 +1338,7 @@ Qed.
 Local Close Scope C_scope.
 
 (** Theorem 8.2 and 8.5 together.
-    No Coq proof yet about speed of divergence. *)
+    No Coq proof yet about the speed of divergence. *)
 
 Lemma Delta_gen k : (5<=k)%nat -> Δ k = Rbar.p_infty.
 Proof.
@@ -1360,7 +1360,7 @@ Proof.
  destruct LimCase2.TheBound_approx. lra.
 Qed.
 
-Lemma delta_sup_3 : Rbar.Rbar_lt (Δ 3) 1.
+Lemma Delta_sup_3 : Rbar.Rbar_lt (Δ 3) 1.
 Proof.
  unfold Δ. erewrite Sup_seq_ext.
  - apply LimCase2.sup_diff0_lt_1.
@@ -1380,6 +1380,12 @@ Proof.
  - apply LimCase3.sup_diff0_lt_2.
  - intros n. simpl. unfold δ. now rewrite F_f, <- LimCase3.diff0_alt by lia.
 Qed.
+
+(*
+Print Assumptions Delta_gen.
+Print Assumptions Delta_sup_3.
+Print Assumptions Delta_sup_4.
+*)
 
 (** Corollary 8.8 *)
 
