@@ -1151,7 +1151,7 @@ Proof.
  approx.
 Qed.
 
-#[local] Instance : Approx 1.997 TheBound 1.998.
+#[local] Instance TheBound_approx : Approx 1.9970 TheBound 1.9979.
 Proof.
  unfold TheBound. approx.
 Qed.

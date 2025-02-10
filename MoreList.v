@@ -190,6 +190,13 @@ Proof.
  induction l; simpl; auto. destruct (f a); simpl; lia.
 Qed.
 
+Lemma filter_filter {A} h h' (l:list A) :
+  filter h (filter h' l) = filter (fun a => h a && h' a) l.
+Proof.
+ induction l; simpl; trivial.
+ destruct (h' a); simpl; destruct (h a); simpl; trivial. now f_equal.
+Qed.
+
 (** More on flat_map *)
 
 Lemma flat_map_length {A B} (f:A->list B) l k :

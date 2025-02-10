@@ -1029,7 +1029,7 @@ Proof.
  rewrite pow2_abs. rewrite im_α_2. field. approx.
 Qed.
 
-#[local] Instance : Approx 0.9958 TheBound 0.9959.
+#[local] Instance TheBound_approx : Approx 0.9958 TheBound 0.9959.
 Proof.
  unfold TheBound.
  apply pow2_approx_inv; try lra.

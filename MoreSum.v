@@ -475,3 +475,28 @@ Proof.
    + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
      intros i Hi. apply F; lia.
 Qed.
+
+(** Summing a function from a (included) to b (excluded), by adapting
+    QuantumLib's big_sum *)
+
+Definition Sigma (f : nat -> C) a b := big_sum f b - big_sum f a.
+
+Lemma Sigma_alt f a b : (a<=b)%nat ->
+ Sigma f a b = big_sum (fun i => f (a+i)%nat) (b-a).
+Proof.
+ intros. unfold Sigma. replace b with (a + (b-a))%nat at 1 by lia.
+ rewrite big_sum_sum. simpl. ring.
+Qed.
+
+Lemma Sigma_0 f b : Sigma f 0 b = big_sum f b.
+Proof.
+ rewrite Sigma_alt by lia. simpl. f_equal. lia.
+Qed.
+
+Lemma Clistum_seq_Sigma (f:nat->C) a b :
+ Clistsum (map f (seq a b)) = Sigma f a (a+b).
+Proof.
+ rewrite (Clistsum_map f) with (d:=O). rewrite seq_length.
+ rewrite Sigma_alt by lia. replace (a+b-a)%nat with b by lia.
+ apply big_sum_eq_bounded. intros x Hx. f_equal. now rewrite seq_nth.
+Qed.
