@@ -17,6 +17,10 @@ Documentation:
   Pierre Letouzey, Shuo Li, Wolfgang Steiner. Preprint, 2024.
   https://hal.science/hal-04715451
 
+- Generalized Hostadter functions G, H and beyond: numeration systems
+  and discrepancy. Pierre Letouzey. Preprint, 2025.
+  https://hal.science/hal-04948022
+
 - A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf?raw=true)
 
 - Slides of talks: [PPS'24](talks/4/expose.pdf?raw=true).
