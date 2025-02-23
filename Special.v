@@ -1270,7 +1270,7 @@ Proof.
      apply ls_head_q in V'. subst a. rewrite Nat.eqb_refl. lia.
 Qed.
 
-(** Turn the lacq of MaxLeftSpecial into a positive fact about LeftSpecial. *)
+(** Turn the lack of MaxLeftSpecial into a positive fact about LeftSpecial. *)
 
 Lemma NoMaxLS_exists q u :
   LeftSpecial u (qseq q) ->
@@ -1416,12 +1416,12 @@ Qed.
 (** Proposition 4.10 as proved in Corrigendum (as Proposition 2.2).
     Some parts of the proofs were unecessary here :
     - We are here in the case "t_1 > max(t_2...t_{m-1})" (t_1=t_m=1>0=t_i).
-    - The last paragraph is sqipped since factors of (qseq q) cannot
+    - The last paragraph is skipped since factors of (qseq q) cannot
       have a right valence of 3>2.
 
-    Moreover This proof of proposition 4.10 is left here for completeness
+    Moreover, this proof of proposition 4.10 is left here for completeness
     reasons, but a shorter approach is also possible (and was used in a
-    former version of this worq) : just prove that v is LeftSpecial
+    former version of this work) : just prove that v is LeftSpecial
     instead of MaxLeftSpecial, and moreover that
       [w=[q] -> ~RightSpecial (qsubstw q v) (qseq q)].
     This is enough for completing [LeftSpecial_qprefix] below, and then
