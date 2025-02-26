@@ -1204,7 +1204,7 @@ Lemma dA_expo q roots : (3<=q)%nat -> SortedRoots q roots ->
  let r := roots@1 in
  exists c : posreal,
  forall N, exists n, (N<=n)%nat /\
-    c * (Cmod r)^n < Rabs (A q (n-1) - tau q * A q n).
+    c * (Cmod r)^n < A q (n-1) - tau q * A q n.
 Proof.
  intros Q roots_ok r.
  assert (len := SortedRoots_length _ _ roots_ok).
@@ -1221,16 +1221,15 @@ Proof.
  set (c_rest := Rlistsum (map (fun r => Cmod (coefdA q r)) (skipn 3 roots))).
  set (theta := Polar.get_arg r).
  set (rho := Polar.get_arg d).
- destruct (affine_cos_apart_zero theta rho) as [c_r Cr].
+ assert (Ht : (sin theta <> 0)%R).
  { destruct (SortedRoots_im_pos _ _ roots_ok 0) as (IM & _); try lia.
    simpl in IM. fold r in IM. rewrite <- (polar_eqn r) in IM.
    fold theta in IM. rewrite im_scal_l in IM.
    unfold Im, Cexp in IM. simpl in IM. nra. }
- set (c := (c_r * Cmod d)%R).
+ assert (Cr := affine_cos_pos theta rho Ht). clear Ht.
+ set (c := (1/2 * Cmod d)%R).
  assert (Hc : 0 < c).
- { unfold c. apply Rmult_lt_0_compat.
-   - now destruct c_r.
-   - apply Cmod_gt_0; trivial. }
+ { unfold c. apply Rmult_lt_0_compat. lra. apply Cmod_gt_0; trivial. }
  exists (mkposreal c Hc). intros N. simpl.
  set (r' := roots@3) in *.
  set (ratio := (Cmod r' / Cmod r)%R).
@@ -1259,37 +1258,34 @@ Proof.
  { apply Rdiv_lt_0_compat; trivial. }
  destruct (Cr (max N N')) as (n & Hn & LTn).
  exists n. split; try lia.
- rewrite <- Cmod_R, (Equation_dA q _ roots_ok); trivial; try lia.
+ rewrite <- (re_RtoC (_-_)), (Equation_dA q _ roots_ok); trivial; try lia.
  assert (roots_eq : roots = roots@0 :: r :: Cconj r :: skipn 3 roots).
  { rewrite <- E.
    now do 3 (destruct roots; unfold Cnth in *; simpl in *; try lia). }
  rewrite roots_eq. clear Cr E.
  set (f := fun r => _).
- cbn -[skipn]. change (fold_right _ _) with Clistsum. unfold f at 1 2.
+ cbn -[skipn Re]. change (fold_right _ _) with Clistsum. unfold f at 1 2.
  rewrite coefdA_conj.
  fold d.
- rewrite <- Cpow_conj, <- Cconj_mult_distr, Cplus_assoc, re_alt'.
- eapply Rlt_le_trans; [|apply Cmod_triangle'].
- rewrite Cmod_mult. rewrite !Cmod_R, Rabs_right by lra.
+ rewrite <- Cpow_conj, <- Cconj_mult_distr, Cplus_assoc, !re_plus.
+ rewrite re_conj, <- double.
+ apply Rlt_minus_l. unfold Rminus. rewrite <- re_opp.
+ eapply Rle_lt_trans;
+   [eapply Rplus_le_compat_l, Rle_trans; [apply Rle_abs | apply re_le_Cmod] | ].
+ rewrite Cmod_opp.
  rewrite <- (polar_eqn d). fold rho.
  rewrite <- (polar_eqn r) at 2. fold theta. rewrite Cpow_mul_l, Cexp_pow.
  replace (_ * _ * _)
   with (Cmod d * Cmod r ^ n * (Cexp rho * Cexp (theta * n))) by ring.
  rewrite <- Cexp_add.
  rewrite <- Cmult_assoc, RtoC_pow, !re_scal_l, <- Rmult_assoc.
- rewrite !Rabs_mult.
- rewrite 2 Rabs_right by (rewrite <- ?Cmod_pow; apply Rle_ge, Cmod_ge_0).
  unfold Cexp, Re. simpl fst.
- rewrite Rplus_comm.
- apply Rlt_trans with (2 * c * Cmod r ^ n - Cmod (Clistsum (map f (skipn 3 roots))))%R.
- 2:{ unfold c. unfold Rminus. apply Rplus_lt_compat_r.
-     rewrite !Rmult_assoc, (Rmult_comm c_r), <- !Rmult_assoc.
-     apply Rmult_lt_compat_l; trivial.
-     rewrite <- Cmod_pow, Rmult_assoc, <- Cmod_mult.
-     apply Rmult_lt_0_compat; try lra. apply Cmod_gt_0.
-     intros E.
-     apply Cmult_integral in E. destruct E as [E|E]. now apply Hd.
-     revert E. now apply Cpow_nonzero. }
+ rewrite (Rplus_comm rho).
+ apply Rlt_le_trans with (2 * c * Cmod r ^ n)%R.
+ 2:{ unfold c.
+     rewrite !Rmult_assoc, (Rmult_comm (1/2)), <- !Rmult_assoc.
+     apply Rmult_le_compat_l; trivial.
+     repeat apply Rmult_le_pos; try lra; try apply pow_le; apply Cmod_ge_0. }
  clear theta rho LTn.
  assert (Cmod (Clistsum (map f (skipn 3 roots))) < c * Cmod r ^n); try lra.
  eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map. unfold f.
@@ -1307,7 +1303,123 @@ Proof.
    2:{ apply pow_nonzero. intros E. now apply Cmod_eq_0 in E. }
    apply Rmult_le_compat_l. apply Cmod_ge_0. apply pow_incr; split; trivial.
    apply Cmod_ge_0. }
- { clearbody c. clear roots_eq f c_r len roots_ok Q LE.
+ { clearbody c. clear roots_eq f len roots_ok Q LE.
+   rewrite map_ext
+     with (g:=(fun x => Cmod (coefdA q x) * (ratio^n * Cmod (r^n)))%R).
+   2:{ intros a. rewrite Cmod_mult. ring. }
+   replace (Rlistsum _) with (c_rest * (ratio ^ n * Cmod (r ^ n)))%R.
+   2:{ unfold c_rest. now rewrite Rlistsum_distr, map_map. }
+   rewrite Cmod_pow, <- Rmult_assoc. apply Rmult_lt_compat_r.
+   - now apply pow_lt, Cmod_gt_0.
+   - rewrite Rmult_comm. apply Rcomplements.Rlt_div_r; try lra.
+     apply Rle_lt_trans with (ratio ^ N')%R; trivial.
+     apply Rle_pow_low. lra. lia. }
+Qed.
+
+Lemma dA_expo' q roots : (3<=q)%nat -> SortedRoots q roots ->
+ let r := roots@1 in
+ exists c : posreal,
+ forall N, exists n, (N<=n)%nat /\
+    A q (n-1) - tau q * A q n < -c * (Cmod r)^n.
+Proof.
+ intros Q roots_ok r.
+ assert (len := SortedRoots_length _ _ roots_ok).
+ destruct (second_best_root q _ lia roots_ok) as (E & LT & LE).
+ fold r in E, LT.
+ assert (R : Root r (ThePoly q)).
+ { eapply SortedRoots_roots; eauto. apply nth_In. lia. }
+ assert (R0 : r <> 0). { intros ->. now apply root_nz in R. }
+ set (d := coefdA q r).
+ assert (Hd : d<>0).
+ { apply coefdA_nz; trivial.
+   rewrite <- (SortedRoots_mu q _ roots_ok). intros EQ.
+   apply NoDup_nth in EQ; try lia. eapply SortedRoots_nodup; eauto. }
+ set (c_rest := Rlistsum (map (fun r => Cmod (coefdA q r)) (skipn 3 roots))).
+ set (theta := Polar.get_arg r).
+ set (rho := Polar.get_arg d).
+ assert (Ht : (sin theta <> 0)%R).
+ { destruct (SortedRoots_im_pos _ _ roots_ok 0) as (IM & _); try lia.
+   simpl in IM. fold r in IM. rewrite <- (polar_eqn r) in IM.
+   fold theta in IM. rewrite im_scal_l in IM.
+   unfold Im, Cexp in IM. simpl in IM. nra. }
+ assert (Cr := affine_cos_neg theta rho Ht). clear Ht.
+ set (c := (1/2 * Cmod d)%R).
+ assert (Hc : 0 < c).
+ { unfold c. apply Rmult_lt_0_compat. lra. apply Cmod_gt_0; trivial. }
+ exists (mkposreal c Hc). intros N. simpl.
+ set (r' := roots@3) in *.
+ set (ratio := (Cmod r' / Cmod r)%R).
+ assert (R' : Root r' (ThePoly q)).
+ { eapply SortedRoots_roots; eauto. apply nth_In. lia. }
+ assert (R0' : r' <> 0). { intros ->. now apply root_nz in R'. }
+ assert (Hratio : (0 < ratio < 1)%R).
+ { unfold ratio. split.
+   - apply Rdiv_lt_0_compat; apply Cmod_gt_0; trivial.
+   - rewrite <- Rcomplements.Rdiv_lt_1; trivial. apply Cmod_gt_0; trivial. }
+ assert (Hrest : 0 < c_rest).
+ { unfold c_rest.
+   replace (skipn 3 roots) with (r' :: skipn 4 roots).
+   2:{ now do 4 (destruct roots as [|? roots]; unfold Cnth in *;
+                 simpl in *; try lia). }
+   cbn - [skipn]. change (fold_right Rplus _) with Rlistsum.
+   rewrite <- map_map with (g := Cmod) (f:=coefdA q).
+   apply Rlt_le_trans
+    with (Cmod (coefdA q r') + Cmod (Clistsum (map (coefdA q) (skipn 4 roots))))%R.
+   - apply Rplus_lt_le_0_compat; [ | apply Cmod_ge_0].
+     apply Cmod_gt_0. apply coefdA_nz; trivial.
+     rewrite <- (SortedRoots_mu q _ roots_ok). intros EQ.
+     apply NoDup_nth in EQ; try lia. eapply SortedRoots_nodup; eauto.
+   - apply Rplus_le_compat_l. apply Clistsum_mod. }
+ destruct (large_enough_exponent' ratio (c/c_rest)) as (N' & HN'); trivial.
+ { apply Rdiv_lt_0_compat; trivial. }
+ destruct (Cr (max N N')) as (n & Hn & LTn).
+ exists n. split; try lia.
+ rewrite <- (re_RtoC (_-_)), (Equation_dA q _ roots_ok); trivial; try lia.
+ assert (roots_eq : roots = roots@0 :: r :: Cconj r :: skipn 3 roots).
+ { rewrite <- E.
+   now do 3 (destruct roots; unfold Cnth in *; simpl in *; try lia). }
+ rewrite roots_eq. clear Cr E.
+ set (f := fun r => _).
+ cbn -[skipn Re]. change (fold_right _ _) with Clistsum. unfold f at 1 2.
+ rewrite coefdA_conj.
+ fold d.
+ rewrite <- Cpow_conj, <- Cconj_mult_distr, Cplus_assoc, !re_plus.
+ rewrite re_conj, <- double.
+ eapply Rle_lt_trans;
+   [eapply Rplus_le_compat_l, Rle_trans; [apply Rle_abs | apply re_le_Cmod] | ].
+ apply Rlt_minus_r.
+ rewrite <- (polar_eqn d). fold rho.
+ rewrite <- (polar_eqn r) at 1. fold theta. rewrite Cpow_mul_l, Cexp_pow.
+ replace (_ * _ * _)
+  with (Cmod d * Cmod r ^ n * (Cexp rho * Cexp (theta * n))) by ring.
+ rewrite <- Cexp_add.
+ rewrite <- Cmult_assoc, RtoC_pow, !re_scal_l, <- Rmult_assoc.
+ unfold Cexp, Re. simpl fst.
+ rewrite (Rplus_comm rho).
+ apply Rle_lt_trans with (-(2 * c * Cmod r ^ n))%R.
+ { unfold c.
+   rewrite !Rmult_assoc, (Rmult_comm (1/2)), <- !Rmult_assoc.
+   rewrite Ropp_mult_distr_r.
+   apply Rmult_le_compat_l; try lra.
+   repeat apply Rmult_le_pos; try lra; try apply pow_le; apply Cmod_ge_0. }
+ clear theta rho LTn.
+ assert (Cmod (Clistsum (map f (skipn 3 roots))) < c * Cmod r ^n); try lra.
+ eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map. unfold f.
+ eapply Rle_lt_trans; [apply Rlistsum_le
+                       with (g:=(fun x => ratio^n * Cmod (coefdA q x * r ^ n))%R)|].
+ { intros a Ha. unfold ratio. rewrite !Cmod_mult.
+   destruct (In_nth _ _ 0 Ha) as (m & Hm & <-).
+   replace (nth m (skipn 3 roots) 0) with (roots@(3+m))
+    by now rewrite roots_eq at 1.
+   rewrite skipn_length in Hm.
+   specialize (LE (3+m)%nat lia).
+   set (rm := roots@(3+m)) in *.
+   set (dm := coefdA q rm). unfold Rdiv.
+   rewrite Rpow_mult_distr, pow_inv, !Cmod_pow. field_simplify.
+   2:{ apply pow_nonzero. intros E. now apply Cmod_eq_0 in E. }
+   apply Rmult_le_compat_l. apply Cmod_ge_0. apply pow_incr; split; trivial.
+   apply Cmod_ge_0. }
+ { clearbody c. clear roots_eq f len roots_ok Q LE.
    rewrite map_ext
      with (g:=(fun x => Cmod (coefdA q x) * (ratio^n * Cmod (r^n)))%R).
    2:{ intros a. rewrite Cmod_mult. ring. }
@@ -1321,3 +1433,4 @@ Proof.
 Qed.
 
 (* Print Assumptions dA_expo. *)
+(* Print Assumptions dA_expo'. *)

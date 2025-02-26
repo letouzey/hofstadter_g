@@ -1265,11 +1265,16 @@ Qed.
 
 (** Proposition 7.4 *)
 
-Lemma affine_cos_apart_zero (a b : R) : sin a <> R0 ->
- exists c:posreal,
-   forall N, exists n, (N<=n)%nat /\ c < Rabs (cos (a * n + b)).
+Lemma affine_cos_pos (a b : R) : sin a <> R0 ->
+  forall N, exists n, (N<=n)%nat /\ 1/2 <= cos (a * n + b).
 Proof.
- exact (MoreReals.affine_cos_apart_zero a b).
+ exact (MoreReals.affine_cos_pos a b).
+Qed.
+
+Lemma affine_cos_neg (a b : R) : sin a <> R0 ->
+  forall N, exists n, (N<=n)%nat /\ cos (a * n + b) <= -1/2.
+Proof.
+ exact (MoreReals.affine_cos_neg a b).
 Qed.
 
 (** Proposition 7.5.
@@ -1279,22 +1284,39 @@ Qed.
 Lemma dA_lower_bound k : (6<=k)%nat ->
  exists c : posreal,
  forall N, exists n, (N<=n)%nat /\
-    c * (Cmod (root_r k 1))^n < Rabs (A k (n-1) - α k * A k n).
+    c * (Cmod (root_r k 1))^n < A k (n-1) - α k * A k n.
 Proof.
  intros. apply ThePoly.dA_expo. lia. apply SortedRoots_alt, TheRoots_ok; lia.
 Qed.
 
+Lemma dA_upper_bound k : (6<=k)%nat ->
+ exists c : posreal,
+ forall N, exists n, (N<=n)%nat /\
+    A k (n-1) - α k * A k n < -c * (Cmod (root_r k 1))^n .
+Proof.
+ intros. apply ThePoly.dA_expo'. lia. apply SortedRoots_alt, TheRoots_ok; lia.
+Qed.
+
 Lemma dA_sup_gen k : (6<=k)%nat ->
- is_sup_seq (fun n => Rabs (A k (n-1) - α k * A k n)) Rbar.p_infty.
+ is_sup_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.p_infty.
 Proof.
  intros. apply Freq.dA_sup_qgen. lia.
 Qed.
+
+Lemma dA_inf_gen k : (6<=k)%nat ->
+ is_inf_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.m_infty.
+Proof.
+ intros. apply Freq.dA_inf_qgen. lia.
+Qed.
+
 
 (** ** Section 8 : Discrepancy : maximal distance to the linear equivalent *)
 
 (** Definition 8.1 *)
 
 Definition δ k n := (F k n - α k * n)%R.
+Definition supδ k := Sup_seq (δ k).
+Definition infδ k := Inf_seq (δ k).
 Definition Δ k := Sup_seq (fun n => Rabs (δ k n)).
 
 (** Proposition 8.3.
@@ -1340,7 +1362,7 @@ Local Close Scope C_scope.
 (** Theorem 8.2 and 8.5 together.
     No Coq proof yet about the speed of divergence. *)
 
-Lemma Delta_gen k : (5<=k)%nat -> Δ k = Rbar.p_infty.
+Lemma supdelta_gen k : (5<=k)%nat -> supδ k = Rbar.p_infty.
 Proof.
  intros.
  apply is_sup_seq_unique.
@@ -1349,6 +1371,32 @@ Proof.
  - destruct (Nat.eq_dec k 5) as [->|K'].
    + apply LimCase4.delta_sup_q4.
    + apply (Freq.delta_sup_qgen (k-1)); lia.
+Qed.
+
+Lemma infdelta_gen k : (5<=k)%nat -> infδ k = Rbar.m_infty.
+Proof.
+ intros.
+ apply is_inf_seq_unique.
+ eapply is_inf_seq_ext.
+ - intros n. unfold δ. rewrite F_f; lia || easy.
+ - destruct (Nat.eq_dec k 5) as [->|K'].
+   + apply LimCase4.delta_inf_q4.
+   + apply (Freq.delta_inf_qgen (k-1)); lia.
+Qed.
+
+Lemma sup_abs (u:nat -> R) :
+  Sup_seq u = Rbar.p_infty -> Sup_seq (fun n => Rabs (u n)) = Rbar.p_infty.
+Proof.
+ intros Hu.
+ assert (Hu' := Sup_seq_correct u). rewrite Hu in Hu'.
+ apply is_sup_seq_unique.
+ intros M. destruct (Hu' M) as (n & H). simpl in H.
+ exists n. simpl. apply Rlt_le_trans with (u n); trivial. apply Rle_abs.
+Qed.
+
+Lemma Delta_gen k : (5<=k)%nat -> Δ k = Rbar.p_infty.
+Proof.
+ intros Hk. apply sup_abs. now apply supdelta_gen.
 Qed.
 
 (** Theorem 8.7 *)

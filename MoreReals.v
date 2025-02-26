@@ -1,5 +1,5 @@
 From Coq Require Import List Lia Reals Ranalysis5 Lra.
-From Coq Require Import Qreals Qminmax Qabs.
+From Coq Require Import Qreals Qminmax Qabs Qcanon.
 From Coquelicot Require Rcomplements.
 Require Import MoreList DeltaList.
 Import ListNotations.
@@ -301,12 +301,11 @@ Proof.
  rewrite <- int_part_le. auto.
 Qed.
 
-Lemma nat_part_INR x : 0 <= x -> x <= nat_part x + 1.
+Lemma nat_part_INR x : 0 <= x -> x < nat_part x + 1.
 Proof.
  intros Hx.
  rewrite (nat_frac x Hx) at 1. generalize (base_fp x). lra.
 Qed.
-
 
 Lemma nat_part_le n r : 0<=r -> INR n <= r <-> (n <= nat_part r)%nat.
 Proof.
@@ -408,84 +407,286 @@ Proof.
  apply Rcomplements.Rinv_lt_cancel; trivial.
 Qed.
 
-(** Some trigonometry : [fun n => |cos(a*n+b)|] is apart from 0
-    frequently enough when [sin(a)<>0]. *)
+(** Dirichlet approximation theorem *)
 
-Lemma affine_cos_apart_zero (a b : R) : sin a <> 0 ->
- exists c:posreal,
-   forall N, exists n, (N<=n)%nat /\ c < Rabs (cos (a * n + b)).
+Lemma dirichlet (a : R)(N : nat) : N<>O ->
+  exists (q : nat) (p : Z), (1<=q<=N)%nat /\ Rabs (q*a - p) < 1/N.
 Proof.
-intros Ha.
-set (f := fun n => Rabs (cos (a*n+b))).
-set (ZeroOne := fun x => 0<=x<=1).
-assert (CZO : compact ZeroOne) by apply compact_P3.
-destruct (Bolzano_Weierstrass f ZeroOne CZO) as (lim,Hlim).
-{ unfold ZeroOne, f. intros. split. apply Rabs_pos.
-  apply Rabs_le, COS_bound. }
-assert (0 <= lim).
-{ apply Rnot_lt_le. intros LT.
-  destruct (Hlim (fun x => x<0) O) as (p & Hp & LT').
-  - assert (LT' : 0 < (-lim/2)) by lra.
-    exists (mkposreal (-lim/2) LT').
-    intros x X. unfold disc in X. simpl in X.
-    apply Rabs_def2 in X. lra.
-  - revert LT'. apply Rle_not_lt, Rabs_pos. }
-destruct (Req_dec lim 0) as [->|NZ].
-- assert (LT : 0 < Rabs (sin a)/2).
-  { generalize (Rabs_pos_lt (sin a)). lra. }
-  exists (mkposreal (Rabs(sin a)/2) LT). intros N.
-  destruct (Req_dec (cos a) 0) as [Ha'|Ha'].
-  + destruct (Hlim (fun x => x < 1/2) N) as (n & Hn & LT').
-    * assert (LT' : 0 < 1/2) by lra.
-      exists (mkposreal (1/2) LT').
-      intros x X. unfold disc in X. simpl in X.
-      apply Rabs_def2 in X. lra.
-    * exists (S n). split. lia. rewrite S_INR. simpl.
-      replace (a*(n+1)+b) with (a+(a*n+b)) by lra.
-      rewrite cos_plus, Ha', Rmult_0_l, Rabs_minus_sym, Rminus_0_r.
-      rewrite Rabs_mult. unfold f in LT'.
-      replace (1/2) with (Rabs (1/2)) in LT' by (rewrite Rabs_right; lra).
-      apply Rsqr_lt_abs_1 in LT'.
-      rewrite cos2 in LT'.
-      assert (LT2 : (1/2)² < (sin(a*n+b))²)  by (unfold Rsqr in *; lra).
-      apply Rsqr_lt_abs_0 in LT2. rewrite Rabs_right in LT2 by lra. nra.
-  + set (c := Rmin (1/2) (Rabs (sin a)/Rabs (cos a)/4)).
-    assert (LT' : 0 < c).
-    { apply Rmin_glb_lt. lra.
-      do 2 (apply Rdiv_lt_0_compat; try lra). now apply Rabs_pos_lt. }
-    destruct (Hlim (fun x => x < c) N) as (n & Hn & LTn).
-    * exists (mkposreal c LT').
-      intros x X. unfold disc in X. simpl in X.
-      apply Rabs_def2 in X. lra.
-    * exists (S n). split. lia. rewrite S_INR. simpl.
-      replace (a*(n+1)+b) with (a+(a*n+b)) by lra.
-      rewrite cos_plus, Rabs_minus_sym.
-      eapply Rlt_le_trans; [|apply Rabs_triang_inv].
-      rewrite !Rabs_mult. fold (f n).
-      assert (LT2 : Rabs (sin (a * n + b)) > 3/4).
-      { replace (3/4) with (Rabs (3/4)) by (rewrite Rabs_right; lra).
-        apply Rsqr_lt_abs_0.
-        rewrite sin2.
-        assert (LTn' : f n < Rabs (1/2)).
-        { rewrite Rabs_right by lra. apply Rlt_le_trans with c; trivial.
-          unfold c. apply Rmin_l. }
-        apply Rsqr_lt_abs_1 in LTn'. unfold Rsqr in *; lra. }
-      assert (Rabs (cos a) * f n < Rabs (sin a)/4).
-      { apply Rlt_le_trans with (Rabs (cos a) * c).
-        apply Rmult_lt_compat_l; trivial. now apply Rabs_pos_lt.
-        apply Rle_trans with
-            (Rabs (cos a) * (Rabs (sin a) / Rabs (cos a)/4)).
-        apply Rmult_le_compat_l. apply Rabs_pos. apply Rmin_r.
-        field_simplify. apply Rle_refl. now apply Rabs_no_R0. }
-      nra.
-- assert (LT : 0 < lim/2) by lra.
-  exists (mkposreal (lim/2) LT).
-  intros N. simpl.
-  destruct (Hlim (fun x => lim/2 < x) N) as (n & Hn & LT').
-  + exists (mkposreal (lim/2) LT).
-    intros x X. unfold disc in X. simpl in X.
-    apply Rabs_def2 in X. lra.
-  + now exists n.
+ intros HN.
+ set (l := map (fun (k:nat) => nat_part (N*frac_part (k*a))) (seq O (S N))).
+ assert (B : Below l N).
+ { unfold l. intros x. rewrite in_map_iff. intros (k & <- & K).
+   rewrite in_seq in K. apply nat_part_lt.
+   generalize (base_fp (k*a)) (lt_0_INR N ltac:(lia)). nra. }
+ assert (L : length l = S N).
+ { unfold l. now rewrite map_length, seq_length. }
+ destruct (pigeonhole_split N l B ltac:(lia)) as (m & l1 & l2 & l3 & E).
+ set (k1 := length l1).
+ set (k2 := length l2).
+ unfold l in E.
+ assert (k1+k2 < N)%nat.
+ { apply (f_equal (@length nat)) in E.
+   rewrite map_length, seq_length, !app_length in E. simpl in E.
+   rewrite app_length in E. simpl in E. lia. }
+ replace (S N) with (k1 + S (k2 + S (N-k1-k2-1)))%nat in E by lia.
+ rewrite seq_app, map_app in E.
+ apply app_inv in E.
+ 2:{ now rewrite map_length, seq_length. }
+ destruct E as (_,E).
+ rewrite <- cons_seq in E. simpl in E. injection E as E1 E.
+ rewrite seq_app, map_app in E.
+ apply app_inv in E.
+ 2:{ now rewrite map_length, seq_length. }
+ destruct E as (_,E).
+ rewrite <- cons_seq in E. remember (S k1+k2)%nat as k.
+ injection E as E2 _.
+ exists (S k2).
+ exists (Int_part (k*a) - Int_part (k1*a))%Z.
+ split. lia.
+ set (u := N * _) in E1.
+ set (v := N * _) in E2.
+ assert (-1 < u-v < 1).
+ { rewrite (nat_frac u), (nat_frac v).
+   2:{ unfold v. generalize (base_fp (k*a)) (lt_0_INR N ltac:(lia)). nra. }
+   2:{ unfold u. generalize (base_fp (k1*a)) (lt_0_INR N ltac:(lia)). nra. }
+   rewrite E1,E2.
+   generalize (base_fp u) (base_fp v). lra. }
+ unfold u, v in *; clearbody k1 k2; clear l B L u v E1 E2 l1 l2 l3.
+ replace (S k2) with (k-k1)%nat by lia.
+ rewrite minus_INR, Rmult_minus_distr_r by lia.
+ rewrite (int_frac (k*a)) at 1. rewrite (int_frac (k1*a)) at 1.
+ rewrite minus_IZR. apply Rabs_def1; ring_simplify.
+ - apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia. lra.
+ - apply Ropp_lt_cancel. rewrite Ropp_involutive.
+   apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia. lra.
+Qed.
+
+(** Specialized version of [euclidean_division] on positive reals,
+    hence with quotient in nat. *)
+
+Lemma euclidian_division_pos (x y : R) :
+ 0 <= x -> 0 < y -> exists (q : nat) (r : R), x = q * y + r /\ 0 <= r < y.
+Proof.
+ intros Hx Hy.
+ exists (nat_part (x/y)), (y*frac_part (x/y)); split.
+ - replace x with (y * (x/y)) at 1 by (field; lra).
+   rewrite (nat_frac (x/y)) at 1. ring.
+   apply Rcomplements.Rdiv_le_0_compat; lra.
+ - generalize (base_fp (x/y)). nra.
+Qed.
+
+(** Kronecker approximation theorem *)
+
+Definition irrat r := forall (q:Q), r <> Q2R q.
+
+Lemma kronecker (a b : R)(eps : posreal) : irrat a ->
+ exists (q:nat) (p:Z), Rabs (q*a - p - b) < eps.
+Proof.
+ intros Ha.
+ set (N := S (nat_part (/eps))).
+ assert (HN : /eps < N).
+ { unfold N. rewrite S_INR. apply nat_part_INR. apply Rlt_le.
+   apply Rinv_0_lt_compat, eps. }
+ assert (HN' : /N < eps).
+ { rewrite <- (Rinv_inv eps).
+   apply Rinv_lt_contravar; trivial. apply Rmult_lt_0_compat.
+   apply Rinv_0_lt_compat, eps. apply RSpos. }
+ destruct (dirichlet a N ltac:(easy)) as (q & p & Hq & LT).
+ set (m := frac_part (q*a)).
+ assert (Hm : 0 < m < 1).
+ { destruct (base_fp (q*a)) as (U,V). unfold m. split; trivial.
+   destruct U as [U|U]; trivial. apply fp_nat in U.
+   destruct U as (c & U). destruct (Ha (Qmake c (Pos.of_nat q))).
+   unfold Q2R. simpl. rewrite <- U. rewrite INR_IZR_INZ.
+   replace (Z.pos (Pos.of_nat q)) with (Z.of_nat q).
+   - field.
+     apply IZR_neq. intro E. change (0%Z) with (Z.of_nat 0) in E.
+     apply Nat2Z.inj in E. lia.
+   - rewrite <- positive_nat_Z. f_equal. rewrite Nat2Pos.id; lia. }
+ destruct (Z.eq_dec (Int_part (q*a)) p) as [EQ|NEQ].
+ - assert (Hm' : m < eps).
+   { rewrite (int_frac (q*a)), EQ in LT. fold m in LT.
+     replace (p+m-p) with m in LT by lra. rewrite Rabs_right in LT; lra. }
+   assert (Hb := base_fp b).
+   destruct (euclidian_division_pos (frac_part b) m) as (k & r & Hk & Hr);
+    try lra.
+   exists (k*q)%nat, (Z.of_nat k * Int_part (q*a) - Int_part b)%Z.
+   rewrite (int_frac b) at 2. rewrite Hk.
+   rewrite mult_INR, minus_IZR, mult_IZR, <- INR_IZR_INZ.
+   rewrite Rmult_assoc. rewrite (int_frac (q*a)) at 1. fold m.
+   replace (_-_) with (-r) by ring. rewrite Rabs_Ropp, Rabs_right; lra.
+ - rewrite (int_frac (q*a)) in LT.
+   assert (EQ : Int_part (q*a) = (p-1)%Z).
+   { apply Rabs_def2 in LT.
+     assert (1/N <= 1).
+     { unfold Rdiv. rewrite Rmult_1_l, <- Rinv_1.
+       apply Rinv_le_contravar. lra. apply (le_INR 1). unfold N; lia. }
+     assert (Int_part (q*a) - p < 1)%Z.
+     { apply lt_IZR. rewrite minus_IZR. generalize (base_fp (q*a)). lra. }
+     assert (-2 < Int_part (q*a) - p)%Z.
+     { apply lt_IZR. rewrite minus_IZR. generalize (base_fp (q*a)). lra. }
+     lia. }
+   rewrite EQ, minus_IZR in LT. fold m in LT.
+   replace (_-p) with (-(1-m)) in LT by lra. rewrite Rabs_Ropp in LT.
+   rewrite Rabs_right in LT by lra.
+   assert (Hb := base_fp b).
+   destruct (euclidian_division_pos (1-frac_part b) (1-m))
+     as (k & r & Hk & Hr); try lra.
+   exists (k*q)%nat, (Z.of_nat k * (Int_part (q*a)+1) - (1+Int_part b))%Z.
+   replace b with (1+Int_part b-(1-frac_part b)) at 2.
+   2:{ rewrite (int_frac b) at 3. lra. }
+   rewrite Hk, minus_IZR, mult_IZR, !plus_IZR, <- INR_IZR_INZ.
+   rewrite mult_INR.
+   rewrite Rmult_assoc. rewrite (int_frac (q*a)) at 1. fold m.
+   replace (_-_) with r by ring. rewrite Rabs_right; lra.
+Qed.
+
+(** Some complements on trigonometry. *)
+
+Lemma cos_periodZ x (p:Z) : cos (x + 2 * p * PI) = cos x.
+Proof.
+ destruct p.
+ - f_equal. lra.
+ - replace (IZR (Z.pos p)) with (INR (Z.to_nat (Z.pos p))).
+   apply cos_period. rewrite INR_IZR_INZ. f_equal. now apply Z2Nat.id.
+ - replace x with (x + 2*Z.neg p*PI + 2*INR (Z.to_nat (Z.pos p))*PI) at 2.
+   symmetry; apply cos_period.
+   rewrite INR_IZR_INZ, Z2Nat.id by easy.
+   change (Z.neg p) with (-Z.pos p)%Z. rewrite opp_IZR. lra.
+Qed.
+
+Lemma sin_periodZ x (p:Z) : sin (x + 2 * p * PI) = sin x.
+Proof.
+ destruct p.
+ - f_equal. lra.
+ - replace (IZR (Z.pos p)) with (INR (Z.to_nat (Z.pos p))).
+   apply sin_period. rewrite INR_IZR_INZ. f_equal. now apply Z2Nat.id.
+ - replace x with (x + 2*Z.neg p*PI + 2*INR (Z.to_nat (Z.pos p))*PI) at 2.
+   symmetry; apply sin_period.
+   rewrite INR_IZR_INZ, Z2Nat.id by easy.
+   change (Z.neg p) with (-Z.pos p)%Z. rewrite opp_IZR. lra.
+Qed.
+
+Lemma cos_abs x : cos (Rabs x) = cos x.
+Proof.
+ destruct (Rle_lt_dec 0 x).
+ - rewrite Rabs_right; lra.
+ - rewrite Rabs_left by lra. apply cos_neg.
+Qed.
+
+(** [fun n => cos(a*n+b)] is above 0.5 infinitely often, first when
+    [a/(2*PI)] is irrational, then more generally when [sin(a)<>0].
+    TODO: It seems overkill to use rationality / irrationality this way
+     (and the Excluded Middle to know in which case we are).
+     Is there a simpler proof ? *)
+
+Lemma affine_cos_pos_irrat (a b : R) :
+  irrat (a / (2*PI)) ->
+  forall N, exists n, (N<=n)%nat /\ 1/2 < cos (a * n + b).
+Proof.
+ intros Ha N.
+ assert (Heps : 0 < /6) by lra.
+ set (eps := mkposreal _ Heps).
+ destruct (kronecker _ (-(N*a+b)/(2*PI)) eps Ha) as (q & p & E).
+ exists (N+q)%nat. split. lia. rewrite plus_INR.
+ unfold eps in E. simpl in E. clear eps Heps.
+ apply Rmult_lt_compat_l with (r:=2*PI) in E. 2:{ apply Rgt_2PI_0. }
+ rewrite <- (Rabs_right (2*PI)) in E at 1. 2:{ generalize Rgt_2PI_0; lra. }
+ rewrite <- Rabs_mult in E.
+ replace (2*PI*_) with ((a*(N+q)+b)-2*p*PI) in E by (field; apply PI_neq0).
+ set (c := a*(N+q)+b) in *.
+ replace c with (c-2*p*PI+2*p*PI) by lra.
+ rewrite cos_periodZ, <- cos_abs.
+ rewrite <- cos_PI3. replace (2*PI*/6) with (PI/3) in E by lra.
+ apply cos_decreasing_1; trivial using Rabs_pos; generalize PI_RGT_0; lra.
+Qed.
+
+Lemma affine_cos_pos (a b : R) :
+  sin a <> 0 ->
+  forall N, exists n, (N<=n)%nat /\ 1/2 <= cos (a * n + b).
+Proof.
+ intros Ha N.
+ destruct (Classical_Prop.classic (irrat (a/(2*PI)))) as [Ha'|Ha'].
+ - destruct (affine_cos_pos_irrat a b Ha' N) as (n & Hn & LT).
+   exists n. split; trivial. lra.
+ - apply Classical_Pred_Type.not_all_not_ex in Ha'.
+   destruct Ha' as (a' & E).
+   rewrite (Qeq_eqR a' (Qred a')) in E by (symmetry; apply Qred_correct).
+   destruct (Qred a') as (p,q) eqn:Hpq.
+   assert (Hpq' : Z.gcd p (Z.pos q) = 1%Z).
+   { replace q with (Qden (Qred a')). 2:now rewrite Hpq.
+     replace p with (Qnum (Qred a')). 2:now rewrite Hpq.
+     apply Qred_identity2, Qred_involutive. }
+   assert (P := PI_RGT_0).
+   assert (E' : a = 2*p*PI / Z.pos q).
+   { apply Rmult_eq_compat_l with (r:=2*PI) in E.
+     field_simplify in E; try lra.
+     subst a. unfold Q2R. simpl. field. now apply IZR_neq. }
+   clear E Hpq a'.
+   apply Z.gcd_bezout in Hpq'. destruct Hpq' as (u & v & Hpq).
+   apply (f_equal IZR) in Hpq. rewrite plus_IZR, !mult_IZR in Hpq.
+   destruct (euclidian_division (-b/(2*PI)+1/6) (/Z.pos q))
+     as (k & r & EQ & Hr).
+   { now apply Rinv_neq_0_compat, IZR_neq. }
+   assert (Hr' : 0 <= r < /3).
+   { split. apply Hr. apply Rlt_le_trans with (Rabs (/ Z.pos q)). apply Hr.
+     rewrite Rabs_right. 2:{ left. now apply Rinv_0_lt_compat, IZR_lt. }
+     apply Rinv_le_contravar; try lra. apply IZR_le.
+     assert (q <> 1%positive).
+     { intros ->. apply Ha. unfold Rdiv in *. rewrite E', Rinv_1, Rmult_1_r.
+       rewrite <- (Rplus_0_l (_*PI)). now rewrite sin_periodZ, sin_0. }
+     assert (q <> 2%positive).
+     { intros ->. apply Ha. replace a with (p*PI) by lra.
+       rewrite (Z.div_mod p 2), Z.add_comm; try lia.
+       rewrite plus_IZR, mult_IZR.
+       rewrite Rmult_plus_distr_r, sin_periodZ.
+       assert (Hp : (p mod 2 = 0 \/ p mod 2 = 1)%Z).
+       { generalize (Z.mod_pos_bound p 2); lia. }
+       destruct Hp as [-> | ->].
+       - now rewrite Rmult_0_l, sin_0.
+       - now rewrite Rmult_1_l, sin_PI. }
+     lia. }
+   clear Hr.
+   set (k' := Z.max Z0 (Z.of_nat N - k*u)). (* large over-estimate *)
+   set (n := (k * u + k' * Z.pos q)%Z).
+   assert (Hn : (Z.of_nat N <= n)%Z).
+   { unfold n, k'.
+     destruct (Z.max_spec 0 (Z.of_nat N - k*u)) as [(MX,->)|(MX,->)]; [|lia].
+     apply Z.le_sub_le_add_l. set (z := (_-_)%Z).
+     rewrite <- (Z.mul_1_r z) at 1. apply Z.mul_le_mono_nonneg_l; lia. }
+   exists (Z.to_nat n); split.
+   + apply Nat2Z.inj_le. rewrite Z2Nat.id; lia.
+   + rewrite INR_IZR_INZ, Z2Nat.id by lia. unfold n. clear n Hn. clearbody k'.
+     rewrite plus_IZR, !mult_IZR, Rmult_plus_distr_l.
+     rewrite Rplus_assoc, (Rplus_comm _ b), <- Rplus_assoc.
+     rewrite E'. clear a Ha E'.
+     replace (_*(k'*_)) with (2*(p*k')%Z*PI).
+     2:{ rewrite mult_IZR. field. now apply IZR_neq. }
+     rewrite cos_periodZ.
+     replace (_*(k*u)) with ((k/Z.pos q)*(2*PI) + 2*(-v*k)%Z*PI).
+     2:{ rewrite mult_IZR, opp_IZR.
+         rewrite <- (Rmult_1_l (_*(2*PI))), <- Hpq.
+         field. now apply IZR_neq. }
+     rewrite Rplus_assoc, (Rplus_comm _ b), <- Rplus_assoc, cos_periodZ.
+     replace (_+b) with ((1/6-r)*(2*PI)).
+     2:{ apply Rplus_eq_compat_r with (r:=-r) in EQ. ring_simplify in EQ.
+         unfold Rdiv at 2. rewrite <- EQ. field. lra. }
+     clear p u v Hpq k k' EQ.
+     rewrite <- cos_abs, <- cos_PI3.
+     assert (Rabs ((1/6 - r) * (2*PI)) <= PI/3).
+     { rewrite Rabs_mult.
+       rewrite (Rabs_right (2*PI)) by lra.
+       replace (PI/3) with (1/6 * (2*PI)) by lra.
+       apply Rmult_le_compat_r; try lra. apply Rabs_le. lra. }
+     apply cos_decr_1; trivial using Rabs_pos; lra.
+Qed.
+
+Lemma affine_cos_neg (a b : R) : sin a <> 0 ->
+   forall N, exists n, (N<=n)%nat /\ cos (a * n + b) <= -1/2.
+Proof.
+ intros Ha N.
+ destruct (affine_cos_pos a (b+PI) Ha N) as (n & Hn & LT).
+ exists n. split; trivial. rewrite <- Rplus_assoc, neg_cos in LT. lra.
 Qed.
 
 (** Strict positivity of 2nd-degree polynomial *)

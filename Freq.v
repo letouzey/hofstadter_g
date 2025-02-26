@@ -234,7 +234,7 @@ Proof.
      apply Rmult_lt_reg_l with (2/eps).
      apply Rmult_lt_0_compat; try lra.
      apply Rinv_0_lt_compat; lra. field_simplify; try lra.
-     apply Rle_lt_trans with N. 2:apply lt_INR; lia.
+     apply Rlt_trans with N. 2:apply lt_INR; lia.
      unfold N. set (x := _ / _). rewrite S_INR.
      apply nat_part_INR. unfold x.
      apply Rmult_le_pos.
@@ -346,8 +346,11 @@ Proof.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
 
-(** When parameter q is at least 5, [sup |f q n - tau q *n| = +infinity].
-    It is sufficient to consider numbers [n] of the form [A q m].
+(** When parameter q is at least 5,
+     [sup (f q n - tau q *n) = +infinity]
+    and
+     [inf (f q n - tau q *n) = -infinity].
+    It is sufficient to consider some numbers [n] of the form [A q m].
 
     The two following proofs used to rely on an axiom stating that
     the largest secondary root has modulus > 1 when q>=5. This axiom
@@ -355,13 +358,13 @@ Qed.
     So these proofs now depend only on the 4 usual logical axioms
     just as the whole Coq theory of classical real numbers.
 
-    Note that [sup |f 4 n - tau 4 * n| = +infinity] as well.
+    Note that [f 4 n - tau 4 * n] is also unbounded.
     The proof is quite different, since the largest secondary root
     has modulus just 1. See LimCase4.v.
 *)
 
 Lemma dA_sup_qgen q : (5<=q)%nat ->
- is_sup_seq (fun n => Rabs (A q (n-1) - tau q * A q n)) Rbar.p_infty.
+ is_sup_seq (fun n => A q (n-1) - tau q * A q n) Rbar.p_infty.
 Proof.
  intros Q M. simpl.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
@@ -376,10 +379,34 @@ Proof.
 Qed.
 
 Lemma delta_sup_qgen q : (5<=q)%nat ->
- is_sup_seq (fun n => Rabs (f q n - tau q * n)) Rbar.p_infty.
+ is_sup_seq (fun n => f q n - tau q * n) Rbar.p_infty.
 Proof.
  intros Q M. destruct (dA_sup_qgen q Q M) as (n & Hn). simpl in *.
  exists (A q n). now rewrite f_A.
 Qed.
 
+Lemma dA_inf_qgen q : (5<=q)%nat ->
+ is_inf_seq (fun n => A q (n-1) - tau q * A q n) Rbar.m_infty.
+Proof.
+ intros Q M. simpl.
+ destruct (SortedRoots_exists q) as (roots & roots_ok).
+ assert (LT := SecondRoot.large_second_best_root q roots Q roots_ok).
+ destruct (dA_expo' q roots lia roots_ok) as (c & Hc).
+ set (r := QuantumLib.Complex.Cmod _) in *.
+ destruct (large_enough_exponent r (-M/c)) as (N, HN); trivial.
+ destruct (Hc N) as (n & Hn & Hn').
+ exists n. eapply Rlt_trans; [apply Hn'|].
+ apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_involutive.
+ rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
+ eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.
+Qed.
+
+Lemma delta_inf_qgen q : (5<=q)%nat ->
+ is_inf_seq (fun n => f q n - tau q * n) Rbar.m_infty.
+Proof.
+ intros Q M. destruct (dA_inf_qgen q Q M) as (n & Hn). simpl in *.
+ exists (A q n). now rewrite f_A.
+Qed.
+
 (* Print Assumptions delta_sup_qgen. *)
+(* Print Assumptions delta_inf_qgen. *)

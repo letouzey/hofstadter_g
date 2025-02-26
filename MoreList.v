@@ -725,6 +725,28 @@ Proof.
  case Nat.eqb_spec; try lia. intros. now rewrite IHl.
 Qed.
 
+Lemma nbocc_0 l x : nbocc x l = 0 -> ~In x l.
+Proof.
+ induction l as [|y l IH]; simpl; try easy.
+ case Nat.eqb_spec; intros Y E; try lia.
+ rewrite Nat.add_0_r in E. tauto.
+Qed.
+
+Lemma nbocc_S l x n :
+  nbocc x l = S n ->
+  exists l1 l2, l = l1 ++ x :: l2 /\ nbocc x l1 = O /\ nbocc x l2 = n.
+Proof.
+ revert n.
+ induction l as [|y l IH]; intros n; simpl; try easy.
+ case Nat.eqb_spec; intros Y E; try subst y.
+ - exists [], l. split; simpl; trivial; lia.
+ - rewrite Nat.add_0_r in E.
+   destruct (IH n E) as (l1 & l2 & E0 & E1 & E2).
+   exists (y::l1),l2. simpl; repeat split; trivial.
+   + now rewrite E0.
+   + case Nat.eqb_spec; lia.
+Qed.
+
 Lemma count_nbocc f a n : count f a n = nbocc a (take n f).
 Proof.
  induction n. simpl; auto. rewrite take_S.
@@ -1348,3 +1370,52 @@ Qed.
 (** [Below l x] means that [x] is a strict upper bound for [l] *)
 
 Definition Below l x := forall y, In y l -> y < x.
+
+(** Various statements of the pigeonhole principle *)
+
+Lemma pigeonhole_nbocc n l :
+  Below l n -> n < length l -> exists x, 1 < nbocc x l.
+Proof.
+ revert l.
+ induction n.
+ - destruct l as [|x l]; simpl; try lia.
+   intros B _. specialize (B x); simpl in B; lia.
+ - intros l B L.
+   destruct (Nat.lt_ge_cases 1 (nbocc n l)).
+   + now exists n.
+   + destruct (Nat.le_gt_cases 1 (nbocc n l)).
+     * destruct (nbocc_S l n 0 ltac:(lia)) as (l1 & l2 & E0 & E1 & E2).
+       destruct (IHn (l1++l2)) as (x & Hx).
+       { intros x Hx.
+         apply nbocc_0 in E1, E2.
+         assert (x < S n)%nat.
+         { apply B. rewrite E0. rewrite in_app_iff in *. simpl. tauto. }
+         assert (x <> n) by (intros ->; rewrite in_app_iff in *; tauto).
+         lia. }
+       { rewrite E0 in L. rewrite app_length in *. simpl in L. lia. }
+       exists x. rewrite E0. rewrite nbocc_app in *. simpl. lia.
+     * apply (IHn l); try lia.
+       intros x Hx. specialize (B x Hx).
+       assert (~In n l). { apply nbocc_0. lia. }
+       assert (x <> n) by (now intros ->).
+       lia.
+Qed.
+
+Lemma pigeonhole_dup n l : Below l n -> n < length l -> ~NoDup l.
+Proof.
+ intros B L. destruct (pigeonhole_nbocc n l B L) as (m & Hm).
+ rewrite (NoDup_count_occ Nat.eq_dec). intros H. specialize (H m).
+ rewrite <- nbocc_alt in H. lia.
+Qed.
+
+Lemma pigeonhole_split n l :
+  Below l n -> n < length l ->
+  exists x l1 l2 l3, l = l1 ++ x :: l2 ++ x :: l3.
+Proof.
+ intros B L. destruct (pigeonhole_nbocc n l B L) as (x & Hx).
+ destruct (nbocc_S l x (nbocc x l - 1) ltac:(lia))
+   as (l1 & l23 & E & _ & E23).
+ destruct (nbocc_S l23 x (nbocc x l - 2) ltac:(lia))
+   as (l2 & l3 & E' & _ & _).
+ exists x,l1,l2,l3. now rewrite E,E'.
+Qed.

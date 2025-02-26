@@ -11,8 +11,9 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case q=4, compute the complex roots of [X^5-X^4-1],
    and express (A 4 n) in term of combinations of powers of these roots.
-   Then we show that [Rabs (f 4 n - tau 4 * n)] has infinity as sup
-   (or equivalently as limsup, see MoreLim.Sup_LimSup_pinfty).
+   Then we show that [f 4 n - tau 4 * n] has +infinity as sup
+   (or equivalently as limsup, see MoreLim.Sup_LimSup_pinfty),
+   and -infinity as inf.
 *)
 
 Definition μ := mu 4.
@@ -202,10 +203,15 @@ Proof.
    rewrite in_seq in Hy. lia.
 Qed.
 
-Lemma γ6 : (γ^6)%C = 1.
+Lemma γ3 : (γ^3)%C = -1.
 Proof.
  unfold γ. rewrite Cexp_pow, INR_IZR_INZ. simpl.
- replace (PI/3*6) with (2*PI) by field. apply Cexp_2PI.
+ replace (PI/3*3) with PI by field. apply Cexp_PI.
+Qed.
+
+Lemma γ6 : (γ^6)%C = 1.
+Proof.
+ change 6%nat with (3*2)%nat. rewrite Cpow_mult, γ3. lca.
 Qed.
 
 Lemma delta_seq_u_eqn n :
@@ -300,7 +306,7 @@ Proof.
 Qed.
 
 Lemma delta_sup_q4 :
- is_sup_seq (fun n => Rabs (f 4 n - τ * n)) Rbar.p_infty.
+ is_sup_seq (fun n => f 4 n - τ * n) Rbar.p_infty.
 Proof.
  intros M. simpl.
  destruct delta_seq_u_bound as (c & c' & LE).
@@ -318,13 +324,109 @@ Proof.
    - rewrite Z2Nat.id; try lia. apply Rplus_lt_compat_l. apply base_fp.
    - apply Rplus_lt_compat. 2:apply base_fp. simpl. apply IZR_lt. lia. }
  clearbody m. exists (seq_u m). specialize (LE m).
- set (d := f 4 (seq_u m) - τ * seq_u m) in *.
- eapply Rlt_le_trans; [apply Hm|].
- rewrite <- Rabs_Ropp.
- replace (-d) with (-(c*m) - (d-c*m)) by lra.
- eapply Rle_trans; [|apply Rabs_triang_inv].
- rewrite Rabs_Ropp, Rabs_right. lra.
- apply Rle_ge, Rmult_le_pos. destruct c; simpl; lra. apply pos_INR.
+ apply Rcomplements.Rabs_le_between in LE; lra.
 Qed.
 
 (* Print Assumptions delta_sup_q4. *)
+
+(** For [inf (f 4 n - τ * n) = -infinity], we shift the decompositions
+    [decomp_u] by 3, since [γ^(6p+3) = -1]. *)
+
+Definition seq_u' n := sumA 4 (map (Nat.add 3) (decomp_u n)).
+
+Lemma delta_seq_u'_eqn n :
+  f 4 (seq_u' n) - τ * (seq_u' n) =
+  -2*n*Re (coefdA 4 γ) +
+  2*Re (coefdA 4 α * α^3 * Clistsum (map (Cpow α) (decomp_u n))).
+Proof.
+ apply RtoC_inj. rewrite (Equation_delta' 4 roots roots_sorted); try lia.
+ unfold roots. simpl tl.
+ rewrite decomp_carac with (l:=(map (Nat.add 3) (decomp_u n))); try easy.
+ 2:{ eapply Delta_map; try apply decomp_u_delta. lia. }
+ set (f := fun r => _).
+ simpl map. simpl Clistsum. rewrite Cplus_assoc, RtoC_plus. f_equal.
+ - unfold f. rewrite γ_conj. rewrite coefdA_conj.
+   set (l := map _ (decomp_u n)).
+   set (dγ := coefdA 4 γ).
+   replace (Clistsum (map (Cpow (Cconj γ)) l))
+     with (Cconj (Clistsum (map (Cpow γ) l))).
+   2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
+       intros a. apply Cpow_conj. }
+   set (sum := Clistsum (map (Cpow α) l)).
+   rewrite <- Cconj_mult_distr, re_alt'.
+   replace (Clistsum (map (Cpow γ) l)) with (RtoC (-n)).
+   2:{ clear. unfold l, decomp_u. rewrite !map_map.
+       rewrite map_ext with (g := fun _ => Copp C1), Clistsum_const, seq_length.
+       lca. intros a. rewrite Cpow_add, Cpow_mult, γ6, γ3, Cpow_1_l. lca. }
+   rewrite re_scal_r. lca.
+ - rewrite Cplus_0_r. unfold f. clear f.
+   rewrite <- α_conj. rewrite !coefdA_conj.
+   set (l := map _ (decomp_u n)).
+   set (dα := coefdA 4 α).
+   set (sum := Clistsum (map (Cpow α) l)).
+   replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
+   2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
+       intros a. apply Cpow_conj. }
+   rewrite <- Cconj_mult_distr, re_alt'.
+   rewrite RtoC_mult, <- Cmult_assoc. do 4 f_equal.
+   rewrite Clistsum_factor_l. unfold sum, l. clear. f_equal.
+   rewrite !map_map. apply map_ext. intros a. apply Cpow_add.
+Qed.
+
+Lemma delta_seq_u'_bound :
+ exists (c c' : posreal),
+ forall n, Rabs (f 4 (seq_u' n) - τ * seq_u' n + c*n) <= c'.
+Proof.
+ set (c := 2*Re (coefdA 4 γ)).
+ assert (Hc : 0 < c) by (unfold c; approx).
+ exists (mkposreal c Hc). simpl.
+ set (c' := 2*(Cmod (coefdA 4 α * α^3)/(1-Cmod α^6))).
+ assert (Hc' : 0 < c').
+ { unfold c'. rewrite Cmod_mult. repeat apply Rmult_lt_0_compat; try lra.
+   - apply Cmod_gt_0. apply coefdA_nz.
+     + eapply SortedRoots_roots. apply roots_sorted. unfold roots.
+       simpl;tauto.
+     + change (Cnth roots 3 <> Cnth roots 0). intros E.
+       apply NoDup_nth in E; simpl; try lia.
+       eapply SortedRoots_nodup; apply roots_sorted.
+   - approx.
+   - change 6%nat with (2*3)%nat. rewrite pow_mult, αmod2. approx. }
+ exists (mkposreal c' Hc'). simpl.
+ intros n.
+ rewrite delta_seq_u'_eqn. unfold c.
+ remember (_+_+_) as x eqn:Hx. ring_simplify in Hx. subst x.
+ rewrite Rabs_mult, Rabs_right by lra.
+ unfold c'. apply Rmult_le_compat_l; try lra.
+ eapply Rle_trans; [apply re_le_Cmod|]. rewrite Cmod_mult.
+ unfold Rdiv. apply Rmult_le_compat_l. apply Cmod_ge_0.
+ eapply Rle_trans; [apply Clistsum_mod|]. rewrite map_map.
+ rewrite map_ext with (g:=pow (Cmod α)).
+ 2:{ intros. now rewrite Cmod_pow. }
+ apply sum_pow; try apply decomp_u_delta. lia. split. apply Cmod_ge_0.
+ apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0.
+ rewrite Rsqr_pow2, αmod2. approx.
+Qed.
+
+Lemma delta_inf_q4 :
+ is_inf_seq (fun n => f 4 n - τ * n) Rbar.m_infty.
+Proof.
+ intros M. simpl.
+ destruct delta_seq_u'_bound as (c & c' & LE).
+ set (m := (S (Z.to_nat (Int_part ((-M+c')/c))))).
+ assert (Hm : -M < c*m-c').
+ { apply Rcomplements.Rlt_minus_r.
+   rewrite Rmult_comm. apply Rcomplements.Rlt_div_l.
+   destruct c; simpl; lra.
+   unfold m.
+   set (x := (-M+c')/c). clearbody x.
+   rewrite (int_frac x) at 1.
+   rewrite S_INR, INR_IZR_INZ.
+   destruct (Int_part x) eqn:E.
+   - simpl. apply Rplus_lt_compat_l. apply base_fp.
+   - rewrite Z2Nat.id; try lia. apply Rplus_lt_compat_l. apply base_fp.
+   - apply Rplus_lt_compat. 2:apply base_fp. simpl. apply IZR_lt. lia. }
+ clearbody m. exists (seq_u' m). specialize (LE m).
+ apply Rcomplements.Rabs_le_between in LE; lra.
+Qed.
+
+(* Print Assumptions delta_inf_q4. *)
