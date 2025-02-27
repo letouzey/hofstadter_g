@@ -887,14 +887,6 @@ Qed.
 
 (*==============================================================*)
 
-Lemma map_S_pred l : ~In 0 l -> map S (map pred l) = l.
-Proof.
- intros.
- rewrite map_map. rewrite <- (map_id l) at 2.
- apply map_ext_in.
- intros a Ha. assert (a<>0) by congruence. lia.
-Qed.
-
 (** * [g] and Fibonacci decomposition.
 
    We now prove that g is simply "shifting" the Fibonacci

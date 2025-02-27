@@ -595,6 +595,14 @@ Proof.
  now rewrite <- map_decr_1, map_decr_decr.
 Qed.
 
+Lemma map_S_pred l : ~In 0 l -> map S (map pred l) = l.
+Proof.
+ intros.
+ rewrite map_map. rewrite <- (map_id l) at 2.
+ apply map_ext_in.
+ intros a Ha. assert (a<>0) by congruence. lia.
+Qed.
+
 (** take : the list of the n first elements of a infinite sequence
     (given as a function over nat). A.k.a List.init in OCaml. *)
 
