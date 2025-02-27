@@ -887,17 +887,6 @@ Qed.
 
 (*==============================================================*)
 
-(* begin hide *)
-(* now in Coq stdlib's List.v in 8.5 *)
-Lemma map_ext_in :
-  forall (A B : Type)(f g:A->B) l,
-    (forall a, In a l -> f a = g a) -> map f l = map g l.
-Proof.
-  induction l; simpl; auto.
-  intros; rewrite H by intuition; rewrite IHl; auto.
-Qed.
-(* end hide *)
-
 Lemma map_S_pred l : ~In 0 l -> map S (map pred l) = l.
 Proof.
  intros.
