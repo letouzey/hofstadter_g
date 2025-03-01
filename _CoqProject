@@ -13,6 +13,8 @@ Approx.v
 Phi.v
 GenFib.v
 GenG.v
+FlexArray.v
+FastG.v
 GenAdd.v
 GenFlip.v
 Shift.v

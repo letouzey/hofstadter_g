@@ -1427,3 +1427,98 @@ Proof.
    as (l2 & l3 & E' & _ & _).
  exists x,l1,l2,l3. now rewrite E,E'.
 Qed.
+
+(** More on nth_error *)
+
+Lemma nth_error_ext {A} (l l':list A) :
+  (forall n, nth_error l n = nth_error l' n) -> l = l'.
+Proof.
+ revert l'.
+ induction l; destruct l'; intros H; trivial; try now specialize (H O).
+ f_equal.
+ - now injection (H O).
+ - apply IHl. intros n. apply (H (S n)).
+Qed.
+
+Lemma nth_error_ext' {A} (l l':list A) :
+ length l = length l' ->
+ (forall n, n < length l -> nth_error l n = nth_error l' n) ->
+ l = l'.
+Proof.
+ intros E H.
+ apply nth_error_ext. intros n.
+ destruct (Nat.lt_ge_cases n (length l)) as [LT|GE].
+ - now apply H.
+ - destruct (nth_error_None l n) as (_,->); trivial.
+   rewrite E in GE. destruct (nth_error_None l' n) as (_,->); trivial.
+Qed.
+
+Lemma nth_error_map {A B} (f:A -> B) (l:list A) n :
+  nth_error (List.map f l) n = option_map f (nth_error l n).
+Proof.
+ revert n. induction l; destruct n; simpl; easy.
+Qed.
+Lemma nth_error_seq (a b n : nat) : (n < b)%nat ->
+  nth_error (seq a b) n = Some (a+n).
+Proof.
+ revert a n. induction b; destruct n; intros; simpl; try lia.
+ - f_equal. lia.
+ - rewrite Nat.add_succ_r. apply IHb. lia.
+Qed.
+
+(** Mix : alternate elements from l1 and l2. Used in FlexArray.to_list *)
+
+Fixpoint mix {A} (l1 l2 : list A) :=
+  match l1, l2 with
+  | [], _ => l2
+  | _, [] => l1
+  | x1::l1, x2::l2 => x1::x2::mix l1 l2
+  end.
+
+Lemma mix_eqn {A} (a1:A) l1 l2 : mix (a1::l1) l2 = a1 :: mix l2 l1.
+Proof.
+ revert l1 a1 l2. fix IH 1.
+ destruct l1 as [|b1 [|c1 l1]], l2 as [|a2 [|b2 l2]]; simpl; trivial.
+ do 4 f_equal. apply (IH l1 c1 l2).
+Qed.
+
+Lemma mix_concat_l {A} l1 l2 (a1:A) :
+ length l1 = length l2 ->
+ mix (l1++[a1]) l2 = mix l1 l2 ++ [a1].
+Proof.
+ revert l2 a1.
+ induction l1; destruct l2; simpl; intros a1 E; try easy.
+ f_equal. f_equal. apply IHl1; lia.
+Qed.
+
+Lemma mix_concat_r {A} l1 l2 (a2:A) :
+ length l1 = S (length l2) ->
+ mix l1 (l2++[a2]) = mix l1 l2 ++ [a2].
+Proof.
+ revert l2 a2.
+ induction l1; destruct l2; simpl; intros a2 E; try easy.
+ - now destruct l1.
+ - f_equal. f_equal. apply IHl1; lia.
+Qed.
+
+Lemma mix_spec {A} (l1 l2 : list A) :
+  length l2 <= length l1 <= S (length l2) ->
+  forall n,
+  nth_error (mix l1 l2) (2*n) = nth_error l1 n
+  /\ nth_error (mix l1 l2) (2*n+1) = nth_error l2 n.
+Proof.
+ revert l2.
+ induction l1 as [|a1 l1 IH]; destruct l2 as [|a2 l2]; simpl; try lia.
+ - intros _. now destruct n.
+ - destruct l1 as [|b1 l1]; simpl; try lia.
+   intros _. destruct n; simpl; try easy.
+   rewrite Nat.add_succ_r. simpl. now destruct n.
+ - intros H. destruct n; simpl; try easy.
+   rewrite Nat.add_succ_r. simpl. apply IH. lia.
+Qed.
+
+Lemma mix_length {A} (l1 l2 : list A) :
+  length (mix l1 l2) = length l1 + length l2.
+Proof.
+ revert l2. induction l1; destruct l2; simpl; rewrite ?IHl1; lia.
+Qed.
