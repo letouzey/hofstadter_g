@@ -728,9 +728,7 @@ Proof.
  unfold Rdiv.
  apply Rmult_le_compat_l.
  - generalize (Cmod_ge_0 coefa0). lra.
- - apply sum_pow; try lia; try apply decomp_delta.
-   split; try apply Cmod_ge_0.
-   apply Rlt_pow2_inv; try lra. rewrite αmod2. approx.
+ - apply Rlt_le, sum_pow; try lia; try apply decomp_delta. approx.
 Qed.
 
 (** Experimentally, this first bound is around 1.112.
@@ -1189,7 +1187,7 @@ Proof.
  unfold Rdiv.
  apply Rmult_le_compat_l.
  - generalize (Cmod_ge_0 coefa2). lra.
- - apply sum_pow; try lia; try apply decomp_delta. approx.
+ - apply Rlt_le, sum_pow; try lia; try apply decomp_delta. approx.
 Qed.
 
 Lemma diff2_lt_2 n : Rabs (diff2 n) < 2.

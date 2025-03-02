@@ -274,7 +274,7 @@ Qed.
 
 Lemma delta_seq_u_bound :
  exists (c c' : posreal),
- forall n, Rabs (f 4 (seq_u n) - τ * seq_u n - c*n) <= c'.
+ forall n, Rabs (f 4 (seq_u n) - τ * seq_u n - c*n) < c'.
 Proof.
  set (c := 2*Re (coefdA 4 γ)).
  assert (Hc : 0 < c) by (unfold c; approx).
@@ -294,22 +294,21 @@ Proof.
  rewrite delta_seq_u_eqn. unfold c.
  remember (_+_-_) as x eqn:Hx. ring_simplify in Hx. subst x.
  rewrite Rabs_mult, Rabs_right by lra.
- unfold c'. apply Rmult_le_compat_l; try lra.
- eapply Rle_trans; [apply re_le_Cmod|]. rewrite Cmod_mult.
- unfold Rdiv. apply Rmult_le_compat_l. apply Cmod_ge_0.
- eapply Rle_trans; [apply Clistsum_mod|]. rewrite map_map.
+ unfold c'. apply Rmult_lt_compat_l; try lra.
+ eapply Rle_lt_trans; [apply re_le_Cmod|]. rewrite Cmod_mult.
+ unfold Rdiv. apply Rmult_lt_compat_l.
+ { apply Cmod_gt_0. unfold c' in *. intros E. rewrite E, Cmod_0 in Hc'. lra. }
+ eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map.
  rewrite map_ext with (g:=pow (Cmod α)).
  2:{ intros. now rewrite Cmod_pow. }
- apply sum_pow; try apply decomp_u_delta. lia. split. apply Cmod_ge_0.
- apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0.
- rewrite Rsqr_pow2, αmod2. approx.
+ apply sum_pow; try apply decomp_u_delta. lia. approx.
 Qed.
 
 Lemma delta_sup_q4 :
  is_sup_seq (fun n => f 4 n - τ * n) Rbar.p_infty.
 Proof.
  intros M. simpl.
- destruct delta_seq_u_bound as (c & c' & LE).
+ destruct delta_seq_u_bound as (c & c' & LT).
  set (m := (S (Z.to_nat (Int_part ((M+c')/c))))).
  assert (Hm : M < c*m-c').
  { apply Rcomplements.Rlt_minus_r.
@@ -323,8 +322,8 @@ Proof.
    - simpl. apply Rplus_lt_compat_l. apply base_fp.
    - rewrite Z2Nat.id; try lia. apply Rplus_lt_compat_l. apply base_fp.
    - apply Rplus_lt_compat. 2:apply base_fp. simpl. apply IZR_lt. lia. }
- clearbody m. exists (seq_u m). specialize (LE m).
- apply Rcomplements.Rabs_le_between in LE; lra.
+ clearbody m. exists (seq_u m). specialize (LT m).
+ apply Rcomplements.Rabs_lt_between in LT; lra.
 Qed.
 
 (* Print Assumptions delta_sup_q4. *)
@@ -375,7 +374,7 @@ Qed.
 
 Lemma delta_seq_u'_bound :
  exists (c c' : posreal),
- forall n, Rabs (f 4 (seq_u' n) - τ * seq_u' n + c*n) <= c'.
+ forall n, Rabs (f 4 (seq_u' n) - τ * seq_u' n + c*n) < c'.
 Proof.
  set (c := 2*Re (coefdA 4 γ)).
  assert (Hc : 0 < c) by (unfold c; approx).
@@ -396,22 +395,21 @@ Proof.
  rewrite delta_seq_u'_eqn. unfold c.
  remember (_+_+_) as x eqn:Hx. ring_simplify in Hx. subst x.
  rewrite Rabs_mult, Rabs_right by lra.
- unfold c'. apply Rmult_le_compat_l; try lra.
- eapply Rle_trans; [apply re_le_Cmod|]. rewrite Cmod_mult.
- unfold Rdiv. apply Rmult_le_compat_l. apply Cmod_ge_0.
- eapply Rle_trans; [apply Clistsum_mod|]. rewrite map_map.
+ unfold c'. apply Rmult_lt_compat_l; try lra.
+ eapply Rle_lt_trans; [apply re_le_Cmod|]. rewrite Cmod_mult.
+ unfold Rdiv. apply Rmult_lt_compat_l.
+ { apply Cmod_gt_0. unfold c' in *. intros E. rewrite E, Cmod_0 in Hc'. lra. }
+ eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map.
  rewrite map_ext with (g:=pow (Cmod α)).
  2:{ intros. now rewrite Cmod_pow. }
- apply sum_pow; try apply decomp_u_delta. lia. split. apply Cmod_ge_0.
- apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0.
- rewrite Rsqr_pow2, αmod2. approx.
+ apply sum_pow; try apply decomp_u_delta. lia. approx.
 Qed.
 
 Lemma delta_inf_q4 :
  is_inf_seq (fun n => f 4 n - τ * n) Rbar.m_infty.
 Proof.
  intros M. simpl.
- destruct delta_seq_u'_bound as (c & c' & LE).
+ destruct delta_seq_u'_bound as (c & c' & LT).
  set (m := (S (Z.to_nat (Int_part ((-M+c')/c))))).
  assert (Hm : -M < c*m-c').
  { apply Rcomplements.Rlt_minus_r.
@@ -425,8 +423,8 @@ Proof.
    - simpl. apply Rplus_lt_compat_l. apply base_fp.
    - rewrite Z2Nat.id; try lia. apply Rplus_lt_compat_l. apply base_fp.
    - apply Rplus_lt_compat. 2:apply base_fp. simpl. apply IZR_lt. lia. }
- clearbody m. exists (seq_u' m). specialize (LE m).
- apply Rcomplements.Rabs_le_between in LE; lra.
+ clearbody m. exists (seq_u' m). specialize (LT m).
+ apply Rcomplements.Rabs_lt_between in LT; lra.
 Qed.
 
 (* Print Assumptions delta_inf_q4. *)

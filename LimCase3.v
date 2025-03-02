@@ -765,10 +765,10 @@ Proof.
  apply Rplus_le_compat.
  - apply Rmult_le_compat_l.
    + generalize (Cmod_ge_0 coefa0). lra.
-   + apply sum_pow; try lia; try apply decomp_delta. approx.
+   + apply Rlt_le,sum_pow; try lia; try apply decomp_delta. approx.
  - apply Rmult_le_compat_l; try apply Rabs_pos.
    replace (ν^4) with (Rabs ν^4) by (rewrite Rabs_left by approx; ring).
-   apply sum_pow; try lia; try apply decomp_delta.
+   apply Rlt_le,sum_pow; try lia; try apply decomp_delta.
    rewrite Rabs_left; approx.
 Qed.
 

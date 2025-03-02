@@ -92,42 +92,42 @@ Proof.
 Qed.
 
 Lemma sum_pow_cons k l n r :
-  O<>k -> 0<=r<1 -> Delta k (n::l) ->
-  Rlistsum (List.map (pow r) (n::l)) <= r^n/(1-r^k).
+  O<>k -> 0<r<1 -> Delta k (n::l) ->
+  Rlistsum (List.map (pow r) (n::l)) < r^n/(1-r^k).
 Proof.
  intros Hk Hr.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
+ assert (H3 : 0 < r^k < 1).
+ { split. now apply pow_lt. apply pow_lt_1_compat. lra. lia. }
  revert n.
  induction l.
  - intros n _. cbn -[pow].
    rewrite Rplus_0_r.
-   apply Rcomplements.Rle_div_r; try lra.
+   apply Rcomplements.Rlt_div_r; try lra.
    rewrite <- (Rmult_1_r (r^n)) at 2.
-   apply Rmult_le_compat_l; try lra.
-   apply pow_le; lra.
+   apply Rmult_lt_compat_l; try lra.
+   apply pow_lt; lra.
  - intros n. inversion_clear 1.
    change (Rlistsum _) with (r^n + Rlistsum (List.map (pow r) (a::l))).
-   eapply Rle_trans. eapply Rplus_le_compat_l. apply IHl; eauto.
+   eapply Rlt_le_trans. eapply Rplus_lt_compat_l. apply IHl; eauto.
    apply Rcomplements.Rle_div_r; try lra.
    field_simplify; try lra.
    rewrite <- Ropp_mult_distr_l, <- pow_add.
-   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. }
+   assert (r^a <= r^(n+k)). { apply Rle_pow_low; auto. lra. }
    lra.
 Qed.
 
 Lemma sum_pow k l r :
-  O<>k -> 0<=r<1 -> Delta k l ->
-  Rlistsum (List.map (pow r) l) <= /(1-r^k).
+  O<>k -> 0<r<1 -> Delta k l ->
+  Rlistsum (List.map (pow r) l) < /(1-r^k).
 Proof.
  intros Hk Hr D.
- assert (H3 : 0 <= r^k < 1).
- { apply pow_lt_1_compat. lra. lia. }
+ assert (H3 : 0 < r^k < 1).
+ { split. now apply pow_lt. apply pow_lt_1_compat. lra. lia. }
  destruct l as [|n l].
  - cbn -[pow].
    rewrite <- (Rmult_1_l (/ _)).
-   apply Rcomplements.Rle_div_r; try lra.
- - eapply Rle_trans. apply (sum_pow_cons k); auto.
+   apply Rcomplements.Rlt_div_r; try lra.
+ - eapply Rlt_le_trans. apply (sum_pow_cons k); auto.
    rewrite <- (Rmult_1_l (/ _)).
    apply Rmult_le_compat_r.
    rewrite <- (Rmult_1_l (/ _)).
