@@ -45,6 +45,13 @@ Proof.
  induction l; simpl; trivial. lra. rewrite <- IHl; lra.
 Qed.
 
+Lemma Rlistsum_abs l : Rabs (Rlistsum l) <= Rlistsum (map Rabs l).
+Proof.
+ induction l; simpl.
+ - rewrite Rabs_right; lra.
+ - eapply Rle_trans; [apply Rabs_triang|]. lra.
+Qed.
+
 Lemma Rdist_listsum {A}(f g:A->R) l :
  R_dist (Rlistsum (map f l)) (Rlistsum (map g l)) <=
  Rlistsum (map (fun x => R_dist (f x) (g x)) l).
