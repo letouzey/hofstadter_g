@@ -1522,3 +1522,9 @@ Lemma mix_length {A} (l1 l2 : list A) :
 Proof.
  revert l2. induction l1; destruct l2; simpl; rewrite ?IHl1; lia.
 Qed.
+
+Lemma mix_permut {A} (l1 l2 : list A) : Permutation (mix l1 l2) (l1++l2).
+Proof.
+ revert l2. induction l1; destruct l2; simpl; rewrite ?app_nil_r; try easy.
+ apply perm_skip. rewrite IHl1. apply Permutation_middle.
+Qed.
