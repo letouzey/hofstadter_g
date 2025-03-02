@@ -38,6 +38,13 @@ Proof.
  induction l; simpl; lra.
 Qed.
 
+Lemma Rlistsum_minus {A} f g (l:list A) :
+  Rlistsum (map f l) - Rlistsum (map g l)
+  = Rlistsum (map (fun x => f x - g x) l).
+Proof.
+ induction l; simpl; trivial. lra. rewrite <- IHl; lra.
+Qed.
+
 Lemma Rdist_listsum {A}(f g:A->R) l :
  R_dist (Rlistsum (map f l)) (Rlistsum (map g l)) <=
  Rlistsum (map (fun x => R_dist (f x) (g x)) l).
