@@ -76,9 +76,10 @@ Fixpoint tail_or_id {A} (t : tree A) : tree A :=
 Fixpoint liat_or_id {A} (t : tree A) : tree A :=
   match t with
   | Leaf _ => t
-  | Node _ (Leaf x) (Leaf _) => Leaf x
-  | Node true evens odds => Node false evens (liat_or_id odds)
-  | Node false evens odds => Node true (liat_or_id evens) odds
+  | Node _ ((Leaf x) as t') _ => t'
+  | Node p evens odds =>
+    if p then Node false evens (liat_or_id odds)
+         else Node true (liat_or_id evens) odds
   end.
 
 (** tail and liat : return None on singletons *)
@@ -258,8 +259,6 @@ Proof.
  rewrite seq_nth by lia. f_equal; lia.
 Qed.
 
-(** TODO specs of [set] [tail] [liat] *)
-
 Lemma singleton_to_list {A} (a:A) : to_list (singleton a) = [a].
 Proof.
  easy.
@@ -317,6 +316,220 @@ Lemma snoc_size {A} (t:tree A) a : Ok t -> size (snoc t a) = N.succ (size t).
 Proof.
  intros. rewrite !size_spec; auto using snoc_ok. apply snoc_fullsize.
 Qed.
+
+Lemma fullsize_pos {A} (t:tree A) : 1 <= fullsize t.
+Proof.
+ induction t; simpl; lia.
+Qed.
+
+Lemma fullsize_node {A} p (t1 t2:tree A) : 2 <= fullsize (Node p t1 t2).
+Proof.
+ simpl. generalize (fullsize_pos t1) (fullsize_pos t2). lia.
+Qed.
+
+Lemma tail_or_id_fullsize {A} (t:tree A) :
+ fullsize (tail_or_id t) = N.max 1 (fullsize t - 1).
+Proof.
+ induction t; simpl; try lia.
+ destruct t1.
+ - simpl fullsize. generalize (fullsize_pos t2). lia.
+ - assert (LE := fullsize_node p0 t1_1 t1_2).
+   remember (Node p0 t1_1 t1_2) as t1.
+   simpl. rewrite IHt1. generalize (fullsize_pos t2). lia.
+Qed.
+
+Lemma tail_or_id_ok {A} (t:tree A) : Ok t -> Ok (tail_or_id t).
+Proof.
+ induction t; simpl; trivial.
+ destruct t1.
+ - tauto.
+ - assert (LE := fullsize_node p0 t1_1 t1_2).
+   remember (Node p0 t1_1 t1_2) as t1. intros OK.
+   simpl. repeat split; try easy. now apply IHt1.
+   rewrite tail_or_id_fullsize.
+   destruct p; simpl; lia.
+Qed.
+
+Lemma tail_or_id_size {A} (t:tree A) : Ok t ->
+ size (tail_or_id t) = N.max 1 (size t - 1).
+Proof.
+ intros. rewrite !size_spec; auto using tail_or_id_fullsize, tail_or_id_ok.
+Qed.
+
+Lemma tail_or_id_spec {A} (t:tree A) :
+  Ok t -> 2 <= size t -> to_list (tail_or_id t) = tl (to_list t).
+Proof.
+ intros OK. rewrite size_spec by trivial. revert OK.
+ induction t; simpl; try lia.
+ destruct t1; intros OK LE.
+ - simpl. now destruct (to_list t2).
+ - assert (LE' := fullsize_node p0 t1_1 t1_2).
+   remember (Node p0 t1_1 t1_2) as t1.
+   simpl. rewrite IHt1; try easy.
+   assert (E1 := to_list_length t1).
+   destruct (to_list t1) as [|a l1].
+   + simpl in E1. lia.
+   + now rewrite mix_eqn.
+Qed.
+
+Lemma tail_none {A} (t:tree A) : tail t = None <-> fullsize t = 1.
+Proof.
+ destruct t.
+ - easy.
+ - simpl. split; try easy.
+   generalize (fullsize_pos t1) (fullsize_pos t2); lia.
+Qed.
+
+Lemma tail_ok {A} (t t':tree A) : Ok t -> tail t = Some t' -> Ok t'.
+Proof.
+ destruct t; cbn -[tail_or_id]; try easy.
+ intros OK [= <-]. now apply (tail_or_id_ok (Node p t1 t2)).
+Qed.
+
+Lemma tail_size {A} (t t':tree A) :
+ Ok t -> tail t = Some t' -> size t' = size t - 1.
+Proof.
+ intros OK E. rewrite !size_spec; trivial. 2:{ eapply tail_ok; eauto. }
+ destruct t; cbn -[tail_or_id]; try easy.
+ unfold tail in E. injection E as <-.
+ change (fullsize (tail_or_id (Node p t1 t2)) = fullsize t1 + fullsize t2 -1).
+ rewrite tail_or_id_fullsize. simpl.
+ generalize (fullsize_pos t1) (fullsize_pos t2). lia.
+Qed.
+
+Lemma tail_spec {A} (t t':tree A) :
+  Ok t -> tail t = Some t' -> to_list t' = tl (to_list t).
+Proof.
+ intros OK E. destruct t; simpl in *; try easy.
+ injection E as E. change (tail_or_id (Node p t1 t2) = t') in E.
+ rewrite <- E. rewrite tail_or_id_spec. easy. apply OK.
+ rewrite size_spec. simpl.
+ generalize (fullsize_pos t1) (fullsize_pos t2). lia. apply OK.
+Qed.
+
+Lemma liat_or_id_fullsize {A} (t:tree A) :
+ Ok t -> fullsize (liat_or_id t) = N.max 1 (fullsize t - 1).
+Proof.
+ induction t; simpl; intros OK; try lia.
+ destruct t1.
+ - simpl fullsize. simpl in OK. destruct p; lia.
+ - assert (LE := fullsize_node p0 t1_1 t1_2).
+   remember (Node p0 t1_1 t1_2) as t1.
+   destruct p.
+   + simpl. rewrite IHt2 by easy.
+     rewrite N.add_0_r in OK.
+     destruct OK as (_ & _ & <-). lia.
+   + simpl. rewrite IHt1 by easy. lia.
+Qed.
+
+Lemma liat_or_id_ok {A} (t:tree A) : Ok t -> Ok (liat_or_id t).
+Proof.
+ induction t; simpl; trivial.
+ destruct t1; try easy.
+ assert (LE := fullsize_node p0 t1_1 t1_2).
+ remember (Node p0 t1_1 t1_2) as t1. intros OK.
+ destruct p.
+ - simpl. repeat split; try tauto.
+   rewrite liat_or_id_fullsize by apply OK.
+   rewrite N.add_0_r in OK.
+   destruct OK as (_ & _ & <-). lia.
+ - simpl. repeat split; try tauto.
+   rewrite liat_or_id_fullsize by apply OK.
+   destruct OK as (_ & _ & ->). generalize (fullsize_pos t2). lia.
+Qed.
+
+Lemma liat_or_id_size {A} (t:tree A) : Ok t ->
+ size (liat_or_id t) = N.max 1 (size t - 1).
+Proof.
+ intros. rewrite !size_spec; auto using liat_or_id_fullsize, liat_or_id_ok.
+Qed.
+
+Lemma removelast_mix_eq {A} (l1 l2:list A) : length l1 = length l2 ->
+  removelast (mix l1 l2) = mix l1 (removelast l2).
+Proof.
+ intros E.
+ destruct l1 as [|a1 l1]; try easy.
+ destruct l2 as [|a2 l2]; try easy.
+ assert (E' : a2::l2 <> []) by easy.
+ apply app_removelast_last with (d:=a2) in E'.
+ rewrite E' at 1.
+ rewrite mix_concat_r.
+ - now rewrite removelast_last.
+ - rewrite E. rewrite E' at 1. rewrite app_length; simpl; lia.
+Qed.
+
+Lemma removelast_mix_neq {A} (l1 l2:list A) : length l1 = S (length l2) ->
+  removelast (mix l1 l2) = mix (removelast l1) l2.
+Proof.
+ intros E.
+ destruct l1 as [|a1 l1]; try easy. simpl in E.
+ assert (E' : a1::l1 <> []) by easy.
+ apply app_removelast_last with (d:=a1) in E'.
+ rewrite E' at 1.
+ rewrite mix_concat_l.
+ - now rewrite removelast_last.
+ - apply (f_equal (@length A)) in E'. rewrite app_length in E'.
+   change (length [_]) with 1%nat in E'.
+   change (length (a1::l1)) with (S (length l1)) in E'. lia.
+Qed.
+
+Lemma liat_or_id_spec {A} (t:tree A) :
+  Ok t -> 2 <= size t -> to_list (liat_or_id t) = removelast (to_list t).
+Proof.
+ intros OK. rewrite size_spec by trivial. revert OK.
+ induction t; simpl; try lia.
+ destruct t1; intros OK LE.
+ - simpl in OK. simpl fullsize in LE.
+   destruct p; try lia.
+   destruct t2; try easy.
+   generalize (fullsize_node p t2_1 t2_2). lia.
+ - assert (LE' := fullsize_node p0 t1_1 t1_2).
+   remember (Node p0 t1_1 t1_2) as t1.
+   destruct p.
+   + simpl. rewrite N.add_0_r in OK. rewrite IHt2 by (easy||lia).
+     rewrite <- removelast_mix_eq; trivial.
+     rewrite !to_list_length. lia.
+   + simpl. rewrite IHt1 by (easy||lia).
+     rewrite <- removelast_mix_neq; trivial.
+     rewrite !to_list_length. lia.
+Qed.
+
+Lemma liat_none {A} (t:tree A) : liat t = None <-> fullsize t = 1.
+Proof.
+ destruct t.
+ - easy.
+ - simpl. split; try easy.
+   generalize (fullsize_pos t1) (fullsize_pos t2); lia.
+Qed.
+
+Lemma liat_ok {A} (t t':tree A) : Ok t -> liat t = Some t' -> Ok t'.
+Proof.
+ destruct t; cbn -[liat_or_id]; try easy.
+ intros OK [= <-]. now apply (liat_or_id_ok (Node p t1 t2)).
+Qed.
+
+Lemma liat_size {A} (t t':tree A) :
+ Ok t -> liat t = Some t' -> size t' = size t - 1.
+Proof.
+ intros OK E. rewrite !size_spec; trivial. 2:{ eapply liat_ok; eauto. }
+ destruct t; cbn -[liat_or_id]; try easy.
+ unfold liat in E. injection E as <-.
+ change (fullsize (liat_or_id (Node p t1 t2)) = fullsize t1 + fullsize t2 -1).
+ rewrite liat_or_id_fullsize; trivial. simpl.
+ generalize (fullsize_pos t1) (fullsize_pos t2). lia.
+Qed.
+
+Lemma liat_spec {A} (t t':tree A) :
+  Ok t -> liat t = Some t' -> to_list t' = removelast (to_list t).
+Proof.
+ intros OK E. destruct t; simpl in *; try easy.
+ injection E as E. change (liat_or_id (Node p t1 t2) = t') in E.
+ rewrite <- E. rewrite liat_or_id_spec. easy. apply OK.
+ rewrite size_spec. simpl.
+ generalize (fullsize_pos t1) (fullsize_pos t2). lia. apply OK.
+Qed.
+
+(** TODO specs of [set] *)
 
 Lemma of_list_ok {A} a (l:list A) : Ok (of_list a l).
 Proof.
