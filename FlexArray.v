@@ -134,7 +134,7 @@ Fixpoint map_reduce {A B} (f : A -> B) (op : B -> B -> B) (t : tree A) : B :=
   | Node _ evens odds => op (map_reduce f op evens) (map_reduce f op odds)
   end.
 
-(** Proofs *)
+(** Proofs. The specs are very unharmonious, to improve someday.  *)
 
 Fixpoint fullsize {A} (t:tree A) :=
  match t with
@@ -175,7 +175,7 @@ Proof.
    replace n0 with n in H6 by lia. now apply IHGet.
 Qed.
 
-Lemma get_spec {A} n (t:tree A) :
+Lemma get_spec {A} (t:tree A) n :
   Ok t -> n < fullsize t -> Get t n (get t n).
 Proof.
  revert n.
@@ -191,6 +191,47 @@ Proof.
      apply GOdd. replace (N.div2 _) with m.
      2:{ now rewrite <- N.succ_double_spec, N.div2_succ_double. }
      apply IHt2. apply OK. destruct p; lia.
+Qed.
+
+Lemma set_spec_1 {A} (t:tree A) n a :
+  Ok t -> n < fullsize t -> get (set t n a) n = a.
+Proof.
+ revert n.
+ induction t; simpl; intros n OK LT; trivial.
+ rewrite (N.div2_odd n) in LT.
+ destruct (N.even n) eqn:E.
+ - simpl. rewrite E. apply IHt1; try easy.
+   rewrite <- N.negb_odd in E. apply Bool.negb_true_iff in E.
+   rewrite E in LT. simpl N.b2n in LT. destruct p; lia.
+ - simpl. rewrite E. apply IHt2; try easy.
+   rewrite <- N.negb_odd in E. apply Bool.negb_false_iff in E.
+   rewrite E in LT. simpl N.b2n in LT. destruct p; lia.
+Qed.
+
+Lemma set_spec_2 {A} (t:tree A) n a m :
+  Ok t -> n < fullsize t -> m < fullsize t -> n<>m ->
+  get (set t n a) m = get t m.
+Proof.
+ revert n m.
+ induction t; simpl; intros n m OK LT LT' NE; try lia.
+ rewrite (N.div2_odd n) in LT, NE.
+ rewrite (N.div2_odd m) in LT', NE.
+ destruct (N.even n) eqn:E; simpl; destruct (N.even m) eqn:E'; trivial.
+ - rewrite <- N.negb_odd in E,E'. apply Bool.negb_true_iff in E,E'.
+   rewrite E in LT,NE. rewrite E' in LT',NE. simpl N.b2n in *.
+   apply IHt1; try easy; try lia.
+ - rewrite <- N.negb_odd in E,E'. apply Bool.negb_false_iff in E,E'.
+   rewrite E in LT,NE. rewrite E' in LT',NE. simpl N.b2n in *.
+   apply IHt2; try easy; try lia; destruct p; lia.
+Qed.
+
+Lemma set_spec {A} (t:tree A) n a m :
+  Ok t -> n < fullsize t -> m < fullsize t ->
+  get (set t n a) m = if n =? m then a else get t m.
+Proof.
+ intros OK LT LT'. case N.eqb_spec.
+ - intros <-. now apply set_spec_1.
+ - now apply set_spec_2.
 Qed.
 
 Lemma to_list_length {A} (t:tree A) :
@@ -529,8 +570,6 @@ Proof.
  generalize (fullsize_pos t1) (fullsize_pos t2). lia. apply OK.
 Qed.
 
-(** TODO specs of [set] *)
-
 Lemma of_list_ok {A} a (l:list A) : Ok (of_list a l).
 Proof.
  revert a. induction l; simpl; trivial. intros b. now apply cons_ok.
@@ -581,7 +620,6 @@ Lemma map_size {A B} (f:A->B) (t:tree A) :
 Proof.
  intros. rewrite !size_spec; trivial. apply map_fullsize. now apply map_ok.
 Qed.
-
 
 Lemma mapi_fullsize {A B} (f:N->A->B) (t:tree A) :
  fullsize (mapi f t) = fullsize t.
