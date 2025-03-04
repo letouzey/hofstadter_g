@@ -14,7 +14,7 @@ Phi.v
 GenFib.v
 GenG.v
 FlexArray.v
-FastG.v
+Fast.v
 GenAdd.v
 GenFlip.v
 Shift.v
