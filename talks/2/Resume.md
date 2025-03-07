@@ -22,5 +22,5 @@ famille de fonctions semble croissante point-à-point.
 
 NB: Il y aura un recouvrement certain mais loin d'être total avec un
 exposé précédent aux journées PPS 2018, consacré à l'époque à G et à
-un exercice au lecteur posé par Hostadter à propos de "l'arbre miroir"
+un exercice au lecteur posé par Hofstadter à propos de "l'arbre miroir"
 de G. Pas besoin ici d'avoir vu cet exposé 2018 !
