@@ -10,9 +10,6 @@ the Fibonacci word.
 Documentation:
 --------------
 
-- Hofstadter's problem for curious readers. Pierre Letouzey.
-  Technical Report, 2015. http://hal.science/hal-01195587
-
 - Pointwise order of generalized Hofstadter functions G, H and beyond.
   Pierre Letouzey, Shuo Li, Wolfgang Steiner. Preprint, 2024.
   https://hal.science/hal-04715451
@@ -21,10 +18,13 @@ Documentation:
   and discrepancy. Pierre Letouzey. Preprint, 2025.
   https://hal.science/hal-04948022
 
+- Slides of talks: [OWCW](talks/owcw/talk.pdf?raw=true) (March 11, 2025).
+  Older ones: [PPS'24](talks/4/expose.pdf?raw=true) and in French: [PPS'18](talks/1/expose.pdf?raw=true) [Formath'23](talks/2/expose.pdf?raw=true) [FSMP'23](talks/3/expose.pdf?raw=true)
+
 - A general poster presenting this work: [poster/poster.pdf](poster/poster.pdf?raw=true)
 
-- Slides of talks: [PPS'24](talks/4/expose.pdf?raw=true).
-  Older ones, in French: [PPS'18](talks/1/expose.pdf?raw=true) [Formath'23](talks/2/expose.pdf?raw=true) [FSMP'23](talks/3/expose.pdf?raw=true)
+- Hofstadter's problem for curious readers. Pierre Letouzey.
+  Technical Report, 2015. http://hal.science/hal-01195587
 
 
 Usage
