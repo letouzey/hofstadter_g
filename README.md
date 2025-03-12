@@ -31,27 +31,27 @@ Usage
 -----
 
 - Use `make` to compile the Coq files.
-- Use `make gallinahtml` to generate the short html documentation.
-- Use `cd reports/g && pdflatex report` to generate the pdf of the technical report.
 
-Some recent files depend on Coq >= 8.16 and < 8.20 as well as external libraries
-Coquelicot >= 3.4.0 and QuantumLib >= 1.5.1. I advise to fetch them via opam.
-For instance:
+Some recent files depend on Coq >= 8.16 and < 8.20 as well as the external library
+Coquelicot >= 3.4.0. I advise to fetch them via opam. For instance:
 
 ```
 opam pin add coq 8.19.2
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-coquelicot
-opam pin add coq-quantumlib 1.5.1
 ```
+
+NB: the library QuantumLib is not an external dependency anymore,
+instead the needed portion of QuantumLib 1.6 is now incorporated here
+in the local subdirectory HalfQuantum/ (with minor patches).
 
 Summary of files:
 ----------------
 
-1. Auxiliary
-  - More*.v : additions to the various libraries used.
-  - [Approx.v](Approx.v): lightweight interval arithmetic for bounding reals by Q 
-  - [DeltaList.v](DeltaList.v): lists of natural numbers with constrained differences
+1. Library complements
+  - [MoreLib/More*.v](MoreLib) : additions to the various libraries used.
+  - [MoreLib/DeltaList.v](MoreLib/DeltaList.v): lists of natural numbers with constrained differences
+  - [MoreLib/Approx.v](MoreLib/Approx.v): lightweight interval arithmetic for bounding reals by Q
 2. Old files specialized to function G
   - [Fib.v](Fib.v): Fibonacci sequence and decomposition
   - [FunG.v](FunG.v): Hofstadter's G function and tree
@@ -92,8 +92,10 @@ References:
 License
 -------
 
-The documents in all subdirectories (especially reports/ talks/ poster/) are released under the CC-BY 4.0 license,
+The documents in the subdirectories poster/ reports/ talks/ are released under the CC-BY 4.0 license,
 see http://creativecommons.org/licenses/by/4.0/.
 
 The Coq files of this development are released in the Public Domain,
-see the LICENSE file in the current directory.
+see the LICENSE file in the current directory, with the exception of
+the files of the subdirectory HalfQuantum which have a MIT license,
+see HalfQuantum/LICENSE.
