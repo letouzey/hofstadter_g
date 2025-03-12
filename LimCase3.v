@@ -1,10 +1,12 @@
-From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
+From Coq Require Import Bool Arith Lia Reals Lra.
 From Hofstadter.HalfQuantum Require Import Matrix.
 Require Import MoreFun MoreList MoreReals MoreComplex MoreSum.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
+Local Open Scope Q.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Studying case q=3

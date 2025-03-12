@@ -3,6 +3,7 @@ From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 From Hofstadter.HalfQuantum Require FTA.
 Require Import MoreList MoreComplex MoreSum.
 Local Open Scope C.
+Local Coercion RtoC : R >-> C.
 Local Open Scope poly_scope.
 
 (** * More on QuantumLib polynomials *)
@@ -17,7 +18,7 @@ Definition monom (c:C) (k:nat) := repeat C0 k ++ [c].
 
 Definition _X_ := [C0;C1].
 
-Definition Root c p := p[[c]] = C0.
+Definition Root c p := Peval p c = C0.
 
 Definition monic p := topcoef p = C1.
 
@@ -205,7 +206,7 @@ Proof.
  unfold monom in E. destruct k; now simpl in E.
 Qed.
 
-Lemma monom_eval (c x:C) k : (monom c k)[[x]] = c * x ^ k.
+Lemma monom_eval (c x:C) k : Peval (monom c k) x = c * x ^ k.
 Proof.
  unfold monom. rewrite mul_by_x_to_n. cbn. ring.
 Qed.
@@ -292,7 +293,7 @@ Proof.
  apply Pscale_degree, Copp_neq_0_compat, C1_neq_C0.
 Qed.
 
-Lemma Peval_compactify p c : (compactify p)[[c]] = p[[c]].
+Lemma Peval_compactify p c : Peval (compactify p) c = Peval p c.
 Proof.
  rewrite (compactify_eqn p) at 2.
  set (n := Nat.sub _ _). clearbody n.
@@ -367,7 +368,7 @@ Proof.
  unfold degree, compactify. simpl. now destruct Ceq_dec.
 Qed.
 
-Lemma Pfactor_root p c : p[[c]]=0 -> { q | p ≅ q *, [-c;C1] }.
+Lemma Pfactor_root p c : Root c p -> { q | p ≅ q *, [-c;C1] }.
 Proof.
  intros H.
  assert (D : degree [-c; C1] = 1%nat).
@@ -379,7 +380,7 @@ Proof.
    rewrite <- (compactify_Peq r) in E. unfold degree in D'.
    destruct (compactify r) as [|c0 [|c1 s] ].
    + now rewrite Pplus_0_r in E.
-   + rewrite E in H. rewrite Pplus_eval, Pmult_eval in H. cbn in H.
+   + rewrite E in H. red in H. rewrite Pplus_eval, Pmult_eval in H. cbn in H.
      ring_simplify in H. rewrite H in E. rewrite Pzero_alt in E.
      now rewrite Pplus_0_r in E.
    + now simpl in D'.

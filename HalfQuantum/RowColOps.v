@@ -11,9 +11,6 @@ Require Export Matrix.
 
 
 
-Local Open Scope nat_scope.
-
-                    
 (** * Defining matrix altering/col operations *)
 
 (* in what follows, T is a set of vectors, A is a square, v/as' are vectors/sets of scalars *)
@@ -528,7 +525,7 @@ Qed.
 
 
 #[export] Hint Resolve WF_get_col WF_get_row WF_reduce_row WF_reduce_col WF_reduce_vecn WF_get_minor : wf_db.
-#[export] Hint Resolve WF_row_append WF_col_append WF_row_wedge WF_col_wedge WF_smash : wf_db.
+#[export] Hint Resolve WF_row_wedge WF_col_wedge WF_smash : wf_db.
 #[export] Hint Resolve WF_col_swap WF_row_swap WF_col_scale WF_row_scale WF_col_add WF_row_add : wf_db.
 #[export] Hint Resolve WF_gen_new_col WF_gen_new_row WF_col_add_many WF_row_add_many : wf_db.
 #[export] Hint Resolve WF_col_scale_many WF_row_scale_many WF_col_add_each WF_row_add_each  : wf_db.

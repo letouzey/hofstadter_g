@@ -1,5 +1,10 @@
 Require Export Polynomial.
 Require Import Setoid.
+Import Polynomial.Continuity.
+
+Local Open Scope R.
+Local Open Scope C.
+Local Coercion RtoC : R >-> C.
 
 (************************************)
 (* First, we define a topology on C *)

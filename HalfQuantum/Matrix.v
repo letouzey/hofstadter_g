@@ -9,6 +9,10 @@ Require Import List.
 Require Import Setoid.
 Require Import Modulus.
 
+Local Open Scope R.
+Local Open Scope C.
+Local Coercion RtoC : R >-> C.
+
 
 (* TODO: Use matrix equality everywhere, declare equivalence relation *)
 (* TODO: Make all nat arguments to matrix lemmas implicit *)

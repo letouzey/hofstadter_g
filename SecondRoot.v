@@ -3,11 +3,13 @@ From Coquelicot Require Complex.
 From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
-Import Continuity.
 Require Import MoreList MoreReals MoreLim MoreSum MoreComplex MorePoly.
 Require Import MoreIntegral ThePoly GenFib Mu.
+Local Open Scope R.
 Local Open Scope C.
+Local Open Scope poly_scope.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * The second largest root of ThePoly has modulus>1 for q>=5

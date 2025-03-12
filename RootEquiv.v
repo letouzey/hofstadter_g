@@ -1,8 +1,7 @@
-From Coq Require Import Lia Reals Lra Ranalysis5 QArith Qcanon.
+From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity ElemFct.
 From Coquelicot Require Import PSeries Derive AutoDerive.
 Require Import MoreFun MoreReals MoreLim Mu.
-
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.

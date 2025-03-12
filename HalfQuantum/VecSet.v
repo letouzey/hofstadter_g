@@ -5,10 +5,10 @@
 
 Require Import Psatz.  
 Require Import Reals.
-  
 Require Export RowColOps.
-
-
+Local Open Scope R.
+Local Open Scope C.
+Local Coercion RtoC : R >-> C.
 Local Open Scope nat_scope.
 
 

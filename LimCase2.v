@@ -1,9 +1,12 @@
-From Coq Require Import Arith Lia QArith Reals Lra Qreals.
+From Coq Require Import Arith Lia Reals Lra.
 From Hofstadter.HalfQuantum Require Import Complex.
 Require Import MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx Freq.
+Local Open Scope Q.
+Local Open Scope C.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Studying case q=2

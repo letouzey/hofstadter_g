@@ -1,15 +1,14 @@
 From Coq Require Import List Arith Lia Reals Lra.
 From Coq Require Epsilon.
-Import ListNotations.
 From Hofstadter.HalfQuantum Require Import Complex.
 Require Import DeltaList MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreSum MoreLim.
 Require GenFib GenG Words WordGrowth Mu Freq RootEquiv.
 Require LimCase2 LimCase3 LimCase4.
 Require Import Article1.
-Close Scope R. Close Scope C. (* Issue with QuantumLib.Complex... *)
-Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
+Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Article2.v *)
 
@@ -811,7 +810,6 @@ Qed.
 
 (** Proposition 6.4 *)
 
-Import Coquelicot.ElemFct.
 Local Open Scope R_scope.
 
 Lemma α_equiv :

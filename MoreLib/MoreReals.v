@@ -1,5 +1,6 @@
 From Coq Require Import List Lia Reals Ranalysis5 Lra.
-From Coq Require Import Qreals Qminmax Qabs Qcanon.
+From Coq Require Import QArith Qreals Qminmax Qabs Qcanon.
+Close Scope Q. Close Scope Qc. (* Issue with QArith *)
 From Coquelicot Require Rcomplements.
 Require Import MoreList DeltaList.
 Import ListNotations.

@@ -3,11 +3,12 @@ From Coquelicot Require Complex.
 From Coquelicot Require Export Lim_seq.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
 From Coquelicot Require Import ElemFct Derive.
+Close Scope R. (* Issue with Coquelicot *)
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
-Import Continuity.
 Require Import MoreList MoreReals MoreComplex MoreSum.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Ltac fixeq ty := change (@eq _) with (@eq ty).

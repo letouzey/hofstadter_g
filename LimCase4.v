@@ -1,10 +1,12 @@
-From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
+From Coq Require Import Bool Arith Lia Reals Lra.
 From Hofstadter.HalfQuantum Require Import Polynomial.
 Require Import MoreFun MoreList MoreReals MoreComplex MoreSum.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
+Local Open Scope Q.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Studying case q=4
@@ -32,7 +34,7 @@ Qed.
 
 (** The complex roots of [X^5-X^4-1] *)
 
-Lemma Poly4_factor : ThePoly 4 = (Pmult [C1;-C1;C1] [-C1;-C1;C0;C1])%C.
+Lemma Poly4_factor : ThePoly 4 = ([C1;-C1;C1] *, [-C1;-C1;C0;C1])%P%C.
 Proof.
  unfold ThePoly; simpl. repeat (f_equal; try lca).
 Qed.

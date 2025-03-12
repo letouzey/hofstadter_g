@@ -3,10 +3,14 @@ Require Import String.
 Require Export Complex. 
 Require Import List. 
 Require Import Setoid.
+
+Local Open Scope R.
+Local Open Scope C.
+Local Coercion RtoC : R >-> C.
  
 Declare Scope poly_scope.
 Delimit Scope poly_scope with P.
-Open Scope poly_scope.
+Local Open Scope poly_scope.
 
 (* some prelim lemmas that should be moved *)
 
@@ -126,7 +130,10 @@ Infix "≅" := Peq (at level 70) : poly_scope.
 Infix "+," := Pplus (at level 50, left associativity) : poly_scope. 
 Infix "*," := Pmult (at level 40, left associativity) : poly_scope.
 Notation "-, P" := (Popp P) (at level 35) : poly_scope. 
+Module PolyNotations.
 Notation "P [[ x ]]" := (Peval P x) (at level 0) : poly_scope.  
+End PolyNotations.
+Import PolyNotations.
 
 (* some useful lemmas about Peval *)
 Lemma cons_eval : forall (p1 : Polynomial) (a c : C),
@@ -508,6 +515,8 @@ Qed.
     
 (* we start by defining limits *) 
 
+Module Continuity.
+
 Definition limit_at_point (f : C -> C) (a L : C) : Prop :=
   forall ϵ : R, ϵ > 0 -> exists δ, (δ > 0 /\ forall x, x <> a -> Cmod (x - a) < δ -> Cmod (f(x) - L) < ϵ).
 
@@ -737,6 +746,9 @@ Proof. intros.
        unfold continuous_at in *.
        apply (limit_mult f1 f2 a (f1 a) (f2 a)); easy.
 Qed.
+
+End Continuity.
+Import Continuity.
 
 Lemma constant_continuous_poly : forall (c a : C),
   continuous_at (Peval [c]) a.

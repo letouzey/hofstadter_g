@@ -6,7 +6,9 @@ Require Import MoreList MoreReals.
 Global Notation "0" := C0 : C_scope. (* TODO *)
 Global Notation "1" := C1 : C_scope. (* TODO *)
 
+Local Open Scope R.
 Local Open Scope C.
+Local Coercion RtoC : R >-> C.
 
 (** Better Ring / Field, handling Z constants and power
     (now integrated in Coquelicot >= 3.3.0) *)

@@ -4,7 +4,7 @@ Require Export Prelim.
 Declare Scope group_scope.
 Delimit Scope group_scope with G.
 
-Open Scope group_scope.
+Local Open Scope group_scope.
    
    
 (* TODO: try reserved notation *) 

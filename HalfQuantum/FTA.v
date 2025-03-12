@@ -1,6 +1,11 @@
 Require Import Polar.
 Require Export Ctopology.
 Require Import Setoid.
+Local Open Scope R.
+Local Open Scope C.
+Local Coercion RtoC : R >-> C.
+Local Open Scope poly_scope.
+Import PolyNotations.
 
 (*********************************************************************)
 (* defining poly_coef_norm and showing how it can be used as a bound *)

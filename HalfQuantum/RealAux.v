@@ -9,7 +9,7 @@ Require Export Summation.
 
 (** Relevant lemmas from Coquelicot's Rcomplements.v **)
 
-Open Scope R_scope.
+Local Open Scope R_scope.
 Local Coercion INR : nat >-> R.
 
 Lemma Rle_minus_l : forall a b c,(a - c <= b <-> a <= b + c). Proof. intros. lra. Qed.

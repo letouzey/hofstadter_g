@@ -2,8 +2,11 @@ From Coq Require Import Lia Reals Lra Permutation.
 From Hofstadter.HalfQuantum Require Import Complex Matrix VecSet Polynomial.
 Require Import MoreList MoreReals MoreLim MoreComplex MoreSum MorePoly.
 Require Import MoreMatrix GenFib GenG Mu.
+Local Open Scope R.
 Local Open Scope C.
+Local Open Scope poly_scope.
 Local Coercion INR : nat >-> R.
+Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Definition ThePoly (q:nat) : Polynomial :=

@@ -1,4 +1,7 @@
-From Coq Require Import QArith Reals Lra Qreals Qminmax Qabs.
+From Coq Require Import Reals Lra.
+From Coq Require Export QArith Qreals Qminmax Qabs.
+Close Scope Q. (* Issue with QArith. *)
+Local Open Scope Q.
 Require Import MoreReals.
 Local Open Scope Z.
 Local Open Scope R.

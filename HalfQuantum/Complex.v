@@ -44,16 +44,12 @@ Definition C := (R * R)%type.
 
 Declare Scope C_scope.
 Delimit Scope C_scope with C.
- 
-Open Scope nat_scope.
-Open Scope R_scope.
-Open Scope C_scope.
-Bind Scope nat_scope with nat.
-Bind Scope R_scope with R.
 Bind Scope C_scope with C.
+Local Open Scope R.
+Local Open Scope C.
 
 Definition RtoC (x : R) : C := (x,0).
-Coercion RtoC : R >-> C.
+Local Coercion RtoC : R >-> C.
 
 Lemma RtoC_inj : forall (x y : R),
   RtoC x = RtoC y -> x = y.
