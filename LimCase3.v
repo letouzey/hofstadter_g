@@ -1,5 +1,5 @@
 From Coq Require Import Bool Arith Lia QArith Reals Lra Qreals.
-From Hofstadter.MiniQuantumLib Require Import Matrix.
+From Hofstadter.HalfQuantum Require Import Matrix.
 Require Import MoreFun MoreList MoreReals MoreComplex MoreSum.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.

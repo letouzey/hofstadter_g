@@ -1,5 +1,5 @@
 From Coq Require Import Lia Reals Lra Permutation.
-From Hofstadter.MiniQuantumLib Require Import Complex Matrix VecSet Polynomial.
+From Hofstadter.HalfQuantum Require Import Complex Matrix VecSet Polynomial.
 Require Import MoreList MoreReals MoreLim MoreComplex MoreSum MorePoly.
 Require Import MoreMatrix GenFib GenG Mu.
 Local Open Scope C.

@@ -370,7 +370,7 @@ Proof.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
  assert (LT := SecondRoot.large_second_best_root q roots Q roots_ok).
  destruct (dA_expo q roots lia roots_ok) as (c & Hc).
- set (r := QuantumLib.Complex.Cmod _) in *.
+ set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
  destruct (Hc N) as (n & Hn & Hn').
  exists n. eapply Rlt_trans; [|apply Hn'].
@@ -392,7 +392,7 @@ Proof.
  destruct (SortedRoots_exists q) as (roots & roots_ok).
  assert (LT := SecondRoot.large_second_best_root q roots Q roots_ok).
  destruct (dA_expo' q roots lia roots_ok) as (c & Hc).
- set (r := QuantumLib.Complex.Cmod _) in *.
+ set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (-M/c)) as (N, HN); trivial.
  destruct (Hc N) as (n & Hn & Hn').
  exists n. eapply Rlt_trans; [apply Hn'|].

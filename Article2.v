@@ -1,7 +1,7 @@
 From Coq Require Import List Arith Lia Reals Lra.
 From Coq Require Epsilon.
 Import ListNotations.
-From Hofstadter.MiniQuantumLib Require Import Complex.
+From Hofstadter.HalfQuantum Require Import Complex.
 Require Import DeltaList MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreSum MoreLim.
 Require GenFib GenG Words WordGrowth Mu Freq RootEquiv.

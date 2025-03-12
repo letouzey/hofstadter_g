@@ -1,6 +1,6 @@
 From Coq Require Import Lia Reals Lra Permutation RelationClasses Sorted.
-From Hofstadter.MiniQuantumLib Require Import Complex.
-From Hofstadter.MiniQuantumLib Require Polar.
+From Hofstadter.HalfQuantum Require Import Complex.
+From Hofstadter.HalfQuantum Require Polar.
 Require Import MoreList MoreReals.
 
 Global Notation "0" := C0 : C_scope. (* TODO *)

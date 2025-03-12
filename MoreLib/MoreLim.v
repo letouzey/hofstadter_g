@@ -3,7 +3,7 @@ From Coquelicot Require Complex.
 From Coquelicot Require Export Lim_seq.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
 From Coquelicot Require Import ElemFct Derive.
-From Hofstadter.MiniQuantumLib Require Import Complex Polynomial.
+From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 Import Continuity.
 Require Import MoreList MoreReals MoreComplex MoreSum.
 Local Open Scope R.

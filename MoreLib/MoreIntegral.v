@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Import Hierarchy RInt RInt_analysis Series PSeries.
 From Coquelicot Require Import Derive AutoDerive Continuity ElemFct.
-From Hofstadter.MiniQuantumLib Require Import Complex.
+From Hofstadter.HalfQuantum Require Import Complex.
 Import Continuity.
 Require Import MoreList MoreReals MoreLim MoreSum MoreComplex MoreLim.
 Local Open Scope C.
