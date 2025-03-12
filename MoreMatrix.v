@@ -1,5 +1,5 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
-From QuantumLib Require Import Complex Matrix VecSet.
+From Hofstadter.MiniQuantumLib Require Import Complex Matrix VecSet.
 Require Import MoreList MoreComplex.
 Local Open Scope C.
 

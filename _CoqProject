@@ -1,6 +1,18 @@
 COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
 -I .
--R . Top
+-R . Hofstadter
+MiniQuantumLib/Prelim.v
+MiniQuantumLib/Summation.v
+MiniQuantumLib/Modulus.v
+MiniQuantumLib/RealAux.v
+MiniQuantumLib/Complex.v
+MiniQuantumLib/Polar.v
+MiniQuantumLib/Polynomial.v
+MiniQuantumLib/Matrix.v
+MiniQuantumLib/Ctopology.v
+MiniQuantumLib/FTA.v
+MiniQuantumLib/RowColOps.v
+MiniQuantumLib/VecSet.v
 DeltaList.v
 Fib.v
 FunG.v

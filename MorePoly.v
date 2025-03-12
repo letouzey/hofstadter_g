@@ -1,6 +1,6 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
-From QuantumLib Require Import Complex Polynomial.
-From QuantumLib Require FTA.
+From Hofstadter.MiniQuantumLib Require Import Complex Polynomial.
+From Hofstadter.MiniQuantumLib Require FTA.
 Require Import MoreList MoreComplex MoreSum.
 Local Open Scope C.
 Local Open Scope poly_scope.

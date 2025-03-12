@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Complex.
 From Coquelicot Require Import Hierarchy.
-From QuantumLib Require Import Complex.
+From Hofstadter.MiniQuantumLib Require Import Complex.
 Require Import DeltaList MoreList MoreReals MoreComplex.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.

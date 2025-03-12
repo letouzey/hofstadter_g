@@ -1,5 +1,5 @@
 From Coq Require Import Arith Lia QArith Reals Lra Qreals.
-From QuantumLib Require Import Complex.
+From Hofstadter.MiniQuantumLib Require Import Complex.
 Require Import MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx Freq.
 Local Open Scope R.
