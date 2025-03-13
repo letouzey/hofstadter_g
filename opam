@@ -8,7 +8,7 @@ build: ["%{make}%" "-j%{jobs}%"]
 install: ["%{make}%" "install"]
 depends: [
   "coq" {>= "8.16"}
-  "coq-coquelicot" {>= "3.3"}
+  "coq-coquelicot" {>= "3.4"}
 ]
 tags: [
   "keyword:nested recursion"

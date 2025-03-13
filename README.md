@@ -32,7 +32,7 @@ Usage
 
 - Use `make` to compile the Coq files.
 
-Some recent files depend on Coq >= 8.16 and < 8.20 as well as the external library
+Some recent files depend on Coq >= 8.16 and <= 8.20 as well as the external library
 Coquelicot >= 3.4.0. I advise to fetch them via opam. For instance:
 
 ```
