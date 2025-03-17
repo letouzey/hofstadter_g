@@ -779,20 +779,12 @@ Qed.
 
 Lemma αmod_lt : 0 < Cmod α < 1.
 Proof.
- split.
- - apply Cmod_gt_0. intros [= E]. revert E. approx.
- - apply Rlt_pow2_inv; try lra. rewrite αmod2. approx.
+ approx.
 Qed.
 
 Lemma αmod9_lt : 0 < Cmod α^9 < 1.
 Proof.
- assert (H := αmod_lt).
- split.
- - apply pow_lt; lra.
- - change ((Cmod α)^9) with ((Cmod α)*(Cmod α)^8).
-   apply Rle_lt_trans with (Cmod α * 1); try lra.
-   apply Rmult_le_compat_l; try lra.
-   rewrite <- (pow1 8). apply pow_incr. lra.
+ approx.
 Qed.
 
 Lemma re_α2 : Re (α^2) = re_α^2 - im_α^2.
