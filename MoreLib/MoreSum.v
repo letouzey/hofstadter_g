@@ -73,6 +73,27 @@ Proof.
  apply IHl; intuition.
 Qed.
 
+Lemma Rlistsum_lt {A}(f g:A->R) l :
+ l<>[] ->
+ (forall a, In a l -> f a < g a) ->
+ Rlistsum (map f l) < Rlistsum (map g l).
+Proof.
+ destruct l as [|a l]; simpl. easy.
+ intros _ H. apply Rplus_lt_le_compat. apply H; intuition.
+ apply Rlistsum_le. intuition.
+Qed.
+
+Lemma Rlistsum_const {A}(x:R)(l:list A) :
+  Rlistsum (map (fun _ => x) l) = x * length l.
+Proof.
+ induction l; simpl. lra. rewrite IHl. destruct (length l); simpl; lra.
+Qed.
+
+Lemma Rlistsum_0 {A}(l:list A) : Rlistsum (map (fun _ => 0) l) = 0.
+Proof.
+ rewrite Rlistsum_const; lra.
+Qed.
+
 Definition Rpoly x l := Rlistsum (List.map (pow x) l).
 
 Lemma Rpoly_cons x n l : Rpoly x (n::l) = (x^n + Rpoly x l)%R.

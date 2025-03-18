@@ -45,6 +45,7 @@ Mu.v
 ThePoly.v
 SecondRoot.v
 RootEquiv.v
+Discrepancy.v
 Freq.v
 LimCase2.v
 LimCase3.v
