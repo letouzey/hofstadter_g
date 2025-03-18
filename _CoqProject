@@ -19,6 +19,7 @@ MoreLib/DeltaList.v
 MoreLib/MoreReals.v
 MoreLib/MoreComplex.v
 MoreLib/Approx.v
+MoreLib/RatItvl.v
 MoreLib/MoreSum.v
 MoreLib/MoreIntegral.v
 MoreLib/MoreLim.v
