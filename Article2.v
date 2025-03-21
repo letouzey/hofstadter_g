@@ -1411,11 +1411,9 @@ Proof.
  - intros n. simpl. unfold δ. now rewrite F_f by lia.
 Qed.
 
-Lemma delta_bound_4 n : Rabs (δ 4 n) < 1.998.
+Lemma delta_bound_4 n : Rabs (δ 4 n) <= 1.5834687793247475.
 Proof.
- unfold δ. rewrite F_f, <- LimCase3.diff0_alt by lia.
- apply Rle_lt_trans with LimCase3.TheBound. apply LimCase3.diff0_better_bound.
- destruct LimCase3.TheBound_approx. lra.
+ unfold δ. rewrite F_f by lia. apply LimCase3.abs_diff_bound.
 Qed.
 
 Lemma Delta_sup_4 : Rbar.Rbar_lt (Δ 4) 2.
@@ -1483,19 +1481,19 @@ Proof.
    generalize (pos_INR (GenG.f 2 (p+n))). lra.
 Qed.
 
-Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 5.
+Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 4.
 Proof.
  rewrite !F_f by lia. simpl. apply Rabs_le.
  generalize (LimCase3.f3_quasiadd p n).
  intros (U,V). apply le_INR in U,V.
  rewrite !plus_INR in V.
- rewrite (INR_IZR_INZ 5) in V. simpl in V.
+ rewrite (INR_IZR_INZ 4) in V. simpl in V.
  split. 2:lra.
- destruct (Nat.le_gt_cases 5 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
+ destruct (Nat.le_gt_cases 4 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
  - rewrite minus_INR in U by lia.
-   rewrite (INR_IZR_INZ 5), plus_INR in U. simpl in U. lra.
+   rewrite (INR_IZR_INZ 4), plus_INR in U. simpl in U. lra.
  - apply lt_INR in H. rewrite plus_INR in H.
-   rewrite (INR_IZR_INZ 5) in H. simpl in H.
+   rewrite (INR_IZR_INZ 4) in H. simpl in H.
    generalize (pos_INR (GenG.f 3 (p+n))). lra.
 Qed.
 

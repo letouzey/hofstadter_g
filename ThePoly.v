@@ -1203,6 +1203,11 @@ Proof.
  now rewrite Cconj_mult_distr, Cconj_minus_distr, Cinv_conj, Cconj_R.
 Qed.
 
+Lemma coefdA_R n (r:R) : coefdA n r = Re (coefdA n r).
+Proof.
+ rewrite re_alt. rewrite <- coefdA_conj, Cconj_R. field.
+Qed.
+
 Lemma dA_expo q roots : (3<=q)%nat -> SortedRoots q roots ->
  let r := roots@1 in
  exists c : posreal,
