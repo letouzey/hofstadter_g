@@ -1399,18 +1399,16 @@ Qed.
 
 (** Theorem 8.7 *)
 
-Lemma delta_bound_3 n : Rabs (δ 3 n) < 0.996.
+Lemma delta_bound_3 n : Rabs (δ 3 n) <= 0.8541871799283042119835815401528.
 Proof.
- unfold δ. rewrite F_f, <- LimCase2.diff0_alt by lia.
- apply Rle_lt_trans with LimCase2.TheBound. apply LimCase2.diff0_better_bound.
- destruct LimCase2.TheBound_approx. lra.
+ unfold δ. rewrite F_f by lia. apply LimCase2.abs_diff_bound.
 Qed.
 
 Lemma Delta_sup_3 : Rbar.Rbar_lt (Δ 3) 1.
 Proof.
  unfold Δ. erewrite Sup_seq_ext.
- - apply LimCase2.sup_diff0_lt_1.
- - intros n. simpl. unfold δ. now rewrite F_f, <- LimCase2.diff0_alt by lia.
+ - apply LimCase2.sup_diff_lt_1.
+ - intros n. simpl. unfold δ. now rewrite F_f by lia.
 Qed.
 
 Lemma delta_bound_4 n : Rabs (δ 4 n) < 1.998.

@@ -194,6 +194,26 @@ Proof.
  - subst x. unfold Ptau in H'. rewrite tau_carac in H'. lra.
 Qed.
 
+Lemma Ptau_lt1_iff q x : 0 <= x -> Ptau q x < 1 <-> x < tau q.
+Proof.
+ intros Hx. split.
+ - now apply Ptau_lower.
+ - destruct (Req_dec (Ptau q x) 1).
+   + apply tau_unique in H; trivial. lra.
+   + intros LT. apply Rlt_not_le in LT. apply Rnot_le_lt.
+     contradict LT. apply Rlt_le. apply Ptau_upper; lra.
+Qed.
+
+Lemma Ptau_gt1_iff q x : 0 <= x -> 1 < Ptau q x <-> tau q < x.
+Proof.
+ intros Hx. split.
+ - now apply Ptau_upper.
+ - destruct (Req_dec (Ptau q x) 1).
+   + apply tau_unique in H; trivial. lra.
+   + intros LT. apply Rlt_not_le in LT. apply Rnot_le_lt.
+     contradict LT. apply Rlt_le. apply Ptau_lower; lra.
+Qed.
+
 Lemma tau_0 : tau 0 = 1/2.
 Proof.
  symmetry. apply tau_unique. lra. unfold Ptau. simpl. lra.

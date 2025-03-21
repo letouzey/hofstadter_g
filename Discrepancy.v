@@ -75,6 +75,17 @@ Proof.
  rewrite <- E. apply decomp_delta.
 Qed.
 
+Lemma diff_A_A q p p' : q<>0%nat -> (p+q <= p')%nat ->
+  diff q (A q p + A q p') = diff q (A q p) + diff q (A q p').
+Proof.
+ intros Hq H.
+ unfold diff.
+ replace (A q p + A q p')%nat with (sumA q [p;p']) by (simpl; lia).
+ rewrite f_sumA_lax, !f_A; try lia.
+ 2:{ repeat constructor. lia. }
+ simpl. rewrite <- !Nat.sub_1_r, !plus_INR. simpl. lra.
+Qed.
+
 (** Properties of AllDeltas *)
 
 Lemma AllDeltas_len q p : length (AllDeltas q p) = A q p.
