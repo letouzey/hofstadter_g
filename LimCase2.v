@@ -3,6 +3,7 @@ From Hofstadter.HalfQuantum Require Import Complex.
 Require Import MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import DeltaList Approx.
 Require Import GenFib GenG GenAdd Words Mu ThePoly Freq Discrepancy.
+Require WordGrowth.
 Local Open Scope C.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
@@ -724,6 +725,44 @@ Qed.
 
 (* Print Assumptions h_quasiadd. *)
 
+(** If we know whether n has a rank 0 (i.e. it has
+    a low 1 in its decomposition), then we can be
+    more precise concerning the bounds of [diff 2 n]. *)
+
+Lemma diff_rank n :
+  diff 2 n = diff 2 (S n) + match rank 2 n with Some O => τ | _ => τ-1 end.
+Proof.
+ destruct (flat_rank_0 2 n) as (_,E).
+ destruct (step_rank_nz 2 n) as (_,E').
+ unfold diff. fold τ. rewrite S_INR.
+ destruct (rank 2 n) as [[|r]|].
+ - rewrite E by easy. lra.
+ - rewrite E' by easy. rewrite S_INR. lra.
+ - rewrite E' by easy. rewrite S_INR. lra.
+Qed.
+
+Lemma diff_bound_rank0 n : rank 2 n = Some O ->
+ -0.0260880949159486329356625844679 <= diff 2 n <= 0.8541871799283042119835815401528.
+Proof.
+ intros H.
+ split.
+ - rewrite diff_rank, H.
+   destruct (diff_bound (S n)) as (LE,_).
+   destruct tau100_approx as (LE',_). unfold tau100 in *. simpl fst in *. nra.
+ - apply diff_bound.
+Qed.
+
+Lemma diff_bound_ranknz n : rank 2 n <> Some O ->
+ -0.7084158987439679603051463241789 <= diff 2 n <= 0.5365149837563235393530652798639.
+Proof.
+ intros H.
+ split.
+ - apply diff_bound.
+ - rewrite diff_rank. destruct (rank 2 n) as [[|r]|]; try easy;
+   destruct (diff_bound (S n)) as (_,GE);
+   destruct tau100_approx as (_,GE'); unfold tau100 in *; simpl snd in *; nra.
+Qed.
+
 
 (** ** Discrepancies for (h^^2). *)
 
@@ -734,23 +773,39 @@ Proof.
  unfold diffh2, diff. simpl. fold h. fold τ. lra.
 Qed.
 
-Lemma diffh2_bounds n : -1.1920 <= diffh2 n <= 1.4372.
+Lemma diffh2_eqn n : diffh2 n = -μ * diff 2 (rchild 2 n).
 Proof.
- rewrite diffh2_alt.
- generalize (diff_bound n) (diff_bound (h n)) τ_approx. unfold Approx. nra.
+ unfold diffh2, diff. rewrite f_onto_eqn. fold τ. unfold rchild, h.
+ rewrite plus_INR.
+ replace (-μ * _) with ((μ*τ)*fs 2 2 n - μ*τ^3*n) by (rewrite τ3; ring).
+ replace (μ*τ^3) with ((μ*τ)*τ^2) by ring.
+ change τ with (/μ) at 2 3. rewrite Rinv_r by approx. ring.
 Qed.
 
-(** Distance between [h^^2] and [nat_part (τ^2 * n)].
-    This distance may be "+2", for instance for n=1235.
-    (TODO: direct estimate for diffh2_bounds (not just through diffh2_alt)
-     to show that the lower bound is above -1 and hence
-     [nat_part (τ^2 * n) <= (h^^2) n] (e.g. no "-1" below)) *)
-
-Lemma h2_natpart_bound (n:nat) :
- (nat_part (τ^2 * n) -1 <= (h^^2) n <= 2 + nat_part (τ^2 * n))%nat.
+Lemma diffh2_bounds n : -0.786300925665 <= diffh2 n <= 1.038233961404.
 Proof.
  split.
- - assert (nat_part (τ^2 * n) < 2 + (h^^2) n)%nat; try lia.
+ - rewrite diffh2_eqn.
+   assert (H : rank 2 (rchild 2 n) <> Some O).
+   { unfold rank. rewrite rchild_decomp, decomp_sum'.
+     now destruct (decomp 2 n) as [|r l].
+     eapply Delta_map; eauto using decomp_delta. lia. }
+   generalize (diff_bound_ranknz _ H) μ_approx. unfold Approx. nra.
+ - rewrite diffh2_eqn.
+   generalize (diff_bound (rchild 2 n)) μ_approx. unfold Approx. nra.
+Qed.
+
+(** Differences [h^^2] minus [nat_part (τ^2 * n)] are 0, +1 or +2.
+    The "+2" difference is rather rare, it corresponds to the bound 1.038...
+    being barely above 1. See for instance n=1235.
+    The bound -0.78... being above -1 ensures now that a "-1" difference
+    is impossible. *)
+
+Lemma h2_natpart_bound (n:nat) :
+ (nat_part (τ^2 * n) <= (h^^2) n <= 2 + nat_part (τ^2 * n))%nat.
+Proof.
+ split.
+ - assert (nat_part (τ^2 * n) < 1 + (h^^2) n)%nat; try lia.
    { apply nat_part_lt. split.
      - apply Rmult_le_pos. approx. apply pos_INR.
      - rewrite plus_INR. replace (INR 2) with 2 by auto.
@@ -872,6 +927,21 @@ Proof.
  lra.
 Qed.
 
+Lemma diff0_diff2_A n : diff0 (A 2 (S n)) = τ * diff2 (A 2 n).
+Proof.
+ unfold diff0, diff2. rewrite <- Diff0_qsubst2. f_equal.
+ rewrite !qprefix_A_qword. apply qword_S.
+Qed.
+
+(** See also diffh2_eqn: *)
+
+Lemma diff0_diff2 n : diff0 (rchild 2 n) = τ * diff2 n.
+Proof.
+ unfold diff0, diff2. rewrite <- Diff0_qsubst2.
+ change (qsubstw 2 (qprefix 2 n)) with (WordGrowth.qnsub 2 1 (qprefix 2 n)).
+ now rewrite WordGrowth.qnsub_qprefix, WordGrowth.L_q_1_rchild.
+Qed.
+
 (** For [A 2] numbers, diff0 and diff2 have nice expressions via
     powers of the [α] and [αbar] roots (or some real part of
     a power of [α]). Let's first describe the coefficients used
@@ -932,16 +1002,13 @@ Proof.
  apply Freq.Lim_fq_div_n.
 Qed.
 
-(** Bounds for [diff2 n], giving the frequency of letter 2,
-    and the limit of [h^^2]. Less interesting, the bound is in [1..2]. *)
-
 Lemma diff2_lt_2 n : Rabs (diff2 n) < 2.
 Proof.
  rewrite diff2_alt', Rabs_Ropp. apply Rcomplements.Rabs_lt_between.
  generalize (diffh2_bounds n); lra.
 Qed.
 
-(** Having this finite bound is enough to prove that the frequency
+(** Any bound on diff2 is enough to prove that the frequency
     of letter 2 is [τ^2] and that [(h^^2)(n) / n] converges towards [τ^2]. *)
 
 Lemma lim_diff2_div_n : is_lim_seq (fun n => diff2 n / n) 0.
