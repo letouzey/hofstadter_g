@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Import Rcomplements Hierarchy Continuity ElemFct.
 From Coquelicot Require Import PSeries Derive AutoDerive.
-Require Import MoreFun MoreReals MoreLim Mu.
+Require Import MoreTac MoreFun MoreReals MoreLim Mu.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -209,12 +209,12 @@ Qed.
 Section K.
 Variable k:nat.
 Hypothesis Hk : (3<=k)%nat.
-Let root := tau (k-1).
+Let root := tau k.
 
 Lemma root_itvl : 0.68 <= root < 1.
 Proof.
  split.
- - apply Rle_trans with (tau 2). generalize tau_2; lra.
+ - apply Rle_trans with (tau 3). generalize tau_3; lra.
    apply tau_incr'; lia.
  - apply tau_itvl.
 Qed.
@@ -223,8 +223,7 @@ Definition F x := Rpower (1-x) (/k).
 
 Lemma F_fixpoint : F root = root.
 Proof.
- assert (E := tau_carac (k-1)). fold root in E.
- replace (S (k-1)) with k in E by lia.
+ assert (E := tau_carac k lia). fold root in E.
  unfold F. replace (1-root) with (root^k) by lra.
  rewrite <- Rpower_pow, Rpower_mult by (generalize root_itvl; lra).
  replace (k*/k) with 1 by (field; apply not_0_INR; lia).
@@ -234,8 +233,8 @@ Qed.
 Lemma F_fixpoint_inv x : 0<x<1 -> F x = x -> x = root.
 Proof.
  intros Hx E.
- apply tau_unique; try lra.
- unfold Ptau. replace (S (k-1)) with k by lia. rewrite <- E at 1.
+ apply tau_unique. lia. lra.
+ unfold Ptau. rewrite <- E at 1.
  unfold F.
  rewrite <- Rpower_pow, Rpower_mult by apply exp_pos.
  replace (/k*k) with 1 by (field; apply not_0_INR; lia).
@@ -282,9 +281,9 @@ End K.
 Lemma root_tau_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   forall k, (1 < k)%nat -> tau (k-1) = 1 - ln k / k * (1 - ϵ k).
+   forall k, (1 < k)%nat -> tau k = 1 - ln k / k * (1 - ϵ k).
 Proof.
- set (ϵ := fun k => 1 - (1 - tau (k-1)) * k / ln k).
+ set (ϵ := fun k => 1 - (1 - tau k) * k / ln k).
  exists ϵ. split.
  2:{ intros k Hk. unfold ϵ. field.
      apply lt_INR in Hk. change (INR 1) with 1 in Hk.
@@ -350,7 +349,7 @@ Qed.
 Lemma root_mu_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   eventually (fun k => mu (k-1) = 1 + ln k / k * (1 + ϵ k)).
+   eventually (fun k => mu k = 1 + ln k / k * (1 + ϵ k)).
 Proof.
  destruct root_tau_equiv as (ϵ & Hϵ & E).
  set (u := fun n:nat => ln n/n * (1 - ϵ n)).
@@ -370,7 +369,7 @@ Proof.
  - rewrite <- is_lim_seq_spec in U. destruct (U posreal_one) as (N,HN).
    exists (N+2)%nat. intros n Hn. specialize (HN n lia). simpl in HN.
    rewrite Rminus_0_r in HN. apply Rabs_def2 in HN.
-   assert (E' : tau (n-1) = 1 - u n).
+   assert (E' : tau n = 1 - u n).
    { unfold u. rewrite E; try lia. field. apply not_0_INR; lia. }
    rewrite tau_inv, E'.
    replace (/(1-u n)) with (1 + u n + (u n)^2/(1-u n)) by (field; lra).
@@ -393,7 +392,7 @@ Section K.
 Variable k:nat.
 Hypothesis Hk : (3<=k)%nat.
 Let Hk' : 3<=k. Proof. apply le_INR in Hk. simpl in Hk. lra. Qed.
-Let root := tau (k-1).
+Let root := tau k.
 
 Local Notation F := (F k).
 
@@ -491,7 +490,7 @@ Proof.
    rewrite pow_i by lia. lra. }
  assert (Er : f root = 0).
  { unfold f,H2.
-   assert (E := tau_carac (k-1)). replace (S (k-1)) with k in E by lia.
+   assert (E := tau_carac k lia).
    fold root in E. replace (1 - root^k) with root; lra. }
  assert (Df : forall x, 0<=x<=1 -> is_derive f x (df x)).
  { intros x Hx. apply (is_derive_plus (V:=R_NM)). apply dH2_ok; lra.

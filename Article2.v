@@ -1,10 +1,9 @@
 From Coq Require Import List Arith Lia Reals Lra.
 From Coq Require Epsilon.
 From Hofstadter.HalfQuantum Require Import Complex.
-Require Import DeltaList MoreFun MoreList MoreReals MoreComplex.
+Require Import DeltaList MoreTac MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreSum MoreLim.
-Require GenFib GenG Words WordGrowth Mu Freq RootEquiv.
-Require LimCase2 LimCase3 LimCase4.
+Require GenFib GenG Words WordGrowth Mu Freq RootEquiv F3 F4 F5.
 Require Import Article1.
 Local Coercion INR : nat >-> R.
 Local Coercion RtoC : R >-> C.
@@ -22,12 +21,6 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
     the Coq artifact for the first article:
 
       Pointwise order of generalized Hofstadter functions G, H and beyond
-
-    NB: the main difference between Article{1,2}.v and the rest of
-    this Coq development is the use of a parameter k here, controling
-    the number of nested recursive calls, and always >= 1 here,
-    while the rest of the Coq dev uses a parameter q=k-1 instead,
-    hence with q starting at 0.
 *)
 
 
@@ -37,14 +30,6 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** Definition 1.2 : subst_τ and word_x and L already defined as
     [Article1.subst_τ] [Article1.word_x] [Article1.L] *)
-
-(** Link with an internal definition of F *)
-
-Lemma F_f k n : k<>0 -> F k n = GenG.f (k-1) n.
-Proof.
- intros K. unfold F. case Nat.eqb_spec; try lia. intros _.
- apply GenG.fopt_spec.
-Qed.
 
 (** ** Section 2 : Basic properties of F_k *)
 
@@ -88,13 +73,13 @@ Qed.
     k-decompositions that will be presented below.
 *)
 
-Definition enum_sparse_subsets k p := GenFib.enum_sparse_subsets (k-1) p.
+Definition enum_sparse_subsets k p := GenFib.enum_sparse_subsets k p.
 
 Lemma enum_sparse_subsets_ok k p : 0<k ->
   forall l, In l (enum_sparse_subsets k p) <-> Below l p /\ Delta k l.
 Proof.
  intros Hk l. unfold enum_sparse_subsets.
- rewrite GenFib.enum_sparse_subsets_ok. now replace (S (k-1)) with k by lia.
+ apply GenFib.enum_sparse_subsets_ok; lia.
 Qed.
 
 Lemma enum_sparse_subsets_nodup k p : NoDup (enum_sparse_subsets k p).
@@ -114,7 +99,7 @@ Qed.
 
 Lemma F_A k j p : 0<k -> (F k ^^j) (A k p) = A k (p-j).
 Proof.
- intros K. unfold A.
+ intros K. rewrite Fs_alt. unfold A.
  induction j; simpl; rewrite ?IHj, ?F_f, ?GenG.f_A; f_equal; lia.
 Qed.
 
@@ -125,9 +110,9 @@ Qed.
 
 (** ** Section 4 : Fibonacci-like digital expansions *)
 
-Definition decomp k n := GenFib.decomp (k-1) n.
+Definition decomp := GenFib.decomp.
 
-Definition sum k l := GenFib.sumA (k-1) l.
+Definition sum := GenFib.sumA.
 
 (*
 Compute decomp 2 17. (* [0;2;5] *)
@@ -180,10 +165,7 @@ Qed.
 
 Lemma decomp_canon k n : Delta k (decomp k n).
 Proof.
- unfold decomp.
- destruct k; simpl.
- - apply Delta_S. apply GenFib.decomp_delta.
- - rewrite Nat.sub_0_r. apply GenFib.decomp_delta.
+ apply GenFib.decomp_delta.
 Qed.
 
 Lemma decomp_sum k n : sum k (decomp k n) = n.
@@ -193,20 +175,18 @@ Qed.
 
 Lemma decomp_unique k n l : 0<k -> Delta k l -> sum k l = n -> decomp k n = l.
 Proof.
- intros K. replace k with (S (k-1)) at 1 by lia. apply GenFib.decomp_carac.
+ intros K. apply GenFib.decomp_carac; lia.
 Qed.
 
 (** Renormalisation of lax decompositions *)
 
-Definition norm k l := GenFib.renorm (k-1) l.
+Definition norm k l := GenFib.renorm k l.
 
 (* Compute norm 2 [0;2;3;4]. (* [0;2;5] *) *)
 
 Lemma norm_canon k l : Delta (k-1) l -> Delta k (norm k l).
 Proof.
- destruct k; unfold norm; simpl.
- - intros D. apply Delta_S. now apply GenFib.renorm_delta.
- - rewrite Nat.sub_0_r. apply GenFib.renorm_delta.
+ apply GenFib.renorm_delta.
 Qed.
 
 Lemma norm_sum k l : sum k (norm k l) = sum k l.
@@ -218,7 +198,7 @@ Qed.
     Answers [Some r] for a finite rank (i.e. non-empty decomposition)
     and [None] otherwise (for n=0 and its empty decomposition) *)
 
-Definition rank k n : option nat := GenFib.rank (k-1) n.
+Definition rank : nat -> nat -> option nat := GenFib.rank.
 
 Lemma rank_None k n : rank k n = None <-> n = 0.
 Proof.
@@ -229,7 +209,7 @@ Lemma rank_Some k n r :
   rank k n = Some r <-> exists l, decomp k n = r::l.
 Proof.
  unfold rank, GenFib.rank, decomp.
- destruct (GenFib.decomp (k-1) n) as [|r' l]; split.
+ destruct (GenFib.decomp k n) as [|r' l]; split.
  - easy.
  - intros (l,[=]).
  - intros [= ->]. now exists l.
@@ -238,11 +218,10 @@ Qed.
 
 (** Proposition 4.4 *)
 
-Definition next_decomp k l := GenFib.next_decomp (k-1) l.
+Definition next_decomp := GenFib.next_decomp.
 
-Lemma next_decomp_delta k l : 0<k -> Delta k l -> Delta k (next_decomp k l).
+Lemma next_decomp_delta k l : Delta k l -> Delta k (next_decomp k l).
 Proof.
- intros K. replace k with (S (k-1)) at 1 2 by lia.
  apply GenFib.next_decomp_delta.
 Qed.
 
@@ -254,15 +233,14 @@ Qed.
 Lemma next_decomp_highrank k r l :
   0<k -> k <= r -> next_decomp k (r::l) = 0::r::l.
 Proof.
- unfold next_decomp. simpl. case Nat.leb_spec; trivial; lia.
+ unfold next_decomp. simpl. case Nat.ltb_spec; trivial; lia.
 Qed.
 
 Lemma next_decomp_lowrank k r l :
   r < k -> Delta k (r::l) -> next_decomp k (r::l) = norm k (r+1 :: l).
 Proof.
- unfold next_decomp. simpl. case Nat.leb_spec; try lia.
- intros _ R D. rewrite GenFib.renormS_alt, Nat.add_1_r. trivial.
- replace (S (k-1)) with k by lia. trivial.
+ unfold next_decomp. simpl. case Nat.ltb_spec; try lia.
+ intros _ R D. rewrite GenFib.renormS_alt, Nat.add_1_r; trivial; lia.
 Qed.
 
 (** Definition 4.5 : shifts *)
@@ -354,7 +332,7 @@ Proof.
  - apply lshift_delta, decomp_canon.
  - rewrite <- (decomp_sum 1 n) at 2.
    induction (decomp 1 n); simpl; trivial; rewrite ?IHl.
-   rewrite !GenFib.A_0_pow2. rewrite Nat.pow_add_r. ring.
+   rewrite !GenFib.A_1_pow2. rewrite Nat.pow_add_r. ring.
 Qed.
 
 (** NB: for [nat] datatype, [n/2] is a floor approximation *)
@@ -369,7 +347,7 @@ Proof.
    + rewrite Nat.div_0_l; trivial. now apply Nat.pow_nonzero.
    + apply Delta_alt in D. destruct D as (D,H).
      unfold rshift in *. simpl.
-     case Nat.leb_spec; simpl; intros; rewrite IHl, !GenFib.A_0_pow2; trivial.
+     case Nat.leb_spec; simpl; intros; rewrite IHl, !GenFib.A_1_pow2; trivial.
      * unfold decr.
        replace a with ((a-q)+q) at 2 by lia.
        rewrite Nat.pow_add_r, Nat.div_add_l. lia.
@@ -386,7 +364,7 @@ Proof.
        { clear - H. induction l as [|y l IH].
          - exists 0; rewrite Nat.div_0_l. easy. now apply Nat.pow_nonzero.
          - destruct IH as (x,E). simpl in H; intuition.
-           simpl sum. rewrite GenFib.A_0_pow2. exists (x+2^(y-S a)).
+           simpl sum. rewrite GenFib.A_1_pow2. exists (x+2^(y-S a)).
            assert (S a <= y).
            { rewrite <- Nat.add_1_r. apply H. now left. }
            replace y with (S (y - S a) + a) at 1 by lia.
@@ -456,9 +434,9 @@ Proof.
      rewrite decomp_sum. unfold div_up.
      replace (n mod 2) with 0; [simpl; lia|].
      rewrite <- (decomp_sum 1 n), <- E.
-     change (sum _ _) with (GenFib.A 0 (S r) + sum 1 l).
+     change (sum _ _) with (GenFib.A 1 (S r) + sum 1 l).
      rewrite H, Nat.mul_comm, Nat.mod_add; try easy.
-     now rewrite GenFib.A_0_pow2, Nat.pow_succ_r', Nat.mul_comm, Nat.mod_mul.
+     now rewrite GenFib.A_1_pow2, Nat.pow_succ_r', Nat.mul_comm, Nat.mod_mul.
 Qed.
 
 Lemma rshiftup_decomp_k1_q1_alt n :
@@ -483,19 +461,18 @@ Qed.
 
 (** Theorem 4.10 *)
 
-Lemma Fkj_alt k q n :
+Lemma Fs_decomp k q n :
   0<k -> q<=k -> (F k ^^q) n = sum k (decomp k n >>+ q).
 Proof.
- intros K Q. unfold F. case Nat.eqb_spec; try lia. intros _.
- rewrite GenG.fopt_iter. apply GenG.fs_decomp. lia.
+ intros K Q. rewrite Fs_alt. apply GenG.fs_decomp; lia.
 Qed.
 
 (** Beware, no generalization of [Fkj_alt] to [q>k].
     Consider for instance k=2 q=3 n=4. *)
 
-Lemma F_alt k n : 0<k -> F k n = sum k (decomp k n >>+ 1).
+Lemma F_decomp k n : 0<k -> F k n = sum k (decomp k n >>+ 1).
 Proof.
- intros. apply (Fkj_alt k 1); lia.
+ intros. apply (Fs_decomp k 1); lia.
 Qed.
 
 (** Definition 4.6, reversed, we start from the Proposition 4.7 : *)
@@ -563,9 +540,8 @@ Proof.
      2:{ rewrite <- (@filter_all _ (Nat.leb 1) (r::l)) at 1. easy.
          intros x. rewrite Nat.leb_le. intros [<-|IN]; try lia.
          eapply Delta_le in D; eauto; lia. }
-     unfold sum. rewrite GenFib.sumA_eqn_pred.
-     2:{ eapply Delta_nz; eauto; lia. }
-     replace (S (k-1)) with k; lia.
+     unfold sum. rewrite GenFib.sumA_eqn_pred; try lia.
+     eapply Delta_nz; eauto; lia.
    + rewrite next_decomp_lowrank by trivial.
      unfold rshift.
      replace (filter _ (r::l)) with l.
@@ -575,14 +551,14 @@ Proof.
          eapply Delta_le in D; eauto; lia. }
      rewrite filter_all.
      2:{ intros x X. rewrite Nat.leb_le.
-         apply GenFib.renorm_le in X. lia.
+         apply GenFib.renorm_le in X; try lia.
          rewrite Nat.add_1_r. apply Delta_S_cons.
          now replace (S (k-1)) with k by lia. }
-     unfold norm, sum. rewrite GenFib.renorm_mapdecr'.
+     unfold norm, sum. rewrite GenFib.renorm_mapdecr'; try lia.
      2:{ rewrite Nat.add_1_r. apply Delta_S_cons.
          now replace (S (k-1)) with k by lia. }
      2:{ red. lia. }
-     simpl. rewrite GenFib.sumA_eqn_pred.
+     simpl. rewrite GenFib.sumA_eqn_pred; try lia.
      2:{ eapply Delta_nz'; eauto; lia. }
      replace (S (k-1)) with k by lia.
      replace (decr 1 (r+1)) with r by (unfold decr; lia). lia.
@@ -595,13 +571,13 @@ Lemma Ftilde_alt' k n :
 Proof.
  intros K. unfold Ftilde.
  destruct (Nat.eq_dec k 1) as [->|K'].
- { rewrite F_f, GenG.f_0_div2 by lia.
+ { rewrite F_alt, GenG.f_1_div2 by lia.
    replace (S (n+1)) with (n+1*2) by lia. rewrite Nat.div_add by easy.
    rewrite rshift_decomp_k1, decomp_sum. simpl Nat.pow. lia. }
- rewrite F_alt by lia.
+ rewrite F_decomp by lia.
  replace (decomp k (n+1)) with (next_decomp k (decomp k n)).
  2:{ symmetry. apply decomp_unique; trivial.
-     - apply next_decomp_delta, decomp_canon. lia.
+     - apply next_decomp_delta, decomp_canon.
      - rewrite next_decomp_sum, decomp_sum; lia. }
  remember (decomp k n) as l eqn:E.
  assert (D : Delta k l). { subst l; apply decomp_canon. }
@@ -644,9 +620,8 @@ Lemma dFkj_rank k q n : 0<k -> q<=k ->
 Proof.
  intros K Q.
  generalize (Fkj_mono k q n (S n) lia).
- unfold dF, rank. rewrite !Nat.add_1_r. unfold F.
- case Nat.eqb_spec; try lia; intros _.
- rewrite <- GenG.fs_flat_iff'. rewrite !GenG.fopt_iter. lia.
+ unfold dF, rank. rewrite !Fs_alt, !Nat.add_1_r.
+ rewrite <- GenG.fs_flat_iff'; lia.
 Qed.
 
 Lemma dF_rank k n : 0<k -> dF k 1 n = 0 <-> rank k n = Some 0.
@@ -657,18 +632,16 @@ Qed.
 
 (** Proposition 4.12 *)
 
-Lemma L_alt k n : 0<k -> L k n = sum k (decomp k n << 1).
+Lemma L_decomp k n : 0<k -> L k n = sum k (decomp k n << 1).
 Proof.
- intros K. rewrite L_via_F. unfold F.
- case Nat.eqb_spec; try lia; intros _. rewrite GenG.fopt_iter.
- apply GenG.rchild_decomp.
+ intros K. rewrite L_via_F. rewrite Fs_alt. apply GenG.rchild_decomp; lia.
 Qed.
 
-Lemma Lkj_alt k q n : 0<k -> (L k ^^q) n = sum k (decomp k n << q).
+Lemma Lkj_decomp k q n : 0<k -> (L k ^^q) n = sum k (decomp k n << q).
 Proof.
  intros K. induction q; simpl.
  - now rewrite lshift_0, decomp_sum.
- - rewrite IHq, L_alt by trivial.
+ - rewrite IHq, L_decomp by trivial.
    set (l := lshift (decomp k n) q).
    replace (decomp k (sum k l)) with l.
    2:{ symmetry. apply decomp_unique; trivial.
@@ -681,7 +654,7 @@ Lemma decomp_Lkj k q n :
 Proof.
  intros K. apply decomp_unique; trivial.
  - apply lshift_delta, decomp_canon.
- - symmetry. now apply Lkj_alt.
+ - symmetry. now apply Lkj_decomp.
 Qed.
 
 
@@ -758,10 +731,10 @@ Proof.
  unfold W. simpl. rewrite flat_map_app. simpl. now rewrite app_nil_r.
 Qed.
 
-Lemma W_alt k l : 0<k -> W k l = map S (Words.qwords (k-1) (List.rev l)).
+Lemma W_alt k l : 0<k -> W k l = map S (Words.kwords k (List.rev l)).
 Proof.
  intros K. induction l; simpl; trivial. rewrite W_cons, IHl.
- rewrite Words.qwords_app, map_app. f_equal. simpl. rewrite app_nil_r.
+ rewrite Words.kwords_app, map_app. f_equal. simpl. rewrite app_nil_r.
  now apply subst_τ_j_k_alt.
 Qed.
 
@@ -771,7 +744,7 @@ Lemma word_x_W k n : 0<k -> take n (word_x k) = W k (decomp k n).
 Proof.
  intros K.
  rewrite W_alt by trivial.
- unfold decomp, word_x. rewrite <- Words.decomp_prefix_qseq.
+ unfold decomp, word_x. rewrite <- Words.decomp_prefix_kseq by lia.
  unfold take. now rewrite map_map.
 Qed.
 
@@ -780,7 +753,7 @@ Lemma subst_τ_app k j l l' :
 Proof.
  revert l l'. induction j; simpl; intros; trivial.
  rewrite IHj. set (u := _ l). set (u' := _ l'). clear. clearbody u u'.
- unfold subst_τ. now rewrite map_app, Words.qsubstw_app, map_app.
+ unfold subst_τ. now rewrite map_app, Words.ksubstw_app, map_app.
 Qed.
 
 Lemma subst_τ_W k j l : (subst_τ k ^^j) (W k l) = W k (l << j).
@@ -838,7 +811,7 @@ Definition Q (k:nat) (x:C) : C := x^k-x^(k-1)-1.
 Definition IsRoot k r := (Q k r = 0).
 
 Lemma IsRoot_alt k r : k<>O ->
-  IsRoot k r <-> MorePoly.Root r (ThePoly.ThePoly (k-1)).
+  IsRoot k r <-> MorePoly.Root r (ThePoly.ThePoly k).
 Proof.
  intros K. unfold IsRoot, Q. rewrite ThePoly.ThePoly_root_carac.
  replace (S (k-1)) with k by lia.
@@ -860,7 +833,7 @@ Qed.
 Lemma β_root k : k<>O -> IsRoot k (β k).
 Proof.
  intros K. unfold β. rewrite IsRoot_alt by trivial.
- apply ThePoly.mu_is_root.
+ now apply ThePoly.mu_is_root.
 Qed.
 
 (** Enumeration of complex roots:
@@ -898,16 +871,16 @@ Qed.
 
 (** Link with an internal version *)
 Lemma SortedRoots_alt k l :
-  k<>O -> SortedRoots k l <-> ThePoly.SortedRoots (k-1) l.
+  k<>O -> SortedRoots k l <-> ThePoly.SortedRoots k l.
 Proof.
  intros K. revert l.
- assert (H : forall l, ThePoly.SortedRoots (k-1) l -> SortedRoots k l).
+ assert (H : forall l, ThePoly.SortedRoots k l -> SortedRoots k l).
  { intros l Hl. split; try apply Hl.
    red. setoid_rewrite IsRoot_alt; trivial.
    now apply ThePoly.SortedRoots_roots. }
  split; try apply H.
  intros Hl.
- destruct (ThePoly.SortedRoots_exists (k-1)) as (l', Hl').
+ destruct (ThePoly.SortedRoots_exists k lia) as (l', Hl').
  replace l' with l in *; trivial.
  apply (SortedRoots_unique k); trivial. now apply H.
 Qed.
@@ -917,7 +890,7 @@ Proof.
  destruct (Nat.eq_dec k 0) as [->|K].
  - exists []. split. now rewrite SortedRoots_0.
    intros l. now rewrite SortedRoots_0.
- - destruct (ThePoly.SortedRoots_exists (k-1)) as (l, Hl).
+ - destruct (ThePoly.SortedRoots_exists k lia) as (l, Hl).
    exists l. split. now apply SortedRoots_alt.
    intros l'. now apply SortedRoots_unique, SortedRoots_alt.
 Qed.
@@ -958,8 +931,7 @@ Lemma TheRoots_length k : length (TheRoots k) = k.
 Proof.
  destruct (Nat.eq_dec k 0) as [->|K].
  - now rewrite TheRoots_0.
- - replace k with (S (k-1)) at 2 by lia.
-   now apply ThePoly.SortedRoots_length, SortedRoots_alt, TheRoots_ok.
+ - now apply ThePoly.SortedRoots_length, SortedRoots_alt, TheRoots_ok.
 Qed.
 
 (** Note : l@i denotes here the i-th element of a complex list l
@@ -975,10 +947,9 @@ Proof.
 Qed.
 
 Lemma TheRoots_last k :
- k<>O -> Nat.Even k -> root_r k (k-1) = Mu.nu (k-1).
+ k<>O -> Nat.Even k -> root_r k (k-1) = Mu.nu k.
 Proof.
- intros K K'. apply ThePoly.SortedRoots_nu.
- { apply Nat.Even_succ. now replace (S (k-1)) with k by lia. }
+ intros K K'. apply ThePoly.SortedRoots_nu; trivial.
  apply SortedRoots_alt, TheRoots_ok; trivial.
 Qed.
 
@@ -986,9 +957,7 @@ Lemma TheRoots_last_carac k : k<>O -> Nat.Even k ->
   let r := root_r k (k-1) in (Im r = 0 /\ Re r < 0)%R.
 Proof.
  intros K K'. rewrite (TheRoots_last k K K'). split; trivial.
- simpl.
- replace k with (S (k-1)) in K' by lia. apply Nat.Even_succ in K'.
- generalize (Mu.nu_itvl (k-1) K'). lra.
+ simpl. generalize (Mu.nu_itvl k K K'). lra.
 Qed.
 
 (** Proposition 6.5 *)
@@ -1054,7 +1023,7 @@ Proof.
  intros Hp.
  replace (2*p-1)%nat with (2*(p-1)+1)%nat by lia.
  replace (2*p)%nat with (2*(p-1)+2)%nat by lia.
- apply (ThePoly.SortedRoots_im_pos (k-1)); try lia.
+ apply (ThePoly.SortedRoots_im_pos k); try lia.
  apply SortedRoots_alt, TheRoots_ok. lia.
 Qed.
 
@@ -1078,8 +1047,7 @@ Proof.
  generalize (TheRoots_first 1 lia).
  generalize (TheRoots_length 1).
  unfold root_r, Cnth.
- destruct (TheRoots 1) as [|x [|y l]]; try easy. simpl.
- intros _ ->. unfold β. simpl. now rewrite Mu.mu_0.
+ destruct (TheRoots 1) as [|x [|y l]]; try easy. simpl. now intros _ ->.
 Qed.
 
 Lemma TheRoots_2 : TheRoots 2 = [(1+sqrt 5)/2; (1-sqrt 5)/2].
@@ -1088,28 +1056,28 @@ Proof.
  generalize (TheRoots_last 2 lia (ex_intro _ 1%nat eq_refl)).
  generalize (TheRoots_length 2).
  unfold root_r, Cnth.
- destruct (TheRoots 2) as [|x [|y [|z l]]]; try easy. simpl.
+ destruct (TheRoots 2) as [|x [|y [|z l]]]; try easy. cbn -[Mu.nu].
  intros _ -> ->. f_equal.
- - unfold β. simpl. now rewrite Mu.mu_1, RtoC_div, RtoC_plus.
- - f_equal. rewrite Mu.nu_1. now rewrite RtoC_div, RtoC_minus.
+ - unfold β. simpl. now rewrite Mu.mu_2, RtoC_div, RtoC_plus.
+ - f_equal. rewrite Mu.nu_2. now rewrite RtoC_div, RtoC_minus.
 Qed.
 
-Lemma TheRoots_3 : TheRoots 3 = LimCase2.roots.
+Lemma TheRoots_3 : TheRoots 3 = F3.roots.
 Proof.
  apply (SortedRoots_unique 3); try apply TheRoots_ok.
- rewrite SortedRoots_alt; simpl; try lia. apply LimCase2.roots_sorted.
+ rewrite SortedRoots_alt; simpl; try lia. apply F3.roots_sorted.
 Qed.
 
-Lemma TheRoots_4 : TheRoots 4 = LimCase3.roots.
+Lemma TheRoots_4 : TheRoots 4 = F4.roots.
 Proof.
  apply (SortedRoots_unique 4); try apply TheRoots_ok.
- rewrite SortedRoots_alt; simpl; try lia. apply LimCase3.roots_sorted.
+ rewrite SortedRoots_alt; simpl; try lia. apply F4.roots_sorted.
 Qed.
 
-Lemma TheRoots_5 : TheRoots 5 = LimCase4.roots.
+Lemma TheRoots_5 : TheRoots 5 = F5.roots.
 Proof.
  apply (SortedRoots_unique 5); try apply TheRoots_ok.
- rewrite SortedRoots_alt; simpl; try lia. apply LimCase4.roots_sorted.
+ rewrite SortedRoots_alt; simpl; try lia. apply F5.roots_sorted.
 Qed.
 
 (** Proposition 6.8, in three parts *)
@@ -1127,15 +1095,15 @@ Proof.
      rewrite <- Rcomplements.Rdiv_lt_1 by lra. ring_simplify.
      rewrite Rlt_minus_l. apply MoreReals.Rlt_pow2_inv; try lra.
      rewrite pow2_sqrt; lra.
- - rewrite TheRoots_3. unfold LimCase2.roots, Cnth; simpl.
-   generalize LimCase2.αmod_approx. unfold Approx.Approx. lra.
- - rewrite TheRoots_4. unfold LimCase2.roots, Cnth; simpl.
-   generalize LimCase3.αmod_approx. unfold Approx.Approx. lra.
+ - rewrite TheRoots_3. unfold F3.roots, Cnth; simpl.
+   generalize F3.αmod_approx. unfold Approx.Approx. lra.
+ - rewrite TheRoots_4. unfold F3.roots, Cnth; simpl.
+   generalize F4.αmod_approx. unfold Approx.Approx. lra.
 Qed.
 
 Lemma secondary_mod1 : Cmod (root_r 5 1) = 1%R.
 Proof.
- unfold root_r. rewrite TheRoots_5. apply LimCase4.γmod.
+ unfold root_r. rewrite TheRoots_5. apply F5.γmod.
 Qed.
 
 (** Note: for once, the following Coq proof differ sensibly from the
@@ -1146,7 +1114,7 @@ Qed.
 
 Lemma secondary_high k : (6 <= k)%nat -> Cmod (root_r k 1) > 1.
 Proof.
- intros. apply (SecondRoot.large_second_best_root (k-1)); try lia.
+ intros. apply (SecondRoot.large_second_best_root k); try lia.
  apply SortedRoots_alt, TheRoots_ok; lia.
 Qed.
 
@@ -1161,12 +1129,9 @@ Qed.
 
 Definition coef_c k i := let r := root_r k i in r^k / (k*r-(k-1)).
 
-Lemma coef_c_alt k i : k<>O ->
-  coef_c k i = ThePoly.coefA (k-1) (root_r k i).
+Lemma coef_c_alt k i : coef_c k i = ThePoly.coefA k (root_r k i).
 Proof.
- intros K. unfold coef_c, ThePoly.coefA.
- replace (S (k-1))%nat with k by lia.
- f_equal. f_equal. rewrite minus_INR, RtoC_minus. easy. lia.
+ easy.
 Qed.
 
 (** Proposition 7.2.
@@ -1175,7 +1140,7 @@ Qed.
 Lemma Equation_A k n : k<>O ->
   RtoC (A k n) = Sigma (fun i => coef_c k i * (root_r k i)^n) 0 k.
 Proof.
- intros K. unfold A. rewrite (ThePoly.Equation_A (k-1) (TheRoots k)).
+ intros K. unfold A. rewrite (ThePoly.Equation_A k (TheRoots k)).
  2:{ apply SortedRoots_alt, TheRoots_ok; trivial. }
  rewrite Clistsum_map with (d:=C0). rewrite TheRoots_length.
  rewrite Sigma_0. apply big_sum_eq_bounded.
@@ -1189,11 +1154,11 @@ Proof.
  now rewrite TheRoots_length.
 Qed.
 
-Definition coef_c_0 k : R := ThePoly.coef_mu (k-1).
+Definition coef_c_0 k : R := ThePoly.coef_mu k.
 
 Lemma coef_c_0_real k : k<>O -> coef_c k 0 = RtoC (coef_c_0 k).
 Proof.
- intros K. rewrite coef_c_alt; trivial.
+ intros K. rewrite coef_c_alt.
  rewrite TheRoots_first; trivial.
  symmetry. apply ThePoly.coef_mu_ok.
 Qed.
@@ -1220,7 +1185,7 @@ Local Open Scope C_scope.
 
 Definition coef_d k i := coef_c k i * (/root_r k i - α k).
 
-Lemma coef_d_alt k i : k<>O -> coef_d k i = ThePoly.coefdA (k-1) (root_r k i).
+Lemma coef_d_alt k i : k<>O -> coef_d k i = ThePoly.coefdA k (root_r k i).
 Proof.
  intros K. unfold coef_d, ThePoly.coefdA. now rewrite coef_c_alt.
 Qed.
@@ -1248,7 +1213,7 @@ Lemma Equation_dA k n : (1 < k)%nat ->
   Sigma (fun i => coef_d k i * (root_r k i)^n) 1 k.
 Proof.
  intros K. unfold A. rewrite Sigma_alt by lia.
- rewrite (ThePoly.Equation_dA (k-1) (TheRoots k)); try lia.
+ rewrite (ThePoly.Equation_dA k (TheRoots k)); try lia.
  2:{ apply SortedRoots_alt, TheRoots_ok; lia. }
  rewrite Clistsum_map with (d:=C0).
  replace (length (tl (TheRoots k))) with (k-1)%nat.
@@ -1298,13 +1263,13 @@ Qed.
 Lemma dA_sup_gen k : (6<=k)%nat ->
  is_sup_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.p_infty.
 Proof.
- intros. apply Freq.dA_sup_qgen. lia.
+ intros. apply Freq.dA_sup_k6. lia.
 Qed.
 
 Lemma dA_inf_gen k : (6<=k)%nat ->
  is_inf_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.m_infty.
 Proof.
- intros. apply Freq.dA_inf_qgen. lia.
+ intros. apply Freq.dA_inf_k6. lia.
 Qed.
 
 
@@ -1326,8 +1291,8 @@ Lemma Equation_delta k n : (2<=k)%nat ->
           (fun m => Sigma (fun i => coef_d k i * (root_r k i)^m) 1 k)
           (decomp k n)).
 Proof.
- intros. unfold δ. rewrite F_f by lia.
- rewrite (ThePoly.Equation_delta (k-1) (TheRoots k)); try lia.
+ intros. unfold δ. rewrite F_alt by lia.
+ rewrite (ThePoly.Equation_delta k (TheRoots k)); try lia.
  2:{ apply SortedRoots_alt, TheRoots_ok; lia. }
  unfold decomp. f_equal. apply map_ext. intros a.
  rewrite <- Equation_dA by lia. symmetry. unfold A.
@@ -1340,8 +1305,8 @@ Lemma Equation_delta' k n : (2<=k)%nat ->
  Sigma (fun i => coef_d k i *
                  Clistsum (map (Cpow (root_r k i)) (decomp k n))) 1 k.
 Proof.
- intros. unfold δ. rewrite F_f by lia.
- rewrite (ThePoly.Equation_delta' (k-1) (TheRoots k)); try lia.
+ intros. unfold δ. rewrite F_alt by lia.
+ rewrite (ThePoly.Equation_delta' k (TheRoots k)); try lia.
  2:{ apply SortedRoots_alt, TheRoots_ok; lia. }
  unfold decomp. rewrite Clistsum_map with (d:=0).
  replace (length (tl (TheRoots k))) with (k-1)%nat.
@@ -1365,10 +1330,10 @@ Proof.
  intros.
  apply is_sup_seq_unique.
  eapply is_sup_seq_ext.
- - intros n. unfold δ. rewrite F_f; lia || easy.
+ - intros n. unfold δ. rewrite F_alt; lia || easy.
  - destruct (Nat.eq_dec k 5) as [->|K'].
-   + apply LimCase4.delta_sup_q4.
-   + apply (Freq.delta_sup_qgen (k-1)); lia.
+   + apply F5.delta_sup_k5.
+   + apply Freq.delta_sup_k6; lia.
 Qed.
 
 Lemma infdelta_gen k : (5<=k)%nat -> infδ k = Rbar.m_infty.
@@ -1376,10 +1341,10 @@ Proof.
  intros.
  apply is_inf_seq_unique.
  eapply is_inf_seq_ext.
- - intros n. unfold δ. rewrite F_f; lia || easy.
+ - intros n. unfold δ. rewrite F_alt; lia || easy.
  - destruct (Nat.eq_dec k 5) as [->|K'].
-   + apply LimCase4.delta_inf_q4.
-   + apply (Freq.delta_inf_qgen (k-1)); lia.
+   + apply F5.delta_inf_k5.
+   + apply Freq.delta_inf_k6; lia.
 Qed.
 
 Lemma sup_abs (u:nat -> R) :
@@ -1401,26 +1366,26 @@ Qed.
 
 Lemma delta_bound_3 n : Rabs (δ 3 n) <= 0.8541871799283042119835815401528.
 Proof.
- unfold δ. rewrite F_f by lia. apply LimCase2.abs_diff_bound.
+ unfold δ. rewrite F_alt by lia. apply F3.abs_diff_bound.
 Qed.
 
 Lemma Delta_sup_3 : Rbar.Rbar_lt (Δ 3) 1.
 Proof.
  unfold Δ. erewrite Sup_seq_ext.
- - apply LimCase2.sup_diff_lt_1.
- - intros n. simpl. unfold δ. now rewrite F_f by lia.
+ - apply F3.sup_diff_lt_1.
+ - intros n. simpl. unfold δ. now rewrite F_alt by lia.
 Qed.
 
 Lemma delta_bound_4 n : Rabs (δ 4 n) <= 1.5834687793247475.
 Proof.
- unfold δ. rewrite F_f by lia. apply LimCase3.abs_diff_bound.
+ unfold δ. rewrite F_alt by lia. apply F4.abs_diff_bound.
 Qed.
 
 Lemma Delta_sup_4 : Rbar.Rbar_lt (Δ 4) 2.
 Proof.
  unfold Δ. erewrite Sup_seq_ext.
- - apply LimCase3.sup_diff0_lt_2.
- - intros n. simpl. unfold δ. now rewrite F_f, <- LimCase3.diff0_alt by lia.
+ - apply F4.sup_diff0_lt_2.
+ - intros n. simpl. unfold δ. now rewrite F_alt, <- F4.diff0_alt by lia.
 Qed.
 
 (*
@@ -1435,9 +1400,9 @@ Lemma F3_natpart n :
   let d := F 3 n - nat_part (α 3 * n) in
   d = 0 \/ d = 1.
 Proof.
- rewrite F_f by lia. simpl.
- destruct (LimCase2.h_natpart_or n) as [E|E]; unfold GenAdd.h in *;
-  rewrite E; unfold LimCase2.τ, α; simpl Nat.sub.
+ rewrite F_alt by lia. simpl.
+ destruct (F3.h_natpart_or n) as [E|E]; unfold GenAdd.h in *;
+  rewrite E; unfold F3.τ, α; simpl Nat.sub.
  - left. ring.
  - right. rewrite S_INR. ring.
 Qed.
@@ -1446,13 +1411,13 @@ Lemma F4_natpart n :
   let d := F 4 n - nat_part (α 4 * n) in
   d = -1 \/ d = 0 \/ d = 1 \/ d = 2.
 Proof.
- rewrite F_f by lia. simpl.
- assert (U := LimCase3.f3_natpart_lower n).
- assert (V := LimCase3.f3_natpart_higher n).
+ rewrite F_alt by lia. simpl.
+ assert (U := F4.f4_natpart_lower n).
+ assert (V := F4.f4_natpart_higher n).
  apply le_INR in U, V.
  rewrite plus_INR in U, V.
  rewrite (INR_IZR_INZ 1) in U. rewrite (INR_IZR_INZ 2) in V. simpl in U,V.
- change LimCase3.τ with (α 4) in U,V.
+ change F4.τ with (α 4) in U,V.
  remember (Rminus _ _) as d eqn:E.
  assert (-1 <= d <= 2) by (rewrite E; lra). clear U V.
  rewrite !INR_IZR_INZ, Z_R_minus in E.
@@ -1467,34 +1432,34 @@ Qed.
 
 Lemma F3_almostadd p n : Rabs (F 3 (p+n) - F 3 p - F 3 n) <= 2.
 Proof.
- rewrite !F_f by lia. simpl. apply Rabs_le.
- generalize (LimCase2.h_quasiadd p n). unfold GenAdd.h.
+ rewrite !F_alt by lia. simpl. apply Rabs_le.
+ generalize (F3.h_quasiadd p n). unfold GenAdd.h.
  intros (U,V). apply le_INR in U, V.
  rewrite !plus_INR in V.
  rewrite (INR_IZR_INZ 2) in V. simpl in V.
  split. 2:lra.
- destruct (Nat.le_gt_cases 2 (GenG.f 2 p + GenG.f 2 n)) as [H|H].
+ destruct (Nat.le_gt_cases 2 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
  - rewrite minus_INR in U by lia.
    rewrite (INR_IZR_INZ 2), plus_INR in U. simpl in U. lra.
  - apply lt_INR in H. rewrite plus_INR in H.
    rewrite (INR_IZR_INZ 2) in H. simpl in H.
-   generalize (pos_INR (GenG.f 2 (p+n))). lra.
+   generalize (pos_INR (GenG.f 3 (p+n))). lra.
 Qed.
 
 Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 4.
 Proof.
- rewrite !F_f by lia. simpl. apply Rabs_le.
- generalize (LimCase3.f3_quasiadd p n).
+ rewrite !F_alt by lia. simpl. apply Rabs_le.
+ generalize (F4.f4_quasiadd p n).
  intros (U,V). apply le_INR in U,V.
  rewrite !plus_INR in V.
  rewrite (INR_IZR_INZ 4) in V. simpl in V.
  split. 2:lra.
- destruct (Nat.le_gt_cases 4 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
+ destruct (Nat.le_gt_cases 4 (GenG.f 4 p + GenG.f 4 n)) as [H|H].
  - rewrite minus_INR in U by lia.
    rewrite (INR_IZR_INZ 4), plus_INR in U. simpl in U. lra.
  - apply lt_INR in H. rewrite plus_INR in H.
    rewrite (INR_IZR_INZ 4) in H. simpl in H.
-   generalize (pos_INR (GenG.f 3 (p+n))). lra.
+   generalize (pos_INR (GenG.f 4 (p+n))). lra.
 Qed.
 
 (** Proposition 8.11 *)
@@ -1505,8 +1470,7 @@ Proof.
  intros K QA.
  assert (BD : forall n, Rabs (δ k n) <= M).
  { intros n. unfold δ. destruct (Nat.eq_dec n 0) as [->|Hn].
-   { generalize (QA O O). simpl. rewrite F_0. simpl.
-     now rewrite Rmult_0_r, !Rminus_0_r. }
+   { generalize (QA O O). simpl. now rewrite Rmult_0_r, !Rminus_0_r. }
    apply Rcomplements.Rabs_le_between. split.
    - apply Rcomplements.Rle_minus_r. rewrite Rplus_comm.
      apply Rcomplements.Rle_minus_l. apply Rcomplements.Rle_div_r.
@@ -1615,7 +1579,7 @@ Proof.
    change (F 4 6) with 5%nat in E6.
    symmetry in E2; symmetry in E6. rewrite <- int_part_iff in *.
    simpl IZR in *.
-   unfold α in *. simpl in *. generalize Mu.tau_3. lra. }
+   unfold α in *. simpl in *. generalize Mu.tau_4. lra. }
  replace k with 3%nat in * by lia.
  { clear K K' K4 B.
    assert (E5 := E 5%nat). assert (E8 := E 8%nat).
@@ -1624,7 +1588,7 @@ Proof.
    change (F 3 8) with 5%nat in E8.
    symmetry in E5; symmetry in E8. rewrite <- int_part_iff in *.
    simpl IZR in *.
-   unfold α in *. simpl in *. generalize Mu.tau_2. lra. }
+   unfold α in *. simpl in *. generalize Mu.tau_3. lra. }
 Qed.
 
 Lemma no_ceil_after_k3 k (a b : R) :
@@ -1680,7 +1644,7 @@ Proof.
    change (F 4 6) with 5%nat in E6.
    symmetry in E2; symmetry in E6. rewrite <- ceil_iff in *.
    simpl IZR in *.
-   unfold α in *. simpl in *. generalize Mu.tau_3. lra. }
+   unfold α in *. simpl in *. generalize Mu.tau_4. lra. }
  replace k with 3%nat in * by lia.
  { clear K K' K4 B.
    assert (E5 := E 5%nat). assert (E8 := E 8%nat).
@@ -1689,5 +1653,5 @@ Proof.
    change (F 3 8) with 5%nat in E8.
    symmetry in E5; symmetry in E8. rewrite <- ceil_iff in *.
    simpl IZR in *.
-   unfold α in *. simpl in *. generalize Mu.tau_2. lra. }
+   unfold α in *. simpl in *. generalize Mu.tau_3. lra. }
 Qed.

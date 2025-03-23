@@ -1,6 +1,6 @@
 From Coq Require Import Bool Arith Lia Reals Lra.
 From Hofstadter.HalfQuantum Require Import Polynomial.
-Require Import MoreFun MoreList MoreReals MoreComplex MoreSum.
+Require Import MoreTac MoreFun MoreList MoreReals MoreComplex MoreSum.
 Require Import MoreLim MorePoly MoreMatrix.
 Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
 Local Open Scope Q.
@@ -9,23 +9,23 @@ Local Coercion INR : nat >-> R.
 Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
-(** * Studying case q=4
+(** * Studying case k=5
 
-   We focus here on the case q=4, compute the complex roots of [X^5-X^4-1],
-   and express (A 4 n) in term of combinations of powers of these roots.
-   Then we show that [f 4 n - tau 4 * n] has +infinity as sup
+   We focus here on the case k=5, compute the complex roots of [X^5-X^4-1],
+   and express (A 5 n) in term of combinations of powers of these roots.
+   Then we show that [f 5 n - tau 5 * n] has +infinity as sup
    (or equivalently as limsup, see MoreLim.Sup_LimSup_pinfty),
    and -infinity as inf.
 *)
 
-Definition μ := mu 4.
-Definition τ := tau 4.
+Definition μ := mu 5.
+Definition τ := tau 5.
 
 #[local] Instance : Approx 0.7548776662466 τ 0.7548776662467.
-Proof. red. unfold τ. generalize tau_4. lra. Qed.
+Proof. red. unfold τ. generalize tau_5. lra. Qed.
 
 #[local] Instance : Approx 1.324717957244 μ 1.324717957245.
-Proof. red. unfold μ. generalize mu_4. lra. Qed.
+Proof. red. unfold μ. generalize mu_5. lra. Qed.
 
 Lemma τ_μ : τ = /μ.
 Proof.
@@ -34,7 +34,7 @@ Qed.
 
 (** The complex roots of [X^5-X^4-1] *)
 
-Lemma Poly4_factor : ThePoly 4 = ([C1;-C1;C1] *, [-C1;-C1;C0;C1])%P%C.
+Lemma Poly5_factor : ThePoly 5 = ([C1;-C1;C1] *, [-C1;-C1;C0;C1])%P%C.
 Proof.
  unfold ThePoly; simpl. repeat (f_equal; try lca).
 Qed.
@@ -89,7 +89,8 @@ Lemma μ3 : μ^3 = μ+1.
 Proof.
  symmetry. apply Rminus_diag_uniq_sym.
  apply Rmult_eq_reg_l with (μ^2-μ+1); try approx.
- rewrite Rmult_0_r. ring_simplify. unfold μ. rewrite (mu_carac 4). ring.
+ rewrite Rmult_0_r. ring_simplify. unfold μ. rewrite (mu_carac 5 lia).
+ simpl. ring.
 Qed.
 
 Lemma factor2 : [-C1;-C1;C0;C1]%C = linfactors [RtoC μ;α;αbar].
@@ -113,10 +114,10 @@ Qed.
 
 Definition roots := [RtoC μ; γ; γbar; α; αbar].
 
-Lemma roots_sorted : SortedRoots 4 roots.
+Lemma roots_sorted : SortedRoots 5 roots.
 Proof.
  split.
- - rewrite Poly4_factor, factor1, factor2, <- linfactors_app.
+ - rewrite Poly5_factor, factor1, factor2, <- linfactors_app.
    apply linfactors_perm. unfold roots. simpl.
    apply (Permutation_app_swap_app [γ;γbar] [RtoC μ]).
  - do 3 constructor.
@@ -136,7 +137,7 @@ Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
 
 Lemma μ_is_Rroot : μ^5 = μ^4 + 1.
 Proof.
- exact (mu_carac 4).
+ exact (mu_carac 5 lia).
 Qed.
 
 Lemma μ_is_Croot : (μ^5 = μ^4 + 1)%C.
@@ -156,27 +157,27 @@ Proof.
  apply linfactors_roots. simpl. tauto.
 Qed.
 
-Lemma A4_eqn_C :
- let a := coefA 4 μ in
- let b := coefA 4 γ in
- let c := coefA 4 γbar in
- let d := coefA 4 α in
- let e := coefA 4 αbar in
- forall n, RtoC (A 4 n) = (a*μ^n + b*γ^n + c*γbar^n + d*α^n + e*αbar^n)%C.
+Lemma A5_eqn_C :
+ let a := coefA 5 μ in
+ let b := coefA 5 γ in
+ let c := coefA 5 γbar in
+ let d := coefA 5 α in
+ let e := coefA 5 αbar in
+ forall n, RtoC (A 5 n) = (a*μ^n + b*γ^n + c*γbar^n + d*α^n + e*αbar^n)%C.
 Proof.
  intros a b c d e n.
- rewrite (Equation_A 4 roots roots_sorted). unfold roots.
+ rewrite (Equation_A 5 roots roots_sorted). unfold roots.
  simpl. fold a b c d e. ring.
 Qed.
 
-Lemma A4_eqn_R :
- let a := coef_mu 4 in
- let b := coefA 4 γ in
- let d := coefA 4 α in
- forall n, INR (A 4 n) = a*μ^n + 2*Re (b*γ^n) + 2*Re (d*α^n).
+Lemma A5_eqn_R :
+ let a := coef_mu 5 in
+ let b := coefA 5 γ in
+ let d := coefA 5 α in
+ forall n, INR (A 5 n) = a*μ^n + 2*Re (b*γ^n) + 2*Re (d*α^n).
 Proof.
  intros a b d n.
- apply RtoC_inj. rewrite A4_eqn_C.
+ apply RtoC_inj. rewrite A5_eqn_C.
  autorewrite with RtoC.
  rewrite <- coef_mu_ok. fold a.
  rewrite γ_conj, coefA_conj.
@@ -188,7 +189,7 @@ Qed.
 
 Definition decomp_u n := map (Nat.mul 6) (seq 0 n).
 
-Definition seq_u n := sumA 4 (decomp_u n).
+Definition seq_u n := sumA 5 (decomp_u n).
 
 Definition decomp_u_S n : decomp_u (S n) = decomp_u n ++ [6*n]%nat.
 Proof.
@@ -217,19 +218,19 @@ Proof.
 Qed.
 
 Lemma delta_seq_u_eqn n :
-  f 4 (seq_u n) - τ * (seq_u n) =
-  2*n*Re (coefdA 4 γ) +
-  2*Re (coefdA 4 α * Clistsum (map (Cpow α) (decomp_u n))).
+  f 5 (seq_u n) - τ * (seq_u n) =
+  2*n*Re (coefdA 5 γ) +
+  2*Re (coefdA 5 α * Clistsum (map (Cpow α) (decomp_u n))).
 Proof.
- apply RtoC_inj. rewrite (Equation_delta' 4 roots roots_sorted); try lia.
+ apply RtoC_inj. rewrite (Equation_delta' 5 roots roots_sorted); try lia.
  unfold roots. simpl tl.
  rewrite decomp_carac with (l:=decomp_u n); try easy.
  2:{ apply Delta_S, decomp_u_delta. }
  simpl map.
  rewrite γ_conj, <- α_conj. rewrite !coefdA_conj.
  set (l := decomp_u n).
- set (dγ := coefdA 4 γ).
- set (dα := coefdA 4 α).
+ set (dγ := coefdA 5 γ).
+ set (dα := coefdA 5 α).
  replace (Clistsum (map (Cpow (Cconj γ)) l))
   with (Cconj (Clistsum (map (Cpow γ) l))).
  2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
@@ -248,10 +249,11 @@ Proof.
  rewrite RtoC_plus, !RtoC_mult, <- !re_alt'. ring.
 Qed.
 
-#[local] Instance : Approx 0.0189 (Re (coefdA 4 γ)) 0.0190.
+#[local] Instance : Approx 0.0189 (Re (coefdA 5 γ)) 0.0190.
 Proof.
  unfold coefdA, coefA. fold τ.
  rewrite !INR_IZR_INZ. simpl IZR.
+ rewrite <- RtoC_minus. replace (5-1)%R with 4 by lra.
  unfold Cdiv. replace (/(5*γ-4))%C with ((/21)%R*(5*Cconj γ-4))%C.
  2:{ rewrite Cinv_alt.
      2:{ intros E. apply Cminus_eq_0 in E. injection E as E _.
@@ -276,12 +278,12 @@ Qed.
 
 Lemma delta_seq_u_bound :
  exists (c c' : posreal),
- forall n, Rabs (f 4 (seq_u n) - τ * seq_u n - c*n) < c'.
+ forall n, Rabs (f 5 (seq_u n) - τ * seq_u n - c*n) < c'.
 Proof.
- set (c := 2*Re (coefdA 4 γ)).
+ set (c := 2*Re (coefdA 5 γ)).
  assert (Hc : 0 < c) by (unfold c; approx).
  exists (mkposreal c Hc). simpl.
- set (c' := 2*(Cmod (coefdA 4 α)/(1-Cmod α^6))).
+ set (c' := 2*(Cmod (coefdA 5 α)/(1-Cmod α^6))).
  assert (Hc' : 0 < c').
  { unfold c'. repeat apply Rmult_lt_0_compat; try lra.
    - apply Cmod_gt_0. apply coefdA_nz.
@@ -306,8 +308,8 @@ Proof.
  apply sum_pow; try apply decomp_u_delta. lia. approx.
 Qed.
 
-Lemma delta_sup_q4 :
- is_sup_seq (fun n => f 4 n - τ * n) Rbar.p_infty.
+Lemma delta_sup_k5 :
+ is_sup_seq (fun n => f 5 n - τ * n) Rbar.p_infty.
 Proof.
  intros M. simpl.
  destruct delta_seq_u_bound as (c & c' & LT).
@@ -328,19 +330,19 @@ Proof.
  apply Rcomplements.Rabs_lt_between in LT; lra.
 Qed.
 
-(* Print Assumptions delta_sup_q4. *)
+(* Print Assumptions delta_sup_k5. *)
 
-(** For [inf (f 4 n - τ * n) = -infinity], we shift the decompositions
+(** For [inf (f 5 n - τ * n) = -infinity], we shift the decompositions
     [decomp_u] by 3, since [γ^(6p+3) = -1]. *)
 
-Definition seq_u' n := sumA 4 (map (Nat.add 3) (decomp_u n)).
+Definition seq_u' n := sumA 5 (map (Nat.add 3) (decomp_u n)).
 
 Lemma delta_seq_u'_eqn n :
-  f 4 (seq_u' n) - τ * (seq_u' n) =
-  -2*n*Re (coefdA 4 γ) +
-  2*Re (coefdA 4 α * α^3 * Clistsum (map (Cpow α) (decomp_u n))).
+  f 5 (seq_u' n) - τ * (seq_u' n) =
+  -2*n*Re (coefdA 5 γ) +
+  2*Re (coefdA 5 α * α^3 * Clistsum (map (Cpow α) (decomp_u n))).
 Proof.
- apply RtoC_inj. rewrite (Equation_delta' 4 roots roots_sorted); try lia.
+ apply RtoC_inj. rewrite (Equation_delta' 5 roots roots_sorted); try lia.
  unfold roots. simpl tl.
  rewrite decomp_carac with (l:=(map (Nat.add 3) (decomp_u n))); try easy.
  2:{ eapply Delta_map; try apply decomp_u_delta. lia. }
@@ -348,7 +350,7 @@ Proof.
  simpl map. simpl Clistsum. rewrite Cplus_assoc, RtoC_plus. f_equal.
  - unfold f. rewrite γ_conj. rewrite coefdA_conj.
    set (l := map _ (decomp_u n)).
-   set (dγ := coefdA 4 γ).
+   set (dγ := coefdA 5 γ).
    replace (Clistsum (map (Cpow (Cconj γ)) l))
      with (Cconj (Clistsum (map (Cpow γ) l))).
    2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
@@ -363,7 +365,7 @@ Proof.
  - rewrite Cplus_0_r. unfold f. clear f.
    rewrite <- α_conj. rewrite !coefdA_conj.
    set (l := map _ (decomp_u n)).
-   set (dα := coefdA 4 α).
+   set (dα := coefdA 5 α).
    set (sum := Clistsum (map (Cpow α) l)).
    replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
    2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
@@ -376,12 +378,12 @@ Qed.
 
 Lemma delta_seq_u'_bound :
  exists (c c' : posreal),
- forall n, Rabs (f 4 (seq_u' n) - τ * seq_u' n + c*n) < c'.
+ forall n, Rabs (f 5 (seq_u' n) - τ * seq_u' n + c*n) < c'.
 Proof.
- set (c := 2*Re (coefdA 4 γ)).
+ set (c := 2*Re (coefdA 5 γ)).
  assert (Hc : 0 < c) by (unfold c; approx).
  exists (mkposreal c Hc). simpl.
- set (c' := 2*(Cmod (coefdA 4 α * α^3)/(1-Cmod α^6))).
+ set (c' := 2*(Cmod (coefdA 5 α * α^3)/(1-Cmod α^6))).
  assert (Hc' : 0 < c').
  { unfold c'. rewrite Cmod_mult. repeat apply Rmult_lt_0_compat; try lra.
    - apply Cmod_gt_0. apply coefdA_nz.
@@ -407,8 +409,8 @@ Proof.
  apply sum_pow; try apply decomp_u_delta. lia. approx.
 Qed.
 
-Lemma delta_inf_q4 :
- is_inf_seq (fun n => f 4 n - τ * n) Rbar.m_infty.
+Lemma delta_inf_k5 :
+ is_inf_seq (fun n => f 5 n - τ * n) Rbar.m_infty.
 Proof.
  intros M. simpl.
  destruct delta_seq_u'_bound as (c & c' & LT).
@@ -429,4 +431,4 @@ Proof.
  apply Rcomplements.Rabs_lt_between in LT; lra.
 Qed.
 
-(* Print Assumptions delta_inf_q4. *)
+(* Print Assumptions delta_inf_k5. *)

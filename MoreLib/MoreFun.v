@@ -1,7 +1,5 @@
 From Coq Require Import Arith Lia.
 
-Notation lia := (ltac:(lia)) (only parsing).
-
 (** Notation for function iteration *)
 
 Notation "f ^^ n" := (Nat.iter n f) (at level 30, right associativity).

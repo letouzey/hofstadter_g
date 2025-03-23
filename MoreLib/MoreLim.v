@@ -5,14 +5,11 @@ From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
 From Coquelicot Require Import ElemFct Derive.
 Close Scope R. (* Issue with Coquelicot *)
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
-Require Import MoreList MoreReals MoreComplex MoreSum.
+Require Import MoreTac MoreList MoreReals MoreComplex MoreSum.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
-
-Ltac fixeq ty := change (@eq _) with (@eq ty).
-Notation lia := (ltac:(lia)) (only parsing).
 
 Notation R_NM := R_NormedModule.
 Notation R_CNM := R_CompleteNormedModule.

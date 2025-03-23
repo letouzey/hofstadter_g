@@ -13,6 +13,7 @@ HalfQuantum/Ctopology.v
 HalfQuantum/FTA.v
 HalfQuantum/RowColOps.v
 HalfQuantum/VecSet.v
+MoreLib/MoreTac.v
 MoreLib/MoreFun.v
 MoreLib/MoreList.v
 MoreLib/DeltaList.v
@@ -47,8 +48,8 @@ SecondRoot.v
 RootEquiv.v
 Discrepancy.v
 Freq.v
-LimCase2.v
-LimCase3.v
-LimCase4.v
+F3.v
+F4.v
+F5.v
 Article1.v
 Article2.v

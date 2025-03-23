@@ -59,25 +59,25 @@ Summary of files:
   - [FlipG.v](FlipG.v): Hofstadter's flipped G tree
   - [Phi.v](Phi.v): Hofstadter G function and the golden ratio
 3. New, generalized versions of G with more nested recursive calls
-  - [GenFib.v](GenFib.v): Fibonacci-like sequences `A q` and decomposition
-  - [GenG.v](GenG.v): Hofstadter's G-like functions `f q`
+  - [GenFib.v](GenFib.v): Fibonacci-like sequences `A k` and decomposition
+  - [GenG.v](GenG.v): Hofstadter's G-like functions `f k`
   - [GenFlip.v](GenFlip.v): Mirror of the G-like trees
   - [GenAdd.v](GenAdd.v): Study of the quasi-additivity of G-like functions
   - [Shift.v](Shift.v): quasi-reciprocal of the G-like functions
-4. Some infinite morphic words related to functions `f q`
-  - [Words.v](Words.v): morphic words `kseq k`, first properties, link with `f q`.
-  - [WordGrowth.v](WordGrowth.v): compare some letter frequencies, `f q <= f (q+1)`
+4. Some infinite morphic words related to functions `f k`
+  - [Words.v](Words.v): morphic words `kseq k`, first properties, link with `f k`.
+  - [WordGrowth.v](WordGrowth.v): compare some letter frequencies, `f k <= f (k+1)`
   - [WordSuffix.v](WordSuffix.v): enumerate and count the `kword` suffixes
   - [WordFactor.v](WordFactor.v): factors of `kseq k` (i.e. finite sub-words)
-  - [Special.v](Special.v): unique left special factor for `kseq q`, complexity
+  - [Special.v](Special.v): unique left special factor for `kseq k`, complexity
 5. Hoftadter G-like functions and real numbers
-  - [ThePoly.v](ThePoly.v): start studying polynomial `X^(q+1)-X^q-1`
+  - [ThePoly.v](ThePoly.v): start studying polynomial `X^k-X^(k-1)-1`
   - [Mu.v](Mu.v): real roots of this polynomial
-  - [SecondRoot.v](SecondRoot.v): a second root of this polynomial has modulus>1 for q>=5
-  - [Freq.v](Freq.v): frequencies of letters in `qseq q`, limit of `(f q n)/n`.
-  - [LimCase2.v](LimCase2.v): Hofstadter H (i.e. `f 2`) at dist <1 of `n*τ_2`
-  - [LimCase3.v](LimCase3.v): `f 3` at dist <2 of `n*τ_3`
-  - [LimCase4.v](LimCase4.v): `f 4` at unbounded dist of `n*τ_4`
+  - [SecondRoot.v](SecondRoot.v): a second root of this polynomial has modulus>1 for k>=6
+  - [Freq.v](Freq.v): frequencies of letters in `kseq k`, limit of `(f k n)/n`.
+  - [F3.v](F3.v): Hofstadter H (i.e. `f 3`) at dist <1 of `n*τ_3`
+  - [F4.v](F4.v): `f 4` at dist <2 of `n*τ_4`
+  - [F5.v](F5.v): `f 5` at unbounded dist of `n*τ_5`
 6. Two companion Coq files for two forthcoming articles
   - [Article1.v](Article1.v)
   - [Article2.v](Article2.v)

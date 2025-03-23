@@ -1,6 +1,6 @@
 From Coq Require Import Arith Lia NArith Reals Lra.
 From Hofstadter.HalfQuantum Require Import Matrix.
-Require Import MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
+Require Import MoreTac MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import MorePoly DeltaList Approx.
 Require Import GenFib GenG GenAdd Words Mu ThePoly Freq Discrepancy.
 Local Open Scope Q.
@@ -9,17 +9,17 @@ Local Coercion INR : nat >-> R.
 Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
-(** * Studying case q=3 i.e. Article's k=4
+(** * Studying case k=4
 
-   We focus here on the case q=3, compute the complex roots of [X^4-X^3-1],
-   and express (A 3 n) in term of combinations of powers of these roots.
+   We focus here on the case k=4, compute the complex roots of [X^4-X^3-1],
+   and express (A 4 n) in term of combinations of powers of these roots.
    Then we study the frequencies in [Words.qseq 3] and the behaviour of
-   function [f 3].
+   function [f 4].
 *)
 
-Definition μ := mu 3.
-Definition τ := tau 3.
-Definition ν := nu 3.
+Definition μ := mu 4.
+Definition τ := tau 4.
+Definition ν := nu 4.
 
 Lemma τ_μ : τ = /μ.
 Proof.
@@ -33,7 +33,7 @@ Qed.
 
 Lemma τ4 : τ^4 = 1 - τ.
 Proof.
- generalize (tau_carac 3). fold τ. lra.
+ generalize (tau_carac 4 lia). fold τ. lra.
 Qed.
 
 Lemma τ5 : τ^5 = τ - τ^2.
@@ -52,13 +52,13 @@ Proof.
 Qed.
 
 #[local] Instance : Approx 0.7244919590005 τ 0.7244919590006.
-Proof. red. unfold τ. generalize tau_3. lra. Qed.
+Proof. red. unfold τ. generalize tau_4. lra. Qed.
 
 #[local] Instance : Approx 1.380277569097 μ 1.380277569098.
-Proof. red. unfold μ. generalize mu_3. lra. Qed.
+Proof. red. unfold μ. generalize mu_4. lra. Qed.
 
 #[local] Instance : Approx (-0.819172513397) ν (-0.819172513396).
-Proof. red. unfold ν. generalize nu_3. lra. Qed.
+Proof. red. unfold ν. generalize nu_4. lra. Qed.
 
 (** The complex roots of [X^4-X^3-1] *)
 
@@ -108,7 +108,7 @@ Proof. rewrite αmod2. approx. Qed.
 
 Definition roots := [RtoC μ; α; αbar; RtoC ν].
 
-Lemma roots_sorted : SortedRoots 3 roots.
+Lemma roots_sorted : SortedRoots 4 roots.
 Proof.
  split.
  2:{ do 3 constructor.
@@ -116,21 +116,22 @@ Proof.
      - constructor. left. unfold αbar. simpl. approx.
      - right. unfold α, αbar. simpl. split; trivial. approx.
      - unfold α. simpl. approx. }
- destruct (SortedRoots_exists 3) as (l & Hl).
+ destruct (SortedRoots_exists 4 lia) as (l & Hl).
  case Hl. intros E _. rewrite E. apply linfactors_perm. clear E.
- assert (LN := SortedRoots_length 3 l Hl).
- assert (FS := SortedRoots_mu 3 l Hl).
- assert (K : Nat.Odd 3) by now exists 1%nat.
- assert (LT := SortedRoots_nu 3 l K Hl).
- destruct (SortedRoots_im_pos 3 l Hl 0) as (LT',EQ); try lia.
+ assert (LN := SortedRoots_length 4 l Hl).
+ assert (FS := SortedRoots_mu 4 l Hl).
+ assert (K : Nat.Even 4) by now exists 2%nat.
+ assert (LT := SortedRoots_nu 4 l K Hl).
+ destruct (SortedRoots_im_pos 4 l Hl 0) as (LT',EQ); try lia.
  simpl in LT', EQ.
  destruct l as [|a [|b [|c [|d [|? l]]]]]; try (simpl; easy).
- unfold Cnth in *; simpl in *. subst. clear LN K. unfold roots.
+ unfold Cnth in *; cbn -[mu nu] in *. subst. clear LN K. unfold roots.
  assert (b = α); subst; try easy.
  destruct Hl as (E,CS).
  assert (E0 := coef_compat 0 _ _ E).
  assert (E3 := coef_compat 3 _ _ E).
- unfold ThePoly,coef in E0,E3; simpl in E0,E3. fold μ in *. fold ν in *.
+ unfold ThePoly,coef in E0,E3. cbn -[Cpow mu nu] in E0,E3.
+ fold μ in *. fold ν in *.
  ring_simplify in E0. field_simplify in E3.
  assert (E3' : (RtoC μ + RtoC ν + b + Cconj b = 1)%C).
  { rewrite Ceq_minus in E3. ring_simplify in E3.
@@ -163,7 +164,7 @@ Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
 
 Lemma μ_is_Rroot : μ^4 = μ^3 + 1.
 Proof.
- exact (mu_carac 3).
+ exact (mu_carac 4 lia).
 Qed.
 
 Lemma μ_is_Croot : (μ^4 = μ^3 + 1)%C.
@@ -173,7 +174,7 @@ Qed.
 
 Lemma ν_is_Rroot : ν^4 = ν^3+1.
 Proof.
- apply nu_carac. now apply Nat.odd_spec.
+ apply nu_carac. lia. now apply Nat.even_spec.
 Qed.
 
 Lemma ν_is_Croot : (ν ^4 = ν ^3 + 1)%C.
@@ -195,7 +196,7 @@ Qed.
 
 Lemma nodup_roots : NoDup roots.
 Proof.
- apply (SortedRoots_nodup 3), roots_sorted.
+ apply (SortedRoots_nodup 4), roots_sorted.
 Qed.
 
 Lemma distinct_roots :
@@ -207,19 +208,19 @@ Proof.
  intuition.
 Qed.
 
-Lemma A3_eqn :
- let a := coefA 3 μ in
- let b := coefA 3 α in
- let c := coefA 3 αbar in
- let d := coefA 3 ν in
- forall n, RtoC (A 3 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
+Lemma A4_eqn :
+ let a := coefA 4 μ in
+ let b := coefA 4 α in
+ let c := coefA 4 αbar in
+ let d := coefA 4 ν in
+ forall n, RtoC (A 4 n) = (a*μ^n + b*α^n + c*αbar^n + d*ν^n)%C.
 Proof.
  intros a b c d n.
- rewrite (Equation_A 3 roots roots_sorted). unfold roots.
+ rewrite (Equation_A 4 roots roots_sorted). unfold roots.
  simpl. fold a b c d. ring.
 Qed.
 
-(** Note about A3_eqn :
+(** Note about A4_eqn :
     coefficients a b c d are obtained by inversing the Vandermonde
     matrix of roots. Fortunately, they also have simple expressions
     in terms of μ α αbar ν respectively.
@@ -228,11 +229,11 @@ Qed.
     of [X^4-X^3-(162/283)*X^2-(24/283)*X-1/283] (not proved here). *)
 
 Lemma diff_A3_powers n :
-  diff 3 (A 3 n) = 2 * Re (coefdA 3 α * α^n) + Re (coefdA 3 ν) * ν^n.
+  diff 4 (A 4 n) = 2 * Re (coefdA 4 α * α^n) + Re (coefdA 4 ν) * ν^n.
 Proof.
   apply RtoC_inj.
-  unfold diff. rewrite f_A, Equation_dA with (roots:=roots).
-  2:apply roots_sorted. 2:lia.
+  unfold diff. rewrite f_A, Equation_dA with (roots:=roots); try easy.
+  2:apply roots_sorted.
   cbn -[Cmult Cpow pow ν]. rewrite Cplus_0_r, RtoC_plus, Cplus_assoc. f_equal.
   - change αbar with (Cconj α).
     rewrite coefdA_conj, <- Cpow_conj, <- Cconj_mult_distr, re_alt'.
@@ -251,11 +252,11 @@ Definition tau100 :=
 Lemma tau100_approx : Approx (fst tau100) τ (snd tau100).
 Proof.
  split.
- - apply Rlt_le. apply Mu.Ptau_lower; approx.
- - apply Rlt_le. apply Mu.Ptau_upper; approx.
+ - apply Rlt_le. apply Mu.Ptau_lower; try easy; approx.
+ - apply Rlt_le. apply Mu.Ptau_upper; try easy; approx.
 Qed.
 
-(** ** Discrepancies, i.e. differences [f 3 n - τ*n].
+(** ** Discrepancies, i.e. differences [f 4 n - τ*n].
 
     We show that these differences are always in -1.5061 .. 1.5835 .
     Differences are all of the form [a-b*τ], let's encode them
@@ -313,7 +314,7 @@ Proof.
    apply Rcomplements.Rmult_le_0_l. approx. now apply IZR_le.
  - split. easy. intros H. apply lt_IZR in H. lia.
  - rewrite <- Rcomplements.Rlt_div_l by now apply IZR_lt.
-   unfold τ. rewrite <- Ptau_lt1_iff.
+   unfold τ. rewrite <- Ptau_lt1_iff; try easy.
    2:{ apply Rcomplements.Rdiv_le_0_compat.
        now apply IZR_le. now apply IZR_lt. }
    unfold Ptau. set (r' := Z.pos r). set (s' := Z.pos s).
@@ -341,7 +342,7 @@ Proof.
    2:{ rewrite !opp_IZR. lra. }
    rewrite <- Rminus_lt_0.
    rewrite Rcomplements.Rlt_div_r by (apply IZR_lt; lia).
-   unfold τ. rewrite <- Ptau_gt1_iff.
+   unfold τ. rewrite <- Ptau_gt1_iff; try easy.
    2:{ apply Rcomplements.Rdiv_le_0_compat.
        now apply IZR_le. now apply IZR_lt. }
    unfold Ptau.
@@ -387,7 +388,7 @@ Proof.
    rewrite Rmin_left; trivial. lra.
 Qed.
 
-(** Simultaneous computations of (diff 3 (A 3 n)) and (MaxDeltas 3) *)
+(** Simultaneous computations of (diff 4 (A 4 n)) and (MaxDeltas 4) *)
 
 Record buffer := Buffer { d0:t; d1:t; d2:t; d3:t; m0:t; m1:t; m2:t; m3:t }.
 
@@ -405,14 +406,14 @@ Definition mindeltas (n:N) := (min_loop n).(m3).
 
 Lemma max_loop_spec (n:nat) :
   let '(Buffer d0 d1 d2 d3 m0 m1 m2 m3) := max_loop (N.of_nat n + 3) in
-  to_R d0 = diff 3 (A 3 n) /\
-  to_R d1 = diff 3 (A 3 (n+1)) /\
-  to_R d2 = diff 3 (A 3 (n+2)) /\
-  to_R d3 = diff 3 (A 3 (n+3)) /\
-  to_R m0 = MaxDeltas 3 n /\
-  to_R m1 = MaxDeltas 3 (n+1) /\
-  to_R m2 = MaxDeltas 3 (n+2) /\
-  to_R m3 = MaxDeltas 3 (n+3).
+  to_R d0 = diff 4 (A 4 n) /\
+  to_R d1 = diff 4 (A 4 (n+1)) /\
+  to_R d2 = diff 4 (A 4 (n+2)) /\
+  to_R d3 = diff 4 (A 4 (n+3)) /\
+  to_R m0 = MaxDeltas 4 n /\
+  to_R m1 = MaxDeltas 4 (n+1) /\
+  to_R m2 = MaxDeltas 4 (n+2) /\
+  to_R m3 = MaxDeltas 4 (n+3).
 Proof.
  unfold max_loop.
  rewrite N2Nat.inj_iter.
@@ -430,14 +431,14 @@ Proof.
    destruct IHn as (IH1 & IH2 & IH3 & IH4 & IH1' & IH2' & IH3' & IH4').
    repeat split; trivial.
    + rewrite add_ok, IH1, IH4.
-     simpl. rewrite (Nat.add_comm (A 3 _)).
+     simpl. rewrite (Nat.add_comm (A 4 _)).
      rewrite diff_A_A by lia. f_equal. f_equal. f_equal. lia.
    + rewrite max_ok, add_ok. simpl. f_equal; trivial.
      f_equal; trivial. rewrite IH1'. f_equal. lia.
 Qed.
 
 Lemma maxdeltas_spec (n:nat) : (3 <= n)%nat ->
-  MaxDeltas 3 n = to_R (maxdeltas (N.of_nat n)).
+  MaxDeltas 4 n = to_R (maxdeltas (N.of_nat n)).
 Proof.
  intros Hn. unfold maxdeltas.
  assert (H := max_loop_spec (n-3)).
@@ -457,7 +458,7 @@ Qed.
 
 Lemma maxdeltas_approx n a b : (3 <= n)%nat ->
  checkapprox a b (to_QQ (maxdeltas (N.of_nat n))) = true
- -> Approx a (MaxDeltas 3 n) b.
+ -> Approx a (MaxDeltas 4 n) b.
 Proof.
  intros Hn H. rewrite (maxdeltas_spec n Hn).
  eapply approx_trans; [apply to_QQ_ok| | ]; eapply checkapprox_ok; eauto.
@@ -465,14 +466,14 @@ Qed.
 
 Lemma min_loop_spec (n:nat) :
   let '(Buffer d0 d1 d2 d3 m0 m1 m2 m3) := min_loop (N.of_nat n + 3) in
-  to_R d0 = diff 3 (A 3 n) /\
-  to_R d1 = diff 3 (A 3 (n+1)) /\
-  to_R d2 = diff 3 (A 3 (n+2)) /\
-  to_R d3 = diff 3 (A 3 (n+3)) /\
-  to_R m0 = MinDeltas 3 n /\
-  to_R m1 = MinDeltas 3 (n+1) /\
-  to_R m2 = MinDeltas 3 (n+2) /\
-  to_R m3 = MinDeltas 3 (n+3).
+  to_R d0 = diff 4 (A 4 n) /\
+  to_R d1 = diff 4 (A 4 (n+1)) /\
+  to_R d2 = diff 4 (A 4 (n+2)) /\
+  to_R d3 = diff 4 (A 4 (n+3)) /\
+  to_R m0 = MinDeltas 4 n /\
+  to_R m1 = MinDeltas 4 (n+1) /\
+  to_R m2 = MinDeltas 4 (n+2) /\
+  to_R m3 = MinDeltas 4 (n+3).
 Proof.
  unfold min_loop.
  rewrite N2Nat.inj_iter.
@@ -490,14 +491,14 @@ Proof.
    destruct IHn as (IH1 & IH2 & IH3 & IH4 & IH1' & IH2' & IH3' & IH4').
    repeat split; trivial.
    + rewrite add_ok, IH1, IH4.
-     simpl. rewrite (Nat.add_comm (A 3 _)).
+     simpl. rewrite (Nat.add_comm (A 4 _)).
      rewrite diff_A_A by lia. f_equal. f_equal. f_equal. lia.
    + rewrite min_ok, add_ok. simpl. f_equal; trivial.
      f_equal; trivial. rewrite IH1'. f_equal. lia.
 Qed.
 
 Lemma mindeltas_spec (n:nat) : (3 <= n)%nat ->
-  MinDeltas 3 n = to_R (mindeltas (N.of_nat n)).
+  MinDeltas 4 n = to_R (mindeltas (N.of_nat n)).
 Proof.
  intros Hn. unfold mindeltas.
  assert (H := min_loop_spec (n-3)).
@@ -508,7 +509,7 @@ Qed.
 
 Lemma mindeltas_approx n a b : (3 <= n)%nat ->
  checkapprox a b (to_QQ (mindeltas (N.of_nat n))) = true
- -> Approx a (MinDeltas 3 n) b.
+ -> Approx a (MinDeltas 4 n) b.
 Proof.
  intros Hn H. rewrite (mindeltas_spec n Hn).
  eapply approx_trans; [apply to_QQ_ok| | ]; eapply checkapprox_ok; eauto.
@@ -519,18 +520,18 @@ End NN.
 (** Taking n=600 is enough to get 15 decimal digits of precision *)
 
 #[local] Instance maxdeltas_600 :
-  Approx 1.58346877932474708 (MaxDeltas 3 600) 1.58346877932474715.
+  Approx 1.58346877932474708 (MaxDeltas 4 600) 1.58346877932474715.
 Proof.
  apply NN.maxdeltas_approx. lia. now vm_compute.
 Qed.
 
 (** Now we bound (residue 3 roots 600). *)
 
-Definition restν := Cmod (coefdA 3 ν)/(1 - Rabs ν^4).
-Definition restα := 2*Cmod (coefdA 3 α)/(1 - Cmod α^4).
+Definition restν := Cmod (coefdA 4 ν)/(1 - Rabs ν^4).
+Definition restα := 2*Cmod (coefdA 4 α)/(1 - Cmod α^4).
 
-Lemma residue3_eqn n :
-  residue 3 LimCase3.roots n = restα * Cmod α^n + restν * Rabs ν^n.
+Lemma residue4_eqn n :
+  residue 4 roots n = restα * Cmod α^n + restν * Rabs ν^n.
 Proof.
  unfold residue, roots. cbn -[pow ν].
  change αbar with (Cconj α). rewrite coefdA_conj, !Cmod_Cconj.
@@ -554,9 +555,9 @@ Proof.
  rewrite pow_mult, αmod2. rewrite Cmod_inv. approx.
 Qed.
 
-Lemma residue3_600_upper : residue 3 LimCase3.roots 600 < 3 * / 10^16.
+Lemma residue4_600_upper : residue 4 roots 600 < 3 * / 10^16.
 Proof.
- rewrite residue3_eqn.
+ rewrite residue4_eqn.
  apply Rle_lt_trans with (1.2*restα * Cmod α ^600).
  { replace 1.2 with (1+0.2) by lra.
    rewrite !Rmult_plus_distr_r, Rmult_1_l. apply Rplus_le_compat_l.
@@ -574,17 +575,17 @@ Proof.
 Qed.
 
 #[local] Instance sup_deltas_approx :
-  Approx 1.5834687793247470 (sup_deltas' 3) 1.5834687793247475.
+  Approx 1.5834687793247470 (sup_deltas' 4) 1.5834687793247475.
 Proof.
  split.
  - eapply Rle_trans;
-   [|apply (MaxDeltas_below_lim' 3 lia roots) with (p:=600%nat)].
+   [|apply (MaxDeltas_below_lim' 4 lia roots) with (p:=600%nat)].
    approx. apply roots_sorted. unfold roots, Cnth; simpl; approx.
  - eapply Rle_trans;
-   [apply (sup_deltas_upper 3 lia roots) with (p:=600%nat)|].
+   [apply (sup_deltas_upper 4 lia roots) with (p:=600%nat)|].
    apply roots_sorted. unfold roots, Cnth; simpl; approx.
    eapply Rle_trans;
-   [apply Rplus_le_compat_l; apply Rlt_le; apply residue3_600_upper|].
+   [apply Rplus_le_compat_l; apply Rlt_le; apply residue4_600_upper|].
    approx.
 Qed.
 
@@ -593,48 +594,48 @@ Qed.
 (* Current final precision : below 1O^-15 *)
 
 #[local] Instance mindeltas_600 :
-  Approx (-1.5060895457389588) (MinDeltas 3 600) (-1.5060895457389585).
+  Approx (-1.5060895457389588) (MinDeltas 4 600) (-1.5060895457389585).
 Proof.
  apply NN.mindeltas_approx. lia. now vm_compute.
 Qed.
 
 #[local] Instance inf_deltas_approx :
-  Approx (-1.5060895457389591) (inf_deltas' 3) (-1.5060895457389585).
+  Approx (-1.5060895457389591) (inf_deltas' 4) (-1.5060895457389585).
 Proof.
  split.
  - eapply Rle_trans;
-   [|apply (inf_deltas_lower 3 lia roots) with (p:=600%nat)].
+   [|apply (inf_deltas_lower 4 lia roots) with (p:=600%nat)].
    2:apply roots_sorted. 2:unfold roots, Cnth; simpl; approx.
    eapply Rle_trans;
    [|apply Rplus_le_compat_l, Ropp_le_contravar, Rlt_le;
-     apply residue3_600_upper].
+     apply residue4_600_upper].
    approx.
  - eapply Rle_trans;
-   [apply (MinDeltas_above_lim' 3 lia roots) with (p:=600%nat)|].
+   [apply (MinDeltas_above_lim' 4 lia roots) with (p:=600%nat)|].
    apply roots_sorted. unfold roots, Cnth; simpl; approx. approx.
 Qed.
 
-Lemma diff_bound n : -1.5060895457389591 <= diff 3 n <= 1.5834687793247475.
+Lemma diff_bound n : -1.5060895457389591 <= diff 4 n <= 1.5834687793247475.
 Proof.
  split.
- - apply Rle_trans with (inf_deltas' 3). approx.
-   apply diff_ge_inf' with LimCase3.roots. lia. apply roots_sorted.
+ - apply Rle_trans with (inf_deltas' 4). approx.
+   apply diff_ge_inf' with roots. lia. apply roots_sorted.
    unfold roots, Cnth; simpl; approx.
- - apply Rle_trans with (sup_deltas' 3).
-   apply diff_le_sup' with (LimCase3.roots). lia. apply roots_sorted.
+ - apply Rle_trans with (sup_deltas' 4).
+   apply diff_le_sup' with roots. lia. apply roots_sorted.
    unfold roots, Cnth; simpl; approx. approx.
 Qed.
 
-Lemma abs_diff_bound n : Rabs (diff 3 n) <= 1.5834687793247475.
+Lemma abs_diff_bound n : Rabs (diff 4 n) <= 1.5834687793247475.
 Proof.
  apply Rabs_le. generalize (diff_bound n). lra.
 Qed.
 
 
 
-(** ** Occurrences of letters in morphic word [Words.qseq 3]
+(** ** Occurrences of letters in morphic word [Words.kseq 4]
 
-    We will see below how this relates to function [f 3])
+    We will see below how this relates to function [f 4])
     and its iterates.
 
     For a finite word [w], the frequency of letter [a] is
@@ -654,19 +655,19 @@ Definition Diff1 w := τ^5 * length w - nbocc 1 w.
 Definition Diff2 w := τ^6 * length w - nbocc 2 w.
 Definition Diff3 w := τ^3 * length w - nbocc 3 w.
 
-Definition diff0 n := Diff0 (take n (qseq 3)).
-Definition diff1 n := Diff1 (take n (qseq 3)).
-Definition diff2 n := Diff2 (take n (qseq 3)).
-Definition diff3 n := Diff3 (take n (qseq 3)).
+Definition diff0 n := Diff0 (take n (kseq 4)).
+Definition diff1 n := Diff1 (take n (kseq 4)).
+Definition diff2 n := Diff2 (take n (kseq 4)).
+Definition diff3 n := Diff3 (take n (kseq 4)).
 
 (** One of these differences can be deduced from the other three. *)
 
 Lemma Diff0123 w :
- List.Forall (fun a => a <= 3)%nat w ->
+ List.Forall (fun a => a < 4)%nat w ->
  Diff0 w + Diff1 w + Diff2 w + Diff3 w = 0.
 Proof.
  intros H.
- apply nbocc_total_le in H. simpl in H.
+ apply nbocc_total_lt in H. simpl in H.
  unfold Diff0, Diff1, Diff2, Diff3.
  rewrite τ4, τ5, τ6. ring_simplify.
  rewrite H, !plus_INR. change (INR 0) with 0. ring.
@@ -676,86 +677,85 @@ Lemma diff0123 n : diff0 n + diff1 n + diff2 n + diff3 n = 0.
 Proof.
  apply Diff0123.
  apply Forall_nth. intros i d. rewrite take_length. intros H.
- rewrite take_nth by trivial. apply qseq_letters.
+ rewrite take_nth by trivial. now apply kseq_letters.
 Qed.
 
-(** Expressing diff0 and co in terms of [f 3] and [f 3^^2] and [f 3^^3] *)
+(** Expressing diff0 and co in terms of [f 4] and [f 4^^2] and [f 4^^3] *)
 
-Lemma diff0_alt n : diff0 n = f 3 n - τ * n.
+Lemma diff0_alt n : diff0 n = f 4 n - τ * n.
 Proof.
  unfold diff0, Diff0. rewrite take_length.
  rewrite <- count_nbocc.
  rewrite τ4. rewrite Rmult_minus_distr_r.
- rewrite <- (f_count_0 3 n) at 1 by easy. rewrite plus_INR. lra.
+ rewrite <- (f_count_0 4 n) at 1 by lia. rewrite plus_INR. lra.
 Qed.
 
-Lemma diff0_alt' n : diff0 n = diff 3 n.
+Lemma diff0_alt' n : diff0 n = diff 4 n.
 Proof.
  apply diff0_alt.
 Qed.
 
-Lemma diff3_alt n : diff3 n = τ^3 * n - fs 3 3 n.
+Lemma diff3_alt n : diff3 n = τ^3 * n - fs 4 3 n.
 Proof.
- unfold diff3, Diff3. rewrite take_length.
- rewrite <- count_nbocc.
- now rewrite fs_count_q.
+ unfold diff3, Diff3. rewrite take_length. f_equal. symmetry.
+ rewrite <- count_nbocc. f_equal. exact (fs_count_km1 4 n).
 Qed.
 
-Lemma diff1_alt n : diff1 n = τ^5 * n + fs 3 2 n - f 3 n.
+Lemma diff1_alt n : diff1 n = τ^5 * n + fs 4 2 n - f 4 n.
 Proof.
  unfold diff1, Diff1. rewrite take_length.
  rewrite <- count_nbocc.
- change (f 3 n) with (fs 3 1 n).
- rewrite (fs_count_above 3 1) by lia.
+ change (f 4 n) with (fs 4 1 n).
+ rewrite (fs_count_above 4 1) by lia.
  rewrite count_above_S.
- rewrite (fs_count_above 3 2) by lia.
+ rewrite (fs_count_above 4 2) by lia.
  rewrite plus_INR. lra.
 Qed.
 
-Lemma diff2_alt n : diff2 n = τ^6 * n + fs 3 3 n - fs 3 2 n.
+Lemma diff2_alt n : diff2 n = τ^6 * n + fs 4 3 n - fs 4 2 n.
 Proof.
  unfold diff2, Diff2. rewrite take_length.
  rewrite <- count_nbocc.
- rewrite (fs_count_above 3 2) by lia.
- rewrite (fs_count_above 3 3) by lia.
- rewrite (count_above_S (qseq 3) 2).
+ rewrite (fs_count_above 4 2) by lia.
+ rewrite (fs_count_above 4 3) by lia.
+ rewrite (count_above_S (kseq 4) 2).
  rewrite plus_INR. lra.
 Qed.
 
-(** Equations giving Diff0 and co after a substitution [qsubst 3].
+(** Equations giving Diff0 and co after a substitution [ksubst 4].
     In older revisions of this file, we also had these equations
     expressed via matrix. *)
 
-Lemma Diff0_qsubst3 w : Diff0 (qsubstw 3 w) = τ * Diff3 w.
+Lemma Diff0_ksubst4 w : Diff0 (ksubstw 4 w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
- rewrite len_qsubst, plus_INR.
- destruct (nbocc_qsubst3 w) as (-> & _ & _ & _).
+ rewrite len_ksubst, plus_INR.
+ destruct (nbocc_ksubst4 w) as (-> & _ & _ & _).
  ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
- rewrite τ4. lra.
+ rewrite τ4. simpl. lra.
 Qed.
 
-Lemma Diff3_qsubst3 w :
-  List.Forall (fun a => a <= 3)%nat w ->
-  Diff3 (qsubstw 3 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
+Lemma Diff3_ksubst4 w :
+  List.Forall (fun a => a < 4)%nat w ->
+  Diff3 (ksubstw 4 w) = - τ^3 * Diff3 w - Diff0 w - Diff1 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_qsubst.
- destruct (nbocc_qsubst3 w) as (_ & _ & _ & ->).
+ rewrite len_ksubst. simpl Nat.sub.
+ destruct (nbocc_ksubst4 w) as (_ & _ & _ & ->).
  rewrite !plus_INR.
  ring_simplify. rewrite τ6, τ5, τ4. ring_simplify.
  rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
 Qed.
 
-Lemma Diff1_qsubst3 w :
-  List.Forall (fun a => a <= 3)%nat w ->
-  Diff1 (qsubstw 3 w) = - τ^5 * Diff3 w + Diff0 w.
+Lemma Diff1_ksubst4 w :
+  List.Forall (fun a => a < 4)%nat w ->
+  Diff1 (ksubstw 4 w) = - τ^5 * Diff3 w + Diff0 w.
 Proof.
  intros H.
  unfold Diff0, Diff1, Diff3.
- rewrite len_qsubst.
- destruct (nbocc_qsubst3 w) as (_ & -> & _ & _).
+ rewrite len_ksubst. simpl Nat.sub.
+ destruct (nbocc_ksubst4 w) as (_ & -> & _ & _).
  rewrite !plus_INR.
  ring_simplify. replace (τ^8) with ((τ^4)^2) by ring.
  rewrite τ5, τ4. ring_simplify.
@@ -789,63 +789,63 @@ Proof.
    symmetry. apply is_sup_seq_unique. apply is_sup_seq_const.
 Qed.
 
-(* Consequences for f3 : *)
+(* Consequences for f4 : *)
 
-Lemma f3_alt n : INR (f 3 n) = τ*n + diff0 n.
+Lemma f4_alt n : INR (f 4 n) = τ*n + diff0 n.
 Proof.
  rewrite diff0_alt; lra.
 Qed.
 
-Lemma f3_close_τn (n:nat) : -2 < τ*n - f 3 n < 2.
+Lemma f4_close_τn (n:nat) : -2 < τ*n - f 4 n < 2.
 Proof.
- rewrite f3_alt.
+ rewrite f4_alt.
  assert (H := diff0_lt_2 n).
  rewrite Rcomplements.Rabs_lt_between in H. lra.
 Qed.
 
-Lemma f3_natpart_lower (n:nat) :
- (nat_part (τ*n) <= 1 + f 3 n)%nat.
+Lemma f4_natpart_lower (n:nat) :
+ (nat_part (τ*n) <= 1 + f 4 n)%nat.
 Proof.
-assert (LT := f3_close_τn n).
+assert (LT := f4_close_τn n).
 assert (LE : 0 <= τ*n).
 { apply Rmult_le_pos. approx. apply pos_INR. }
-assert (H : 0 <= τ*n < INR(2 + f 3 n)).
+assert (H : 0 <= τ*n < INR(2 + f 4 n)).
 { rewrite plus_INR. simpl. lra. }
 apply nat_part_lt in H. lia.
 Qed.
 
-Lemma f3_natpart_higher (n:nat) :
- (f 3 n <= nat_part (τ*n) + 2)%nat.
+Lemma f4_natpart_higher (n:nat) :
+ (f 4 n <= nat_part (τ*n) + 2)%nat.
 Proof.
-assert (LT := f3_close_τn n).
+assert (LT := f4_close_τn n).
 assert (LE : 0 <= τ*n).
 { apply Rmult_le_pos. approx. apply pos_INR. }
-assert (INR(f 3 n - 2) <= τ*n).
-{ destruct (Nat.le_gt_cases (f 3 n) 2).
-  - replace (f 3 n - 2)%nat with O by lia. simpl. lra.
+assert (INR(f 4 n - 2) <= τ*n).
+{ destruct (Nat.le_gt_cases (f 4 n) 2).
+  - replace (f 4 n - 2)%nat with O by lia. simpl. lra.
   - rewrite minus_INR by lia. simpl. lra. }
 apply nat_part_le in H; auto; lia.
 Qed.
 
-Lemma f3_close_natpart (n:nat) :
- (nat_part (τ*n) - 1 <= f 3 n <= nat_part (τ*n) + 2)%nat.
+Lemma f4_close_natpart (n:nat) :
+ (nat_part (τ*n) - 1 <= f 4 n <= nat_part (τ*n) + 2)%nat.
 Proof.
-split; [|apply f3_natpart_higher]. generalize (f3_natpart_lower n); lia.
+split; [|apply f4_natpart_higher]. generalize (f4_natpart_lower n); lia.
 Qed.
 
 (* NB: both lower and upper bounds are reached. *)
 
-(* A quasi-additivity result for f 3 that I was unable to obtain
-   directly on f 3.
+(* A quasi-additivity result for f 4 that I was unable to obtain
+   directly on f 4.
    Note : the -4 and +4 constants do not seem to be reached, maybe
    -3 and 3 could do ? *)
 
-Lemma f3_quasiadd p n :
- (f 3 p + f 3 n -4 <= f 3 (p+n) <= f 3 p + f 3 n + 4)%nat.
+Lemma f4_quasiadd p n :
+ (f 4 p + f 4 n -4 <= f 4 (p+n) <= f 4 p + f 4 n + 4)%nat.
 Proof.
 split.
- - destruct (Nat.le_gt_cases (f 3 p + f 3 n) 4); try lia.
-   assert (f 3 p + f 3 n < f 3 (p+n) +5)%nat; try lia.
+ - destruct (Nat.le_gt_cases (f 4 p + f 4 n) 4); try lia.
+   assert (f 4 p + f 4 n < f 4 (p+n) +5)%nat; try lia.
    apply INR_lt. rewrite !plus_INR. rewrite (INR_IZR_INZ 5). simpl.
    generalize (diff_bound p) (diff_bound n) (diff_bound (p+n)).
    unfold diff in *. rewrite plus_INR. lra.
@@ -855,6 +855,6 @@ split.
    unfold diff in *. rewrite plus_INR. lra.
 Qed.
 
-(* Print Assumptions f3_quasiadd. *)
+(* Print Assumptions f4_quasiadd. *)
 
 (** To finish someday, less interesting : frequencies for the other letters. *)

@@ -1,5 +1,5 @@
 From Coq Require Export Arith Lia List Bool Permutation.
-Require Import MoreFun.
+Require Import MoreTac MoreFun.
 Import Basics ListNotations.
 
 (** Some complements on Coq lists *)
@@ -709,14 +709,6 @@ Proof.
  - now rewrite cumul_0.
  - inversion_clear H. rewrite cumul_add. rewrite IHu by trivial.
    rewrite cumul_eqb; simpl; lia.
-Qed.
-
-Lemma nbocc_total_le u k :
-  Forall (fun n => n <= k) u ->
-  length u = cumul (fun n => nbocc n u) (S k).
-Proof.
- intros H. apply nbocc_total_lt. eapply Forall_impl; eauto.
- simpl; intros; lia.
 Qed.
 
 Lemma nbocc_concat a l :

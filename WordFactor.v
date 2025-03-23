@@ -1,7 +1,10 @@
-Require Import MoreFun MoreList DeltaList GenFib GenG Words WordSuffix.
+Require Import MoreTac MoreFun MoreList DeltaList.
+Require Import GenFib GenG Words WordSuffix.
 Import ListNotations.
 
-(** * Factors of infinite word (qseq q) *)
+(** * Factors of infinite word (kseq k) *)
+
+(** ** General definitions *)
 
 Definition subseq q n (f:sequence) := map f (seq q n).
 
@@ -47,135 +50,146 @@ Proof.
  now rewrite <-E, <- !app_assoc.
 Qed.
 
-Lemma qword_prefixseq q n : PrefixSeq (qword q n) (qseq q).
+(** ** application to [kseq] *)
+
+Lemma kword_prefixseq k n : PrefixSeq (kword k n) (kseq k).
 Proof.
- apply PrefixSeq_napply. apply qsubst_noerase. apply qsubst_prolong.
+ apply PrefixSeq_napply. apply ksubst_noerase. apply ksubst_prolong.
  reflexivity.
 Qed.
 
-Lemma qword_le_prefix q n m : n <= m -> Prefix (qword q n) (qword q m).
+Lemma kword_le_prefix k n m :
+  n <= m -> Prefix (kword k n) (kword k m).
 Proof.
  induction 1. apply Prefix_id.
  eapply Prefix_trans; eauto.
- destruct (Nat.le_gt_cases m q).
- - rewrite !qword_low by lia.
-   exists [m]. now rewrite seq_S.
- - rewrite qword_eqn by lia. now exists (qword q (m-q)).
+ destruct (Nat.eq_dec k 0) as [->|K].
+ { rewrite !kword_01 by lia. simpl. rewrite Nat.add_0_r.
+   rewrite repeat_app. now eexists. }
+ destruct (Nat.le_gt_cases m (k-1)).
+ - rewrite !kword_low by lia.
+   exists [m]. simpl. now rewrite <- seq_S.
+ - rewrite (kword_eqn k (S m)) by lia. fixpred. now eexists.
 Qed.
 
-Lemma qword_Suffix_Prefix_Sub q u1 u2 n m :
-  Suffix u1 (qword q n) -> Prefix u2 (qword q m) ->
-  exists p, Sub (u1++u2) (qword q p).
+Lemma kword_Suffix_Prefix_Sub k u1 u2 n m :
+  Suffix u1 (kword k n) -> Prefix u2 (kword k m) ->
+  exists p, Sub (u1++u2) (kword k p).
 Proof.
- intros SU PR.
- destruct (Nat.le_gt_cases m n).
- - exists (S (n + S q)). rewrite qword_eqn by lia.
-   assert (HSn : Prefix u2 (qword q (S n))).
-   { eapply Prefix_trans; eauto. apply qword_le_prefix. lia. }
-   apply qword_suffix_cycle in SU.
-   destruct SU as (u1' & E1).
-   destruct HSn as (u2' & E2).
-   exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
-   f_equal. f_equal. lia.
- - set (m' := n + S ((m-n)/S q)*S q).
-   assert (Hm' : m < m').
-   { assert (Hq : S q <> 0) by lia.
-     assert (E := Nat.div_mod (m-n) (S q) Hq).
-     generalize (Nat.mod_upper_bound (m-n) (S q)). lia. }
-   apply qword_suffix_pcycle with (p := S ((m-n)/S q)) in SU.
-   fold m' in SU.
-   assert (HSm' : Prefix u2 (qword q (S m'))).
-   { eapply Prefix_trans; eauto. apply qword_le_prefix. lia. }
-   exists (S (m' + S q)).
-   rewrite qword_eqn by lia.
-   apply qword_suffix_cycle in SU.
-   destruct SU as (u1' & E1).
-   destruct HSm' as (u2' & E2).
-   exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
-   f_equal. f_equal. lia.
+ revert u1 u2 n m.
+ withoutloss k (k<>0).
+ { intros K u1 u2 n m SU PR.
+   destruct (Nat.le_gt_cases m n).
+   - exists (S (n + k)). rewrite kword_eqn by lia.
+     assert (HSn : Prefix u2 (kword k (S n))).
+     { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
+     apply kword_suffix_cycle in SU.
+     destruct SU as (u1' & E1).
+     destruct HSn as (u2' & E2).
+     exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
+     f_equal; f_equal; lia.
+   - set (m' := n + S ((m-n)/k)*k).
+     assert (Hm' : m < m').
+     { assert (Hq : k <> 0) by lia.
+       assert (E := Nat.div_mod (m-n) (k) Hq).
+       generalize (Nat.mod_upper_bound (m-n) (k)). lia. }
+     apply kword_suffix_pcycle with (p := S ((m-n)/k)) in SU.
+     fold m' in SU.
+     assert (HSm' : Prefix u2 (kword k (S m'))).
+     { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
+     exists (S (m' + k)).
+     rewrite kword_eqn by lia.
+     apply kword_suffix_cycle in SU.
+     destruct SU as (u1' & E1).
+     destruct HSm' as (u2' & E2).
+     exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
+     f_equal; f_equal; lia. }
+ { destruct (Nat.eq_dec k 0) as [->|K]; [ | now apply WL].
+   intros u1 u2 n m.
+   specialize (WL 1 lia u1 u2 n m).
+   revert WL. setoid_rewrite kword_01; easy || lia. }
 Qed.
 
-Lemma SubSeq_qseq_alt q u :
- SubSeq u (qseq q) <-> exists n, Sub u (qword q n).
+Lemma SubSeq_kseq_alt k u :
+ SubSeq u (kseq k) <-> exists n, Sub u (kword k n).
 Proof.
  rewrite SubSeq_alt.
  split.
  - intros (v & SU & PR).
-   set (n := invA_up q (length v)).
+   set (n := invA_up k (length v)).
    exists n.
    eapply Sub_Prefix_Sub; eauto.
-   eapply PrefixSeq_incl; eauto using qword_prefixseq.
-   rewrite qword_len; apply invA_up_spec.
- - intros (n & SU). exists (qword q n); split; trivial.
-   apply qword_prefixseq.
+   eapply PrefixSeq_incl; eauto using kword_prefixseq.
+   rewrite kword_len; apply invA_up_spec.
+ - intros (n & SU). exists (kword k n); split; trivial.
+   apply kword_prefixseq.
 Qed.
 
-Lemma Sub_qword_minimal q u n :
- Sub u (qword q n) ->
- exists n0, Sub u (qword q n0) /\ forall p, p<n0 -> ~Sub u (qword q p).
+Lemma Sub_kword_minimal k u n :
+ Sub u (kword k n) ->
+ exists n0, Sub u (kword k n0) /\ forall p, p<n0 -> ~Sub u (kword k p).
 Proof.
  induction n; intros SU.
  - exists 0. split; trivial. inversion 1.
- - destruct (subb_spec u (qword q n)) as [SU'|NS].
+ - destruct (subb_spec u (kword k n)) as [SU'|NS].
    + apply (IHn SU').
    + exists (S n). split; trivial. intros p Hp SU'. apply NS.
-     eapply Sub_Prefix_Sub; eauto. apply qword_le_prefix; lia.
+     eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
 Qed.
 
-Lemma SubSeq_qseq_carac q u :
-  SubSeq u (qseq q) <->
-  Sub u (qword q q) \/
+Lemma SubSeq_kseq_carac k u : k<>0 ->
+  SubSeq u (kseq k) <->
+  Sub u (kword k (k-1)) \/
   exists u1 u2, u1<>[] /\ u2<>[] /\ u=u1++u2 /\
-     SuffixWords u1 (qword q) /\ PrefixSeq u2 (qseq q).
+     SuffixWords u1 (kword k) /\ PrefixSeq u2 (kseq k).
 Proof.
  split.
- - rewrite SubSeq_qseq_alt. intros (n & SU).
-   apply Sub_qword_minimal in SU. clear n.
+ - rewrite SubSeq_kseq_alt. intros (n & SU).
+   apply Sub_kword_minimal in SU. clear n.
    destruct SU as (n & SU & NS).
-   destruct (Nat.le_gt_cases n q).
-   + left. eapply Sub_Prefix_Sub; eauto. apply qword_le_prefix; lia.
+   destruct (Nat.le_gt_cases n (k-1)).
+   + left. eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
    + right. destruct n as [|n]; try lia.
-     rewrite qword_eqn in SU by lia.
+     rewrite kword_eqn in SU by lia. fixpred.
      apply Sub_app_inv in SU.
      destruct SU as [SU|[SU|(u1 & u2 & U1 & U2 & E & SU & PR)]].
      * exfalso. apply (NS n); auto.
-     * exfalso. apply (NS (n-q)); auto; lia.
+     * exfalso. apply (NS (S n-k)); auto; lia.
      * exists u1, u2; repeat split; trivial.
        { now exists n. }
-       { eapply Prefix_PrefixSeq; eauto. apply qword_prefixseq. }
+       { eapply Prefix_PrefixSeq; eauto. apply kword_prefixseq. }
  - rewrite SubSeq_alt.
    intros [SU|(u1 & u2 & Hu1 & Hu2 & E & SU & PR)].
-   + exists (qword q q); split; trivial.
+   + exists (kword k (k-1)); split; trivial.
      apply PrefixSeq_napply; try easy.
-     apply qsubst_noerase. apply qsubst_prolong.
+     apply ksubst_noerase. apply ksubst_prolong.
    + subst. destruct SU as (n & SU).
-     set (m := invA_up q (length u2)).
-     assert (Hm : Prefix u2 (qword q m)).
-     { eapply PrefixSeq_incl; eauto using qword_prefixseq.
-       rewrite qword_len; apply invA_up_spec. }
-     destruct (qword_Suffix_Prefix_Sub q u1 u2 n m) as (p & Hp); trivial.
-     exists (qword q p); split; auto using qword_prefixseq.
+     set (m := invA_up k (length u2)).
+     assert (Hm : Prefix u2 (kword k m)).
+     { eapply PrefixSeq_incl; eauto using kword_prefixseq.
+       rewrite kword_len; apply invA_up_spec. }
+     destruct (kword_Suffix_Prefix_Sub k u1 u2 n m) as (p & Hp); trivial.
+     exists (kword k p); split; auto using kword_prefixseq.
 Qed.
 
-Lemma allsubs_qword_nodup q p : p<>0 -> NoDup (allsubs p (qword q q)).
+Lemma allsubs_kword_nodup k p :
+  k<>0 -> p<>0 -> NoDup (allsubs p (kword k (k-1))).
 Proof.
- intros Hp.
+ intros K Hp.
  unfold allsubs.
- rewrite qword_low by lia. simpl length. rewrite seq_length.
+ rewrite kword_low by lia. simpl length. rewrite seq_length. fixpred.
+ set (w := k-1 :: seq 0 (k-1)).
  set (f := fun i => _).
  rewrite NoDup_nth with (d:=f 0).
  rewrite take_length. intros i j Hi Hj.
  rewrite !take_nth; auto. unfold f; clear f.
- assert (F0 : hd 0 (sub (q::seq 0 q) 0 p) = q).
+ assert (F0 : hd 0 (sub w 0 p) = k-1).
  { unfold hd, sub. simpl. destruct p; simpl; lia. }
- assert (F : forall x, 0<S x<S (S q)-p ->
-             hd 0 (sub (q::seq 0 q) (S x) p) = x).
+ assert (F : forall x, 0<S x<S k-p -> hd 0 (sub w (S x) p) = x).
  { intros x Hx. unfold hd, sub. simpl. rewrite skipn_seq.
    rewrite firstn_seq by lia. destruct p; simpl; lia. }
  intros E.
- assert (E' : hd 0 (sub (q :: seq 0 q) i p) =
-              hd 0 (sub (q :: seq 0 q) j p)).
- { now rewrite E. }
+ assert (E' : hd 0 (sub w i p) = hd 0 (sub w j p)). { now rewrite E. }
  clear E.
  destruct i, j; trivial.
  - rewrite F0, (F j) in E'; lia.
@@ -186,32 +200,33 @@ Qed.
 (** A first listing of factors, which is complete but may contain
     a few duplicates. Not meant to be efficient. *)
 
-Definition qfactors0 q p :=
- allsubs p (qword q q) ++
- flat_map (fun p1 => map_appr (allsuffixes q p1) (qprefix q (p-p1)))
+Definition kfactors0 k p :=
+ allsubs p (kword k (k-1)) ++
+ flat_map (fun p1 => map_appr (allsuffixes k p1) (kprefix k (p-p1)))
   (seq 1 (p-1)).
 
-Lemma qfactors0_in q p u : In u (qfactors0 q p) <-> SubSeqLen p u (qseq q).
+Lemma kfactors0_in k p u :
+  k<>0 -> In u (kfactors0 k p) <-> SubSeqLen p u (kseq k).
 Proof.
- unfold qfactors0, SubSeqLen.
- rewrite in_app_iff, allsubs_ok, SubSeq_qseq_carac, in_flat_map.
+ intros K. unfold kfactors0, SubSeqLen.
+ rewrite in_app_iff, allsubs_ok, SubSeq_kseq_carac, in_flat_map; trivial.
  split.
  - intros [(L,S)|(p1 & IN & IN')].
    + split; auto.
    + rewrite in_seq in IN.
      rewrite map_appr_in in IN'. destruct IN' as (u1 & <- & IN').
-     rewrite allsuffixes_spec in IN'. destruct IN' as (IN', SU).
+     rewrite allsuffixes_spec in IN'; trivial. destruct IN' as (IN', SU).
      destruct SU as (m & SU).
-     set (u2 := qprefix q (p-p1)).
+     set (u2 := kprefix k (p-p1)).
      split.
      * rewrite app_length, IN'. unfold u2.
-       rewrite qprefix_length. lia.
+       rewrite kprefix_length. lia.
      * right. exists u1, u2; repeat split.
        { rewrite <- length_zero_iff_nil, IN'. lia. }
        { rewrite <- length_zero_iff_nil. unfold u2.
-         rewrite qprefix_length. lia. }
+         rewrite kprefix_length. lia. }
        { now exists m. }
-       { unfold u2. apply qprefix_ok. }
+       { unfold u2. apply kprefix_ok. }
  - intros (L, [S|(u1 & u2 & Hu1 & Hu2 & -> & SU & PR)]).
    + left; auto.
    + right.
@@ -219,39 +234,40 @@ Proof.
      set (p1 := length u1) in *.
      exists p1. split.
      * rewrite in_seq. rewrite <- length_zero_iff_nil in Hu1, Hu2. lia.
-     * apply map_appr_in. exists u1. rewrite allsuffixes_spec; split; auto.
+     * apply map_appr_in. exists u1.
+       rewrite allsuffixes_spec; trivial; split; auto.
        rewrite PR. f_equal. f_equal. lia.
 Qed.
 
 (** Compared with the expected q*p+1 complexity, we have some duplicates
-    when p>q+2. More precisely (q+1)*(p-1)-(q*p+1) = p-q-2 duplicates.
+    when p>k+1. More precisely k*(p-1)-(k-1)*p-1 = p-k-1 duplicates.
     This is still enough to say that the complexity is linear. *)
 
-Lemma qfactors0_length q p :
- p<>0 -> length (qfactors0 q p) = if p <=? q+2 then q*p+1 else (q+1)*(p-1).
+Lemma kfactors0_length k p :
+ p<>0 -> length (kfactors0 k p) = if p <=? k+1 then (k-1)*p+1 else k*(p-1).
 Proof.
  intros Hp.
- unfold qfactors0.
- rewrite app_length, allsubs_length, qword_len, A_base by lia.
- rewrite MoreList.flat_map_length with (k:=S q), seq_length.
+ unfold kfactors0.
+ rewrite app_length, allsubs_length, kword_len, A_base by lia.
+ rewrite MoreList.flat_map_length with (k:=k), seq_length.
  2:{ intros. unfold map_appr. rewrite map_length. apply allsuffixes_length. }
  case Nat.leb_spec; nia.
 Qed.
 
 
-(** Similar to qfactors0, but much more efficient.
+(** Similar to kfactors0, but much more efficient.
     Still the same amount of duplicates. *)
 
-Definition qfactors0opt q p :=
+Definition kfactors0opt k p :=
   let p' := pred p in
-  let r := invA_up q p' in
-  let pref := firstn p' (qword q r) in
-  let suffs := allsuffixesAt q p' r in
-  allsubs p (qword q q) ++ flat_map (allsubs p) (map_appr suffs pref).
+  let r := invA_up k p' in
+  let pref := firstn p' (kword k r) in
+  let suffs := allsuffixesAt k p' r in
+  allsubs p (kword k (k-1)) ++ flat_map (allsubs p) (map_appr suffs pref).
 
-Lemma qfactors0opt_0_r q u : In u (qfactors0opt q 0) <-> u = [].
+Lemma kfactors0opt_0_r k u : In u (kfactors0opt k 0) <-> u = [].
 Proof.
- unfold qfactors0opt. rewrite in_app_iff.
+ unfold kfactors0opt. rewrite in_app_iff.
  split.
  - intros [IN|IN].
    + now rewrite allsubs_ok, length_zero_iff_nil in IN.
@@ -261,92 +277,95 @@ Proof.
  - intros ->. left. apply allsubs_ok. auto using Sub_nil_l.
 Qed.
 
-Lemma qfactors0opt_in q p u :
-  In u (qfactors0opt q p) <-> SubSeqLen p u (qseq q).
+Lemma kfactors0opt_in k p u :
+  k<>0 -> In u (kfactors0opt k p) <-> SubSeqLen p u (kseq k).
 Proof.
- destruct (Nat.eq_dec p 0) as [->|Hp].
- - rewrite qfactors0opt_0_r. split.
+ intros K. destruct (Nat.eq_dec p 0) as [->|Hp].
+ - rewrite kfactors0opt_0_r. split.
    + intros ->. split; auto. now exists 0.
    + unfold SubSeqLen. now rewrite length_zero_iff_nil.
- - rewrite <- qfactors0_in.
-   unfold qfactors0, qfactors0opt.
+ - rewrite <- kfactors0_in; trivial.
+   unfold kfactors0, kfactors0opt.
    set (p' := pred p).
-   fold (allsuffixes q p').
-   fold (qprefix q p').
+   fold (allsuffixes k p').
+   fold (kprefix k p').
    rewrite !in_app_iff, !in_flat_map. apply or_iff_compat_l. split.
    + intros (w0 & Hw0 & Hu).
      rewrite map_appr_in in Hw0.
      destruct Hw0 as (w & <- & Hw).
-     apply allsuffixes_spec in Hw. destruct Hw as (Hw,SF).
+     apply allsuffixes_spec in Hw; trivial. destruct Hw as (Hw,SF).
      rewrite allsubs_ok in Hu. destruct Hu as (Hu,SB).
-     rewrite <- qprefix_alt in SB.
+     rewrite <- kprefix_alt in SB.
      apply Sub_app_inv in SB.
      destruct SB as [SB|[SB|(u1 & u2 & U1 & U2 & -> & H1 & H2)]].
      * apply Sub_len in SB. lia.
-     * apply Sub_len in SB. rewrite qprefix_length in SB. lia.
+     * apply Sub_len in SB. rewrite kprefix_length in SB. lia.
      * rewrite app_length in Hu.
        set (p1 := length u1) in *.
        exists p1; split; auto.
        { rewrite in_seq.
          apply Suffix_len in H1. apply Prefix_len in H2.
-         rewrite qprefix_length in H2. lia. }
+         rewrite kprefix_length in H2. lia. }
        { apply map_appr_in. exists u1. split.
          - f_equal.
-           assert (PR : PrefixSeq u2 (qseq q)).
-           { eapply Prefix_PrefixSeq; eauto. apply qprefix_ok. }
+           assert (PR : PrefixSeq u2 (kseq k)).
+           { eapply Prefix_PrefixSeq; eauto. apply kprefix_ok. }
            rewrite PR. f_equal. lia.
-         - rewrite allsuffixes_spec. split; auto. unfold SuffixWords in *.
+         - rewrite allsuffixes_spec; trivial.
+           split; auto. unfold SuffixWords in *.
            destruct SF as (n & SF). exists n.
            apply Suffix_trans with w; auto. }
    + intros (p1 & Hp1 & Hu). apply in_seq in Hp1. apply map_appr_in in Hu.
      destruct Hu as (u1 & <- & Hu1).
-     destruct (allsuffixes_extend q p1 p' u1) as (u1' & Hu1');
+     destruct (allsuffixes_extend k p1 p' u1) as (u1' & Hu1');
       trivial; try lia.
-     exists (u1' ++ qprefix q p'); split; rewrite <- ?qprefix_alt.
+     exists (u1' ++ kprefix k p'); split; rewrite <- ?kprefix_alt.
      * apply map_appr_in. now eexists.
      * apply allsubs_ok; split.
-       { rewrite app_length, qprefix_length.
-         apply allsuffixes_spec in Hu1. lia. }
+       { rewrite app_length, kprefix_length.
+         apply allsuffixes_spec in Hu1; trivial. lia. }
        { destruct Hu1' as ((v & <-),_).
-         assert (PR : Prefix (qprefix q (p-p1)) (qprefix q p')).
-         { eapply PrefixSeq_incl; eauto using qprefix_ok.
-           rewrite !qprefix_length. lia. }
+         assert (PR : Prefix (kprefix k (p-p1)) (kprefix k p')).
+         { eapply PrefixSeq_incl; eauto using kprefix_ok.
+           rewrite !kprefix_length. lia. }
          destruct PR as (w & <-).
          exists v, w. now rewrite !app_assoc. }
 Qed.
 
-Lemma qfactors0opt_length q p :
- p<>0 -> length (qfactors0opt q p) = if p <=? q+2 then q*p+1 else (q+1)*(p-1).
+Lemma kfactors0opt_length k p :
+ k<>0 -> p<>0 ->
+ length (kfactors0opt k p) = if p <=? k+1 then (k-1)*p+1 else k*(p-1).
 Proof.
- intros Hp.
- unfold qfactors0opt.
+ intros K Hp.
+ unfold kfactors0opt.
  set (p' := pred p).
- set (r := invA_up q p').
- set (pref := firstn p' (qword q r)).
- set (suffs := allsuffixesAt q p' r).
- rewrite app_length, allsubs_length, qword_len, A_base by lia.
+ set (r := invA_up k p').
+ set (pref := firstn p' (kword k r)).
+ set (suffs := allsuffixesAt k p' r).
+ rewrite app_length, allsubs_length, kword_len, A_base by lia.
  rewrite MoreList.flat_map_length with (k:=p').
  2:{ intros a. rewrite map_appr_in. intros (w & <- & IN).
      rewrite allsubs_length, app_length.
-     apply allsuffixesAt_spec in IN. 2:apply invA_up_spec.
+     apply allsuffixesAt_spec in IN; trivial. 2:apply invA_up_spec.
      destruct IN as (->,_).
      unfold pref. rewrite firstn_length_le. lia.
-     rewrite qword_len. apply invA_up_spec. }
+     rewrite kword_len. apply invA_up_spec. }
  unfold map_appr. rewrite map_length. unfold suffs.
  rewrite allsuffixesAt_length.
  case Nat.leb_spec; nia.
 Qed.
 
-Lemma qfactors0opt_nbocc0_le q p a b :
-  extrems (map (nbocc 0) (qfactors0opt q p)) = (a,b) -> a <= p /\ b <= p.
+Lemma kfactors0opt_nbocc0_le k p a b :
+  k<>0 ->
+  extrems (map (nbocc 0) (kfactors0opt k p)) = (a,b) -> a <= p /\ b <= p.
 Proof.
- set (l := map (nbocc 0) (qfactors0opt q p)).
+ intros K. set (l := map (nbocc 0) (kfactors0opt k p)).
  destruct (list_eq_dec Nat.eq_dec l []) as [->|NE].
  - inversion 1. lia.
  - intros E. generalize (extrems_in1 l NE) (extrems_in2 l NE).
    rewrite E. simpl. unfold l.
    rewrite !in_map_iff. intros (u & <- & Hu) (v & <- & Hv).
-   rewrite qfactors0opt_in in Hu, Hv.
+   rewrite kfactors0opt_in in Hu, Hv; trivial.
    split.
    + destruct Hu as (<-,_); apply nbocc_le_length.
    + destruct Hv as (<-,_); apply nbocc_le_length.
@@ -354,17 +373,17 @@ Qed.
 
 (** Application to quasi-additivity of f, in a faster way than in GenAdd *)
 
-Lemma f_additivity_via_factors q p a b :
- q<>0 ->
- extrems (map (nbocc 0) (qfactors0opt q p)) = (a,b) ->
- forall n, f q n + (p-b) <= f q (n+p) <= f q n + (p-a).
+Lemma f_additivity_via_factors k p a b :
+ 1<k ->
+ extrems (map (nbocc 0) (kfactors0opt k p)) = (a,b) ->
+ forall n, f k n + (p-b) <= f k (n+p) <= f k n + (p-a).
 Proof.
- intros Hq E n.
- assert (Hn := f_count_0 q n Hq).
- assert (Hnp := f_count_0 q (n+p) Hq).
+ intros K E n.
+ assert (Hn := f_count_0 k n K).
+ assert (Hnp := f_count_0 k (n+p) K).
  rewrite count_nbocc in Hn,Hnp.
- set (u := @take nat n (qseq q)) in *.
- set (w := @take nat (n+p) (qseq q)) in *.
+ set (u := @take nat n (kseq k)) in *.
+ set (w := @take nat (n+p) (kseq k)) in *.
  set (v := lastn p w).
  assert (Hw : w = u++v).
  { rewrite <- (firstn_skipn n w). f_equal.
@@ -373,66 +392,39 @@ Proof.
  rewrite Hw, nbocc_app in Hnp.
  assert (a <= nbocc 0 v <= b).
  { eapply extrems_spec; eauto. apply in_map.
-   rewrite qfactors0opt_in. split.
+   rewrite kfactors0opt_in; try lia. split.
    - unfold v. rewrite lastn_length_le; auto.
      unfold w. rewrite take_length; lia.
    - rewrite SubSeq_alt0. exists w. split. now exists u.
      unfold w. red. now rewrite take_length. }
- generalize (qfactors0opt_nbocc0_le q p a b E). lia.
+ generalize (kfactors0opt_nbocc0_le k p a b lia E). lia.
 Qed.
 
-Lemma f_additivity_via_factors' q p a b :
- q<>0 -> a <= p -> b <= p ->
- extrems (map (nbocc 0) (qfactors0opt q p)) = (p-b,p-a) ->
- forall n, f q n + a <= f q (n+p) <= f q n + b.
+Lemma f_additivity_via_factors' k p a b :
+ 1<k -> a <= p -> b <= p ->
+ extrems (map (nbocc 0) (kfactors0opt k p)) = (p-b,p-a) ->
+ forall n, f k n + a <= f k (n+p) <= f k n + b.
 Proof.
- intros Hq Ha Hb E n.
- generalize (f_additivity_via_factors q p _ _ Hq E n).
+ intros K Ha Hb E n.
+ generalize (f_additivity_via_factors k p _ _ K E n).
  replace (p-(p-a)) with a; replace (p-(p-b)) with b; lia.
 Qed.
 
 Ltac solve_additivity :=
  apply f_additivity_via_factors';
- [ apply Nat.eqb_neq; now vm_compute |
+ [ apply Nat.ltb_lt; now vm_compute |
    apply Nat.leb_le; now vm_compute |
    apply Nat.leb_le; now vm_compute |
    match goal with |- _ = ?p =>
      vm_cast_no_check (@eq_refl _ p); reflexivity
    end ].
 
-Lemma f5_add_424 n : f 5 n + 326 <= f 5 (n+424) <= f 5 n + 333.
+Lemma f6_add_424 n : f 6 n + 326 <= f 6 (n+424) <= f 6 n + 333.
 Proof.
  solve_additivity.
 Qed.
 
-Lemma f6_add_424 n : f 6 n + 333 <= f 6 (n+424) <= f 6 n + 342.
-Proof.
- solve_additivity.
-Qed.
-
-Lemma f5_below_f6 n : f 5 n <= f 6 n.
-Proof.
-induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 424) as [LT|LE].
-- clear IH.
-  assert
-    (E : forallb (fun n => Nat.leb (fopt 5 n) (fopt 6 n)) (seq 0 424) = true)
-    by now vm_compute.
-  rewrite <- !fopt_spec, <- Nat.leb_le.
-  rewrite forallb_forall in E. apply E. apply in_seq. lia.
-- replace n with ((n-424)+424) by lia.
-  etransitivity; [ apply f5_add_424 | ].
-  etransitivity; [ | apply f6_add_424 ].
-  specialize (IH (n-424)). lia.
-Qed.
-
-(*
-Lemma f6_add_843 n : f 6 n + 666 <= f 6 (n+843) <= f 6 n + 677.
-Proof.
- solve_additivity.
-Qed.
-
-Lemma f7_add_843 n : f 7 n + 677 <= f 7 (n+843) <= f 7 n + 692.
+Lemma f7_add_424 n : f 7 n + 333 <= f 7 (n+424) <= f 7 n + 342.
 Proof.
  solve_additivity.
 Qed.
@@ -440,53 +432,81 @@ Qed.
 Lemma f6_below_f7 n : f 6 n <= f 7 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 843) as [LT|LE].
+destruct (Nat.lt_ge_cases n 424) as [LT|LE].
 - clear IH.
   assert
-    (E : forallb (fun n => Nat.leb (fopt 6 n) (fopt 7 n)) (seq 0 843) = true)
+    (E : forallb (fun n => Nat.leb (fopt 6 n) (fopt 7 n)) (seq 0 424) = true)
     by now vm_compute.
   rewrite <- !fopt_spec, <- Nat.leb_le.
   rewrite forallb_forall in E. apply E. apply in_seq. lia.
-- replace n with ((n-843)+843) by lia.
-  etransitivity; [ apply f6_add_843 | ].
-  etransitivity; [ | apply f7_add_843 ].
-  specialize (IH (n-843)). lia.
+- replace n with ((n-424)+424) by lia.
+  etransitivity; [ apply f6_add_424 | ].
+  etransitivity; [ | apply f7_add_424 ].
+  specialize (IH (n-424)). lia.
 Qed.
 
-Lemma f7_add_1617 n : f 7 n + 1304 <= f 7 (n+1617) <= f 7 n + 1322.
+(*
+Lemma f7_add_843 n : f 7 n + 666 <= f 7 (n+843) <= f 7 n + 677.
 Proof.
  solve_additivity.
 Qed.
 
-Lemma f8_add_1617 n : f 8 n + 1322 <= f 8 (n+1617) <= f 8 n + 1345.
+Lemma f8_add_843 n : f 8 n + 677 <= f 8 (n+843) <= f 8 n + 692.
+Proof.
+ solve_additivity.
+Qed.
+
+Lemma f7_below_f8 n : f 7 n <= f 8 n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 843) as [LT|LE].
+- clear IH.
+  assert
+    (E : forallb (fun n => Nat.leb (fopt 7 n) (fopt 8 n)) (seq 0 843) = true)
+    by now vm_compute.
+  rewrite <- !fopt_spec, <- Nat.leb_le.
+  rewrite forallb_forall in E. apply E. apply in_seq. lia.
+- replace n with ((n-843)+843) by lia.
+  etransitivity; [ apply f7_add_843 | ].
+  etransitivity; [ | apply f8_add_843 ].
+  specialize (IH (n-843)). lia.
+Qed.
+
+Lemma f8_add_1617 n : f 8 n + 1304 <= f 8 (n+1617) <= f 8 n + 1322.
+Proof.
+ solve_additivity.
+Qed.
+
+Lemma f9_add_1617 n : f 9 n + 1322 <= f 9 (n+1617) <= f 9 n + 1345.
 Proof.
  solve_additivity.
 Time Qed. (* 50s *)
 *)
 
-(** qfactors : All factors of some length, without duplicates.
-    Obtained via cleanup of qfactors0opt from its duplicates.
+(** kfactors : All factors of some length, without duplicates.
+    Obtained via cleanup of kfactors0opt from its duplicates.
     Could be more efficient someday. *)
 
-Definition qfactors q p :=
- nodup (list_eq_dec Nat.eq_dec) (qfactors0opt q p).
+Definition kfactors k p :=
+ nodup (list_eq_dec Nat.eq_dec) (kfactors0opt k p).
 
-Lemma qfactors_in q p u : In u (qfactors q p) <-> SubSeqLen p u (qseq q).
+Lemma kfactors_in k p u : k<>0 ->
+  In u (kfactors k p) <-> SubSeqLen p u (kseq k).
 Proof.
- unfold qfactors. rewrite nodup_In. apply qfactors0opt_in.
+ unfold kfactors. rewrite nodup_In. apply kfactors0opt_in.
 Qed.
 
-Lemma qfactors_nodup q p : NoDup (qfactors q p).
+Lemma kfactors_nodup k p : NoDup (kfactors k p).
 Proof.
  apply NoDup_nodup.
 Qed.
 
-Lemma qfactors_0_r q : qfactors q 0 = [[]].
+Lemma kfactors_0_r k : kfactors k 0 = [[]].
 Proof.
- assert (D := qfactors_nodup q 0).
- assert (I : forall u, In u (qfactors q 0) <-> u=[]).
- { intros u. unfold qfactors. rewrite nodup_In. apply qfactors0opt_0_r. }
- destruct (qfactors q 0) as [|u [|v l]].
+ assert (D := kfactors_nodup k 0).
+ assert (I : forall u, In u (kfactors k 0) <-> u=[]).
+ { intros u. unfold kfactors. rewrite nodup_In. apply kfactors0opt_0_r. }
+ destruct (kfactors k 0) as [|u [|v l]].
  - now destruct (I []) as (_,[ ]).
  - f_equal. rewrite <- I. now left.
  - replace u with (@nil nat) in D by (symmetry; rewrite <- I; intuith).
@@ -494,18 +514,18 @@ Proof.
    inversion_clear D. simpl in *. intuition.
 Qed.
 
-Lemma qfactors_0_l p : qfactors 0 p = [repeat 0 p].
+Lemma kfactors_1_l p : kfactors 1 p = [repeat 0 p].
 Proof.
- assert (E : forall b a, subseq a b (qseq 0) = repeat 0 b).
+ assert (E : forall b a, subseq a b (kseq 1) = repeat 0 b).
  { unfold subseq. induction b; simpl; auto. intros a. f_equal; auto.
-   generalize (qseq_letters 0 a). lia. }
- assert (IN : In (repeat 0 p) (qfactors 0 p)).
- { rewrite qfactors_in. split. now rewrite repeat_length.
+   now rewrite kseq_01. }
+ assert (IN : In (repeat 0 p) (kfactors 1 p)).
+ { rewrite kfactors_in by easy. split. now rewrite repeat_length.
    exists 0. rewrite repeat_length. auto. }
  apply Permutation_length_1_inv. symmetry. apply NoDup_Permutation_bis.
- - apply qfactors_nodup.
- - simpl. destruct (qfactors 0 p). easy. simpl. lia.
- - intros x. rewrite qfactors_in. intros (L & q & ->).
+ - apply kfactors_nodup.
+ - simpl. destruct (kfactors 1 p). easy. simpl. lia.
+ - intros x. rewrite kfactors_in by easy. intros (L & k & ->).
    simpl. left. now rewrite E, L.
 Qed.
 
@@ -515,15 +535,15 @@ Proof.
  induction l; simpl; auto. destruct in_dec; simpl; lia.
 Qed.
 
-Lemma qfactors_linear_length q p :
-  length (qfactors q p) <= if p <=? q+2 then q*p+1 else (q+1)*(p-1).
+Lemma kfactors_linear_length k p :
+  k<>0 -> length (kfactors k p) <= if p <=? k+1 then (k-1)*p+1 else k*(p-1).
 Proof.
- destruct (Nat.eq_dec p 0) as [->|Hp].
- - rewrite qfactors_0_r. simpl; lia.
- - rewrite <- qfactors0opt_length by trivial. apply nodup_length_le.
+ intros K. destruct (Nat.eq_dec p 0) as [->|Hp].
+ - rewrite kfactors_0_r. simpl; lia.
+ - rewrite <- kfactors0opt_length; trivial. apply nodup_length_le.
 Qed.
 
-(** Next, we prove in [Special.v] that [length (qfactors q p) = q*p+1]
-    and hence the complexity of [qseq q] is [fun p => q*p+1].
+(** Next, we prove in [Special.v] that [length (kfactors k p) = (k-1)*p+1]
+    and hence the complexity of [kseq k] is [fun p => (k-1)*p+1].
     For that, the key property is that the left special factors
-    of [qseq] are exactly its prefixes. *)
+    of [kseq] are exactly its prefixes. *)
