@@ -730,3 +730,51 @@ Lemma map_reduce_spec {A B} (f:A->B) (op:B->B->B) (t:tree A) :
 Proof.
  induction t; simpl; now rewrite ?IHt1, ?IHt2.
 Qed.
+
+(** skipn via iterated tail *)
+
+Definition skipn {A} p (t:tree A) := N.iter p tail_or_id t.
+
+Lemma skipn_ok {A} p (t:tree A) : Ok t -> Ok (skipn p t).
+Proof.
+ unfold skipn. revert t. induction p using N.peano_ind; intros; trivial.
+ rewrite N.iter_succ. now apply tail_or_id_ok, IHp.
+Qed.
+
+Lemma skipn_size {A} p (t:tree A) : Ok t -> p < size t ->
+  size (skipn p t) = size t - p.
+Proof.
+ unfold skipn. revert t.
+ induction p using N.peano_ind; intros; simpl; try lia.
+ rewrite N.iter_succ, tail_or_id_size, IHp; try lia; trivial.
+ now apply skipn_ok.
+Qed.
+
+Lemma skipn_spec {A} p (t:tree A) : Ok t -> p < size t ->
+  to_list (skipn p t) = List.skipn (N.to_nat p) (to_list t).
+Proof.
+ unfold skipn. revert t.
+ induction p using N.peano_ind; intros; simpl; trivial.
+ rewrite N.iter_succ, tail_or_id_spec, IHp; trivial; try lia.
+ - rewrite N2Nat.inj_succ. now rewrite skipn_S.
+ - now apply skipn_ok.
+ - change (2 <= size (skipn p t))%N.
+   rewrite skipn_size; trivial; lia.
+Qed.
+
+Lemma skipn_spec' {A : Type} (t : tree A) p : Ok t ->
+  forall i, p+i < size t -> get (skipn p t) i = get t (p+i).
+Proof.
+ intros Ot i St.
+ set (d := get t 0).
+ rewrite get_to_list with (d:=d).
+ 2:{ now apply skipn_ok. }
+ 2:{ rewrite skipn_size; trivial; lia. }
+ rewrite (get_to_list (p+i) t) with (d:=d); trivial; try lia.
+ rewrite skipn_spec; trivial; try lia.
+ rewrite <- (firstn_skipn (N.to_nat p) (to_list t)) at 2.
+ rewrite app_nth2.
+ - f_equal. rewrite firstn_length.
+   rewrite to_list_length, <- size_spec; trivial. lia.
+ - rewrite firstn_length. rewrite to_list_length, <- size_spec; trivial. lia.
+Qed.

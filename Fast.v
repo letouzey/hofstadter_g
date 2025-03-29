@@ -184,13 +184,22 @@ Proof.
  rewrite f_array_aux2; trivial. rewrite N2Nat.id. apply IH.
 Qed.
 
+Lemma f_array_spec' k n i : i<=n ->
+  FlexArray.get (f_array k n) i =
+   N.of_nat (GenG.f (N.to_nat k) (N.to_nat i)).
+Proof.
+ intros LE.
+ rewrite <- (N2Nat.id n) at 1.
+ rewrite <- (N2Nat.id k) at 1.
+ rewrite <- (N2Nat.id i) at 1.
+ apply f_array_aux1; trivial; try lia.
+ rewrite !N2Nat.id. now apply f_array_spec.
+Qed.
+
 Lemma f_spec k n :
  f k n = N.of_nat (GenG.f (N.to_nat k) (N.to_nat n)).
 Proof.
- unfold f.
- rewrite <- (N2Nat.id n) at 1 2.
- rewrite <- (N2Nat.id k) at 1.
- apply f_array_aux1; trivial. rewrite !N2Nat.id. now apply f_array_spec.
+ unfold f. now rewrite f_array_spec'.
 Qed.
 
 (** Faster computation of GenG.rchild *)

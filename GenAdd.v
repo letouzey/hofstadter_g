@@ -1,5 +1,6 @@
-
-Require Import MoreFun MoreList DeltaList FunG GenFib GenG.
+From Coq Require Import NArith.
+Require Import MoreTac MoreFun MoreList DeltaList FunG GenFib GenG.
+Require Fast.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -197,15 +198,16 @@ Qed.
    values that are already encountered when n varies in just
    [0..add_bound k p[. *)
 
-Definition add_bound k p := A k (bound_idx k p).
+Definition add_bound k p := Fast.A (N.of_nat k) (N.of_nat (bound_idx k p)).
 
 Definition reduced k p n := sumA k (fst (low_high k p (decomp k n))).
 
 Lemma reduced_lt k p n :
-  k<>0 -> reduced k p n < add_bound k p.
+  k<>0 -> reduced k p n < N.to_nat (add_bound k p).
 Proof.
  intros K.
- unfold reduced, add_bound.
+ unfold reduced, add_bound. fold (Fast.Nat.A k (bound_idx k p)).
+ rewrite Fast.Nat.A_alt.
  assert (D := decomp_delta k n).
  set (l := decomp k n) in *. clearbody l.
  assert (E := cut_app (bound_idx k p) l).
@@ -244,7 +246,7 @@ Qed.
 
 Lemma additivity_bounded k p : 1<k ->
  forall n, exists m,
-   m < add_bound k p /\
+   m < N.to_nat (add_bound k p) /\
    f k (p+n) - f k n = f k (p+m) - f k m.
 Proof.
  intros K n. exists (reduced k p n). split.
@@ -254,46 +256,87 @@ Qed.
 
 (** We could hence prove bounds for [f k (p+n)-f k p] by computation. *)
 
-Fixpoint map2 {A B C}(f:A->B->C) l1 l2 :=
-  match l1,l2 with
-  | x1::l1', x2::l2' => f x1 x2 :: map2 f l1' l2'
-  | _, _ => []
-  end.
+Module ReduceMinMax.
+Import FlexArray.
+Local Open Scope N.
 
-Definition all_diffs k p bound :=
-  let stq := ftabulate k (p + (bound-1)) in
-  map2 Nat.sub stq (skipn p stq).
-
-Lemma all_diffs_spec k p bound :
-  all_diffs k p bound =
-  map (fun x => f k (p+x)-f k x) (countdown (bound - 1)).
+Lemma reduce_Nmax (t : tree N) :
+  forall n, In n (to_list t) -> n <= reduce N.max t.
 Proof.
- unfold all_diffs.
- rewrite ftabulate_spec.
- rewrite skipn_map.
- replace p with (p+(bound-1)-(bound-1)) at 2 by lia.
- rewrite skipn_countdown by lia.
- induction (bound-1).
- - simpl. destruct p; simpl; auto. f_equal. now destruct countdown.
- - rewrite Nat.add_succ_r. simpl. f_equal; auto.
+ generalize (reduce_spec N.max t N.max_comm N.max_assoc).
+ destruct (to_list t) as [|a l]; try easy. intros ->. clear t.
+ revert a. induction l as [|b l IH]; intros a; simpl in *. lia.
+ intros n Hn.
+ rewrite <- foldl_op_init by exact N.max_assoc.
+ apply N.max_le_iff. destruct Hn as [Hn|Hn]; try apply IH in Hn; lia.
 Qed.
 
-Definition calc_additivity k p bound := extrems (all_diffs k p bound).
+Lemma reduce_Nmin (t : tree N) :
+ forall n, In n (to_list t) -> reduce N.min t <= n.
+Proof.
+ generalize (reduce_spec N.min t N.min_comm N.min_assoc).
+ destruct (to_list t) as [|a l]; try easy. intros ->. clear t.
+ revert a. induction l as [|b l IH]; intros a; simpl in *. lia.
+ intros z Hz.
+ rewrite <- foldl_op_init by exact N.min_assoc.
+ apply N.min_le_iff. destruct Hz as [Hz|Hz]; try apply IH in Hz; lia.
+Qed.
+
+End ReduceMinMax.
+
+Definition all_diffs (k p bound : N) :=
+  let t := Fast.f_array k (p + bound -1) in
+  let thigh :=FlexArray.skipn p t in
+  FlexArray.mapi (fun i x => x - FlexArray.get t i)%N thigh.
+
+Definition calc_additivity (k p bound : N) :=
+  let t := all_diffs k p bound in
+  (FlexArray.reduce N.min t, FlexArray.reduce N.max t).
+
+Lemma all_diffs_spec (k p : nat) (bound : N) : (2<=bound)%N ->
+  FlexArray.to_list (all_diffs (N.of_nat k) (N.of_nat p) bound) =
+  map (fun x => N.of_nat (f k (p+x)-f k x)) (seq 0 (N.to_nat bound)).
+Proof.
+ intros B. unfold all_diffs.
+ set (m := (N.of_nat p + bound - 1)%N).
+ assert (Ot := Fast.f_array_ok (N.of_nat k) m).
+ assert (St := Fast.f_array_size (N.of_nat k) m).
+ assert (Ht := @Fast.f_array_spec' (N.of_nat k) m).
+ set (t := Fast.f_array _ _) in *. cbn in t.
+ assert (Ot2 := FlexArray.skipn_ok (N.of_nat p) t Ot).
+ assert (St2 := @FlexArray.skipn_size _ (N.of_nat p) t Ot lia).
+ assert (Ht2 := @FlexArray.skipn_spec' _ t (N.of_nat p) Ot).
+ set (t2 := FlexArray.skipn _ _) in *.
+ replace (N.sub _ _) with bound in St2 by lia.
+ rewrite FlexArray.mapi_spec', St2; trivial. apply map_ext_in; trivial.
+ intros a. rewrite in_seq. simpl. intros Ha. rewrite Ht2, !Ht by lia.
+ rewrite <- Nat2N.inj_add, !Nat2N.id. lia.
+Qed.
 
 Lemma decide_additivity k p a b : 1<k ->
- calc_additivity k p (add_bound k p) = (a,b) ->
+ calc_additivity (N.of_nat k) (N.of_nat p) (add_bound k p)
+  = (N.of_nat a,N.of_nat b) ->
  forall n, a + f k n <= f k (p+n) <= b + f k n.
 Proof.
- intros Hq E n.
+ intros K E n.
  assert (H : f k n <= f k (p+n)) by (apply f_mono; lia).
  assert (a <= f k (p+n) - f k n <= b); try lia.
- { destruct (@additivity_bounded k p Hq n) as (m & Hm & ->).
+ { destruct (@additivity_bounded k p K n) as (m & Hm & ->).
    clear n H.
-   unfold calc_additivity in E.
-   revert E. apply extrems_spec.
-   rewrite all_diffs_spec.
-   set (delta := fun x => _). apply (in_map delta). clear delta.
-   apply countdown_in. lia. }
+   unfold calc_additivity in E. injection E as E1 E2.
+   assert (2 <= add_bound k p)%N.
+   { unfold add_bound. rewrite Fast.A_spec, !Nat2N.id.
+     assert (LE : 1 <= bound_idx k p) by (unfold bound_idx; lia).
+     apply (A_mono k) in LE. rewrite A_k_1 in LE. lia. }
+   split.
+   - assert (N.of_nat a <= N.of_nat (f k (p + m) - f k m))%N; try lia.
+     { rewrite <- E1. apply ReduceMinMax.reduce_Nmin.
+       rewrite all_diffs_spec; trivial.
+       apply in_map_iff. exists m; split; trivial. rewrite in_seq; lia. }
+   - assert (N.of_nat (f k (p + m) - f k m) <= N.of_nat b)%N; try lia.
+     { rewrite <- E2. apply ReduceMinMax.reduce_Nmax.
+       rewrite all_diffs_spec; trivial.
+       apply in_map_iff. exists m; split; trivial. rewrite in_seq; lia. }}
 Qed.
 
 (** For exemple, let's do some proofs by computations for f 4.
@@ -454,21 +497,22 @@ Proof.
          specialize (D3 (or_intror (or_introl eq_refl)) IN'). lia. }
 Qed.
 
-Definition add_bound_k3 p := A3 (invA_up 3 p + 3).
+Definition add_bound_k3 p := Fast.A 3 (N.of_nat (invA_up 3 p + 3)).
 
 Definition reduced_k3 p n := sumA 3 (fst (low_high_k3 p (decomp 3 n))).
 
 Lemma reduced_lt_k3 p n :
-  reduced_k3 p n < add_bound_k3 p.
+  reduced_k3 p n < N.to_nat (add_bound_k3 p).
 Proof.
- unfold reduced_k3, add_bound_k3. fold (bound_idx_k3 p).
+ unfold reduced_k3, add_bound_k3. rewrite Fast.A_spec, !Nat2N.id.
+ fold (bound_idx_k3 p).
  assert (D := decomp_delta 3 n).
  set (l := decomp 3 n) in *. clearbody l.
  assert (E := cut_app (bound_idx_k3 p) l).
  assert (B := cut_fst (bound_idx_k3 p) l).
  change (cut_lt_ge _ _) with (low_high_k3 p l) in E,B.
  destruct (low_high_k3 p l) as (low,high) eqn:E'. simpl fst in *.
- apply sumA_below; auto.
+ apply sumA_below; trivial. lia.
  rewrite <-E, Delta_app_iff in D. intuition.
 Qed.
 
@@ -496,7 +540,7 @@ Qed.
 
 Lemma additivity_bounded_k3 p : 1<p ->
  forall n, exists m,
-   m < add_bound_k3 p /\
+   m < N.to_nat (add_bound_k3 p) /\
    h (p+n) - h n = h (p+m) - h m.
 Proof.
  intros Hp n. exists (reduced_k3 p n). split.
@@ -505,7 +549,7 @@ Proof.
 Qed.
 
 Lemma decide_additivity_k3 p a b : 1<p ->
- calc_additivity 3 p (add_bound_k3 p) = (a,b) ->
+ calc_additivity 3 (N.of_nat p) (add_bound_k3 p) = (N.of_nat a,N.of_nat b) ->
  forall n, a + h n <= h (p+n) <= b + h n.
 Proof.
  intros Hp E n.
@@ -513,11 +557,21 @@ Proof.
  assert (a <= h (p+n) - h n <= b); try lia.
  { destruct (@additivity_bounded_k3 p Hp n) as (m & Hm & ->).
    clear n H.
-   unfold calc_additivity in E.
-   revert E. apply extrems_spec.
-   rewrite all_diffs_spec.
-   set (delta := fun x => _). apply (in_map delta). clear delta.
-   apply countdown_in. lia. }
+   unfold calc_additivity in E. injection E as E1 E2.
+   assert (2 <= add_bound_k3 p)%N.
+   { unfold add_bound_k3. rewrite Fast.A_spec, !Nat2N.id.
+     assert (LE : 1 <= invA_up 3 p + 3) by lia.
+     apply (A_mono 3) in LE. rewrite A_k_1 in LE.
+     change (N.to_nat 3) with 3. lia. }
+   unfold h. split.
+   - assert (N.of_nat a <= N.of_nat (f 3 (p + m) - f 3 m))%N; try lia.
+     { rewrite <- E1. apply ReduceMinMax.reduce_Nmin.
+       change 3%N with (N.of_nat 3). rewrite all_diffs_spec; trivial.
+       apply in_map_iff. exists m; split; trivial. rewrite in_seq; lia. }
+   - assert (N.of_nat (f 3 (p + m) - f 3 m) <= N.of_nat b)%N; try lia.
+     { rewrite <- E2. apply ReduceMinMax.reduce_Nmax.
+       change 3%N with (N.of_nat 3). rewrite all_diffs_spec; trivial.
+       apply in_map_iff. exists m; split; trivial. rewrite in_seq; lia. }}
 Qed.
 
 (** Some initial results about quasi-additivity of H
@@ -641,9 +695,8 @@ Lemma destruct_last {A} (l : list A) : l = [] \/ exists a l', l = l' ++ [a].
 Proof.
  destruct l as [|a l].
  - now left.
- - right. destruct (rev (a::l)) as [|a' l'] eqn:E.
-   + now apply rev_switch in E.
-   + exists a', (rev l'). apply rev_switch in E. apply E.
+ - right. exists (last (a::l) a), (removelast (a::l)).
+   now apply app_removelast_last.
 Qed.
 
 Lemma sumA_insert k x l :
@@ -685,8 +738,9 @@ Proof.
    { generalize (@f_mono 3 n (A3 p + n)) (@f_mono 3 m (A3 p + m)).
      generalize (@A_nz 3 (p-1)). unfold h in *. lia. }
    clear E n.
-   replace (add_bound_k3 (A3 p)) with (A3 (p+3)) in Hm.
-   2:{ unfold add_bound_k3. f_equal. f_equal. rewrite invA_up_A; lia. }
+   replace (N.to_nat (add_bound_k3 (A3 p))) with (A3 (p+3)) in Hm.
+   2:{ unfold add_bound_k3. rewrite Fast.A_spec, !Nat2N.id.
+       change (N.to_nat 3) with 3. f_equal. f_equal. now rewrite invA_up_A. }
    assert (D := decomp_delta 3 m).
    rewrite <- (decomp_sum 3 m). set (l := decomp 3 m) in *.
    destruct (destruct_last l) as [->|(a & l' & E)].
@@ -868,8 +922,60 @@ Proof.
        lia.
 Qed.
 
-(* TODO : is there a version for substraction : p = A3 u - A3 v ? *)
+(* TODO : is there a version for subtraction : p = A3 u - A3 v ? *)
 
+Module InitTests.
+
+Definition Nforallb (n:N) (tst : N->bool) : bool :=
+ N.peano_rect _ true (fun i b => b && tst i) n.
+
+Lemma Nforallb_spec n tst :
+ Nforallb n tst = true -> forall m, (m<n)%N -> tst m = true.
+Proof.
+ unfold Nforallb.
+ induction n using N.peano_ind.
+ - simpl. intros; lia.
+ - rewrite N.peano_rect_succ, andb_true_iff. intros (U,V).
+   intros m Hm. destruct (N.eq_dec m n) as [->|Hm']; trivial.
+   apply (IHn U m); lia.
+Qed.
+
+Definition fk_leb_fSk k n :=
+ let tk := Fast.f_array k n in
+ let tSk := Fast.f_array (N.succ k) n in
+ Nforallb n (fun i => N.leb (FlexArray.get tk i) (FlexArray.get tSk i)).
+
+Lemma fk_leb_fSk_spec k n :
+  fk_leb_fSk (N.of_nat k) (N.of_nat n) = true ->
+  forall m, m < n -> f k m <= f (S k) m.
+Proof.
+ unfold fk_leb_fSk. intros E m Hm.
+ apply Nforallb_spec with (m:=N.of_nat m) in E; try lia.
+ rewrite !Fast.f_array_spec' in E by lia.
+ rewrite N2Nat.inj_succ, !Nat2N.id in E.
+ apply N.leb_le in E. lia.
+Qed.
+
+Definition fk_ltb_fSk k a b :=
+ let tk := Fast.f_array k b in
+ let tSk := Fast.f_array (N.succ k) b in
+ Nforallb (b-a)
+  (fun i => N.ltb (FlexArray.get tk (a+i)) (FlexArray.get tSk (a+i))).
+
+Lemma fk_ltb_fSk_spec k a b :
+  fk_ltb_fSk (N.of_nat k) (N.of_nat a) (N.of_nat b) = true ->
+  forall m, a <= m < b -> f k m < f (S k) m.
+Proof.
+ unfold fk_ltb_fSk. intros E m Hm.
+ apply Nforallb_spec with (m:=N.of_nat (m-a)) in E; try lia.
+ rewrite !Fast.f_array_spec' in E by lia.
+ rewrite N2Nat.inj_succ, !Nat2N.id in E.
+ apply N.ltb_lt in E.
+ replace (N.to_nat (_+_)) with m in E; lia.
+Qed.
+
+End InitTests.
+Import InitTests.
 
 (** * Comparing (f k) functions when k varies *)
 
@@ -894,31 +1000,13 @@ Qed.
 
 (** h_add_33 and f3_add_33 imply h <= f 4 *)
 
-Lemma intvl_dec a b tst :
-  (forallb tst (seq a (S b-a))) = true ->
-  forall n, a <= n <= b -> tst n = true.
-Proof.
- intros H n Hn.
- rewrite forallb_forall in H. apply H. rewrite in_seq. lia.
-Qed.
-
-Lemma intvl_dec_0 b tst :
-  (forallb tst (seq 0 b)) = true ->
-  forall n, n < b -> tst n = true.
-Proof.
- intros H n Hn. destruct b as [|b]; try lia.
- replace (S b) with (S b-0) in H by lia.
- apply (@intvl_dec _ _ _ H n). lia.
-Qed.
-
 Lemma h_below_f4 n : h n <= f 4 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 33).
 - clear IH.
   (* Alas f_triangle_incrq isn't enough : triangle(2+4)-3 = 18 < 33 *)
-  unfold h. rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
-  apply intvl_dec_0. now vm_compute.
+  revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (33+(n-33)) by lia.
   transitivity (23 + h (n - 33)). apply h_add_33.
   transitivity (23 + f 4 (n - 33)).
@@ -942,9 +1030,7 @@ Lemma f4_below_f5 n : f 4 n <= f 5 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 73).
-- clear IH.
-  rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
-  apply intvl_dec_0. now vm_compute.
+- clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (73+(n-73)) by lia.
   transitivity (54 + f 4 (n - 73)). apply (f4_add_73 (n-73)).
   transitivity (54 + f 5 (n - 73)).
@@ -968,9 +1054,7 @@ Lemma f5_below_f6 n : f 5 n <= f 6 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 169).
-- clear IH.
-  rewrite <- !fopt_spec, <- Nat.leb_le. revert n H.
-  apply intvl_dec_0. now vm_compute.
+- clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (169+(n-169)) by lia.
   transitivity (129 + f 5 (n - 169)). apply (f5_add_169 (n-169)).
   transitivity (129 + f 6 (n - 169)).
@@ -978,9 +1062,8 @@ destruct (Nat.lt_ge_cases n 169).
   apply (f6_add_169 (n-169)).
 Qed.
 
-(* And f 5 <= f 7 *)
+(* And f 6 <= f 7 *)
 
-(*
 Lemma f6_add_424 n : 326 + f 6 n <= f 6 (424+n) <= 333 + f 6 n.
 Proof.
  apply decide_additivity. lia. now vm_compute.
@@ -995,16 +1078,37 @@ Lemma f6_below_f7 n : f 6 n <= f 7 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 424).
-- clear IH.
-  rewrite <- !fopt_spec. rewrite <- Nat.leb_le.
-  do 424 (destruct n; [now vm_compute|]). exfalso. lia.
+- clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (424+(n-424)) by lia.
   transitivity (333 + f 6 (n - 424)). apply (f6_add_424 (n-424)).
   transitivity (333 + f 7 (n - 424)).
   specialize (IH (n-424)). lia.
   apply (f7_add_424 (n-424)).
 Qed.
-*)
+
+(* And f 7 <= f 8 *)
+
+Lemma f7_add_843 n : 666 + f 7 n <= f 7 (843+n) <= 677 + f 7 n.
+Proof.
+ apply decide_additivity. lia. now vm_compute.
+Qed.
+
+Lemma f8_add_843 n : 677 + f 8 n <= f 8 (843+n) <= 692 + f 8 n.
+Proof.
+ apply decide_additivity. lia. now vm_compute.
+Qed.
+
+Lemma f7_below_f8 n : f 7 n <= f 8 n.
+Proof.
+induction n as [n IH] using lt_wf_ind.
+destruct (Nat.lt_ge_cases n 843).
+- clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
+- replace n with (843+(n-843)) by lia.
+  transitivity (677 + f 7 (n - 843)). apply (f7_add_843 (n-843)).
+  transitivity (677 + f 8 (n - 843)).
+  specialize (IH (n-843)). lia.
+  apply (f8_add_843 (n-843)).
+Qed.
 
 (** General proof : cf WordGrowth.f_grows *)
 
@@ -1027,9 +1131,9 @@ Proof.
  unfold quad, triangle; simpl.
  induction n as [n IH] using lt_wf_ind.
  intros Hn.
- destruct (Nat.le_gt_cases n 9).
- - clear IH. rewrite <- Nat.ltb_lt.
-   apply (@intvl_dec 8 9 (fun n => f 1 n <? g n)). now vm_compute. lia.
+ destruct (Nat.le_gt_cases n 9) as [LE|LT].
+ - rewrite <- f_2_g. red in Hn. rewrite <- Nat.lt_succ_r in LE.
+   generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
  - replace n with (2+(n-2)) by lia.
    rewrite f1_add_2.
    apply Nat.lt_le_trans with (1 + g (n - 2)).
@@ -1041,9 +1145,9 @@ Lemma g_lt_h n : quad 2 < n -> g n < h n.
 Proof.
 unfold quad, triangle; simpl.
 induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n 20).
-- clear IH. rewrite <- Nat.ltb_lt. generalize (conj Hn H). clear Hn H.
-  revert n. apply intvl_dec. now vm_compute.
+destruct (Nat.le_gt_cases n 20) as [LE|LT].
+- rewrite <- f_2_g. red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
 - clear Hn. replace n with (8+(n-8)) by lia.
   apply Nat.le_lt_trans with (5 + g (n - 8)). apply g_add_8.
   apply Nat.lt_le_trans with (5 + h (n - 8)). 2:apply h_add_8.
@@ -1054,10 +1158,9 @@ Lemma h_lt_f4 n : quad 3 < n -> h n < f 4 n.
 Proof.
 unfold quad, triangle; simpl.
 induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (18+33)).
-- clear IH. unfold h. rewrite <- !fopt_spec, <- Nat.ltb_lt.
-  generalize (conj Hn H). clear Hn H. revert n.
-  apply intvl_dec. now vm_compute.
+destruct (Nat.le_gt_cases n (18+33)) as [LE|LT].
+- red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
 - clear Hn. replace n with (33+(n-33)) by lia.
   apply Nat.le_lt_trans with (23 + h (n - 33)). apply h_add_33.
   apply Nat.lt_le_trans with (23 + f 4 (n - 33)).
@@ -1069,10 +1172,9 @@ Lemma f4_lt_f5 n : quad 4 < n -> f 4 n < f 5 n.
 Proof.
 unfold quad, triangle; simpl.
 induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (25+73)).
-- clear IH. rewrite <- !fopt_spec, <- Nat.ltb_lt.
-  generalize (conj Hn H). clear Hn H. revert n.
-  apply intvl_dec. now vm_compute.
+destruct (Nat.le_gt_cases n (25+73)) as [LE|LT].
+- red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
 - clear Hn. replace n with (73+(n-73)) by lia.
   apply Nat.le_lt_trans with (54 + f 4 (n - 73)). apply (f4_add_73 (n-73)).
   apply Nat.lt_le_trans with (54 + f 5 (n - 73)).
@@ -1084,16 +1186,44 @@ Lemma f5_lt_f6 n : quad 5 < n -> f 5 n < f 6 n.
 Proof.
 unfold quad, triangle; simpl.
 induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (33+169)).
-- clear IH. rewrite <- !fopt_spec, <- Nat.ltb_lt.
-  generalize (conj Hn H). clear Hn H. revert n.
-  apply intvl_dec. now vm_compute.
+destruct (Nat.le_gt_cases n (33+169)) as [LE|LT].
+- red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
 - clear Hn. replace n with (169+(n-169)) by lia.
   apply Nat.le_lt_trans with (129 + f 5 (n - 169)). apply (f5_add_169 (n-169)).
   apply Nat.lt_le_trans with (129 + f 6 (n - 169)).
   specialize (IH (n-169)). lia.
   apply (f6_add_169 (n-169)).
 Qed.
+
+Lemma f6_lt_f7 n : quad 6 < n -> f 6 n < f 7 n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n (42+424)) as [LE|LT].
+- red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
+- clear Hn. replace n with (424+(n-424)) by lia.
+  apply Nat.le_lt_trans with (333 + f 6 (n - 424)). apply (f6_add_424 (n-424)).
+  apply Nat.lt_le_trans with (333 + f 7 (n - 424)).
+  specialize (IH (n-424)). lia.
+  apply (f7_add_424 (n-424)).
+Qed.
+
+Lemma f7_lt_f8 n : quad 7 < n -> f 7 n < f 8 n.
+Proof.
+unfold quad, triangle; simpl.
+induction n as [n IH] using lt_wf_ind. intros Hn.
+destruct (Nat.le_gt_cases n (52+843)) as [LE|LT].
+- red in Hn. rewrite <- Nat.lt_succ_r in LE.
+  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
+- clear Hn. replace n with (843+(n-843)) by lia.
+  apply Nat.le_lt_trans with (677 + f 7 (n - 843)). apply (f7_add_843 (n-843)).
+  apply Nat.lt_le_trans with (677 + f 8 (n - 843)).
+  specialize (IH (n-843)). lia.
+  apply (f8_add_843 (n-843)).
+Qed.
+
 
 (** Consequence : GenG.fk_fSk_conjectures and the future
     WordGrowth.f_L_conjectures can be applied for these small k.
@@ -1118,4 +1248,14 @@ Qed.
 Lemma f5_lt_f6' n : n<>1 -> f 5 n < f 6 (S n).
 Proof.
  now apply fk_fSk_conjectures, f5_lt_f6.
+Qed.
+
+Lemma f6_lt_f7' n : n<>1 -> f 6 n < f 7 (S n).
+Proof.
+ now apply fk_fSk_conjectures, f6_lt_f7.
+Qed.
+
+Lemma f7_lt_f8' n : n<>1 -> f 7 n < f 8 (S n).
+Proof.
+ now apply fk_fSk_conjectures, f7_lt_f8.
 Qed.

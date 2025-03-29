@@ -1,5 +1,5 @@
 Require Import MoreTac MoreFun MoreList DeltaList.
-Require Import GenFib GenG Words WordSuffix.
+Require Import GenFib GenG GenAdd Words WordSuffix.
 Import ListNotations.
 
 (** * Factors of infinite word (kseq k) *)
@@ -371,7 +371,7 @@ Proof.
    + destruct Hv as (<-,_); apply nbocc_le_length.
 Qed.
 
-(** Application to quasi-additivity of f, in a faster way than in GenAdd *)
+(** Application to quasi-additivity of f, in an alternative way to GenAdd *)
 
 Lemma f_additivity_via_factors k p a b :
  1<k ->
@@ -433,12 +433,7 @@ Lemma f6_below_f7 n : f 6 n <= f 7 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 424) as [LT|LE].
-- clear IH.
-  assert
-    (E : forallb (fun n => Nat.leb (fopt 6 n) (fopt 7 n)) (seq 0 424) = true)
-    by now vm_compute.
-  rewrite <- !fopt_spec, <- Nat.leb_le.
-  rewrite forallb_forall in E. apply E. apply in_seq. lia.
+- clear IH. revert LT. apply InitTests.fk_leb_fSk_spec. now vm_compute.
 - replace n with ((n-424)+424) by lia.
   etransitivity; [ apply f6_add_424 | ].
   etransitivity; [ | apply f7_add_424 ].
@@ -460,12 +455,7 @@ Lemma f7_below_f8 n : f 7 n <= f 8 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
 destruct (Nat.lt_ge_cases n 843) as [LT|LE].
-- clear IH.
-  assert
-    (E : forallb (fun n => Nat.leb (fopt 7 n) (fopt 8 n)) (seq 0 843) = true)
-    by now vm_compute.
-  rewrite <- !fopt_spec, <- Nat.leb_le.
-  rewrite forallb_forall in E. apply E. apply in_seq. lia.
+- clear IH. revert LT. apply InitTests.fk_leb_fSk_spec. now vm_compute.
 - replace n with ((n-843)+843) by lia.
   etransitivity; [ apply f7_add_843 | ].
   etransitivity; [ | apply f8_add_843 ].
