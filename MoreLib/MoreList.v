@@ -197,6 +197,23 @@ Proof.
  destruct (h' a); simpl; destruct (h a); simpl; trivial. now f_equal.
 Qed.
 
+Lemma filter_partition {A} (f : A -> bool) l :
+ Permutation (filter f l ++ filter (fun x => negb (f x)) l) l.
+Proof.
+ induction l as [|a l IH]; simpl; auto.
+ destruct (f a); simpl.
+ - now apply perm_skip.
+ - apply Permutation_sym.
+   eapply Permutation_trans. 2:apply Permutation_middle.
+   now apply perm_skip.
+Qed.
+
+Lemma filter_partition_length {A} (f : A -> bool) l :
+ length (filter f l) + length (filter (fun x => negb (f x)) l) = length l.
+Proof.
+ rewrite <- app_length. apply Permutation_length, filter_partition.
+Qed.
+
 (** More on flat_map *)
 
 Lemma flat_map_length {A B} (f:A->list B) l k :
@@ -1137,6 +1154,12 @@ Lemma firstn_take {A} (f:nat -> A) n m :
   n <= m -> firstn n (take m f) = take n f.
 Proof.
  intros. unfold take. now rewrite firstn_map, firstn_seq.
+Qed.
+
+Lemma skipn_S {A} n (l:list A) : skipn (S n) l = tl (skipn n l).
+Proof.
+ revert l.
+ induction n; destruct l; try easy. simpl. rewrite <- IHn. now destruct l.
 Qed.
 
 Lemma skipn_seq a b n : skipn n (seq a b) = seq (n+a) (b-n).

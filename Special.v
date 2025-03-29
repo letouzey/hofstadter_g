@@ -1673,23 +1673,6 @@ Proof.
  - intros u. now apply next_kfactors_iff.
 Qed.
 
-Lemma filter_partition {A} (f : A -> bool) l :
- Permutation (filter f l ++ filter (fun x => negb (f x)) l) l.
-Proof.
- induction l as [|a l IH]; simpl; auto.
- destruct (f a); simpl.
- - now apply perm_skip.
- - apply Permutation_sym.
-   eapply Permutation_trans. 2:apply Permutation_middle.
-   now apply perm_skip.
-Qed.
-
-Lemma filter_partition_length {A} (f : A -> bool) l :
- length (filter f l) + length (filter (fun x => negb (f x)) l) = length l.
-Proof.
- rewrite <- app_length. apply Permutation_length, filter_partition.
-Qed.
-
 Lemma next_kfactor_length p : k<>1 ->
  length (next_kfactors p) = length (kfactors k p) + k-1.
 Proof.
