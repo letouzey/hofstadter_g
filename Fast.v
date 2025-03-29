@@ -111,13 +111,6 @@ Proof.
  - now apply H.
 Qed.
 
-Lemma A_alt k n :
- GenFib.A k n = N.to_nat (A (N.of_nat k) (N.of_nat n)).
-Proof.
- rewrite A_spec by lia. rewrite Nat2N.id. f_equal; lia.
-Qed.
-
-
 Definition f_array (k n:N) :=
  N.peano_rect _
   (FlexArray.singleton 0)
@@ -200,11 +193,6 @@ Proof.
  apply f_array_aux1; trivial. rewrite !N2Nat.id. now apply f_array_spec.
 Qed.
 
-Lemma f_alt k n : GenG.f k n = N.to_nat (f (N.of_nat k) (N.of_nat n)).
-Proof.
- rewrite f_spec. now rewrite !Nat2N.id.
-Qed.
-
 (** Faster computation of GenG.rchild *)
 
 Definition rchild k n :=
@@ -218,12 +206,6 @@ Proof.
  rewrite N2Nat.inj_iter, N2Nat.inj_sub.
  rewrite <- f_array_aux2 with (n:=N.to_nat n); rewrite ?N2Nat.id; trivial.
  now apply f_array_spec.
-Qed.
-
-Lemma rchild_alt k n :
-  GenG.rchild k n = N.to_nat (rchild (N.of_nat k) (N.of_nat n)).
-Proof.
- rewrite rchild_spec. now rewrite !Nat2N.id.
 Qed.
 
 (** Tabulation of all pairs (m, rchild k m) for m <= n. *)
@@ -254,3 +236,28 @@ Proof.
  f_equal. lia.
  apply f_array_spec; lia.
 Qed.
+
+(** Functions on nat, compatible with the ones in GenFib and GenG.
+    They are slower than the functions on type N above,
+    But still way faster than GenFib.A and GenG.f. *)
+
+Module Nat.
+Definition A (k n : nat) := N.to_nat (A (N.of_nat k) (N.of_nat n)).
+Definition f (k n : nat) := N.to_nat (f (N.of_nat k) (N.of_nat n)).
+Definition rchild (k n : nat) := N.to_nat (rchild (N.of_nat k) (N.of_nat n)).
+
+Lemma A_alt k n : A k n = GenFib.A k n.
+Proof.
+ unfold A. now rewrite A_spec, !Nat2N.id.
+Qed.
+
+Lemma f_alt k n : f k n = GenG.f k n.
+Proof.
+ unfold f. now rewrite f_spec, !Nat2N.id.
+Qed.
+
+Lemma rchild_alt k n : rchild k n = GenG.rchild k n.
+Proof.
+ unfold rchild. now rewrite rchild_spec, !Nat2N.id.
+Qed.
+End Nat.

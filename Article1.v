@@ -1,7 +1,7 @@
 From Coq Require Import List Arith Lia Reals Lra.
 Import ListNotations.
 Require Import MoreTac MoreFun MoreList.
-Require GenFib GenG Words WordGrowth MoreLim.
+Require GenFib GenG Fast Words WordGrowth MoreLim.
 Require Mu Freq.
 
 (** * Article1.v *)
@@ -26,7 +26,7 @@ Require Mu Freq.
     Note that f^^n is f composed n times with itself. See
     for instance lemma iter_S : (f ^^ S n) p = (f ^^ n) (f p) *)
 
-Definition F := GenG.fopt.
+Definition F := Fast.Nat.f.
 
 Definition dF k j n := ((F k)^^j) (n+1) - ((F k)^^j) n.
 
@@ -36,7 +36,36 @@ Definition subst_τ k w := map S (Words.ksubstw k (map Nat.pred w)).
 
 Definition word_x k n := S (Words.kseq k n).
 
-Definition L k := WordGrowth.L k 1.
+Definition L := Fast.Nat.rchild.
+
+(** Equivalence with earlier definitions, on which the actual proofs have
+    been made. Fast.Nat.f is compatible with GenG.f, while computing
+    faster. Anyway, for really big computations, rather consider Fast.f
+    and Fast.A that work on the N datatype, or Fast.f_array that
+    tabulates f at once on an interval. *)
+
+Lemma F_alt k n : F k n = GenG.f k n.
+Proof.
+ apply Fast.Nat.f_alt.
+Qed.
+
+Lemma Fs_alt k p n : (F k ^^p) n = GenG.fs k p n.
+Proof.
+ apply iter_ext, F_alt.
+Qed.
+
+Lemma L_alt k n : L k n = WordGrowth.L k 1 n.
+Proof.
+ rewrite Fast.Nat.rchild_alt. symmetry. apply WordGrowth.L_k_1_rchild.
+Qed.
+
+Lemma L_iter k j n : ((L k)^^j) n = WordGrowth.L k j n.
+Proof.
+ unfold L. rewrite WordGrowth.L_iter. apply iter_ext, L_alt.
+Qed.
+
+(** Beware, [A 0] and [subst_τ 0] and [word_x 0] and [L 0] are arbitrary
+    (and actually equal to [A 1], [subst_τ 1] and [word_x 1] and [L 1]). *)
 
 (** [F 0] is non-recursive, flat except at 0. Most of the results
     have a [k>0] precondition, just as in the article, but
@@ -44,7 +73,7 @@ Definition L k := WordGrowth.L k 1.
 
 Lemma F0_alt n : F 0 n = Nat.min 1 n.
 Proof.
- unfold F. now rewrite GenG.fopt_spec, GenG.f_0.
+ now rewrite F_alt, GenG.f_0.
 Qed.
 
 Lemma F0_F0 n : F 0 (F 0 n) = F 0 n.
@@ -62,21 +91,8 @@ Proof.
  destruct j; trivial. now rewrite F0_Sj.
 Qed.
 
-(** Beware, [A 0] and [subst_τ 0] and [word_x 0] and [L 0] are arbitrary
-    (and actually equal to [A 1], [subst_τ 1] and [word_x 1] and [L 1]). *)
-
 (** Justify that these definitions are indeed adequate, by showing
     they satisfy the various defining equations. *)
-
-Lemma F_alt k n : F k n = GenG.f k n.
-Proof.
- unfold F. now rewrite GenG.fopt_spec.
-Qed.
-
-Lemma Fs_alt k p n : (F k ^^p) n = GenG.fs k p n.
-Proof.
- unfold F. now rewrite GenG.fopt_iter.
-Qed.
 
 Lemma F_0 k : F k 0 = 0.
 Proof.
@@ -133,11 +149,6 @@ Proof.
    set (sub := Words.ksubst k).
    change (Words.apply sub) with (Words.napply sub 1).
    rewrite <- !Words.napply_add. f_equal. lia.
-Qed.
-
-Lemma L_iter k j n : ((L k)^^j) n = WordGrowth.L k j n.
-Proof.
- unfold L. symmetry. apply WordGrowth.L_iter.
 Qed.
 
 Lemma L_eqn_gen k j n :
@@ -344,7 +355,7 @@ Qed.
 
 Lemma L_1_alt k j : (L k ^^j) 1 = A k j.
 Proof.
- unfold L. now rewrite <- WordGrowth.L_iter, WordGrowth.Lkj1_A.
+ now rewrite L_iter, WordGrowth.Lkj1_A.
 Qed.
 
 Lemma L_1_low k j : j <= k -> (L k ^^j) 1 = j+1.
@@ -386,7 +397,7 @@ Qed.
 Lemma L_le_2n k n : 0<k -> L k n <= 2*n.
 Proof.
  intros K.
- induction n; simpl; trivial.
+ induction n; simpl. now rewrite L_alt.
  assert (E := L_S k 1 n). simpl in E. rewrite E. clear E.
  assert (H := word_x_letters k n K).
  destruct (Nat.eq_dec (word_x k n) k) as [->|NE];
@@ -520,7 +531,7 @@ Qed.
 
 Lemma Prop_4_2 k n : L k n = n + (F k ^^(k-1)) n.
 Proof.
- rewrite Fs_alt. apply WordGrowth.L_k_1_rchild.
+ unfold L. now rewrite Fast.Nat.rchild_alt, Fs_alt.
 Qed.
 
 Lemma Lkj_Fkj k n : 0<k -> n <= L k (F k n) <= S n.
@@ -885,7 +896,7 @@ Proof.
      * now apply (Fkj_Lkj k 1).
  - intros [H|H] p q Hp Hq.
    + subst n. generalize (Fkj_nonzero k 1 p) (Fkj_nonzero k 1 q). simpl. lia.
-   + destruct n as [|n]; try easy.
+   + destruct n as [|n]. simpl in *; lia.
      change (F k p) with ((F k ^^1) p) in Hp.
      rewrite (Thm_3_1_main k 1) in Hp by lia.
      change (F k q) with ((F k ^^1) q) in Hq.
@@ -899,11 +910,11 @@ Lemma Prop_6_3_a k n : 0<k -> U k n = 2*n - 1 - L k (n-1).
 Proof.
  intros K.
  assert (U k n + L k (n-1) = 2*n-1); try lia.
- { induction n; try easy.
+ { induction n. now rewrite L_alt.
    unfold U in *. rewrite seq_S, filter_app, app_length. simpl.
    rewrite Nat.add_0_r, !Nat.sub_0_r.
    unfold uniqueAntecedentByF at 2.
-   case Nat.eqb_spec; intros N; try now subst n.
+   case Nat.eqb_spec; intros N. subst n; simpl in *; lia.
    case Nat.eqb_spec; intros E; simpl. lia.
    assert (H := L_S k 1 (n-1)). simpl in H.
    replace (S (n-1)) with n in H by lia.
@@ -996,7 +1007,7 @@ Qed.
 
 Theorem Thm_7_2_a k n : L (k+1) n <= L k n.
 Proof.
- unfold L. rewrite Nat.add_1_r. apply WordGrowth.Lk1_ge_LSk1.
+ rewrite !L_alt. rewrite Nat.add_1_r. apply WordGrowth.Lk1_ge_LSk1.
 Qed.
 
 Theorem Thm_7_2_a' k n : 0<k -> C (k+1) (Nat.eqb (k+1)) n <= C k (Nat.eqb k) n.
@@ -1118,10 +1129,9 @@ Qed.
 Lemma L_last_equality k :
   1<k -> let n := N (k-1) in L k n = L (S k) n.
 Proof.
- intros Hk n. unfold L.
+ intros Hk n. unfold L; rewrite !Fast.Nat.rchild_alt.
  unfold n. clear n. rewrite N_alt.
  destruct k as [|k]; try easy. replace (S k-1) with k by lia.
- rewrite !WordGrowth.L_k_1_rchild.
  apply GenG.rchild_k_Sk_last_equality; lia.
 Qed.
 
@@ -1146,7 +1156,7 @@ Lemma conjectures_strength_2 k : 0<k ->
  (forall m, N (S k) < m -> F (S k) m < F (S (S k)) m) ->
  (forall m, N k < m -> L (S (S k)) m < L (S k) m).
 Proof.
- intros Hk H m Hm. unfold L.
+ intros Hk H m Hm. rewrite !L_alt.
  apply WordGrowth.f_L_conjectures.
  - intros p. rewrite <- N_alt, <- !F_alt. apply H.
  - now rewrite <- N_alt.

@@ -15,6 +15,12 @@ Proof.
  induction n as [|n IH]; simpl; intros; now rewrite ?IH.
 Qed.
 
+Lemma iter_ext {A} (f g:A->A) :
+  (forall a, f a = g a) -> (forall n p, (f^^n) p = (g^^n) p).
+Proof.
+ intros E. induction n; intros; trivial. simpl. now rewrite IHn, E.
+Qed.
+
 (** A few properties of strictly increasing [nat->nat] functions *)
 
 Definition IncrFun f := forall p, f p < f (S p).
