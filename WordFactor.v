@@ -239,7 +239,7 @@ Proof.
        rewrite PR. f_equal. f_equal. lia.
 Qed.
 
-(** Compared with the expected q*p+1 complexity, we have some duplicates
+(** Compared with the expected (k-1)*p+1 complexity, we have some duplicates
     when p>k+1. More precisely k*(p-1)-(k-1)*p-1 = p-k-1 duplicates.
     This is still enough to say that the complexity is linear. *)
 
