@@ -1,8 +1,8 @@
 From Coq Require Import Bool Arith Lia Reals Lra.
 From Hofstadter.HalfQuantum Require Import Polynomial.
 Require Import MoreTac MoreFun MoreList MoreReals MoreComplex MoreSum.
-Require Import MoreLim MorePoly MoreMatrix.
-Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly Approx.
+Require Import MoreLim MorePoly DeltaList Approx.
+Require Import GenFib GenG GenAdd Words Mu ThePoly.
 Local Open Scope Q.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
