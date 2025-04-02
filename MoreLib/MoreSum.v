@@ -497,6 +497,16 @@ Proof.
  exact (big_sum_mult_r (g k) (f k) m).
 Qed.
 
+Lemma Re_big_sum f n : Re (big_sum f n) = big_sum (fun i => Re (f i)) n.
+Proof.
+ induction n; cbn; trivial. now f_equal.
+Qed.
+
+Lemma Im_big_sum f n : Im (big_sum f n) = big_sum (fun i => Im (f i)) n.
+Proof.
+ induction n; cbn; trivial. now f_equal.
+Qed.
+
 Lemma Cmod_bigsum (f : nat -> C) n :
  Cmod (big_sum f n) <= big_sum (Cmod∘f) n.
 Proof.

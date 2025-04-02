@@ -75,6 +75,15 @@ Proof.
  auto using is_lim_sqrt_p, is_lim_id, is_lim_seq_INR. now exists O.
 Qed.
 
+Lemma is_lim_seq_big_sum_0 (f:nat -> nat -> R) n :
+ (forall i, (i<n)%nat -> is_lim_seq (fun q => f q i) R0) ->
+ is_lim_seq (fun q => big_sum (f q) n) R0.
+Proof.
+ intros H. induction n; simpl.
+ - apply is_lim_seq_const.
+ - replace R0 with (0+0)%R by lra. apply is_lim_seq_plus'; auto.
+Qed.
+
 (** Results about limits of exp and logarithm *)
 
 Lemma exp_taylor2 : is_lim (fun x => (exp x - 1 - x) / x^2) 0 (1/2).

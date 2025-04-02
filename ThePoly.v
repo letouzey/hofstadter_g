@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation.
-From Hofstadter.HalfQuantum Require Import Complex Matrix VecSet Polynomial.
+From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 Require Import MoreTac MoreList MoreReals MoreLim MoreComplex MoreSum.
-Require Import MorePoly MoreMatrix GenFib GenG Mu.
+Require Import MorePoly GenFib GenG Mu.
 Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.
@@ -128,6 +128,13 @@ Proof.
  apply Peq_iff. f_equal. f_equal. f_equal. rewrite minus_INR by lia. lca.
 Qed.
 
+Lemma ThePoly_diff_expr k r : (1 < k)%nat ->
+  Peval (Pdiff (ThePoly k)) r = r^(k-2) * (k*r-(k-1)).
+Proof.
+ intros. rewrite ThePoly_diff by trivial. rewrite Pmult_eval, monom_eval.
+ unfold Peval; simpl. ring.
+Qed.
+
 Lemma ThePoly_diff_1 : Pdiff (ThePoly 1) ≅ [C1].
 Proof.
  unfold ThePoly. simpl. apply Peq_iff.
@@ -144,15 +151,13 @@ Proof.
  { rewrite ThePoly_diff_1. unfold Root. cbn. rewrite Cmult_1_l, Cplus_0_l.
    apply C1_neq_C0. }
  unfold Root.
- rewrite ThePoly_diff by lia.
- rewrite Pmult_eval, monom_eval. cbn.
- rewrite !Cmult_1_r, Cmult_1_l, Cplus_0_l. intro E.
- apply Cmult_integral in E. destruct E as [E|E].
- - rewrite Cplus_comm in E. apply Ceq_minus in E.
+ rewrite ThePoly_diff_expr by lia.
+ intro E. apply Cmult_integral in E. destruct E as [E|E].
+ - revert E. apply Cpow_nonzero. intros ->. now apply (root_nz k).
+ - apply Ceq_minus in E.
    assert (c = (k-1) / k).
    { rewrite <- E. field. intros [= E']. now apply not_INR in K0. }
    subst c. revert Hc. apply root_non_km1k.
- - revert E. apply Cpow_nonzero. intros ->. now apply (root_nz k).
 Qed.
 
 Lemma ThePoly_separated_roots k :
@@ -659,8 +664,10 @@ Proof.
  destruct (Nat.eq_dec n 3) as [->|Hn]. apply Rle_refl. apply Rge_le, SR. lia.
 Qed.
 
-(** B : Variant of the sequence A, with different initial values,
-    and hence shifted. *)
+(** The coefB used below correspond actually to a B sequence,
+    variant of the sequence A, with different initial values
+    and hence shifted. This B sequence used to be important when using
+    Vandermonde matrices, but this is far less crucial now. *)
 
 Fixpoint B (k n : nat) :=
   match n with
@@ -703,109 +710,6 @@ Proof.
    + f_equal. lia.
 Qed.
 
-(** Some more properties of parity, multdiffs, big_sum, etc *)
-
-Lemma parity_pow n : parity n = (-1)^n.
-Proof.
- induction n; rewrite ?parity_S, ?IHn; simpl; ring.
-Qed.
-
-Lemma parity_even n : parity (2*n) = 1.
-Proof.
- induction n. easy.
- replace (2 * S n)%nat with (S (S (2 * n)))%nat by lia.
- rewrite !parity_S, IHn. ring.
-Qed.
-
-Lemma multdiffs_nodup (l : list C) : NoDup l -> multdiffs l <> 0.
-Proof.
- induction 1; simpl.
- - apply C1_neq_C0.
- - intros E. apply Cmult_integral in E. destruct E as [E|E]; try easy.
-   apply Gbigmult_0 in E. rewrite in_map_iff in E.
-   destruct E as (y & E & IN). apply H. apply Ceq_minus in E. now subst.
-Qed.
-
-Lemma multdiffs_eqn c l :
- multdiffs (c :: l) =
- G_big_mult (map (fun y => c-y) l) * multdiffs l * parity (length l).
-Proof.
- simpl. rewrite <- Cmult_assoc, (Cmult_comm (multdiffs l)), Cmult_assoc.
- f_equal. rewrite parity_pow.
- set (f := fun y => c-y). rewrite <- (map_length f l).
- rewrite <- Gbigmult_factor_r, map_map. f_equal. apply map_ext.
- intro a. unfold f. ring.
-Qed.
-
-Lemma multdiffs_insert_at c l i :
- (i <= length l)%nat ->
- multdiffs (insert_at i c l) = multdiffs (c :: l) * parity i.
-Proof.
- revert i. induction l; destruct i; cbn -[parity]; intros.
- - simpl. ring.
- - lia.
- - simpl. ring.
- - rewrite parity_S. rewrite IHl by lia. simpl.
-   erewrite Gbigmult_perm.
-   2:apply Permutation_map, insert_at_perm. simpl. ring.
-Qed.
-
-Lemma multdiffs_insert_at' c l i :
- (i <= length l)%nat ->
- G_big_mult (map (fun y => c-y) l) * multdiffs l
- = multdiffs (insert_at i c l) * parity (i + length l).
-Proof.
- intros. rewrite multdiffs_insert_at, multdiffs_eqn by trivial.
- rewrite <- !Cmult_assoc. rewrite <- (Cmult_1_r (multdiffs l)) at 1.
- f_equal. f_equal. rewrite !parity_pow, <- !Cpow_add_r, <-parity_pow.
- replace (length l + _)%nat with (2*(length l + i))%nat by lia.
- now rewrite parity_even.
-Qed.
-
-Lemma Re_Σ f n : Re (big_sum f n) = big_sum (fun i => Re (f i)) n.
-Proof.
- induction n; cbn; trivial. now f_equal.
-Qed.
-
-Lemma is_lim_seq_Σ_0 (f:nat -> nat -> R) n :
- (forall i, (i<n)%nat -> is_lim_seq (fun q => f q i) R0) ->
- is_lim_seq (fun q => big_sum (f q) n) R0.
-Proof.
- intros H. induction n; simpl.
- - apply is_lim_seq_const.
- - replace R0 with (0+0)%R by lra. apply is_lim_seq_plus'; auto.
-Qed.
-
-(** pows : n-th powers of the elements of a list *)
-
-Definition pows (l:list C) n := map (fun c => c^n) l.
-
-Lemma nth_pows i l p : (i < length l)%nat -> (pows l p)@i = (l@i)^p.
-Proof.
- intros H. unfold Cnth.
- rewrite <- map_nth with (f := fun c => c ^ p).
- apply nth_indep. unfold pows; rewrite map_length; lia.
-Qed.
-
-Lemma Peval_Pdiff_linfactors l i :
-  NoDup l -> (i < length l)%nat ->
-  Peval (Pdiff (linfactors l)) (l@i)
-  = G_big_mult (map (fun y => l@i - y) (remove_at i l)).
-Proof.
- intros Hl Hi.
- assert (Hl' := remove_at_length l i Hi).
- rewrite <- Peval_linfactors.
- rewrite Pdiff_linfactors, Peval_Plistsum, map_map.
- rewrite Clistsum_map with (d:=O).
- rewrite big_sum_kronecker with (m:=i).
- - now rewrite seq_nth.
- - now rewrite seq_length.
- - intros j Hj Hij. rewrite seq_length in Hj.
-   rewrite seq_nth by trivial. simpl.
-   change (Root (l@i) (linfactors (remove_at j l))).
-   rewrite <- linfactors_roots. now apply remove_at_In.
-Qed.
-
 Section Roots.
 Variable k : nat.
 Variable roots : list C.
@@ -816,189 +720,350 @@ Proof.
  intros ->. apply (SortedRoots_nz _ roots_ok).
 Qed.
 
-Definition vdmroot := Vandermonde k roots.
-Definition vdminv := Minverse vdmroot.
-Definition coefs0 : Vector k := transpose (get_row vdminv (k-1)).
-
-Lemma VdmRoots_det_nz : Determinant vdmroot <> 0.
+Let roots_len : length roots = k.
 Proof.
- assert (len := SortedRoots_length _ _ roots_ok).
- unfold vdmroot.
- rewrite Vandermonde_det; trivial.
- apply multdiffs_nodup. now apply (SortedRoots_nodup k).
+ now apply SortedRoots_length.
 Qed.
 
-(** Conjecture (TODO?) : the square of this determinant seems to be
-    [+/- (k^k+(k-1)^(k-1)].
-    For instance +5 for k=2, -31 for k=3, -283 for k=4, +3381 for k=5
-    See OEIS A056788.
-    At least, this square is clearly an integer, since it's a symmetric
-    polynomial of the roots (determinant is alternating) with coefficients
-    in Z, hence it is a Z polynomial of the elementary symmetric polynomials
-    that here are -1 or 0 or 1 (coefficients of ThePoly). *)
+(** sum of roots, product, sigma functions, newton sums *)
 
-Lemma VdmRoots_invertible : invertible vdmroot.
+Lemma sigma_roots_gen p :
+  (p <= k)%nat -> sigma p roots = (-1)^p * coef (k-p) (ThePoly k).
 Proof.
- apply lin_indep_iff_invertible. apply WF_Vandermonde.
- apply lin_indep_det_neq_0. apply WF_Vandermonde.
- red. split; auto. apply VdmRoots_det_nz.
-Qed.
-
-Lemma coefs0_LinComb p :
-  (p < k)%nat ->
-  scalprod coefs0 (mkvect _ (pows roots p)) = if p =? k-1 then 1 else 0.
-Proof.
- assert (len := SortedRoots_length _ _ roots_ok).
- assert (VdmWF : WF_Matrix vdmroot) by apply WF_Vandermonde.
- destruct (Minverse_is_inv vdmroot VdmWF VdmRoots_invertible) as (_ & E).
- fold vdminv in E.
- set (V := (fun i j => if (i =? 0) && (j =? k-1) then 1 else 0) : Matrix 1 k).
- assert (WF_Matrix V).
- { intros x y. unfold V. do 2 case Nat.eqb_spec; simpl; trivial. lia. }
- assert (E0 : transpose coefs0 = Mmult V vdminv).
- { apply mat_equiv_eq; trivial.
-   - unfold coefs0. rewrite transpose_involutive.
-     apply WF_get_row, WF_scale, WF_adjugate.
-   - apply WF_mult; trivial. apply WF_scale, WF_adjugate.
-   - intros i j Hi Hj. unfold coefs0, V, get_row, transpose.
-     replace i with 0%nat by lia. simpl.
-     unfold Mmult.
-     replace k with (S (k-1)) at 2 by lia. simpl. rewrite Nat.eqb_refl.
-     rewrite big_sum_0_bounded. lca.
-     intros x Hx. case Nat.eqb_spec; try lia. simpl. intros. lca. }
  intros Hp.
- replace (mkvect _ (pows roots p)) with (get_col vdmroot p).
- 2:{ apply mat_equiv_eq.
-     - apply WF_get_col, WF_Vandermonde.
-     - apply WF_mkvect. unfold pows. rewrite map_length.
-       now apply SortedRoots_length.
-     - intros i j Hi Hj. replace j with O by lia; clear j Hj.
-       rewrite mkvect_eqn, nth_pows by lia.
-       unfold get_row, vdmroot, Vandermonde, Cnth, transpose.
-       cbn -[Nat.ltb]. do 2 case Nat.ltb_spec; auto; lia. }
- unfold scalprod. rewrite E0.
- rewrite get_col_mult_eq; trivial.
- 2:{ apply WF_mult, WF_scale, WF_adjugate; trivial. }
- rewrite Mmult_assoc, E, Mmult_1_r; trivial.
+ destruct roots_ok as (->,_).
+ rewrite (linfactors_coefs roots k (k-p)); try lia.
+ replace (k-(k-p))%nat with p by lia. rewrite Cmult_assoc, <- Cpow_mul_l.
+ replace (-1*-1) with 1 by lca. rewrite Cpow_1_l. lca.
 Qed.
 
-Lemma coefs0_LinCombB n :
-  scalprod coefs0 (mkvect _ (pows roots n)) = B k n.
+Lemma sum_roots : (1<k)%nat -> Clistsum roots = 1.
 Proof.
- induction n as [n IH] using lt_wf_ind.
- destruct (Nat.compare_spec n (k-1)).
- - rewrite B_one, coefs0_LinComb by lia. subst. now rewrite Nat.eqb_refl.
- - rewrite B_zero, coefs0_LinComb by lia. case Nat.eqb_spec; trivial. lia.
- - destruct n; try lia. cbn -[scalprod Nat.eqb].
-   case Nat.eqb_spec; try lia. intros _. rewrite Nat.add_0_r.
-   rewrite plus_INR, RtoC_plus, <- !IH by lia.
-   replace (mkvect _ (pows roots (S n))) with
-       (mkvect k (pows roots n) .+ mkvect _ (pows roots (n-(k-1)))).
-   + unfold scalprod. now rewrite Mmult_plus_distr_l.
-   + assert (len := SortedRoots_length _ _ roots_ok).
-     apply mat_equiv_eq.
-     * apply WF_plus; apply WF_mkvect; unfold pows; rewrite map_length; lia.
-     * apply WF_mkvect; unfold pows; rewrite map_length; lia.
-     * intros i j Hi Hj. replace j with O by lia.
-       unfold Mplus. rewrite !mkvect_eqn, !nth_pows by lia.
-       set (r := roots@i).
-       assert (R : Root r (ThePoly k)).
-       { apply (SortedRoots_roots _ _ roots_ok). apply nth_In; lia. }
-       rewrite ThePoly_root_carac in R.
-       replace n with ((k-1) + (n-(k-1)))%nat at 1 3 by lia.
-       rewrite <- Nat.add_succ_l, !Cpow_add_r. fixpred. rewrite R. lca.
+ intros Hk.
+ rewrite <- sigma_1, sigma_roots_gen by lia.
+ unfold ThePoly. rewrite !Pplus_coef, !coef_monom.
+ repeat case Nat.eqb_spec; try lia; intros _ _.
+ unfold coef; rewrite nth_overflow by (simpl; lia). lca.
 Qed.
 
-Lemma coefs0_eqn i :
- (i < k)%nat ->
- let c := roots@i in
- let l := remove_at i roots in
- coefs0 i O * G_big_mult (map (fun y => c-y) l) = 1.
+Lemma prod_roots : (1<k)%nat -> G_big_mult roots = (-1)^(k-1).
 Proof.
- intros Hi c l.
- assert (len := SortedRoots_length _ _ roots_ok).
- assert (len' : length l = (k-1)%nat).
- { unfold l; rewrite remove_at_length; lia. }
- unfold coefs0, get_row, transpose. simpl.
- unfold vdminv, Minverse, adjugate, scale.
- unfold vdmroot.
- replace k with (S (k-1)) by lia.
- do 2 (case Nat.ltb_spec; try lia); intros _ _. cbn -[Determinant].
- rewrite Nat.sub_0_r.
- rewrite get_minor_vandermonde by lia. fold l.
- rewrite !Vandermonde_det by lia.
- rewrite <- (insert_at_remove_at roots i 0) at 1 by lia.
- change (nth i roots 0) with c. fold l.
- rewrite <- !Cmult_assoc, (Cmult_comm (multdiffs l)).
- rewrite (multdiffs_insert_at' c l i), len' by lia. field_simplify.
- - rewrite Nat.add_comm, parity_pow, <- Cpow_mul_l.
-   replace (-1*-1) with 1 by ring. apply Cpow_1_l.
- - apply multdiffs_nodup. unfold c, l, Cnth.
-   rewrite insert_at_remove_at by lia.
-   eapply SortedRoots_nodup; eauto.
+ intros Hk.
+ rewrite <- sigma_len, roots_len, sigma_roots_gen, Nat.sub_diag by lia.
+ unfold ThePoly. rewrite !Pplus_coef, !coef_monom.
+ repeat case Nat.eqb_spec; try lia; intros _ _.
+ unfold coef; simpl. replace k with (S (k-1)) at 1 by lia. simpl. lca.
 Qed.
+
+Lemma sigma_roots_0 p : (1 < p < k)%nat -> sigma p roots = 0.
+Proof.
+ intros Hp.
+ rewrite sigma_roots_gen by lia.
+ unfold ThePoly. rewrite !Pplus_coef, !coef_monom.
+ repeat case Nat.eqb_spec; try lia; intros _ _.
+ unfold coef; rewrite nth_overflow by (simpl; lia). lca.
+Qed.
+
+Lemma newton_sum_roots p : (1 <= p < k)%nat -> newton_sum p roots = 1.
+Proof.
+ intros Hp.
+ apply newton_identities_nosigma; rewrite ?roots_len; trivial.
+ - rewrite sigma_1. apply sum_roots; lia.
+ - apply sigma_roots_0.
+Qed.
+
+(** For expressing [A k] numbers, we consider linear combination of
+    root powers with particular coefficents (not just 1 as in newton_sum) *)
 
 Definition coefB r := r / r^(k-1) /(k*r-(k-1)).
 
-Lemma coefs0_coefB i : coefs0 i O = coefB (roots@i).
+Lemma krkm1_nz r : In r roots -> k*r-(k-1) <> 0.
 Proof.
- assert (len := SortedRoots_length _ _ roots_ok).
- set (r := roots@i).
- destruct (Nat.eq_dec k 1) as [Q|Q].
- { unfold coefs0, get_row, transpose, vdminv, Minverse. simpl. rewrite Q.
-   unfold scale. simpl.
-   case Nat.ltb_spec; simpl; intros.
-   - unfold vdmroot, Vandermonde. simpl. replace i with O by lia. simpl.
-     unfold coefB. rewrite Q. simpl. field. intros EQ.
-     apply (root_nz 1). rewrite <- EQ, <- Q.
-     rewrite <- (SortedRoots_roots k); eauto. apply nth_In. lia.
-   - rewrite Cmult_0_r. unfold coefB. unfold r, Cnth.
-     rewrite nth_overflow by lia.
-     unfold Cdiv. now rewrite !Cmult_0_l. }
- destruct (Nat.ltb_spec i k).
- - unfold coefB.
-   assert (roots_nodup := SortedRoots_nodup _ _ roots_ok).
-   assert (roots_len := SortedRoots_length _ _ roots_ok).
-   assert (E := Peval_Pdiff_linfactors roots i roots_nodup lia).
-   rewrite <- (proj1 roots_ok) in E. fold r in E.
-   generalize (coefs0_eqn i H).
-   fold r. set (l := remove_at i roots) in *. cbv zeta. rewrite <- E.
-   rewrite ThePoly_diff; try lia.
-   rewrite Pmult_eval, monom_eval. cbn -[INR coefs0].
-   rewrite !Cmult_1_l, !Cmult_1_r, !Cplus_0_l.
-   assert (R : r<>0).
-   { intros R. apply (root_nz k). rewrite <- R.
-     apply (SortedRoots_roots _ _ roots_ok r). apply nth_In. lia. }
-   replace (r / r^(k-1)) with (/r ^(k-2)).
-   2:{ replace (k-1)%nat with (S (k-2)) by lia. rewrite Cpow_S. field.
-       split; trivial. now apply Cpow_nonzero. }
-   replace (/ r ^ (k - 2) / (k * r - (k-1))) with (/(r ^(k-2) * (k*r-(k-1)))).
-   2:{ field. split.
-       now apply Cpow_nonzero.
-       intros EQ.
-       assert (EQ' : r = (k-1)/k).
-       { apply Cminus_eq_0 in EQ. rewrite <- EQ. field.
-         intros [=EQ']. revert EQ'. apply not_INR in K. apply K. }
-       apply (root_non_km1k k). rewrite <- EQ'.
-       rewrite <- SortedRoots_roots; eauto. apply nth_In. lia. }
-   intros EQ.
-   apply Cinv_eq. rewrite <- EQ at 2. ring.
- - unfold coefs0, get_row, transpose. simpl.
-   unfold vdminv, Minverse, adjugate, scale.
-   replace k with (S (k-1)) by lia.
-   do 2 (case Nat.ltb_spec; try lia); intros _ Hi.
-   cbn -[Determinant]. rewrite Cmult_0_r. unfold coefB, r, Cnth.
-   rewrite nth_overflow by lia. unfold Cdiv. now rewrite !Cmult_0_l.
+ intros R E.
+ apply Cminus_eq_0 in E.
+ assert (E' : r = (k-1)/k).
+ { rewrite <- E; field. intros [=EQ]. apply (INR_eq k 0) in EQ.
+   subst k. now apply (ThePoly_0_NoRoot r). }
+ apply (root_non_km1k k). rewrite <- E'.
+ now apply (SortedRoots_roots _ _ roots_ok).
 Qed.
 
-Lemma Equation_B n :
-  RtoC (B k n) = Clistsum (map (fun r => coefB r * r^n) roots).
+Lemma coefB_nz r : In r roots -> coefB r <> 0.
 Proof.
- assert (len := SortedRoots_length _ _ roots_ok).
- rewrite <- coefs0_LinCombB. rewrite scalprod_alt.
- rewrite Clistsum_map with (d:=0). rewrite len.
- apply big_sum_eq_bounded. intros x Hx.
- rewrite mkvect_eqn, nth_pows, coefs0_coefB; trivial. lia.
+ unfold coefB. intros R. apply (SortedRoots_roots _ _ roots_ok) in R.
+ unfold Cdiv.
+ rewrite <- Cmult_assoc, !Cmult_integral.
+ intros [->|[E|E]].
+ - now apply root_nz in R.
+ - apply C1_neq_C0.
+   rewrite <- (Cinv_l (r^(k-1))), E. lca. apply Cpow_nonzero.
+   intros ->. now apply root_nz in R.
+ - apply C1_neq_C0.
+   rewrite <- (Cinv_l (k*r-(k-1))), E. lca.
+   intros E'. apply Cminus_eq_0 in E'.
+   assert (E'' : r = (k-1)/k).
+   { rewrite <- E'; field. intros [=EQ]. apply (INR_eq k 0) in EQ.
+     subst k. now apply (ThePoly_0_NoRoot r). }
+   apply (root_non_km1k k). now rewrite <- E''.
+Qed.
+
+Lemma coefB_diff r : r<>0 -> coefB r = / Peval (Pdiff (ThePoly k)) r.
+Proof.
+ intros Hr. unfold coefB. destruct (Nat.eq_dec k 1) as [->|Hk].
+ - rewrite ThePoly_diff_1. unfold Peval; simpl. now field.
+ - rewrite ThePoly_diff_expr by lia.
+   rewrite Cinv_mult. unfold Cdiv. f_equal.
+   replace (k-1)%nat with (S (k-2)) at 1 by lia. simpl.
+   rewrite Cinv_mult, Cmult_assoc, Cinv_r by trivial. lca.
+Qed.
+
+Definition Interpol : Polynomial :=
+  big_sum (fun i => [coefB (roots@i)] *, linfactors (remove_at i roots)) k
+  +, [-(1)].
+
+Lemma Interpol_roots r : In r roots -> Root r Interpol.
+Proof.
+ intros Hr. destruct (In_nth _ _ 0 Hr) as (i & Hi & <-).
+ rewrite roots_len in Hi. fold (roots @ i) in *.
+ unfold Root, Interpol.
+ rewrite Pplus_eval, Psum_eval, (big_sum_kronecker _ _ i); trivial.
+ 2:{ intros j J J'. rewrite Pmult_eval. apply Cmult_integral. right.
+     apply linfactors_roots.
+     apply remove_at_In; trivial; rewrite roots_len; lia. }
+ rewrite Pmult_eval, !Pconst_eval.
+ rewrite Peval_linfactors, <- Peval_Pdiff_linfactors; try lia.
+ 2:{ now apply (SortedRoots_nodup k). }
+ rewrite coefB_diff, <- (proj1 roots_ok).
+ 2:{ intros E. apply (root_nz k). rewrite <- E.
+     now apply (SortedRoots_roots _ _ roots_ok). }
+ field.
+ apply ThePoly_no_common_root_with_diff.
+ now apply (SortedRoots_roots _ _ roots_ok).
+Qed.
+
+Lemma Interpol_degree : (degree Interpol <= k-1)%nat.
+Proof.
+ unfold Interpol.
+ etransitivity; [apply Pplus_degree1|].
+ replace (degree [_]) with O.
+ 2:{ generalize (degree_length [-(1)]). simpl. lia. }
+ rewrite Nat.max_0_r.
+ apply Psum_degree.
+ intros i Hi.
+ rewrite Pscale_degree.
+ 2:{ apply coefB_nz. apply nth_In; lia. }
+ rewrite linfactors_degree, remove_at_length; lia.
+Qed.
+
+Lemma Interpol_null : Peq Interpol [].
+Proof.
+ apply (extra_roots_implies_null _ roots).
+ - apply (SortedRoots_nodup _ _ roots_ok).
+ - apply Interpol_roots.
+ - generalize Interpol_degree. lia.
+Qed.
+
+Lemma sum_coefB_div_r : (1<k)%nat ->
+  Clistsum (map (fun r => coefB r / r) roots) = 1.
+Proof.
+ intros K'.
+ rewrite Clistsum_map with (d:=0). rewrite roots_len.
+ assert (E : Peval Interpol 0 = 0). { now rewrite Interpol_null. }
+ unfold Interpol in E. rewrite Pplus_eval, Psum_eval, Pconst_eval in E.
+ apply Ceq_minus in E. rewrite <- E. clear E.
+ apply big_sum_eq_bounded. intros i Hi.
+ rewrite Pmult_eval, Pconst_eval. unfold Cdiv. f_equal.
+ assert (Z : roots@i <> 0).
+ { intros E. apply (root_nz k). rewrite <- E.
+   apply (SortedRoots_roots _ _ roots_ok). apply nth_In; lia. }
+ apply Cmult_eq_reg_l with (roots@i); trivial. rewrite Cinv_r; trivial.
+ symmetry.
+ rewrite Peval_linfactors.
+ erewrite map_ext.
+ 2:{ intros a. replace (0-a) with (a*(-1)) by lca. reflexivity. }
+ rewrite Gbigmult_factor_r, remove_at_length; rewrite roots_len; try lia.
+ rewrite Cmult_assoc.
+ change (roots@i * _) with (G_big_mult (roots@i :: remove_at i roots)).
+ rewrite Gbigmult_perm with (l':=roots).
+ - rewrite prod_roots by trivial.
+   rewrite <- Nat.sub_1_r, <- Cpow_mul_l. replace (-1*-1) with 1 by lca.
+   apply Cpow_1_l.
+ - rewrite <- (insert_permut i).
+   apply eq_Permutation, insert_at_remove_at. lia.
+Qed.
+
+(* Actually unused, can be retrieved differently, see Equation_B *)
+Lemma sum_coefB : (1<k)%nat -> Clistsum (map coefB roots) = 0.
+Proof.
+ intros K'.
+ rewrite Clistsum_map with (d:=0). rewrite roots_len.
+ assert (E : coef (k-1) Interpol = 0).
+ { rewrite Interpol_null. now destruct (k-1)%nat. }
+ unfold Interpol in E. rewrite Pplus_coef, Psum_coef in E.
+ replace (coef (k-1) [_]) with 0 in E.
+ 2:{ unfold coef. replace (k-1)%nat with (S (k-2)) by lia. simpl.
+     now destruct (k-2)%nat. }
+ rewrite Cplus_0_r in E. rewrite <- E at 1. clear E.
+ apply big_sum_eq_bounded. intros i Hi.
+ rewrite Pscale_coef.
+ replace (k-1)%nat with (length (remove_at i roots)).
+ 2:{ rewrite remove_at_length; lia. }
+ now rewrite linfactors_coef, Cmult_1_r.
+Qed.
+
+(** The other coefficients of Interpol are much harder to exploit,
+    fortunately we can proceed differently. *)
+
+Definition Amk p := Clistsum (map (fun r => r^p /(k*r-(k-1))) roots).
+
+Lemma Amk1_Amk0 : (1<k)%nat -> Amk 1 - Amk 0 = 1.
+Proof.
+ intros K'.
+ replace (Amk 1 - Amk 0) with (Amk 1 + (-1)*Amk 0) by lca.
+ unfold Amk. rewrite Clistsum_factor_l, map_map, Clistsum_plus.
+ rewrite <- sum_coefB_div_r at 1 by trivial. f_equal.
+ apply map_ext_in. intros r Hr. unfold coefB.
+ set (d := k * r - (k - 1)).
+ assert (D : d<>0) by now apply krkm1_nz.
+ apply (SortedRoots_roots _ _ roots_ok) in Hr.
+ assert (R : r<>0). { intros E. apply (root_nz k). now rewrite <- E. }
+ assert (R' : r^(k-1)<>0) by now apply Cpow_nonzero.
+ apply Cmult_eq_reg_l with (d * r ^(k-1)).
+ 2:{ rewrite Cmult_integral; now intros [ | ]. }
+ rewrite Ceq_minus. field_simplify; try easy.
+ rewrite (Cmult_comm _ r), <- Cpow_S. fixpred.
+ apply ThePoly_root_carac in Hr. rewrite Hr. ring.
+Qed.
+
+Lemma Amk1_Amk0_alt :  k * Amk 1 + (1-k) * Amk 0 = k.
+Proof.
+ unfold Amk.
+ rewrite !Clistsum_factor_l, !map_map, Clistsum_plus.
+ rewrite map_ext_in with (g := fun _ => 1).
+ rewrite Clistsum_const, roots_len; lca.
+ intros r Hr. field. now apply krkm1_nz.
+Qed.
+
+Lemma Amk0_is_0 : (1<k)%nat -> Amk 0 = 0.
+Proof.
+ intros K'.
+ assert (E1 := Amk1_Amk0 K').
+ assert (E2 := Amk1_Amk0_alt). rewrite Ceq_minus in E2.
+ replace (Amk 1) with (Amk 0 + 1) in E2 by (rewrite <- E1; ring).
+ now ring_simplify in E2.
+Qed.
+
+Lemma Amk1_is_1 : Amk 1 = 1.
+Proof.
+ assert (E := Amk1_Amk0_alt).
+ destruct (Nat.eq_dec k 1) as [->|K'].
+ - simpl in E. now ring_simplify in E.
+ - rewrite <- Amk1_Amk0, Amk0_is_0 by lia. lca.
+Qed.
+
+Lemma binom_diag n : binom n n = 1%nat.
+Proof.
+ induction n. trivial. simpl. rewrite IHn, binom_zero; lia.
+Qed.
+
+Lemma Amk_is_1 p : (1<k)%nat -> (p<k)%nat -> Amk (S p) = 1.
+Proof.
+ intros K'.
+ induction p as [p IH] using lt_wf_ind.
+ intros Hp.
+ destruct (Nat.eq_dec p 0) as [->|Hp'].
+ { apply Amk1_is_1. }
+ assert (E := newton_identities_adhoc roots).
+ rewrite roots_len in E. cbv zeta in E.
+ rewrite sigma_1 in E.
+ specialize (E (sum_roots K') sigma_roots_0 p lia).
+ set (d := fun r => k * r + (1-k)) in *.
+ assert (D : forall r, In r roots -> d r <> 0).
+ { intros r Hr. unfold d.
+   replace (1-k) with (-(k-1)) by lca. now apply krkm1_nz. }
+ rewrite map_ext_in with (g:=fun r => (d r)^S p / d r) in E.
+ 2:{ intros r Hr. unfold d. simpl. field. now apply D. }
+ erewrite map_ext_in in E.
+ 2:{ intros r Hr. unfold d at 1. rewrite binomial_formula.
+     unfold Cdiv.
+     change Cmult with (Gmult (R:=C)).
+     rewrite big_sum_mult_r. change Gmult with Cmult.
+     rewrite big_sum_sum_n. reflexivity. }
+ rewrite <- Clistsum_sum_n, <- big_sum_sum_n in E.
+ rewrite big_sum_shift in E.
+ replace (Clistsum _) with 0 in E.
+ 2:{ cbn - [Cpow]. replace 0 with ((1-k)^S p * Amk 0).
+     2:{ rewrite Amk0_is_0; trivial. lca. }
+     unfold Amk. rewrite Clistsum_factor_l, map_map. f_equal.
+     apply map_ext_in. intros r Hr.
+     simpl. unfold d. field. now apply D. }
+ rewrite Cplus_0_l in E.
+ replace 1 with ((k+(1-k))^S p) in E at 1.
+ 2:{ replace (k+(1-k)) with 1 by lca. apply Cpow_1_l. }
+ rewrite binomial_formula in E. symmetry in E.
+ rewrite big_sum_shift in E. rewrite Nat.sub_0_r in E.
+ replace (binom _ _ * _) with 1 in E by (simpl; lca).
+ rewrite Cmult_1_l in E. change Gplus with Cplus in E.
+ ring_simplify in E.
+ rewrite <- !big_sum_extend_r in E. change Gplus with Cplus in E.
+ set (S1 := big_sum _ _) in E.
+ set (S2 := big_sum _ _) in E.
+ rewrite Ceq_minus in E.
+ replace S1 with S2 in E.
+ 2:{ apply big_sum_eq_bounded. intros i Hi. clear S1 S2 E.
+     rewrite <- (Cmult_1_r (binom _ _ * _ * _)).
+     rewrite <- (IH i lia lia) at 2. unfold Amk.
+     rewrite Clistsum_factor_l, map_map. f_equal. apply map_ext_in.
+     intros r Hr. unfold d. rewrite Cpow_mul_l. field.
+     now apply krkm1_nz. }
+ ring_simplify in E. clear S1 S2.
+ rewrite binom_diag, Nat.sub_diag, Cpow_0_r in E.
+ replace (Clistsum _) with (k^S p * Amk (S p)) in E.
+ 2:{ unfold Amk. rewrite Clistsum_factor_l, map_map. f_equal.
+     apply map_ext_in. intros r Hr.
+     rewrite Cpow_mul_l. unfold d. simpl INR. field. now apply D. }
+ replace (_+_) with (k^S p * (1 - Amk (S p))) in E by (simpl; ring).
+ apply Cmult_integral in E. destruct E as [E|E].
+ { exfalso. revert E. apply Cpow_nonzero. intros [= E].
+   apply K, INR_eq, E. }
+ now rewrite <- Ceq_minus in E.
+Qed.
+
+Lemma Amk_rec p : (k <= p)%nat -> Amk p = Amk (p-1) + Amk (p-k).
+Proof.
+ intros Hp.
+ unfold Amk.
+ rewrite Clistsum_plus. f_equal. apply map_ext_in. intros r Hr.
+ set (d := _ - _).
+ assert (d <> 0) by now apply krkm1_nz.
+ apply (SortedRoots_roots _ _ roots_ok), ThePoly_root_carac in Hr.
+ replace p with (k + (p-k))%nat at 1 by lia.
+ rewrite Cpow_add_r, Hr, Cmult_plus_distr_r, <- Cpow_add_r.
+ replace (k-1+(p-k))%nat with (p-1)%nat by lia. now field.
+Qed.
+
+Lemma Amk_A p : Amk (k+p) = A k p.
+Proof.
+ destruct (Nat.eq_dec k 1) as [K'|K'].
+ - rewrite K', A_1_pow2.
+   assert (In C2 roots).
+   { rewrite (SortedRoots_roots _ _ roots_ok).
+     rewrite <- mu_1. rewrite K'. now apply mu_is_root. }
+   assert (E : roots = [C2]).
+   { destruct roots as [|a [|b l]]; simpl in *; try lia.
+     f_equal; tauto. }
+   unfold Amk. rewrite E, K'. simpl. rewrite pow_INR, <-RtoC_pow.
+   change (INR 2) with 2. field.
+ - induction p as [[|p] IH] using lt_wf_ind.
+   + rewrite Nat.add_0_r, A_base by lia.
+     replace k with (S (k-1)) by lia. apply Amk_is_1; lia.
+   + simpl. rewrite Amk_rec, plus_INR, RtoC_plus by lia. f_equal.
+     * rewrite <- IH by lia. f_equal; lia.
+     * destruct (Nat.lt_ge_cases p (k-1)).
+       { replace (p - (k-1))%nat with O by lia. simpl.
+         replace (k + S p - k)%nat with (S p) by lia.
+         apply Amk_is_1; lia. }
+       { rewrite <- IH by lia. f_equal; lia. }
 Qed.
 
 Definition coefA r := r^k / (k*r-(k-1)).
@@ -1006,16 +1071,64 @@ Definition coefA r := r^k / (k*r-(k-1)).
 Lemma Equation_A n :
   RtoC (A k n) = Clistsum (map (fun r => coefA r * r^n) roots).
 Proof.
- erewrite A_B, Equation_B; eauto. f_equal. apply map_ext_in. intros r R.
- rewrite Cpow_add_r. unfold coefB, coefA.
- unfold Cdiv.
- rewrite !(Cmult_comm (_*/(_-_))), !Cmult_assoc. f_equal.
- replace k with (S (k-1)) at 3 by lia.
- replace (2*(k-1))%nat with ((k-1)+(k-1))%nat by lia.
- rewrite Cpow_add_r, Cpow_S.
- field. apply Cpow_nonzero. eapply SortedRoots_roots in R; eauto.
- intros ->. now apply root_nz in R.
+ rewrite <- Amk_A. unfold Amk. f_equal. apply map_ext.
+ intros r. unfold coefA, Cdiv. rewrite Cpow_add_r. ring.
 Qed.
+
+(** Expression of sequence B, mostly for completeness *)
+
+Lemma Amk_B p : (1<k)%nat -> Amk p = B k (p+k-2).
+Proof.
+ intros K'.
+ destruct (Nat.eq_dec p 0) as [->|Hp].
+ - rewrite Amk0_is_0 by trivial. rewrite B_zero. easy. lia.
+ - destruct (Nat.lt_ge_cases p k).
+   + rewrite B_one by lia. simpl. replace p with (S (p-1)) by lia.
+     apply Amk_is_1; lia.
+   + replace p with (k + (p-k))%nat at 1 by lia.
+     rewrite Amk_A, A_B. do 3 f_equal. lia.
+Qed.
+
+Lemma Equation_B n :
+  RtoC (B k n) = Clistsum (map (fun r => coefB r * r^n) roots).
+Proof.
+ destruct (Nat.eq_dec k 1) as [K'|K'].
+ - rewrite K'.
+   replace (B 1 n) with (A 1 n). 2:{ rewrite A_B. f_equal; lia. }
+   rewrite <- K', Equation_A. f_equal. apply map_ext_in.
+   intros r Hr. unfold coefA, coefB. rewrite K'. simpl.
+   unfold Cdiv. now rewrite Cinv_1.
+ - destruct (Nat.lt_ge_cases n (k-2)).
+   + rewrite B_zero by lia. simpl.
+     replace (Clistsum _) with (Amk (S (n+1)) + (-1)*Amk (S n)).
+     * rewrite !Amk_is_1; try lia. lca.
+     * unfold Amk. rewrite Clistsum_factor_l, map_map, Clistsum_plus.
+       f_equal. apply map_ext_in. intros r Hr.
+       unfold coefB.
+       unfold Cdiv. rewrite Cmult_assoc, <- Cmult_plus_distr_r.
+       rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
+       assert (r^(k-1) <> 0).
+       { apply Cpow_nonzero. intros ->.
+         now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+       apply Cmult_eq_reg_l with (r^(k-1)); trivial.
+       field_simplify; trivial.
+       rewrite Nat.add_1_r, Cpow_S, Cmult_assoc, !(Cmult_comm _ r).
+       rewrite <- !Cpow_S. fixpred.
+       apply (SortedRoots_roots _ _ roots_ok), ThePoly_root_carac in Hr.
+       rewrite Hr. ring.
+   + replace n with ((n-(k-2))+k-2)%nat at 1 by lia.
+     rewrite <- Amk_B by lia. unfold Amk. f_equal. apply map_ext_in.
+     intros r Hr. unfold coefB.
+     unfold Cdiv. rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
+     assert (r^(k-1) <> 0).
+     { apply Cpow_nonzero. intros ->.
+       now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+     apply Cmult_eq_reg_l with (r^(k-1)); trivial.
+     field_simplify; trivial.
+     rewrite (Cmult_comm _ r), <- Cpow_S, <- Cpow_add_r. f_equal; lia.
+Qed.
+
+(** Differences *)
 
 Definition coefdA r := coefA r * (/r - tau k).
 
@@ -1116,24 +1229,6 @@ Qed.
 
 End Roots.
 
-Lemma coefB_nz k r : Root r (ThePoly k) -> coefB k r <> 0.
-Proof.
- unfold coefB. intros R. unfold Cdiv. intros E.
- rewrite <- Cmult_assoc in E. apply Cmult_integral in E.
- destruct E as [->|E]. now apply root_nz in R.
- apply Cmult_integral in E. destruct E as [E|E].
- - apply C1_neq_C0.
-   rewrite <- (Cinv_l (r^(k-1))), E. lca. apply Cpow_nonzero. intros ->.
-   now apply root_nz in R.
- - apply C1_neq_C0.
-   rewrite <- (Cinv_l (k*r-(k-1))), E. lca.
-   intros E'. apply Cminus_eq_0 in E'.
-   assert (E'' : r = (k-1)/k).
-   { rewrite <- E'; field. intros [=EQ]. apply (INR_eq k 0) in EQ.
-     subst k. now apply (ThePoly_0_NoRoot r). }
-   apply (root_non_km1k k). now rewrite <- E''.
-Qed.
-
 Lemma coefA_nz k r : Root r (ThePoly k) -> coefA k r <> 0.
 Proof.
  intros R.
@@ -1148,7 +1243,9 @@ Proof.
  change (r^(2*(k-1))*coefB k r <> 0). intros E. apply Cmult_integral in E.
  destruct E as [E|E].
  - apply Cpow_nonzero in E; trivial. intros ->. now apply root_nz in R.
- - revert E. now apply coefB_nz.
+ - revert E. destruct (SortedRoots_exists k K0) as (roots & roots_ok).
+   apply (coefB_nz _ _ roots_ok).
+   now apply (SortedRoots_roots _ _ roots_ok).
 Qed.
 
 Lemma coefdA_nz k r : Root r (ThePoly k) -> r <> mu k -> coefdA k r <> 0.
@@ -1193,14 +1290,14 @@ Proof.
    rewrite <- (re_RtoC (A k n)). rewrite <- E'. clear E'.
    replace k with (S (k-1)) at 3 by lia.
    rewrite big_sum_shift.
-   rewrite re_plus, Re_Σ, Rdiv_plus_distr.
+   rewrite re_plus, Re_big_sum, Rdiv_plus_distr.
    unfold Rdiv. rewrite (@big_sum_mult_r _ _ _ _ R_is_ring).
    f_equal. unfold coef, root. rewrite roots_mu, <- coef_mu_ok.
    rewrite RtoC_pow, <- RtoC_mult, re_RtoC. field. apply pow_nonzero. lra.
  - clear E'.
    rewrite <- (Rplus_0_r (coef_mu k)) at 1.
    apply is_lim_seq_plus'; [apply is_lim_seq_const|].
-   apply is_lim_seq_Σ_0. intros i Hi.
+   apply is_lim_seq_big_sum_0. intros i Hi.
    apply is_lim_seq_0_abs with
      (fun n => Cmod (coef (S i)) * (Cmod (root (S i)) / mu k)^n)%R.
    + exists O. intros n _. unfold rest. clear rest.
@@ -1484,3 +1581,13 @@ Qed.
 
 (* Print Assumptions dA_expo. *)
 (* Print Assumptions dA_expo'. *)
+
+(** Conjecture (TODO?) : A former approach was to consider the
+    Vandermonde matrix of the roots. The square of the determinant
+    of this Vandermonde matrix seems to be [k^k+(k-1)^(k-1)].
+    For instance 5 for k=2, 31 for k=3, 283 for k=4, 3381 for k=5
+    See OEIS A056788.
+    At least, this square is clearly an integer, since it's a symmetric
+    polynomial of the roots (determinant is alternating) with coefficients
+    in Z, hence it is a Z polynomial of the elementary symmetric polynomials
+    that here are -1 or 0 or 1 (coefficients of ThePoly). *)

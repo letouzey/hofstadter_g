@@ -138,6 +138,12 @@ Proof.
    lia.
 Qed.
 
+Lemma Psum_coef (f : nat -> Polynomial) (p n : nat) :
+ coef p (big_sum f n) = big_sum (fun i : nat => coef p (f i)) n.
+Proof.
+ induction n; simpl. now destruct p. now rewrite Pplus_coef, IHn.
+Qed.
+
 Lemma compactify_coef n (p : Polynomial) :
  coef n (compactify p) = coef n p.
 Proof.
@@ -164,6 +170,12 @@ Qed.
 Global Instance : Proper (Peq ==> eq) topcoef.
 Proof.
  intros p q E. unfold topcoef. now rewrite E.
+Qed.
+
+Lemma Pscale_coef c P n : coef n ([c] *, P) = c * coef n P.
+Proof.
+ unfold Pmult. rewrite Pzero_alt, Pplus_0_r. unfold coef.
+ replace 0 with (c*0) at 1 by lca. apply map_nth.
 Qed.
 
 Lemma topcoef_alt p : topcoef p = coef (degree p) p.
@@ -809,6 +821,25 @@ Proof.
  - simpl. unfold Peval. simpl. lca.
  - simpl. rewrite Pmult_eval, IHl, Cmult_comm. f_equal.
    unfold Peval; simpl. lca.
+Qed.
+
+Lemma Peval_Pdiff_linfactors l i :
+  NoDup l -> (i < length l)%nat ->
+  Peval (Pdiff (linfactors l)) (l@i)
+  = G_big_mult (map (fun y => l@i - y) (remove_at i l)).
+Proof.
+ intros Hl Hi.
+ assert (Hl' := remove_at_length l i Hi).
+ rewrite <- Peval_linfactors.
+ rewrite Pdiff_linfactors, Peval_Plistsum, map_map.
+ rewrite Clistsum_map with (d:=O).
+ rewrite big_sum_kronecker with (m:=i).
+ - now rewrite seq_nth.
+ - now rewrite seq_length.
+ - intros j Hj Hij. rewrite seq_length in Hj.
+   rewrite seq_nth by trivial. simpl.
+   change (Root (l@i) (linfactors (remove_at j l))).
+   rewrite <- linfactors_roots. now apply remove_at_In.
 Qed.
 
 Definition revfactors l := linfactors (map Cinv l).

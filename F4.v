@@ -1,5 +1,5 @@
 From Coq Require Import Arith Lia NArith Reals Lra.
-From Hofstadter.HalfQuantum Require Import Matrix.
+From Hofstadter.HalfQuantum Require Import Complex.
 Require Import MoreTac MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import MorePoly DeltaList Approx.
 Require Import GenFib GenG GenAdd Words Mu ThePoly Freq Discrepancy.
@@ -13,7 +13,7 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
    We focus here on the case k=4, compute the complex roots of [X^4-X^3-1],
    and express (A 4 n) in term of combinations of powers of these roots.
-   Then we study the frequencies in [Words.qseq 3] and the behaviour of
+   Then we study the frequencies in [Words.kseq 4] and the behaviour of
    function [f 4].
 *)
 
@@ -643,7 +643,7 @@ Qed.
     of a letter (if it exists) is the limit of frequencies for
     ever-growing finite prefixes of the infinite word.
 
-    Here for [Words.qseq 3], the frequencies of letters [0],[1],[2],[3]
+    Here for [Words.kseq 4], the frequencies of letters [0],[1],[2],[3]
     will be respectively [τ^4],[τ^5],[τ^6],[τ^3]
     (another numbering of letters would make that more uniform).
     For proving that and even more, we now consider the following

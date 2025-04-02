@@ -1054,7 +1054,7 @@ Qed.
     are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31].
     For proving that, we need first some more identities about
     these coefficients. *)
-
+(* TODO A REPARER
 Module Appendix.
 
 Definition det : C := ((μ-α)*(μ-αbar)*(α-αbar))%C.
@@ -1287,3 +1287,4 @@ Proof.
 Qed.
 
 End Appendix.
+*)

@@ -8,11 +8,8 @@ HalfQuantum/RealAux.v
 HalfQuantum/Complex.v
 HalfQuantum/Polar.v
 HalfQuantum/Polynomial.v
-HalfQuantum/Matrix.v
 HalfQuantum/Ctopology.v
 HalfQuantum/FTA.v
-HalfQuantum/RowColOps.v
-HalfQuantum/VecSet.v
 MoreLib/MoreTac.v
 MoreLib/MoreFun.v
 MoreLib/MoreList.v
@@ -24,7 +21,6 @@ MoreLib/MoreSum.v
 MoreLib/MoreIntegral.v
 MoreLib/MoreLim.v
 MoreLib/MorePoly.v
-MoreLib/MoreMatrix.v
 MoreLib/FlexArray.v
 Fib.v
 FunG.v
