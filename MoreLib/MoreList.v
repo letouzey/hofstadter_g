@@ -85,6 +85,12 @@ Proof.
  apply map_nth.
 Qed.
 
+Lemma map_nth_seq_id {A} (l:list A)(d:A) :
+  map (fun i => nth i l d) (seq 0 (length l)) = l.
+Proof.
+ induction l; trivial. simpl. now rewrite <- seq_shift, map_map, IHl.
+Qed.
+
 Lemma seq_S a b : List.seq a (S b) = List.seq a b ++ [a+b].
 Proof.
  revert a.

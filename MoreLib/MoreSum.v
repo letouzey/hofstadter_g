@@ -469,6 +469,13 @@ Qed.
 
 (** QuantumLib's big_sum *)
 
+Lemma big_sum_sum_n (f : nat -> C) (n : nat) : big_sum f (S n) = sum_n f n.
+Proof.
+ induction n; simpl.
+ - now rewrite sum_O, Cplus_0_l.
+ - rewrite sum_Sn. change plus with Cplus. now rewrite <- IHn.
+Qed.
+
 Lemma sum_n_big_sum (f : nat -> nat -> C) (n m : nat) :
   sum_n (fun k => big_sum (f k) m) n =
   big_sum (fun i => sum_n (fun k => f k i) n) m.
