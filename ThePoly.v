@@ -1,7 +1,7 @@
 From Coq Require Import Lia Reals Lra Permutation.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 Require Import MoreTac MoreList MoreReals MoreLim MoreComplex MoreSum.
-Require Import MorePoly GenFib GenG Mu.
+Require Import MoreSets MorePoly GenFib GenG Mu.
 Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.
@@ -664,52 +664,6 @@ Proof.
  destruct (Nat.eq_dec n 3) as [->|Hn]. apply Rle_refl. apply Rge_le, SR. lia.
 Qed.
 
-(** The coefB used below correspond actually to a B sequence,
-    variant of the sequence A, with different initial values
-    and hence shifted. This B sequence used to be important when using
-    Vandermonde matrices, but this is far less crucial now. *)
-
-Fixpoint B (k n : nat) :=
-  match n with
-  | 0 => 1-(k-1)
-  | S n => B k n + B k (n-(k-1)) + if S n =? k-1 then 1 else 0
-  end%nat.
-
-Lemma B_zero k n : (n < k-1)%nat -> B k n = 0%nat.
-Proof.
- induction n as [ [|n] IH] using lt_wf_ind.
- - now destruct k as [|[|k]].
- - intros H. simpl. rewrite !IH by lia.
-   destruct k as [|[|k]]; simpl; trivial. case Nat.eqb_spec; lia.
-Qed.
-
-Lemma B_one k n : (k-1 <= n < 2*k-1)%nat -> B k n = 1%nat.
-Proof.
- induction n as [ [|n] IH] using lt_wf_ind; intros H.
- - simpl. now replace (k-1)%nat with 0%nat by lia.
- - simpl.
-   destruct (Nat.le_gt_cases (k-1) n).
-   + rewrite IH by lia.
-     rewrite B_zero by lia.
-     destruct k as [|[|k]]; simpl; trivial. case Nat.eqb_spec; lia.
-   + rewrite !B_zero by lia.
-     destruct k as [|[|k]]; simpl; trivial; try lia. case Nat.eqb_spec; lia.
-Qed.
-
-Lemma A_B k n : A k n = B k (n+2*(k-1)).
-Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
- { induction n; trivial. simpl.
-   rewrite !Nat.add_0_r, !Nat.sub_0_r in *. lia. }
- induction n as [ [|n] IH] using lt_wf_ind.
- - rewrite B_one; simpl; trivial. lia.
- - cbn -["=?"]. rewrite !IH by lia.
-   case Nat.eqb_spec; try lia. intros _. rewrite Nat.add_0_r. f_equal.
-   destruct (Nat.lt_ge_cases n (k-1)).
-   + rewrite !B_one; lia.
-   + f_equal. lia.
-Qed.
-
 Section Roots.
 Variable k : nat.
 Variable roots : list C.
@@ -892,7 +846,7 @@ Proof.
    apply eq_Permutation, insert_at_remove_at. lia.
 Qed.
 
-(* Actually unused, can be retrieved differently, see Equation_B *)
+(* Actually unused, can be retrieved differently, see Equation_B: *)
 Lemma sum_coefB : (1<k)%nat -> Clistsum (map coefB roots) = 0.
 Proof.
  intros K'.
@@ -919,8 +873,8 @@ Definition Amk p := Clistsum (map (fun r => r^p /(k*r-(k-1))) roots).
 Lemma Amk1_Amk0 : (1<k)%nat -> Amk 1 - Amk 0 = 1.
 Proof.
  intros K'.
- replace (Amk 1 - Amk 0) with (Amk 1 + (-1)*Amk 0) by lca.
- unfold Amk. rewrite Clistsum_factor_l, map_map, Clistsum_plus.
+ replace (Amk 1 - Amk 0) with (Amk 1 - Amk 0) by lca.
+ unfold Amk. rewrite Clistsum_minus.
  rewrite <- sum_coefB_div_r at 1 by trivial. f_equal.
  apply map_ext_in. intros r Hr. unfold coefB.
  set (d := k * r - (k - 1)).
@@ -953,30 +907,19 @@ Proof.
  now ring_simplify in E2.
 Qed.
 
-Lemma Amk1_is_1 : Amk 1 = 1.
+Lemma Amk_is_1 p : (1<=p<=k)%nat -> Amk p = 1.
 Proof.
- assert (E := Amk1_Amk0_alt).
- destruct (Nat.eq_dec k 1) as [->|K'].
- - simpl in E. now ring_simplify in E.
- - rewrite <- Amk1_Amk0, Amk0_is_0 by lia. lca.
-Qed.
-
-Lemma binom_diag n : binom n n = 1%nat.
-Proof.
- induction n. trivial. simpl. rewrite IHn, binom_zero; lia.
-Qed.
-
-Lemma Amk_is_1 p : (1<k)%nat -> (p<k)%nat -> Amk (S p) = 1.
-Proof.
- intros K'.
- induction p as [p IH] using lt_wf_ind.
+ destruct (Nat.eq_dec k 1) as [K'|K'].
+ { intros Hp. replace p with 1%nat by lia.
+   generalize Amk1_Amk0_alt. rewrite K'. simpl.
+   replace (1-1) with 0 by lca.
+   now rewrite Cmult_1_l, Cmult_0_l, Cplus_0_r. }
+ induction p as [[|p] IH] using lt_wf_ind; try easy.
  intros Hp.
- destruct (Nat.eq_dec p 0) as [->|Hp'].
- { apply Amk1_is_1. }
  assert (E := newton_identities_adhoc roots).
  rewrite roots_len in E. cbv zeta in E.
  rewrite sigma_1 in E.
- specialize (E (sum_roots K') sigma_roots_0 p lia).
+ specialize (E (sum_roots lia) sigma_roots_0 p lia).
  set (d := fun r => k * r + (1-k)) in *.
  assert (D : forall r, In r roots -> d r <> 0).
  { intros r Hr. unfold d.
@@ -992,8 +935,8 @@ Proof.
  rewrite <- Clistsum_sum_n, <- big_sum_sum_n in E.
  rewrite big_sum_shift in E.
  replace (Clistsum _) with 0 in E.
- 2:{ cbn - [Cpow]. replace 0 with ((1-k)^S p * Amk 0).
-     2:{ rewrite Amk0_is_0; trivial. lca. }
+ 2:{ clear E. cbn - [Cpow]. replace 0 with ((1-k)^S p * Amk 0).
+     2:{ rewrite Amk0_is_0 by lia. lca. }
      unfold Amk. rewrite Clistsum_factor_l, map_map. f_equal.
      apply map_ext_in. intros r Hr.
      simpl. unfold d. field. now apply D. }
@@ -1012,7 +955,7 @@ Proof.
  replace S1 with S2 in E.
  2:{ apply big_sum_eq_bounded. intros i Hi. clear S1 S2 E.
      rewrite <- (Cmult_1_r (binom _ _ * _ * _)).
-     rewrite <- (IH i lia lia) at 2. unfold Amk.
+     rewrite <- (IH (S i) lia lia) at 2. unfold Amk.
      rewrite Clistsum_factor_l, map_map. f_equal. apply map_ext_in.
      intros r Hr. unfold d. rewrite Cpow_mul_l. field.
      now apply krkm1_nz. }
@@ -1055,14 +998,11 @@ Proof.
    unfold Amk. rewrite E, K'. simpl. rewrite pow_INR, <-RtoC_pow.
    change (INR 2) with 2. field.
  - induction p as [[|p] IH] using lt_wf_ind.
-   + rewrite Nat.add_0_r, A_base by lia.
-     replace k with (S (k-1)) by lia. apply Amk_is_1; lia.
+   + rewrite Nat.add_0_r, A_base by lia. apply Amk_is_1; lia.
    + simpl. rewrite Amk_rec, plus_INR, RtoC_plus by lia. f_equal.
      * rewrite <- IH by lia. f_equal; lia.
      * destruct (Nat.lt_ge_cases p (k-1)).
-       { replace (p - (k-1))%nat with O by lia. simpl.
-         replace (k + S p - k)%nat with (S p) by lia.
-         apply Amk_is_1; lia. }
+       { replace (p - (k-1))%nat with O by lia. apply Amk_is_1; lia. }
        { rewrite <- IH by lia. f_equal; lia. }
 Qed.
 
@@ -1073,59 +1013,6 @@ Lemma Equation_A n :
 Proof.
  rewrite <- Amk_A. unfold Amk. f_equal. apply map_ext.
  intros r. unfold coefA, Cdiv. rewrite Cpow_add_r. ring.
-Qed.
-
-(** Expression of sequence B, mostly for completeness *)
-
-Lemma Amk_B p : (1<k)%nat -> Amk p = B k (p+k-2).
-Proof.
- intros K'.
- destruct (Nat.eq_dec p 0) as [->|Hp].
- - rewrite Amk0_is_0 by trivial. rewrite B_zero. easy. lia.
- - destruct (Nat.lt_ge_cases p k).
-   + rewrite B_one by lia. simpl. replace p with (S (p-1)) by lia.
-     apply Amk_is_1; lia.
-   + replace p with (k + (p-k))%nat at 1 by lia.
-     rewrite Amk_A, A_B. do 3 f_equal. lia.
-Qed.
-
-Lemma Equation_B n :
-  RtoC (B k n) = Clistsum (map (fun r => coefB r * r^n) roots).
-Proof.
- destruct (Nat.eq_dec k 1) as [K'|K'].
- - rewrite K'.
-   replace (B 1 n) with (A 1 n). 2:{ rewrite A_B. f_equal; lia. }
-   rewrite <- K', Equation_A. f_equal. apply map_ext_in.
-   intros r Hr. unfold coefA, coefB. rewrite K'. simpl.
-   unfold Cdiv. now rewrite Cinv_1.
- - destruct (Nat.lt_ge_cases n (k-2)).
-   + rewrite B_zero by lia. simpl.
-     replace (Clistsum _) with (Amk (S (n+1)) + (-1)*Amk (S n)).
-     * rewrite !Amk_is_1; try lia. lca.
-     * unfold Amk. rewrite Clistsum_factor_l, map_map, Clistsum_plus.
-       f_equal. apply map_ext_in. intros r Hr.
-       unfold coefB.
-       unfold Cdiv. rewrite Cmult_assoc, <- Cmult_plus_distr_r.
-       rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
-       assert (r^(k-1) <> 0).
-       { apply Cpow_nonzero. intros ->.
-         now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
-       apply Cmult_eq_reg_l with (r^(k-1)); trivial.
-       field_simplify; trivial.
-       rewrite Nat.add_1_r, Cpow_S, Cmult_assoc, !(Cmult_comm _ r).
-       rewrite <- !Cpow_S. fixpred.
-       apply (SortedRoots_roots _ _ roots_ok), ThePoly_root_carac in Hr.
-       rewrite Hr. ring.
-   + replace n with ((n-(k-2))+k-2)%nat at 1 by lia.
-     rewrite <- Amk_B by lia. unfold Amk. f_equal. apply map_ext_in.
-     intros r Hr. unfold coefB.
-     unfold Cdiv. rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
-     assert (r^(k-1) <> 0).
-     { apply Cpow_nonzero. intros ->.
-       now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
-     apply Cmult_eq_reg_l with (r^(k-1)); trivial.
-     field_simplify; trivial.
-     rewrite (Cmult_comm _ r), <- Cpow_S, <- Cpow_add_r. f_equal; lia.
 Qed.
 
 (** Differences *)
@@ -1139,28 +1026,20 @@ Qed.
 
 Lemma coefdA_sum : k<>1%nat -> Clistsum (map coefdA roots) = 1-tau k.
 Proof.
- intros Q.
- rewrite map_ext with (g := fun r => coefA r * /r - tau k * coefA r).
- 2:{ intros a. unfold coefdA. ring. }
- rewrite <- Clistsum_minus. f_equal.
- - rewrite map_ext_in with (g := fun x => coefB x * x ^ (2*(k-1)-1)).
-   + rewrite <- Equation_B. rewrite B_one. lca. lia.
-   + intros r R. unfold coefA, coefB.
-     replace (2*(k-1)-1)%nat with (k-2+(k-1))%nat by lia. rewrite Cpow_add_r.
-     replace k with (S (S (k-2))) at 1 by lia. rewrite !Cpow_S. field.
-     assert (r<>0).
-     { eapply SortedRoots_roots in R; eauto. intros ->.
-       now apply root_nz in R. }
-     split. now apply Cpow_nonzero. split; trivial.
-     intros E. apply Cminus_eq_0 in E.
-     assert (E' : r = (k-1)/k).
-     { rewrite <- E; field. intros [=EQ]. apply not_INR in K. now apply K. }
-     apply (root_non_km1k k). rewrite <- E'. eapply SortedRoots_roots; eauto.
- - rewrite map_ext with
-     (g := Basics.compose (Cmult (tau k)) (fun x => coefA x * x^0)).
-   2:{ intros. unfold Basics.compose. simpl. lca. }
-   rewrite <- map_map with (g:=Cmult (tau k)) (f:=fun x => coefA x * x^0).
-   rewrite <- Clistsum_factor_l. rewrite <- Equation_A. simpl. lca.
+ intros K'.
+ replace (Clistsum _) with (Amk (k-1) - tau k * Amk k).
+ 2:{ unfold Amk. rewrite Clistsum_factor_l, map_map, Clistsum_minus.
+     f_equal. apply map_ext_in.
+     intros r Hr. unfold coefdA, coefA, Cdiv, Cminus.
+     rewrite (Cmult_comm _ (/r + _)), !Cmult_assoc, !Copp_mult_distr_l.
+     rewrite <- Cmult_plus_distr_r. f_equal.
+     rewrite Cmult_plus_distr_r. f_equal.
+     assert (r <> 0).
+     { intros ->.
+       now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+     apply Cmult_eq_reg_l with r; trivial.
+     rewrite <- !Cpow_S. fixpred. now field. }
+ rewrite !Amk_is_1; try lia. lca.
 Qed.
 
 Lemma Equation_dA n :
@@ -1581,6 +1460,110 @@ Qed.
 
 (* Print Assumptions dA_expo. *)
 (* Print Assumptions dA_expo'. *)
+
+(** ** Appendix *)
+
+(** The coefB coefficient used above corresponds to a B sequence,
+    variant of the sequence A, with different initial values
+    and hence shifted. This B sequence used to be important when using
+    Vandermonde matrices, but it is far less crucial now. *)
+
+Fixpoint B (k n : nat) :=
+  match n with
+  | 0 => 1-(k-1)
+  | S n => B k n + B k (n-(k-1)) + if S n =? k-1 then 1 else 0
+  end%nat.
+
+Lemma B_zero k n : (n < k-1)%nat -> B k n = 0%nat.
+Proof.
+ induction n as [ [|n] IH] using lt_wf_ind.
+ - now destruct k as [|[|k]].
+ - intros H. simpl. rewrite !IH by lia.
+   destruct k as [|[|k]]; simpl; trivial. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma B_one k n : (k-1 <= n < 2*k-1)%nat -> B k n = 1%nat.
+Proof.
+ induction n as [ [|n] IH] using lt_wf_ind; intros H.
+ - simpl. now replace (k-1)%nat with 0%nat by lia.
+ - simpl.
+   destruct (Nat.le_gt_cases (k-1) n).
+   + rewrite IH by lia.
+     rewrite B_zero by lia.
+     destruct k as [|[|k]]; simpl; trivial. case Nat.eqb_spec; lia.
+   + rewrite !B_zero by lia.
+     destruct k as [|[|k]]; simpl; trivial; try lia. case Nat.eqb_spec; lia.
+Qed.
+
+Lemma A_B k n : A k n = B k (n+2*(k-1)).
+Proof.
+ destruct (Nat.eq_dec k 0) as [->|K].
+ { induction n; trivial. simpl.
+   rewrite !Nat.add_0_r, !Nat.sub_0_r in *. lia. }
+ induction n as [ [|n] IH] using lt_wf_ind.
+ - rewrite B_one; simpl; trivial. lia.
+ - cbn -["=?"]. rewrite !IH by lia.
+   case Nat.eqb_spec; try lia. intros _. rewrite Nat.add_0_r. f_equal.
+   destruct (Nat.lt_ge_cases n (k-1)).
+   + rewrite !B_one; lia.
+   + f_equal. lia.
+Qed.
+
+Lemma Amk_B k roots : SortedRoots k roots -> (1<k)%nat ->
+  forall p, Amk k roots p = B k (p+k-2).
+Proof.
+ intros roots_ok K' p.
+ destruct (Nat.eq_dec p 0) as [->|Hp].
+ - rewrite Amk0_is_0 by trivial. rewrite B_zero. easy. lia.
+ - destruct (Nat.lt_ge_cases p k).
+   + rewrite B_one by lia. simpl. apply Amk_is_1; trivial; lia.
+   + replace p with (k + (p-k))%nat at 1 by lia.
+     rewrite Amk_A, A_B; trivial. do 3 f_equal. lia.
+Qed.
+
+Lemma Equation_B k roots : SortedRoots k roots ->
+  forall n, RtoC (B k n) = Clistsum (map (fun r => coefB k r * r^n) roots).
+Proof.
+ intros roots_ok n.
+ assert (K : (k<>0)%nat).
+ { intros ->. apply (SortedRoots_nz _ roots_ok). }
+ destruct (Nat.eq_dec k 1) as [->|K'].
+ - replace (B 1 n) with (A 1 n). 2:{ rewrite A_B. f_equal; lia. }
+   rewrite (Equation_A _ _ roots_ok). f_equal. apply map_ext_in.
+   intros r Hr. unfold coefA, coefB. simpl.
+   unfold Cdiv. now rewrite Cinv_1.
+ - destruct (Nat.lt_ge_cases n (k-2)).
+   + rewrite B_zero by lia. simpl.
+     replace (Clistsum _)
+       with (Amk k roots (n+2) - Amk k roots (n+1)).
+     * rewrite !Amk_is_1; trivial; try lia. lca.
+     * unfold Amk. rewrite Clistsum_minus.
+       f_equal. apply map_ext_in. intros r Hr.
+       unfold coefB.
+       unfold Cdiv, Cminus.
+       rewrite Copp_mult_distr_l, <- Cmult_plus_distr_r.
+       rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
+       assert (r^(k-1) <> 0).
+       { apply Cpow_nonzero. intros ->.
+         now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+       apply Cmult_eq_reg_l with (r^(k-1)); trivial.
+       field_simplify; trivial.
+       rewrite Nat.add_succ_r, Cpow_S, Cmult_assoc, !(Cmult_comm _ r).
+       rewrite <- !Cpow_S. fixpred.
+       apply (SortedRoots_roots _ _ roots_ok), ThePoly_root_carac in Hr.
+       rewrite Hr, Nat.add_1_r. ring.
+   + replace n with ((n-(k-2))+k-2)%nat at 1 by lia.
+     rewrite <- (Amk_B k roots) by (trivial; lia).
+     unfold Amk. f_equal. apply map_ext_in.
+     intros r Hr. unfold coefB.
+     unfold Cdiv. rewrite (Cmult_comm _ (r^n)), Cmult_assoc. f_equal.
+     assert (r^(k-1) <> 0).
+     { apply Cpow_nonzero. intros ->.
+       now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+     apply Cmult_eq_reg_l with (r^(k-1)); trivial.
+     field_simplify; trivial.
+     rewrite (Cmult_comm _ r), <- Cpow_S, <- Cpow_add_r. f_equal; lia.
+Qed.
 
 (** Conjecture (TODO?) : A former approach was to consider the
     Vandermonde matrix of the roots. The square of the determinant

@@ -1,9 +1,10 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 From Hofstadter.HalfQuantum Require FTA.
-Require Import MoreList DeltaList MoreComplex MoreSum.
+Require Import MoreList DeltaList MoreSets MoreComplex MoreSum.
 Local Open Scope R.
 Local Open Scope C.
+Local Coercion INR : nat >-> R.
 Local Coercion RtoC : R >-> C.
 Local Open Scope poly_scope.
 
@@ -691,7 +692,7 @@ Qed.
 
 Lemma Pdiff_linfactors_repeat (c:C)(n:nat) :
  Pdiff (linfactors (repeat c (S n))) ≅
-    [RtoC (INR (S n))] *, linfactors (repeat c n).
+    [RtoC (S n)] *, linfactors (repeat c n).
 Proof.
  induction n.
  - cbn [repeat linfactors].
@@ -704,7 +705,7 @@ Proof.
    change (linfactors (repeat c n) *, _) with (linfactors (repeat c n')).
    set (lin := linfactors _).
    rewrite !S_INR, !RtoC_plus.
-   change [INR n'+C1] with (Pplus [RtoC (INR n')] [C1]).
+   change [n'+1] with (Pplus [RtoC n'] [C1]).
    rewrite Pmult_plus_distr_r.
    apply Pplus_eq_compat; try easy. clearbody lin.
    rewrite Pmult_comm. apply Pmult_eq_compat; try easy.
@@ -718,13 +719,13 @@ Proof.
  now unfold monom.
 Qed.
 
-Lemma diff_monom a k : Pdiff (monom a k) ≅ [RtoC (INR k)] *, monom a (pred k).
+Lemma diff_monom a k : Pdiff (monom a k) ≅ [RtoC k] *, monom a (pred k).
 Proof.
  induction k.
  - simpl. now rewrite Cmult_0_l, Cplus_0_l.
  - simpl pred.
    rewrite monom_S, S_INR, RtoC_plus. cbn -[Pmult]. rewrite IHk.
-   change [INR k+C1] with (Pplus [RtoC (INR k)] [C1]).
+   change [k+1] with (Pplus [RtoC k] [C1]).
    rewrite Pmult_plus_distr_r.
    rewrite Pmult_1_l. rewrite Pplus_comm. apply Pplus_eq_compat; try easy.
    destruct k.
@@ -926,135 +927,34 @@ Qed.
 
 End PartFrac.
 
-(** ** Binomial formula, polynomial coefficients via symmetric functions *)
+(** Binomial formula *)
 
-Fixpoint allsubsets {A} (l:list A) :=
- match l with
- | [] => [[]]
- | x::l' =>
-   let ll := allsubsets l' in
-   map (cons x) ll ++ ll
- end.
-
-Fixpoint nsubsets {A} n (l:list A) :=
- match n, l with
- | O, _ => [[]]
- | S n', [] => []
- | S n', x::l' => map (cons x) (nsubsets n' l') ++ nsubsets n l'
- end.
-
-Fixpoint binom n k :=
- match n, k with
- | _, 0 => 1
- | 0, _ => 0
- | S n', S k' => binom n' k' + binom n' k
- end%nat.
-
-Lemma nsubsets_filter {A} n (l:list A) :
-  nsubsets n l = filter (fun s => length s =? n) (allsubsets l).
+Lemma binomial_formula (x y:C) n:
+ (x+y)^n = big_sum (fun k => binom n k * x^k * y^(n-k)) (S n).
 Proof.
- revert n. induction l; destruct n; simpl; trivial.
- - rewrite filter_app. rewrite <- (IHl O).
-   rewrite map_filter, filter_nop by easy. now destruct l.
- - now rewrite filter_app, !IHl, map_filter.
+ set (F := fun n k => binom n k * x^k * y^(n-k)).
+ change ((x+y)^n = big_sum (F n) (S n)).
+ induction n.
+ - simpl. lca.
+ - cbn - [big_sum]. rewrite IHn. clear IHn.
+   rewrite Cmult_plus_distr_r.
+   change Cmult with Gmult. rewrite !big_sum_mult_l.
+   rewrite (big_sum_shift (S n)), (big_sum_shift n (fun _ => y * _)).
+   rewrite big_sum_eq_bounded with
+     (f:=fun k => F _ _ ) (g:=fun k => (x * F n k + y * F n (S k))%G).
+   2:{ intros k Hk. unfold F. simpl.
+       rewrite plus_INR, RtoC_plus.
+       destruct (Nat.eq_dec k n) as [->|Hk'].
+       - rewrite (binom_zero n (S n)) by lia. simpl. ring.
+       - replace (n - k)%nat with (S (n-S k))%nat by lia. simpl. ring. }
+   rewrite big_sum_plus.
+   change Gplus with Cplus. rewrite (Cplus_comm (F (S n) O)), <-Cplus_assoc.
+   f_equal. simpl. rewrite Cplus_comm, <- Cplus_assoc. f_equal.
+   unfold F. simpl.
+   rewrite Nat.sub_0_r, binom_one, binom_zero by lia. simpl. ring.
 Qed.
 
-Lemma allsubsets_nat_spec (l:list nat) :
- Delta 1 l -> forall s, In s (allsubsets l) <-> incl s l /\ Delta 1 s.
-Proof.
- induction l; intros D; simpl; intros s.
- - split.
-   + now intros [<-|[]].
-   + intros (IN,_). left. symmetry. now apply incl_l_nil.
- - rewrite in_app_iff. apply Delta_alt in D.
-   rewrite in_map_iff, IHl by easy.
-   setoid_rewrite IHl; [|easy].
-   split.
-   + intros [(s' & <- & IN & D')|(IN,D')]; split; trivial.
-     * apply incl_cons. now left. now apply incl_tl.
-     * rewrite Delta_alt. split; try easy.
-       intros y Hy. apply D. now apply IN.
-     * now apply incl_tl.
-   + intros (IN,D').
-     destruct s as [|a' s'].
-     { right. split. apply incl_nil_l. constructor. }
-     red in IN. simpl in IN. destruct (IN a'). { now left. }
-     * left. exists s'. split; subst; trivial.
-       rewrite Delta_alt in D'. split; try easy.
-       intros y Hy. destruct (IN y); trivial. now right. apply D' in Hy; lia.
-     * right. split; trivial. apply incl_cons; trivial.
-       intros y Hy. destruct (IN y); try easy. now right.
-       rewrite Delta_alt in D'. apply D' in Hy. apply D in H. lia.
-Qed.
-
-Lemma nsubsets_nat_spec n (l:list nat) :
- Delta 1 l ->
- forall s, In s (nsubsets n l) <-> incl s l /\ Delta 1 s /\ length s = n.
-Proof.
- intros D s.
- rewrite nsubsets_filter.
- rewrite filter_In, Nat.eqb_eq, allsubsets_nat_spec by trivial. tauto.
-Qed.
-
-Lemma allsubsets_map {A B}(f:A->B)(l:list A) :
- allsubsets (map f l) = map (map f) (allsubsets l).
-Proof.
- induction l; trivial. simpl. now rewrite map_app, IHl, !map_map.
-Qed.
-
-Lemma nsubsets_map {A B}(f:A->B) n (l:list A) :
- nsubsets n (map f l) = map (map f) (nsubsets n l).
-Proof.
- revert n.
- induction l; destruct n; trivial.
- simpl. now rewrite map_app, !IHl, !map_map.
-Qed.
-
-Lemma allsubsets_via_nat {A} (l:list A) (d:A) :
-  allsubsets l =
-  map (map (fun i => nth i l d)) (allsubsets (seq 0 (length l))).
-Proof.
- rewrite <- (map_nth_seq_id l d) at 1. now rewrite allsubsets_map.
-Qed.
-
-Lemma nsubsets_via_nat {A} n (l:list A) (d:A) :
-  nsubsets n l =
-  map (map (fun i => nth i l d)) (nsubsets n (seq 0 (length l))).
-Proof.
- rewrite <- (map_nth_seq_id l d) at 1. now rewrite nsubsets_map.
-Qed.
-
-Lemma binom_one n : binom n 0 = 1%nat.
-Proof.
- now destruct n.
-Qed.
-
-Lemma binom_zero n k : (n < k)%nat -> binom n k = 0%nat.
-Proof.
- revert k. induction n; destruct k; try easy.
- intros Hk. simpl. rewrite !IHn; lia.
-Qed.
-
-Lemma nsubsets_binom {A} n k (l:list A) :
-  length l = n -> length (nsubsets k l) = binom n k.
-Proof.
- intros <-. revert k. induction l; destruct k; simpl; trivial.
- rewrite app_length, map_length. f_equal; apply IHl.
-Qed.
-
-Lemma nsubsets_empty {A} k (l:list A) :
-  (length l < k)%nat -> nsubsets k l = [].
-Proof.
- intros H. apply binom_zero in H.
- rewrite <- (nsubsets_binom (length l) k l eq_refl) in H.
- now (destruct (nsubsets k l)).
-Qed.
-
-Lemma nsubsets_all {A} (l:list A) : nsubsets (length l) l = [l].
-Proof.
- induction l; try easy.
- simpl. rewrite IHl, nsubsets_empty. easy. lia.
-Qed.
+(** ** Elementary symmetric functions *)
 
 Definition sigma k (l:list C) := Clistsum (map G_big_mult (nsubsets k l)).
 
@@ -1134,38 +1034,13 @@ Proof.
    + rewrite !sigma_rec. ring.
 Qed.
 
-Local Coercion INR : nat >-> R.
-
-Lemma binomial_formula (x y:C) n:
- (x+y)^n = big_sum (fun k => binom n k * x^k * y^(n-k)) (S n).
-Proof.
- set (F := fun n k => binom n k * x^k * y^(n-k)).
- change ((x+y)^n = big_sum (F n) (S n)).
- induction n.
- - simpl. lca.
- - cbn - [big_sum]. rewrite IHn. clear IHn.
-   rewrite Cmult_plus_distr_r.
-   change Cmult with Gmult. rewrite !big_sum_mult_l.
-   rewrite (big_sum_shift (S n)), (big_sum_shift n (fun _ => y * _)).
-   rewrite big_sum_eq_bounded with
-     (f:=fun k => F _ _ ) (g:=fun k => (x * F n k + y * F n (S k))%G).
-   2:{ intros k Hk. unfold F. simpl.
-       rewrite plus_INR, RtoC_plus.
-       destruct (Nat.eq_dec k n) as [->|Hk'].
-       - rewrite (binom_zero n (S n)) by lia. simpl. ring.
-       - replace (n - k)%nat with (S (n-S k))%nat by lia. simpl. ring. }
-   rewrite big_sum_plus.
-   change Gplus with Cplus. rewrite (Cplus_comm (F (S n) O)), <-Cplus_assoc.
-   f_equal. simpl. rewrite Cplus_comm, <- Cplus_assoc. f_equal.
-   unfold F. simpl.
-   rewrite Nat.sub_0_r, binom_one, binom_zero by lia. simpl. ring.
-Qed.
-
 Lemma Pplus_map (f g : nat -> C) l l' :
    map f l +, (map g l ++ l') ≅ map (fun k => f k + g k) l ++ l'.
 Proof.
  induction l; simpl. easy. now rewrite IHl.
 Qed.
+
+(** Writing a polynomial in term of symmetric functions of its roots *)
 
 Lemma linfactors_sigma (l:list C) :
  let n := length l in
@@ -1313,10 +1188,12 @@ Qed.
 Lemma newton_identities_adhoc l :
  let k := length l in
  sigma 1 l = 1 -> (forall p, (1<p<k)%nat -> sigma p l = 0) ->
- forall p, (1<=p<k)%nat ->
+ forall p, (p<k)%nat ->
    Clistsum (map (fun r => (k*r+(1-k))^p) l) = 1 - (1-k)^S p.
 Proof.
  intros k H1 H0 p Hp.
+ destruct (Nat.eq_dec p 0) as [->|Hp'].
+ { simpl. rewrite Clistsum_const. fold k. lca. }
  erewrite map_ext.
  2:{ intros r. rewrite binomial_formula, big_sum_sum_n. reflexivity. }
  rewrite <- Clistsum_sum_n, <- big_sum_sum_n.
