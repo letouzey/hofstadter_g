@@ -1051,43 +1051,109 @@ Qed.
 
 
 (** Appendix: the coefficients coef_μ and coef_α and [Cconj coef_α]
-    are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31].
-    For proving that, we need first some more identities about
-    these coefficients. *)
-(* TODO A REPARER
+    are the roots of the polynomial [X^3-X^2-(12/31)*X-1/31]. *)
+
 Module Appendix.
+Local Open Scope C.
 
-Definition det : C := ((μ-α)*(μ-αbar)*(α-αbar))%C.
+Section AnyRoot.
+Variable r:C.
+Hypothesis R: In r roots.
+Let R3 : r^3 = r^2+1.
+Proof.
+ apply ThePoly_root_carac.
+ now apply (SortedRoots_roots _ _ roots_sorted) in R.
+Qed.
+Let R4 : r^4 = r^2+r+1.
+Proof.
+ rewrite (Cpow_S r 3), R3. ring_simplify. rewrite R3. ring.
+Qed.
+Ltac rfield := field_simplify; rewrite ?R4,?R3; try field.
 
-Lemma det2 : (det^2 = -31)%C.
+Lemma pre_coefA_alt : /(3*r-2) = (9*r^2-3*r-2)/31.
+Proof.
+ set (d := _-_).
+ assert (NZ : d <> 0).
+ { intros E. apply Ceq_minus in E.
+   assert (E' : r = (3%nat-1)/3%nat).
+   { replace (_-_) with C2 by lca. rewrite <- E. lca. }
+   apply (SortedRoots_roots _ _ roots_sorted) in R.
+   rewrite E' in R. now apply root_non_km1k in R. }
+ apply Cmult_eq_reg_r with d; trivial. unfold d at 3. now rfield.
+Qed.
+
+Lemma coefA_alt : coefA 3 r = (13*r^2+6*r+4)/31.
+Proof.
+ unfold coefA. replace (_-_) with (3*r-2) by lca.
+ unfold Cdiv. rewrite pre_coefA_alt, R3. rfield.
+Qed.
+
+Lemma coefA_square : (coefA 3 r)^2 = (15*r^2+7*r+11)/31.
+Proof.
+ rewrite coefA_alt. rfield.
+Qed.
+
+Lemma coefA_cube : (coefA 3 r)^3 = (621*r^2+289*r+420)/31^2.
+Proof.
+ rewrite Cpow_S, coefA_square, coefA_alt. rfield.
+Qed.
+
+Lemma coefA_poly :
+  let c := coefA 3 r in c^3 - c^2 - (12/31)*c - 1/31 = 0.
+Proof.
+ cbv zeta. rewrite coefA_cube, coefA_square, coefA_alt by trivial.
+ field.
+Qed.
+
+End AnyRoot.
+
+(** Older approach *)
+
+Definition det : C := (μ-α)*(μ-αbar)*(α-αbar).
+
+Lemma μα_eqn : (μ - α)*(μ - αbar) = μ*(3*μ-2).
+Proof.
+ ring_simplify. rewrite <- Cmod2_conj, αmod2.
+ replace (_+-1*μ*α+-1*μ*αbar) with (μ^2-μ*(1-μ))
+   by (rewrite <- roots_sum; ring).
+ rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring.
+Qed.
+
+Lemma αμ_eqn : (α - μ)*(α - αbar) = α*(3*α-2).
+Proof.
+ assert (D := SortedRoots_nodup _ _ roots_sorted).
+ assert (E := MorePoly.Peval_Pdiff_linfactors roots 1 D).
+ destruct roots_sorted as (E',_).
+ rewrite <- E', ThePoly_diff_expr in E by lia.
+ change (roots@1) with α in E. simpl in E.
+ replace (_-_) with (3*α-2) in E. 2:{ simpl. rewrite !RtoC_plus. ring. }
+ rewrite !Cmult_1_r in E. symmetry. apply E. lia.
+Qed.
+
+Lemma det2 : det^2 = -31.
 Proof.
  unfold det.
- replace ((μ - α) * (μ - αbar))%C with (μ*(3*μ-2))%C.
- 2:{ ring_simplify. rewrite <- Cmod2_conj, αmod2.
-     replace (_+-1*μ*α+-1*μ*αbar)%C with (μ^2-μ*(1-μ))%C
-       by (rewrite <- roots_sum; ring).
-     rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring. }
- rewrite im_alt'. change (Im α) with im_α. unfold im_α.
+ rewrite μα_eqn, im_alt'. change (Im α) with im_α. unfold im_α.
  rewrite !Cpow_mul_l.
  rewrite <- !RtoC_mult, <- RtoC_minus, !RtoC_pow, <- !RtoC_mult.
  unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
  rewrite pow_inv.
- replace (2^2) with 4 by lra.
- simpl (Ci^2)%C. rewrite Cmult_1_r, Ci2.
+ replace (2^2)%R with 4%R by lra.
+ simpl (Ci^2). rewrite Cmult_1_r, Ci2.
  rewrite <- RtoC_opp, <- !RtoC_mult. f_equal.
- change τ with (/μ). field_simplify. 2:approx.
+ change τ with (/μ)%R. field_simplify. 2:approx.
  unfold μ. rewrite mu_carac by easy. simpl. field.
 Qed.
 
-Lemma det_eqn : (det = Ci * sqrt 31)%C.
+Lemma det_eqn : det = Ci * sqrt 31.
 Proof.
  assert (0 <= Im det).
  { unfold det.
-   replace (μ-αbar)%C with (Cconj (μ-α))%C.
+   replace (μ-αbar) with (Cconj (μ-α)).
    2:{ now rewrite Cconj_minus_distr, Cconj_R. }
    rewrite <- Cmod2_conj, im_scal_l, im_alt'.
-   replace (2*Ci*Im α)%C with ((2*Im α)*Ci)%C by ring.
-   rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1.
+   replace (2*Ci*Im α) with ((2*Im α)*Ci) by ring.
+   rewrite <- RtoC_mult, im_scal_l. change (Im Ci) with 1%R.
    rewrite Rmult_1_r. change (Im α) with im_α.
    apply Rmult_le_pos; approx. }
  generalize det2.
@@ -1106,164 +1172,77 @@ Proof.
  apply sqrt_eq_0 in E; lra.
 Qed.
 
-Lemma coef_μ_eqn : coef_μ = 2 * μ^4 * im_α / sqrt 31.
+Lemma coef_μ_eqn : RtoC coef_μ = 2 * μ^4 * im_α / sqrt 31.
 Proof.
-  apply RtoC_inj. unfold coef_μ. rewrite coef_mu_ok.
+  unfold coef_μ. rewrite coef_mu_ok.
   unfold coefA. fold μ.
-  replace (μ^3)%C with (μ^4 * μ / μ^2)%C.
-  2:{ field. injection; approx. }
-  assert (NZ : √31 <> 0) by (intro E; apply sqrt_eq_0 in E; lra).
-  rewrite !RtoC_div, !RtoC_mult, <- !RtoC_pow.
-  rewrite (Cmult_comm 2). unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
-  rewrite !Cmult_assoc.
-  change (coefB 3 μ = 2 * im_α / √ 31)%C.
-  change (RtoC μ) with (roots @ 0).
-  rewrite <- (coefs0_coefB 3 _ roots_sorted).
-  apply Cmult_eq_reg_r with (Ci * RtoC (√31))%C.
-  2:{ intros E. apply Cmult_integral in E.
-      destruct E as [[= E]|[= E]]; [lra|easy]. }
-  unfold Cdiv. field_simplify.
-  2:{ injection; lra. }
-  change im_α with (Im α).
-  rewrite <- im_alt'. rewrite <- Cmult_assoc, <- det_eqn.
-  unfold det.
-  generalize (coefs0_eqn 3 _ roots_sorted 0 lia).
-  unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->.
-  now rewrite Cmult_1_l.
+  replace (_-_) with (3*μ-2). 2:{ simpl. rewrite !RtoC_plus. ring. }
+  apply Cmult_eq_reg_l with (det * (3*μ-2)).
+  2:{ rewrite Cmult_integral. intros [H|[=H _]]. now apply det_nz.
+      revert H. approx. }
+  unfold det at 1. rewrite det_eqn.
+  rewrite μα_eqn, im_alt'. change (Im α) with im_α. field. simpl.
+  split.
+  - intros [=E]. apply sqrt_eq_0 in E; lra.
+  - intros [=E]. revert E. approx.
 Qed.
 
-Lemma coef_α_eqn : (coef_α = α^4 * (αbar - μ) / det)%C.
+Lemma coef_α_eqn : coef_α = α^4 * (αbar - μ) / det.
 Proof.
   unfold coef_α, coefA.
-  replace (α^3)%C with (α^4 * α / α^2)%C.
-  2:{ field. intros [= E _]. revert E. approx. }
-  unfold Cdiv. rewrite <- !Cmult_assoc. f_equal.
-  rewrite !Cmult_assoc.
-  change (coefB 3 α = (αbar - μ) * / det)%C.
-  change α with (roots @ 1).
-  rewrite <- (coefs0_coefB 3 _ roots_sorted).
-  apply Cmult_eq_reg_r with det. 2:apply det_nz.
-  unfold Cdiv. rewrite <- Cmult_assoc. rewrite Cinv_l. 2:apply det_nz.
-  rewrite Cmult_1_r.
-  replace det with ((α-μ)*(α-αbar)*(αbar-μ))%C by (unfold det; ring).
-  generalize (coefs0_eqn 3 _ roots_sorted 1 lia).
-  unfold Cnth. simpl. rewrite Cmult_1_r, !Cmult_assoc. intros ->. ring.
+  replace (_-_) with (3*α-2). 2:{ simpl. rewrite !RtoC_plus. ring. }
+  apply Cmult_eq_reg_l with (det * (3*α-2)).
+  2:{ rewrite Cmult_integral. intros [H|[=H _]]. now apply det_nz.
+      revert H. approx. }
+  replace det with ((α*(3*α-2))*(αbar-μ)) at 1.
+  2:{ rewrite <- αμ_eqn. unfold det. ring. }
+  field. simpl.
+  split; try apply det_nz. intros [=E _]. revert E. approx.
 Qed.
 
-Lemma coef_sum : (coef_μ+coef_α+coef_αbar = 1)%C.
+Lemma coef_sum : coef_μ+coef_α+coef_αbar = 1.
 Proof.
  rewrite <- coefs_eqn1, RtoC_plus, RtoC_mult, re_alt, coef_αbar_conj.
  field.
 Qed.
 
-Lemma coef_prod : (coef_μ * coef_α * coef_αbar = 1/31)%C.
+Lemma coef_prod : coef_μ * coef_α * coef_αbar = 1/31.
 Proof.
- rewrite coef_μ_eqn, coef_αbar_conj, coef_α_eqn.
- rewrite Cdiv_conj, Cconj_mult_distr, Cconj_minus_distr, Cpow_conj
-  by apply det_nz. rewrite Cconj_R.
- replace (_*_)%C with (-(μ*α*αbar)^4* det/det^3)%C.
- 2:{ unfold det at 1. change im_α with (Im α).
-     rewrite RtoC_div, !RtoC_mult, im_alt.
-     rewrite <- RtoC_pow.
-     replace (Cconj αbar) with α.
-     2:{ unfold α, αbar, Cconj. simpl. f_equal. lra. }
-     change (Cconj α) with αbar.
-     replace (Cconj det) with (-det)%C.
-     2:{ rewrite det_eqn. rewrite Cconj_mult_distr, Cconj_R. lca. }
-     rewrite det_eqn. field.
-     split; injection as E; try apply sqrt_eq_0 in E; lra. }
- rewrite roots_prod. field_simplify. rewrite det2. lca. apply det_nz.
+ unfold coef_μ, coef_α, coef_αbar. rewrite coef_mu_ok. fold μ.
+ unfold coefA.
+ replace (3%nat-1) with C2 by lca. rewrite INR_IZR_INZ. simpl IZR.
+ apply Cmult_eq_reg_r with (RtoC (-31)). 2:{ intros [= E]. lra. }
+ rewrite <- det2 at 1. replace (RtoC (-31)) with (-(31)) by lca.
+ replace (det^2) with
+  (-((μ-α)*(μ-αbar))*((α-μ)*(α-αbar))*(Cconj ((α-μ)*(α-αbar)))).
+ 2:{ rewrite Cconj_mult_distr, !Cconj_minus_distr, Cconj_R.
+     change (Cconj α) with αbar. replace (Cconj αbar) with α by lca.
+     unfold det. ring. }
+ rewrite μα_eqn, αμ_eqn.
+ rewrite Cconj_mult_distr, !Cconj_minus_distr, !Cconj_mult_distr.
+ rewrite !Cconj_R. change (Cconj α) with αbar.
+ replace 1 with ((μ*α*αbar)^4). 2:{ now rewrite roots_prod, Cpow_1_l. }
+ field; simpl; repeat split; intros [= E _]; revert E; approx.
 Qed.
 
-Ltac simpl_root := repeat (autorewrite with root; ring_simplify).
-#[local] Hint Rewrite μ_is_root α_is_root αbar_is_root : root.
-
-Lemma μ4 : (μ^4 = 1 + μ + μ^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-Lemma α4 : (α^4 = 1 + α + α^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ4 α4 : root.
-
-Lemma μ5 : (μ^5 = 1 + μ + 2*μ^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-Lemma α5 : (α^5 = 1 + α + 2*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ5 α5 : root.
-
-Lemma μ6 : (μ^6 = 2 + μ + 3*μ^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-Lemma α6 : (α^6 = 2 + α + 3*α^2)%C.
-Proof. rewrite Cpow_S. now simpl_root. Qed.
-
-#[local] Hint Rewrite μ6 α6 : root.
-
-Lemma coef_μ2 : (31 * coef_μ^2 = 15*μ^2 + 7*μ + 11)%C.
+Lemma coef_squares : coef_μ^2+coef_α^2+coef_αbar^2 = 55/31.
 Proof.
- unfold coef_μ, coef_mu. fold μ.
- replace (INR 3) with 3 by (simpl; lra).
- replace (3-1) with 2 by lra.
- rewrite RtoC_div. unfold Cdiv. rewrite Cpow_mul_l.
- rewrite <- RtoC_pow, <- Cpow_mult. simpl Nat.mul.
- set (x := RtoC (Rminus _ _)).
- assert (NZ : x <> 0) by (injection; approx).
- rewrite Cpow_inv.
- apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
- rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
- unfold x. clear NZ x.
- rewrite RtoC_minus, RtoC_mult.
- now simpl_root.
-Qed.
-
-Lemma coef_α2 : (31 * coef_α^2 = 15*α^2 + 7*α + 11)%C.
-Proof.
- unfold coef_α, coefA.
- replace (INR 3) with 3 by (simpl; lra).
- replace (3-1)%C with C2 by lca.
- unfold Cdiv. rewrite Cpow_mul_l.
- rewrite <- Cpow_mult. simpl Nat.mul.
- set (x := Cminus _ _).
- assert (NZ : x <> 0).
- { intros E. unfold x in E. apply Cminus_eq_0 in E.
-   assert (E' : Im (3 * α) = 0) by now rewrite E, im_RtoC.
-   rewrite im_scal_l in E'. revert E'. approx. }
- rewrite Cpow_inv.
- apply Cmult_eq_reg_r with (x^2)%C; try apply Cpow_nonzero; trivial.
- rewrite <- !Cmult_assoc. rewrite Cinv_l; try apply Cpow_nonzero; trivial.
- unfold x. clear NZ x.
- now simpl_root.
-Qed.
-
-Lemma coef_αbar2 : (31 * coef_αbar^2 = 15*αbar^2 + 7*αbar + 11)%C.
-Proof.
- rewrite coef_αbar_conj.
- rewrite <- Cpow_conj. rewrite <- (Cconj_R 31).
- rewrite <- Cconj_mult_distr, coef_α2.
- now rewrite !Cconj_plus_distr, !Cconj_mult_distr, Cpow_conj, !Cconj_R.
-Qed.
-
-Lemma coef_squares : (coef_μ^2+coef_α^2+coef_αbar^2 = 55/31)%C.
-Proof.
- apply Cmult_eq_reg_l with (RtoC 31); [|injection; lra].
- field_simplify.
- rewrite coef_μ2, coef_α2, coef_αbar2.
- replace (RtoC 55) with (15*1+7*1+33)%C by lca.
+ unfold coef_μ, coef_α, coef_αbar. rewrite coef_mu_ok. fold μ.
+ rewrite !coefA_square by (unfold roots; simpl; tauto).
+ field_simplify. f_equal.
+ replace (RtoC 55) with (15*1+7*1+33) by lca.
  rewrite <- roots_sum2 at 1. rewrite <- roots_sum at 1. ring.
 Qed.
 
 Lemma coef_sigma2 :
-  (coef_μ * coef_α + coef_α * coef_αbar + coef_αbar * coef_μ = -12/31)%C.
+  coef_μ * coef_α + coef_α * coef_αbar + coef_αbar * coef_μ = -12/31.
 Proof.
- replace (_+_)%C with ((1^2-(55/31))/2)%C; try lca.
+ replace (_+_) with ((1^2-(55/31))/2); try lca.
  rewrite <- coef_sum, <- coef_squares. field.
 Qed.
 
 Lemma poly_coefs (X:C) :
-  ((X - coef_μ)*(X - coef_α)*(X - coef_αbar) = X^3-X^2-(12/31)*X-1/31)%C.
+  (X - coef_μ)*(X - coef_α)*(X - coef_αbar) = X^3-X^2-(12/31)*X-1/31.
 Proof.
  rewrite <- coef_prod.
  rewrite <- (Cmult_1_l (X^2)), <- coef_sum.
@@ -1276,15 +1255,12 @@ Qed.
 
 Lemma coef_μ_poly : coef_μ^3 - coef_μ^2 - (12/31)*coef_μ - 1/31 = 0.
 Proof.
- apply RtoC_inj.
- rewrite !RtoC_minus, !RtoC_mult, !RtoC_div, <- !RtoC_pow.
  rewrite <- poly_coefs. ring.
 Qed.
 
-Lemma coef_α_poly : (coef_α^3 - coef_α^2 - (12/31)*coef_α - 1/31 = 0)%C.
+Lemma coef_α_poly : coef_α^3 - coef_α^2 - (12/31)*coef_α - 1/31 = 0.
 Proof.
  rewrite <- poly_coefs. ring.
 Qed.
 
 End Appendix.
-*)
