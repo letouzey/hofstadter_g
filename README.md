@@ -2,7 +2,7 @@
 Investigation of Hofstadter's G function, tree, and mirror
 ==========================================================
 
-A Coq development by Pierre Letouzey, started in summer 2015.
+A Coq/Rocq development by Pierre Letouzey, started in summer 2015.
 It now extends to a whole family of functions generalizing G,
 and it also considers related infinite morphic words extending
 the Fibonacci word.
@@ -49,9 +49,10 @@ Summary of files:
 ----------------
 
 1. Library complements
-  - [MoreLib/More*.v](MoreLib) : additions to the various libraries used.
+  - [MoreLib/More*.v](MoreLib): additions to the various libraries used.
   - [MoreLib/DeltaList.v](MoreLib/DeltaList.v): lists of natural numbers with constrained differences
   - [MoreLib/Approx.v](MoreLib/Approx.v): lightweight interval arithmetic for bounding reals by Q
+  - [MoreLib/FlexArray.v](MoreLib/FlexArray.v): flexible persistent array-like data-structure
 2. Old files specialized to function G
   - [Fib.v](Fib.v): Fibonacci sequence and decomposition
   - [FunG.v](FunG.v): Hofstadter's G function and tree
@@ -61,6 +62,7 @@ Summary of files:
 3. New, generalized versions of G with more nested recursive calls
   - [GenFib.v](GenFib.v): Fibonacci-like sequences `A k` and decomposition
   - [GenG.v](GenG.v): Hofstadter's G-like functions `f k`
+  - [Fast.v](Fast.v): More efficient implementation of `A k` and `f k`
   - [GenFlip.v](GenFlip.v): Mirror of the G-like trees
   - [GenAdd.v](GenAdd.v): Study of the quasi-additivity of G-like functions
   - [Shift.v](Shift.v): quasi-reciprocal of the G-like functions
@@ -74,7 +76,9 @@ Summary of files:
   - [ThePoly.v](ThePoly.v): start studying polynomial `X^k-X^(k-1)-1`
   - [Mu.v](Mu.v): real roots of this polynomial
   - [SecondRoot.v](SecondRoot.v): a second root of this polynomial has modulus>1 for k>=6
+  - [RootEquiv.v](RootEquiv.v): the positive root `μ_k` behaves as`1+ln(k)/k` when `k` grows
   - [Freq.v](Freq.v): frequencies of letters in `kseq k`, limit of `(f k n)/n`.
+  - [Discrepancy.v](Discrepancy.v): general study of discrepancy `f n - n * τ_n`
   - [F3.v](F3.v): Hofstadter H (i.e. `f 3`) at dist <1 of `n*τ_3`
   - [F4.v](F4.v): `f 4` at dist <2 of `n*τ_4`
   - [F5.v](F5.v): `f 5` at unbounded dist of `n*τ_5`
