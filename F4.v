@@ -221,14 +221,14 @@ Proof.
 Qed.
 
 (** Note about A4_eqn :
-    coefficients a b c d are obtained by inversing the Vandermonde
-    matrix of roots. Fortunately, they also have simple expressions
+    coefficients a b c d used to be obtained by inversing the Vandermonde
+    matrix of the roots. Fortunately, they also have simple expressions
     in terms of μ α αbar ν respectively.
     For showing that a is real and >=1, see Freq.A_gt_mu_pow.
     Interestingly, these coefficients are also roots
     of [X^4-X^3-(162/283)*X^2-(24/283)*X-1/283] (not proved here). *)
 
-Lemma diff_A3_powers n :
+Lemma diff_A4_powers n :
   diff 4 (A 4 n) = 2 * Re (coefdA 4 α * α^n) + Re (coefdA 4 ν) * ν^n.
 Proof.
   apply RtoC_inj.
