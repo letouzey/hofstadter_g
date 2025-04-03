@@ -1567,8 +1567,8 @@ Qed.
 
 (** Conjecture (TODO?) : A former approach was to consider the
     Vandermonde matrix of the roots. The square of the determinant
-    of this Vandermonde matrix seems to be [k^k+(k-1)^(k-1)].
-    For instance 5 for k=2, 31 for k=3, 283 for k=4, 3381 for k=5
+    of this Vandermonde matrix seems to be [+/-(k^k+(k-1)^(k-1))].
+    For instance +5 for k=2, -31 for k=3, -283 for k=4, +3381 for k=5
     See OEIS A056788.
     At least, this square is clearly an integer, since it's a symmetric
     polynomial of the roots (determinant is alternating) with coefficients
