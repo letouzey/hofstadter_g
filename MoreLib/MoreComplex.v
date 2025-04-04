@@ -53,22 +53,6 @@ Proof.
  unfold Cdiv, Rdiv. now rewrite Cmod_mult, Cmod_inv.
 Qed.
 
-Lemma Cinv_inv (c : C) : Cinv (Cinv c) = c.
-Proof.
- destruct (Ceq_dec c 0) as [->|N].
- - now rewrite !Cinv_0.
- - now apply Cinv_inv.
-Qed.
-
-Lemma Cinv_mult (x y : C) : Cinv (Cmult x y) = Cmult (Cinv x) (Cinv y).
-Proof.
-  destruct (Ceq_dec x 0) as [->|Zx].
-  { rewrite Cinv_0, !Cmult_0_l. apply Cinv_0. }
-  destruct (Ceq_dec y 0) as [->|Zy].
-  { rewrite Cinv_0, !Cmult_0_r. apply Cinv_0. }
-  now field.
-Qed.
-
 (* Also in QuantumLib, but with a wierd precondition *)
 Lemma Cpow_inv (c:C) n : (/c)^n = /(c^n).
 Proof.

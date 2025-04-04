@@ -266,12 +266,6 @@ Solve All Obligations with program_simpl; try lia.
 
 
 
-Fixpoint times_n {G} `{Monoid G} (g : G) (n : nat) :=
-  match n with
-  | 0 => 0
-  | S n' => g + times_n g n'
-  end.
-      
 Fixpoint G_big_plus {G} `{Monoid G} (gs : list G) : G := 
   match gs with
   | nil => 0 
@@ -341,24 +335,6 @@ Proof.
   rewrite Gplus_assoc; easy.
 Qed.
 
-Lemma big_sum_constant : forall {G} `{Monoid G} g n,
-  big_sum (fun _ => g) n = times_n g n.
-Proof. induction n; try easy. 
-       rewrite big_sum_shift. 
-       rewrite IHn; simpl.
-       easy. 
-Qed.
-
-Lemma big_plus_constant : forall {G} `{Monoid G} (l : list G) (g : G),
-  (forall h, In h l -> h = g) -> G_big_plus l = (times_n g (length l))%nat.
-Proof. induction l; try easy.
-       intros; simpl. 
-       rewrite (IHl g), (H0 a); auto.
-       left; easy.
-       intros. 
-       apply H0; right; easy.
-Qed.
-
 Lemma big_plus_app : forall {G} `{Monoid G} (l1 l2 : list G),
   G_big_plus l1 + G_big_plus l2 = G_big_plus (l1 ++ l2).
 Proof. intros. 
@@ -374,15 +350,6 @@ Proof. induction l; simpl.
        rewrite Gplus_0_r; easy. 
        rewrite Gopp_plus_distr, map_app, <- big_plus_app, <- IHl; simpl. 
        rewrite Gplus_0_r; easy. 
-Qed.
-
-(* could be generalized to semi-rings... *)
-Lemma times_n_nat : forall n k,
-  times_n k n = (k * n)%nat.
-Proof. induction n; try easy.
-       intros; simpl.
-       rewrite IHn. 
-       lia.
 Qed.
 
 Lemma big_sum_opp : forall {G} `{Comm_Group G} (f : nat -> G) n,

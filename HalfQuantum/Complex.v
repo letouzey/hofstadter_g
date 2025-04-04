@@ -126,40 +126,6 @@ Proof.
   lra.
 Qed.
 
-Lemma Cmod_ge_abs_fst z : 
-  Rabs (fst z) <= Cmod z.
-Proof.
-  unfold Cmod.
-  apply sqrt_ge_abs.
-  pose proof (pow2_ge_0 (snd z)).
-  lra.
-Qed.
-
-Lemma Cmod_ge_abs_snd z : 
-  Rabs (snd z) <= Cmod z.
-Proof.
-  unfold Cmod.
-  apply sqrt_ge_abs.
-  pose proof (pow2_ge_0 (fst z)).
-  lra.
-Qed.
-
-Lemma Cmod_plus_fst_ge_0 z : 
-  0 <= Cmod z + fst z.
-Proof.
-  rewrite Rplus_comm.
-  apply Rplus_ge_0_of_ge_Rabs.
-  apply Cmod_ge_abs_fst.
-Qed.
-
-Lemma Cmod_plus_snd_ge_0 z : 
-  0 <= Cmod z + snd z.
-Proof.
-  rewrite Rplus_comm.
-  apply Rplus_ge_0_of_ge_Rabs.
-  apply Cmod_ge_abs_snd.
-Qed.
-
 Lemma C_neq_iff : forall c d : C, c <> d <-> (fst c <> fst d \/ snd c <> snd d).
 Proof.
   intros [cr ci] [dr di].
@@ -420,16 +386,6 @@ Proof.
   easy.
 Qed.
 
-Lemma Cdiv_integral_dec (a b : C) : 
-  a / b = 0 -> ({a = 0} + {b = 0}).
-Proof.
-  intros H%Cdiv_integral.
-  destruct (Ceq_dec a 0); [now left |].
-  destruct (Ceq_dec b 0); [now right |].
-  exfalso.
-  destruct H; easy.
-Defined.
-
 Lemma Cdiv_nonzero (c d : C) : c <> 0 -> d <> 0 ->
   c / d <> 0.
 Proof.
@@ -448,59 +404,22 @@ Proof. intros.
        rewrite H. lra. 
 Qed.
 
-Lemma Cinv_mult_distr : forall c1 c2 : C, / (c1 * c2) = / c1 * / c2.
+Lemma Cinv_mult : forall c1 c2 : C, / (c1 * c2) = / c1 * / c2.
 Proof.
   intros.
   destruct (Ceq_dec c1 0) as [?|H]; 
     [subst; now rewrite Cmult_0_l, !Cinv_0, Cmult_0_l|].
   destruct (Ceq_dec c2 0) as [?|H0]; 
     [subst; now rewrite Cmult_0_r, !Cinv_0, Cmult_0_r|].
-  apply c_proj_eq.
-  - simpl.
-    repeat rewrite Rmult_1_r.
-    rewrite Rmult_div.
-    rewrite Rmult_div.
-    rewrite Rmult_opp_opp.
-    unfold Rminus.
-    rewrite <- Ropp_div.
-    rewrite <- Rdiv_plus_distr.
-    rewrite Rmult_plus_distr_r.
-    rewrite Rmult_plus_distr_l.
-    apply Rdiv_cancel.
-    lra.
-    * apply Rsum_nonzero. apply C0_imp in H. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H0. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H0. assumption.
-  - simpl.    
-    repeat rewrite Rmult_1_r.
-    rewrite Rmult_div.
-    rewrite Rmult_div.
-    unfold Rminus.
-    rewrite <- Rdiv_plus_distr.
-    repeat rewrite Rmult_plus_distr_r.
-    repeat rewrite Rmult_plus_distr_l.
-    repeat rewrite <- Ropp_mult_distr_r.
-    repeat rewrite <- Ropp_mult_distr_l.
-    repeat rewrite <- Ropp_plus_distr.
-    apply Rdiv_cancel.
-    lra.
-    * apply Rsum_nonzero. apply C0_imp in H. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H0. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H. assumption.
-    * apply Rsum_nonzero. apply C0_imp in H0. assumption.
+  now field.
 Qed.
 
-
 Lemma Cinv_inv : forall c : C, / / c = c.
-Proof. 
+Proof.
   intros.
   destruct (Ceq_dec c 0).
   - subst. now rewrite 2!Cinv_0.
-  - apply (Cmult_cancel_l (/ c)).
-    apply nonzero_div_nonzero; auto.
-    rewrite Cinv_l, Cinv_r; auto.
-    apply nonzero_div_nonzero; auto.
+  - now field.
 Qed.
 
 Lemma Cconj_eq_implies_real : forall c : C, c = Cconj c -> snd c = 0%R.
@@ -516,17 +435,6 @@ Proof. intros.
 Qed.
 
 (** * some C big_sum specific lemmas *)
-
-Lemma times_n_C : forall n (c : C), 
-  times_n c n = c * INR n.
-Proof.
-  intros n c.
-  induction n; [lca|].
-  cbn [times_n].
-  rewrite S_INR, IHn.
-  lca.
-Qed.
-
 
 Local Open Scope nat_scope. 
 
@@ -553,23 +461,6 @@ Proof.
   simpl; f_equal; easy.
 Qed.
 
-Lemma big_sum_real n (f : nat -> C)
-  (Hf : forall i, (i < n)%nat -> snd (f i) = 0%R) :
-  big_sum f n = big_sum (fun i => fst (f i)) n.
-Proof.
-  rewrite (big_sum_eq_bounded _ (fun i => RtoC (fst (f i)))).
-  - apply c_proj_eq.
-    + rewrite Rsum_big_sum; easy.
-    + rewrite Im_big_sum.
-      simpl.
-      clear Hf.
-      induction n; [easy|].
-      simpl; lra.
-  - intros i Hi.
-    apply c_proj_eq; [easy|]. 
-    apply Hf; easy.
-Qed.
-
 Local Close Scope nat_scope.
 
 Lemma big_sum_ge_0 : forall f n, (forall x, 0 <= fst (f x)) -> (0 <= fst (big_sum f n))%R.
@@ -581,70 +472,6 @@ Proof.
     rewrite <- Rplus_0_r at 1.
     apply Rplus_le_compat; easy.
 Qed.
-
-Lemma big_sum_gt_0 : forall f n, (forall x, 0 <= fst (f x)) -> 
-                              (exists y : nat, (y < n)%nat /\ 0 < fst (f y)) ->
-                              0 < fst (big_sum f n).
-Proof.
-  intros f n H [y [H0 H1]].
-  induction n.
-  - simpl. lia. 
-  - simpl in *.
-    bdestruct (y <? n)%nat; bdestruct (y =? n)%nat; try lia. 
-    + assert (H' : 0 <= fst (f n)). { apply H. } 
-      apply IHn in H2. lra. 
-    + apply (big_sum_ge_0 f n) in H.
-      rewrite H3 in H1.
-      lra. 
-Qed.
-
-Lemma big_sum_member_le : forall (f : nat -> C) (n : nat), (forall x, 0 <= fst (f x)) ->
-                      (forall x, (x < n)%nat -> fst (f x) <= fst (big_sum f n)).
-Proof.
-  intros f.
-  induction n.
-  - intros H x Lt. inversion Lt.
-  - intros H x Lt.
-    bdestruct (Nat.ltb x n).
-    + simpl.
-      rewrite <- Rplus_0_r at 1.
-      apply Rplus_le_compat.
-      apply IHn; easy.
-      apply H.
-    + assert (E: x = n) by lia.
-      rewrite E.
-      simpl.
-      rewrite <- Rplus_0_l at 1.
-      apply Rplus_le_compat.
-      apply big_sum_ge_0; easy.
-      lra.
-Qed.  
-
-Lemma big_sum_squeeze : forall (f : nat -> C) (n : nat), 
-  (forall x, (0 <= fst (f x)))%R -> big_sum f n = 0 ->
-  (forall x, (x < n)%nat -> fst (f x) = 0).
-Proof. intros. 
-       assert (H2 : (forall x, (x < n)%nat -> (fst (f x) <= 0)%R)).
-       { intros. 
-         replace 0%R with (fst (RtoC 0)) by easy.
-         rewrite <- H0.
-         apply big_sum_member_le; try easy. }
-       assert (H3 : forall r : R, (r <= 0 -> 0 <= r -> r = 0)%R). 
-       intros. lra. 
-       simpl. 
-       apply H3.
-       apply H2; easy.
-       apply H.
-Qed.
-
-Lemma big_sum_snd_0 : forall n f, (forall x, snd (f x) = 0) -> snd (big_sum f n) = 0.
-Proof. intros. induction n.
-       - reflexivity.
-       - rewrite <- big_sum_extend_r.
-         unfold Cplus. simpl. rewrite H, IHn.
-         simpl; lra.
-Qed.
-
 
 Lemma big_sum_Cmod_0_all_0 : forall (f : nat -> C) (n : nat),
   big_sum (fun i => Cmod (f i)) n = 0 -> 
@@ -975,14 +802,6 @@ Proof.
   unfold Cexp. rewrite sin_2PI, cos_2PI. reflexivity.
 Qed.
 
-Lemma Cexp_3PI2: Cexp (3 * PI / 2) = - Ci.
-Proof.
-  unfold Cexp.
-  replace (3 * PI / 2)%R with (3 * (PI/2))%R by lra.  
-  rewrite cos_3PI2, sin_3PI2.
-  lca.
-Qed.
-
 Lemma Cexp_PI4 : Cexp (PI / 4) = /√2 + /√2 * Ci.
 Proof.
   unfold Cexp.
@@ -990,85 +809,6 @@ Proof.
   eapply c_proj_eq; simpl.
   field_simplify_eq; trivial; apply sqrt2_neq_0.
   field_simplify_eq; trivial; apply sqrt2_neq_0.
-Qed.
-
-Lemma Cexp_PIm4 : Cexp (- PI / 4) = /√2 - /√2 * Ci.
-Proof.
-  unfold Cexp. 
-  rewrite Ropp_div.
-  rewrite sin_antisym.
-  rewrite cos_neg.
-  rewrite sin_PI4, cos_PI4.
-  eapply c_proj_eq; simpl.
-  field_simplify_eq; trivial; apply sqrt2_neq_0.
-  field_simplify_eq; trivial; apply sqrt2_neq_0.
-Qed.
-
-Lemma Cexp_0PI4 : Cexp (0 * PI / 4) = 1.
-Proof. rewrite <- Cexp_0. apply f_equal. lra. Qed.
-
-Lemma Cexp_1PI4 : Cexp (1 * PI / 4) = /√2 + /√2 * Ci.
-Proof. rewrite <- Cexp_PI4. apply f_equal. lra. Qed.
-
-Lemma Cexp_2PI4 : Cexp (2 * PI / 4) = Ci.
-Proof. rewrite <- Cexp_PI2. apply f_equal. lra. Qed.
-
-Lemma Cexp_3PI4 : Cexp (3 * PI / 4) = -/√2 + /√2 * Ci.
-Proof.
-  unfold Cexp.
-  rewrite <- Rmult_div_assoc.
-  rewrite cos_3PI4, sin_3PI4.
-  eapply c_proj_eq; simpl.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-Qed.
-
-Lemma Cexp_4PI4 : Cexp (4 * PI / 4) = -1.
-Proof. rewrite <- Cexp_PI. apply f_equal. lra. Qed.
-  
-Lemma Cexp_5PI4 : Cexp (5 * PI / 4) = -/√2 - /√2 * Ci.
-Proof.
-  unfold Cexp.
-  rewrite <- Rmult_div_assoc.
-  rewrite cos_5PI4, sin_5PI4.
-  eapply c_proj_eq; simpl.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-Qed.
-
-Lemma Cexp_6PI4 : Cexp (6 * PI / 4) = -Ci.
-Proof.
-Proof. rewrite <- Cexp_3PI2. apply f_equal. lra. Qed.
-  
-Lemma Cexp_7PI4 : Cexp (7 * PI / 4) = /√2 - /√2 * Ci.
-Proof.
-  unfold Cexp.
-  replace (7 * PI / 4)%R with (- PI / 4 + 2 * INR 1 * PI)%R.
-  2:{ R_field_simplify. rewrite Rmult_1_r. lra. }
-  rewrite cos_period, sin_period.
-  rewrite Ropp_div.
-  rewrite cos_neg, sin_neg.
-  rewrite sin_PI4, cos_PI4.
-  eapply c_proj_eq; simpl.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-  R_field_simplify; trivial. apply sqrt2_neq_0.
-Qed.    
-
-Lemma Cexp_8PI4 : Cexp (8 * PI / 4) = 1.
-Proof. rewrite <- Cexp_2PI. apply f_equal. lra. Qed.
-
-(* This is a dramatically simplified version of Cexp_mod_2PI and we
-   can probably get rid of it. *)
-Lemma Cexp_PI4_m8 : forall (k : Z), Cexp (IZR (k - 8) * PI / 4) = Cexp (IZR k * PI / 4).
-Proof.
-  intros.
-  unfold Rdiv.
-  rewrite minus_IZR.
-  unfold Rminus.
-  repeat rewrite Rmult_plus_distr_r.
-  replace (- (8) * PI * / 4)%R with (-(2 * PI))%R by lra.
-  rewrite Cexp_add, Cexp_neg, Cexp_2PI.
-  lca.
 Qed.
 
 Lemma Cexp_2nPI : forall (k : Z), Cexp (IZR (2 * k) * PI) = 1.
@@ -1090,174 +830,6 @@ Proof.
     rewrite IHk.
     lca.
 Qed.
-
-Lemma Cexp_mod_2PI : forall (k : Z), Cexp (IZR k * PI) = Cexp (IZR (k mod 2) * PI). 
-Proof.
-  intros.
-  rewrite (Z.div_mod k 2) at 1 by lia.
-  remember (k/2)%Z as k'.
-  rewrite plus_IZR.
-  rewrite Rmult_plus_distr_r.
-  rewrite Cexp_add.
-  rewrite Cexp_2nPI.
-  lca.
-Qed.  
-
-Lemma Cexp_mod_2PI_scaled : forall (k sc : Z), 
-  Cexp (IZR k * PI / IZR sc) = Cexp (IZR (k mod (2 * sc)) * PI / IZR sc). 
-Proof.
-  intros k sc.
-  destruct (Z.eq_dec sc 0) as [?|H];
-  [subst; simpl; now rewrite 2!Rdiv_0_r|].
-  rewrite (Z.div_mod k (2 * sc)) at 1 by lia.
-  repeat rewrite plus_IZR.
-  unfold Rdiv.
-  repeat rewrite Rmult_plus_distr_r.
-  rewrite Cexp_add.
-  replace (IZR (2 * sc * (k / (2 * sc))) * PI * Rinv (IZR sc))%R with
-      (IZR (2 * (k / (2 * sc))) * PI)%R.
-  2:{ repeat rewrite mult_IZR. 
-      R_field_simplify.
-      reflexivity. 
-      apply not_0_IZR; assumption. }
-  rewrite Cexp_2nPI.
-  lca.
-Qed.
-
-#[global] Hint Rewrite Cexp_0 Cexp_PI Cexp_PI2 Cexp_2PI Cexp_3PI2 Cexp_PI4 Cexp_PIm4
-  Cexp_1PI4 Cexp_2PI4 Cexp_3PI4 Cexp_4PI4 Cexp_5PI4 Cexp_6PI4 Cexp_7PI4 Cexp_8PI4
-  Cexp_add Cexp_neg Cexp_plus_PI Cexp_minus_PI : Cexp_db.
-
-Lemma INR_pi_exp : forall (r : nat),
-	Cexp (INR r * PI) = 1 \/ Cexp (INR r * PI) = -1.
-Proof.
-	intros.
-	dependent induction r.
-	- simpl.
-		rewrite Rmult_0_l.
-		left.
-		apply Cexp_0.
-	-	rewrite S_O_plus_INR.
-		rewrite Rmult_plus_distr_r.
-		rewrite Rmult_1_l.
-		rewrite Rplus_comm.
-		rewrite Cexp_plus_PI.
-		destruct IHr.
-		+ rewrite H; right; lca.
-		+ rewrite H; left; lca.
-Qed.
-
-Lemma Cexp_2_PI : forall a, Cexp (INR a * 2 * PI) = 1.
-Proof.
-	intros.
-	induction a.
-	- simpl.
-		rewrite 2 Rmult_0_l.
-		rewrite Cexp_0.
-		easy.
-	- rewrite S_INR.
-		rewrite 2 Rmult_plus_distr_r.
-		rewrite Rmult_1_l.
-		rewrite double.
-		rewrite <- Rplus_assoc.
-		rewrite 2 Cexp_plus_PI.
-		rewrite IHa.
-		lca.
-Qed.
-
-Lemma sin_sin_PI8 : 
-  sin (PI / 8) * sin (PI / 8) = 
-  cos (PI / 8) * cos (PI / 8) - cos (PI / 4).
-Proof.
-  replace (PI / 4)%R with (2 * (PI / 8))%R by lra.
-  rewrite cos_2a.
-  lca.
-Qed.
-
-
-Definition CexpC (c : C) :=
-  exp (Re c) * Cexp (Im c).
-
-Lemma CexpC_def (c : C) : 
-  CexpC c = exp (Re c) * Cexp (Im c).
-Proof. reflexivity. Qed.
-
-Lemma CexpC_add (c d : C) : 
-  CexpC (c + d) = CexpC c * CexpC d.
-Proof.
-  unfold CexpC, Im, Re.
-  cbn.
-  rewrite exp_plus, Cexp_add.
-  lca.
-Qed.
-
-Lemma CexpC_neg (c : C) : 
-  CexpC (-c) = / CexpC c.
-Proof.
-  unfold CexpC, Im, Re.
-  cbn.
-  pose proof (exp_pos (fst c)).
-  rewrite exp_Ropp, Cexp_neg, RtoC_inv, Cinv_mult_distr.
-  reflexivity.
-Qed.
-
-Lemma CexpC_minus (c d : C) : 
-  CexpC (c - d) = CexpC c / CexpC d.
-Proof.
-  unfold Cminus.
-  rewrite CexpC_add, CexpC_neg.
-  reflexivity.
-Qed.
-
-Lemma CexpC_zero : CexpC 0 = 1.
-Proof.
-  unfold CexpC.
-  cbn.
-  rewrite exp_0, Cexp_0.
-  lca.
-Qed.
-
-Lemma Cmod_CexpC c : Cmod (CexpC c) = exp (Re c).
-Proof.
-  unfold CexpC.
-  rewrite Cmod_mult, Cmod_Cexp, Rmult_1_r.
-  apply Cmod_real; [cbn | reflexivity].
-  pose proof (exp_pos (Re c)).
-  lra.
-Qed.
-
-Lemma Cexp_CexpC (r : R) : 
-  Cexp r = CexpC (0, r).
-Proof.
-  unfold CexpC.
-  cbn.
-  rewrite exp_0.
-  lca.
-Qed.
-
-Lemma RtoC_exp (x : R) : 
-  RtoC (exp x) = CexpC x.
-Proof.
-  apply c_proj_eq; simpl;
-  autorewrite with trig_db; lra.
-Qed.
-
-Lemma Cmod_1_plus_Cexp (r : R) : 
-  Cmod (1 + Cexp r) = √ (2 + 2 * cos r)%R.
-Proof.
-  unfold Cmod.
-  f_equal.
-  simpl.
-  pose proof sin2_cos2 r as H.
-  rewrite 2!Rsqr_pow2 in H.
-  field_simplify.
-  rewrite (Rplus_comm _ (_ ^ 2)), <- Rplus_assoc.
-  rewrite H.
-  lra.
-Qed.
-
-Opaque C.
-
 
 
 (** * Automation **)
@@ -1297,6 +869,11 @@ Ltac nonzero :=
   | |- Rle _ _ => lra
   end.
 
+(*
+
+#[global] Hint Rewrite Cexp_0 Cexp_PI Cexp_PI2 Cexp_2PI
+  Cexp_PI4 Cexp_add Cexp_neg Cexp_plus_PI Cexp_minus_PI : Cexp_db.
+
 #[global] Hint Rewrite Cminus_unfold Cdiv_unfold Ci2 Cconj_R Copp_conj Cconj_rad2 
      Cplus_0_l Cplus_0_r Cplus_opp_r Cplus_opp_l Copp_0  Copp_involutive
      Cmult_0_l Cmult_0_r Cmult_1_l Cmult_1_r : C_db.
@@ -1304,7 +881,7 @@ Ltac nonzero :=
 #[global] Hint Rewrite <- Copp_mult_distr_l Copp_mult_distr_r Cdouble : C_db.
 #[global] Hint Rewrite Cinv_l Cinv_r using nonzero : C_db.
 (* Previously in the other direction *)
-#[global] Hint Rewrite Cinv_mult_distr : C_db.
+#[global] Hint Rewrite Cinv_mult : C_db.
 
 (* Light rewriting db *)
 #[global] Hint Rewrite Cplus_0_l Cplus_0_r Cmult_0_l Cmult_0_r Copp_0 
@@ -1346,6 +923,7 @@ Ltac Csimpl_in H :=
   | _ => rewrite Cmult_1_r in H
   | _ => rewrite Cconj_R in H
   end.
+*)
 
 Ltac C_field_simplify := repeat field_simplify_eq [ Ci2 Ci2'].
-Ltac C_field := C_field_simplify; nonzero || trivial; try trivial.
+Ltac C_field := C_field_simplify; nonzero || trivial.

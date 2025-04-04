@@ -500,29 +500,3 @@ Qed.
 (*****)
 (***)
 
-
-Definition Clog (c : C) :=
-  (ln (Cmod c), get_arg c).
-
-Lemma CexpC_Clog (c : C) (Hc : c <> 0) : 
-  CexpC (Clog c) = c.
-Proof.
-  unfold Clog, CexpC.
-  cbn.
-  rewrite exp_ln.
-  - exact (rect_to_polar_to_rect c Hc).
-  - apply Cmod_gt_0, Hc.
-Qed.
-
-Lemma Cexp_get_arg_unit (z : C) : Cmod z = 1 ->
-  Cexp (get_arg z) = z.
-Proof.
-  intros Hmod.
-  rewrite <- (CexpC_Clog z) at 2 by 
-    (intros H; rewrite H, Cmod_0 in Hmod; lra).
-  rewrite Cexp_CexpC.
-  f_equal.
-  unfold Clog.
-  rewrite Hmod, ln_1.
-  reflexivity.
-Qed.
