@@ -327,7 +327,7 @@ Proof.
      simpl Z.of_nat. now ring_simplify in LT.
    + apply Rmult_lt_compat_r with (r := (IZR s'^4)%R) in LT.
      2:{ rewrite pow_IZR. apply IZR_lt; lia. }
-     field_simplify in LT. 2:{ revert LT. apply IZR_neq. lia. }
+     field_simplify in LT. 2:{ try (*compat*) revert LT. apply IZR_neq. lia. }
      rewrite !pow_IZR, <- !mult_IZR, <- plus_IZR in LT. apply lt_IZR in LT.
      simpl Z.of_nat in LT. now ring_simplify.
  - split. easy. intros H. exfalso. revert H. apply Rle_not_lt.
@@ -354,7 +354,7 @@ Proof.
      simpl Z.of_nat. ring_simplify. now ring_simplify in LT.
    + apply Rmult_lt_compat_r with (r := (IZR (-s')^4)%R) in LT.
      2:{ rewrite pow_IZR. apply IZR_lt; lia. }
-     field_simplify in LT. 2:{ revert LT. apply IZR_neq. lia. }
+     field_simplify in LT. 2:{ try (*compat*) revert LT. apply IZR_neq. lia. }
      rewrite !pow_IZR, <- !mult_IZR, <- plus_IZR in LT. apply lt_IZR in LT.
      simpl Z.of_nat in LT. ring_simplify in LT. now ring_simplify.
 Qed.

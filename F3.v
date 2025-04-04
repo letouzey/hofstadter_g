@@ -349,7 +349,7 @@ Proof.
      simpl Z.of_nat. now ring_simplify in LT.
    + apply Rmult_lt_compat_r with (r := (IZR s^3)%R) in LT.
      2:{ rewrite pow_IZR. apply IZR_lt; lia. }
-     field_simplify in LT. 2:{ revert LT. apply IZR_neq. lia. }
+     field_simplify in LT. 2:{ try (*compat*) revert LT. apply IZR_neq. lia. }
      rewrite !pow_IZR, <- !mult_IZR, <- plus_IZR in LT. apply lt_IZR in LT.
      simpl Z.of_nat in LT. now ring_simplify.
  - destruct (Z.le_gt_cases 0 r).
@@ -372,7 +372,7 @@ Proof.
      now ring_simplify in LT.
    + apply Rmult_lt_compat_r with (r := (IZR (-s)^3)%R) in LT.
      2:{ rewrite pow_IZR. apply IZR_lt; lia. }
-     field_simplify in LT. 2:{ revert LT. apply IZR_neq. lia. }
+     field_simplify in LT. 2:{ try (*compat*) revert LT. apply IZR_neq. lia. }
      rewrite !pow_IZR, <- !mult_IZR, <- plus_IZR in LT. apply lt_IZR in LT.
      simpl Z.of_nat in LT. ring_simplify in LT.
      apply Z.opp_lt_mono. now ring_simplify.
