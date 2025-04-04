@@ -26,30 +26,24 @@ Definition im_α := sqrt (τ * (3+τ))/2.
 Definition α : C := (re_α, im_α).
 Definition αbar : C := (re_α, - im_α).
 
-Lemma τ3 : τ^3 = 1 - τ.
+Lemma μ_inv : τ = /μ.
 Proof.
- generalize (tau_carac 3 lia). fold τ. lra.
+ easy.
 Qed.
 
-Lemma τ4 : τ^4 = τ - τ^2.
+Lemma τ_inv : μ = /τ.
 Proof.
- change (τ^4) with (τ*τ^3). rewrite τ3. ring.
+ apply tau_inv.
+Qed.
+
+Lemma τ3 : τ^3 = 1 - τ.
+Proof.
+ rewrite <- (tau_carac 3) by easy. fold τ. lra.
 Qed.
 
 Lemma τ234 : τ^2 + τ^3 + τ^4 = 1.
 Proof.
- rewrite τ3, τ4; ring.
-Qed.
-
-Lemma τ5 : τ^5 = τ + τ^2 - 1.
-Proof.
- change (τ^5) with (τ*τ^4). rewrite τ4. ring_simplify.
- rewrite τ3. ring.
-Qed.
-
-Lemma τ6 : τ^6 = (1-τ)^2.
-Proof.
- rewrite <- τ3. ring.
+ ring [τ3].
 Qed.
 
 #[local] Instance μ_approx : Approx 1.465571231876 μ 1.465571231877.
@@ -67,18 +61,12 @@ Proof. approx. Qed.
 
 Lemma re_α_alt : re_α = - τ^2 / 2.
 Proof.
- unfold re_α. f_equal.
- unfold μ. rewrite tau_inv. fold τ.
- assert (τ <> 0) by approx.
- apply Rmult_eq_reg_l with τ; trivial.
- field_simplify; trivial. rewrite τ3. lra.
+ unfold re_α. rewrite τ_inv. field [τ3]. approx.
 Qed.
 
 Lemma im_α_2 : im_α ^ 2 = τ * (3+τ) / 4.
 Proof.
- unfold im_α.
- unfold Rdiv.
- rewrite Rpow_mult_distr, pow2_sqrt; try lra. approx.
+ unfold im_α, Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx. lra.
 Qed.
 
 Lemma αmod2 : (Cmod α)^2 = τ.
@@ -86,16 +74,12 @@ Proof.
  unfold Cmod.
  rewrite pow2_sqrt.
  2: generalize (pow2_ge_0 (fst α)) (pow2_ge_0 (snd α)); lra.
- unfold α; simpl. ring_simplify.
- rewrite im_α_2. rewrite re_α_alt.
- field_simplify. rewrite τ4. field.
+ unfold α; simpl. ring_simplify [im_α_2 re_α_alt]. field [τ3].
 Qed.
 
 Lemma τ_as_μ : τ = μ*(μ-1).
 Proof.
- change τ with (/μ). apply Rmult_eq_reg_l with μ. 2:approx.
- field_simplify. 2:approx. unfold μ. rewrite mu_carac by lia.
- simpl. ring.
+ rewrite τ_inv. field [τ3]. approx.
 Qed.
 
 #[local] Instance αmod_approx :
@@ -118,11 +102,9 @@ Lemma α_is_root : (α^3 = α^2 + 1)%C.
 Proof.
  simpl. rewrite !Cmult_1_r. unfold α. unfold Cmult; simpl.
  unfold Cplus; simpl. f_equal; ring_simplify.
- - rewrite im_α_2, re_α_alt.
-   field_simplify. rewrite τ6, τ4, τ3. field.
+ - rewrite im_α_2, re_α_alt. field [τ3].
  - change (im_α ^ 3) with (im_α * im_α^2).
-   rewrite im_α_2, re_α_alt.
-   field_simplify. rewrite τ4. field.
+   rewrite im_α_2, re_α_alt. field [τ3].
 Qed.
 
 Lemma αbar_is_root : (αbar^3 = αbar^2 + 1)%C.
@@ -859,8 +841,7 @@ Proof.
  intros H.
  apply nbocc_total_lt in H. simpl in H.
  unfold Diff0, Diff1, Diff2.
- rewrite τ3, τ4. ring_simplify.
- rewrite H, !plus_INR. change (INR 0) with 0. ring.
+ ring_simplify [τ3]. rewrite H, !plus_INR. simpl. ring.
 Qed.
 
 Lemma diff012 n : diff0 n + diff1 n + diff2 n = 0.
@@ -1060,11 +1041,6 @@ Proof.
  apply ThePoly_root_carac.
  now apply (SortedRoots_roots _ _ roots_sorted) in R.
 Qed.
-Let R4 : r^4 = r^2+r+1.
-Proof.
- rewrite (Cpow_S r 3), R3. ring_simplify. rewrite R3. ring.
-Qed.
-Ltac rfield := field_simplify; rewrite ?R4,?R3; try field.
 
 Lemma pre_coefA_alt : /(3*r-2) = (9*r^2-3*r-2)/31.
 Proof.
@@ -1075,30 +1051,29 @@ Proof.
    { replace (_-_) with 2 by lca. rewrite <- E. lca. }
    apply (SortedRoots_roots _ _ roots_sorted) in R.
    rewrite E' in R. now apply root_non_km1k in R. }
- apply Cmult_eq_reg_r with d; trivial. unfold d at 3. now rfield.
+ apply Cmult_eq_reg_r with d; trivial. unfold d at 3. now field [R3].
 Qed.
 
 Lemma coefA_alt : coefA 3 r = (13*r^2+6*r+4)/31.
 Proof.
  unfold coefA. replace (_-_) with (3*r-2) by lca.
- unfold Cdiv. rewrite pre_coefA_alt, R3. rfield.
+ unfold Cdiv. rewrite pre_coefA_alt, R3. field [R3].
 Qed.
 
 Lemma coefA_square : (coefA 3 r)^2 = (15*r^2+7*r+11)/31.
 Proof.
- rewrite coefA_alt. rfield.
+ rewrite coefA_alt. field [R3].
 Qed.
 
 Lemma coefA_cube : (coefA 3 r)^3 = (621*r^2+289*r+420)/31^2.
 Proof.
- rewrite Cpow_S, coefA_square, coefA_alt. rfield.
+ rewrite Cpow_S, coefA_square, coefA_alt. field [R3].
 Qed.
 
 Lemma coefA_poly :
   let c := coefA 3 r in c^3 - c^2 - (12/31)*c - 1/31 = 0.
 Proof.
- cbv zeta. rewrite coefA_cube, coefA_square, coefA_alt by trivial.
- field.
+ cbv zeta. rewrite coefA_cube, coefA_square, coefA_alt by trivial. field.
 Qed.
 
 End AnyRoot.
@@ -1132,11 +1107,8 @@ Proof.
  rewrite μα_eqn, im_alt'. change (Im α) with im_α. unfold im_α.
  rewrite !Cpow_mult_l. ctor.
  unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
- rewrite pow_inv.
- replace (2^2)%R with 4%R by lra.
- simpl (Ci^2). rewrite Cmult_1_r, Ci2. ctor. f_equal.
- change τ with (/μ)%R. field_simplify. 2:approx.
- unfold μ. rewrite mu_carac by easy. simpl. field.
+ rewrite pow_inv, Ci2'. ctor. f_equal.
+ rewrite τ_inv. field [τ3]. approx.
 Qed.
 
 Lemma det_eqn : det = Ci * sqrt 31.
@@ -1236,10 +1208,8 @@ Proof.
  rewrite <- coef_prod.
  rewrite <- (Cmult_1_l (X^2)), <- coef_sum.
  unfold Cminus at 5.
- replace (-X^2)%C with (- (1*X^2))%C by field.
  replace (-(12/31 * X))%C with ((-12/31) * X)%C by field.
- rewrite <- coef_sigma2.
- field.
+ rewrite <- coef_sigma2. field.
 Qed.
 
 Lemma coef_μ_poly : coef_μ^3 - coef_μ^2 - (12/31)*coef_μ - 1/31 = 0.
