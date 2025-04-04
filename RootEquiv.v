@@ -8,7 +8,10 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * The positive root of X^n+X-1 is equivalent to 1-ln n/n for large n *)
 
-(** To prove that, we study iterated approximations of this root r,
+(** This will imply a [1+ln n/n] equivalent for the positive root of
+    X^n-X^(n-1)-1, see [root_mu_equiv] below. *)
+
+(** We study iterated approximations of the root r of [X^n+X-1],
     based on the fact that r=(1-r)^(1/n). We show below that a2 < r < a3
     when n>=3 and that a2 and a3 provide the desired equivalent.
     Any initial point 0<a0<1 would probably do, but picking a0 = 1-1/e
@@ -343,7 +346,7 @@ Qed.
 
 (* Print Assumptions root_tau_equiv. *)
 
-(** This lead to a [1+ln n/n] equivalent for the positive root of
+(** This leads to a [1+ln n/n] equivalent for the positive root of
     X^n-X^(n-1)-1. *)
 
 Lemma root_mu_equiv :
