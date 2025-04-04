@@ -1,5 +1,6 @@
 (** Supplement to Coq's axiomatized Reals *)
-  
+
+Require Export Znat.
 Require Export Reals.
 Require Import Psatz.
 Require Export Program.

@@ -452,7 +452,7 @@ Proof.
  rewrite Pplus_eval, Pmult_eval, monom_eval, Pconst_eval.
  replace (pred k) with (k-1)%nat by lia.
  simpl Pdiff. rewrite Cplus_0_r. unfold Peval; simpl. ring_simplify. f_equal.
- replace (k*r+-1*k) with (k*(r-1)) by ring. f_equal.
+ unfold Cminus (*compat*). replace (k*r+_) with (k*(r-1)) by ring. f_equal.
  assert (Hr' : r^(k-1) <> 0).
  { apply Cpow_nonzero. intros ->. eapply root_nz; eauto. }
  apply Cmult_eq_reg_l with (r ^(k-1)); trivial.
@@ -1058,6 +1058,7 @@ Proof.
  { symmetry. apply Cminus_eq_0. ring_simplify.
    rewrite <- Cexp_add. replace (PI / 3 + - PI / 3)%R with 0%R by lra.
    rewrite Cexp_0. ring_simplify.
+   (*compat*) unfold Cminus; try rewrite Copp_mult_distr_l.
    rewrite <- Cmult_plus_distr_l.
    rewrite Ropp_div, <- Cexp_conj_neg, re_alt'. simpl. rewrite cos_PI3.
    lca. }

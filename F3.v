@@ -1114,7 +1114,8 @@ Definition det : C := (μ-α)*(μ-αbar)*(α-αbar).
 Lemma μα_eqn : (μ - α)*(μ - αbar) = μ*(3*μ-2).
 Proof.
  ring_simplify. rewrite <- Cmod2_conj, αmod2.
- replace (_+-1*μ*α+-1*μ*αbar) with (μ^2-μ*(1-μ))
+ (*compat*) unfold Cminus.
+ replace (μ^2+_+_) with (μ^2-μ*(1-μ))
    by (rewrite <- roots_sum; ring).
  rewrite τ_as_μ. rewrite RtoC_mult, RtoC_minus. ring.
 Qed.

@@ -1,4 +1,4 @@
-From Coq Require Import Lia Reals Lra Ranalysis5 QArith Qcanon.
+From Coq Require Import Lia Znat Reals Lra Ranalysis5 QArith Qcanon.
 Close Scope Q. (* Issue with QArith. *)
 Require Import MoreTac MoreReals MoreLim.
 Local Open Scope Q.

@@ -1,4 +1,4 @@
-From Coq Require Import Lia Reals Lra Permutation RelationClasses Sorted.
+From Coq Require Import NArith Lia Reals Lra Permutation RelationClasses Sorted.
 From Hofstadter.HalfQuantum Require Import Complex.
 From Hofstadter.HalfQuantum Require Polar.
 Require Import MoreList MoreReals.

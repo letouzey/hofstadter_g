@@ -146,6 +146,8 @@ Proof.
  { apply RtoC_inj.
    rewrite αmod2, <- RtoC_pow, Cmod_sqr.
    replace (τ/-ν) with ((-1)*(τ/ν)) by (field; approx).
+   (*compat*) try replace (-(1))%C with (RtoC (-1)) in E0 by lca.
+   rewrite <- ?RtoC_opp in E0.
    rewrite RtoC_mult, RtoC_div, E0, τ_μ, RtoC_inv. field.
    split; apply RtoC_neq; approx. }
  assert (Ib : (Im b)^2 = im_α^2).

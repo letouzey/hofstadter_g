@@ -4,6 +4,7 @@
 
 Require Export Bool.
 Require Export Arith.
+Require Export Znat.
 Require Export Reals.
 Require Export Psatz.
 Require Export Program. 

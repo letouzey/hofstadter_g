@@ -965,6 +965,7 @@ Proof.
  2:{ unfold Amk. rewrite Clistsum_factor_l, map_map. f_equal.
      apply map_ext_in. intros r Hr.
      rewrite Cpow_mul_l. unfold d. simpl INR. field. now apply D. }
+ unfold Cminus in E. (* compat *)
  replace (_+_) with (k^S p * (1 - Amk (S p))) in E by (simpl; ring).
  apply Cmult_integral in E. destruct E as [E|E].
  { exfalso. revert E. apply Cpow_nonzero. intros [= E].
