@@ -3,6 +3,7 @@ Require Import String.
 Require Export Complex. 
 Require Import List. 
 Require Import Setoid.
+Import Complex.Compat.
 
 Local Open Scope R.
 Local Open Scope C.

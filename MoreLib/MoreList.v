@@ -78,6 +78,12 @@ Proof.
  rewrite seq_S. apply last_last.
 Qed.
 
+Lemma map_nth' {A B} (f:A->B)(l:list A)(d:B)(d':A) n :
+ d = f d' -> nth n (map f l) d = f (nth n l d').
+Proof.
+ intros ->. apply map_nth.
+Qed.
+
 Lemma nth_map_indep {A B}(f : A -> B) l n d d' :
  n < length l -> nth n (map f l) d = f (nth n l d').
 Proof.

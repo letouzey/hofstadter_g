@@ -33,7 +33,7 @@ Qed.
 
 (** The complex roots of [X^5-X^4-1] *)
 
-Lemma Poly5_factor : ThePoly 5 = ([C1;-C1;C1] *, [-C1;-C1;C0;C1])%P%C.
+Lemma Poly5_factor : ThePoly 5 = ([1;-1;1] *, [-1;-1;0;1])%P%C.
 Proof.
  unfold ThePoly; simpl. repeat (f_equal; try lca).
 Qed.
@@ -51,7 +51,7 @@ Proof.
  apply Cmod_Cexp.
 Qed.
 
-Lemma factor1 : [C1;-C1;C1]%C = linfactors [γ;γbar].
+Lemma factor1 : [1;-1;1]%C = linfactors [γ;γbar].
 Proof.
  simpl. f_equal;[|f_equal].
  - ring_simplify. unfold γ, γbar. rewrite <- Cexp_add.
@@ -92,7 +92,7 @@ Proof.
  simpl. ring.
 Qed.
 
-Lemma factor2 : [-C1;-C1;C0;C1]%C = linfactors [RtoC μ;α;αbar].
+Lemma factor2 : [-1;-1;0;1]%C = linfactors [RtoC μ;α;αbar].
 Proof.
  simpl. f_equal;[|f_equal;[|f_equal] ]; try ring_simplify.
  - apply Cminus_eq_0. ring_simplify.
@@ -100,14 +100,13 @@ Proof.
    field. injection. approx.
  - rewrite Cmult_comm, <- α_conj, <- Cmod2_conj, αmod2.
    rewrite <- Cplus_assoc, <- Cmult_plus_distr_r, (Cplus_comm _ α), re_alt'.
-   change (Re α) with re_α. unfold re_α. rewrite τ_μ, RtoC_inv.
-   rewrite RtoC_div, RtoC_opp. symmetry. apply Cminus_eq_0.
+   change (Re α) with re_α. unfold re_α. rewrite τ_μ. rtoc.
+   symmetry. apply Cminus_eq_0.
    field_simplify; try (injection; approx).
-   rewrite RtoC_pow, μ3. rewrite RtoC_plus. field. injection; approx.
+   rewrite <- RtoC_pow, μ3. rtoc. field. injection; approx.
  - apply Cminus_eq_0. ring_simplify.
    rewrite <- α_conj, (Cplus_comm _ α), re_alt'.
-   change (Re α) with re_α. unfold re_α. rewrite <- RtoC_mult, <- RtoC_plus.
-   f_equal. field.
+   change (Re α) with re_α. unfold re_α. ctor. f_equal. field.
  - f_equal. lca.
 Qed.
 
@@ -130,10 +129,6 @@ Proof.
    + simpl. rewrite cos_PI3. approx.
 Qed.
 
-Local Hint Rewrite RtoC_pow : RtoC.
-Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
- RtoC_div : RtoC.
-
 Lemma μ_is_Rroot : μ^5 = μ^4 + 1.
 Proof.
  exact (mu_carac 5 lia).
@@ -141,7 +136,7 @@ Qed.
 
 Lemma μ_is_Croot : (μ^5 = μ^4 + 1)%C.
 Proof.
- autorewrite with RtoC. f_equal. apply μ_is_Rroot.
+ ctor. f_equal. apply μ_is_Rroot.
 Qed.
 
 Lemma γ_is_Croot : (γ^5 = γ^4 + 1)%C.
@@ -177,13 +172,10 @@ Lemma A5_eqn_R :
 Proof.
  intros a b d n.
  apply RtoC_inj. rewrite A5_eqn_C.
- autorewrite with RtoC.
- rewrite <- coef_mu_ok. fold a.
+ ctor. rewrite <- coef_mu_ok. fold a.
  rewrite γ_conj, coefA_conj.
  change αbar with (Cconj α). rewrite coefA_conj.
- fold b d. rewrite <- !Cpow_conj, <- !Cconj_mult_distr.
- rewrite !RtoC_plus, !RtoC_mult.
- rewrite <- !re_alt'. ring.
+ fold b d. conj_out. rtoc. rewrite <- !re_alt'. ring.
 Qed.
 
 Definition decomp_u n := map (Nat.mul 6) (seq 0 n).
@@ -213,7 +205,7 @@ Qed.
 
 Lemma γ6 : (γ^6)%C = 1.
 Proof.
- change 6%nat with (3*2)%nat. rewrite Cpow_mult, γ3. lca.
+ change 6%nat with (3*2)%nat. rewrite Cpow_mult_r, γ3. lca.
 Qed.
 
 Lemma delta_seq_u_eqn n :
@@ -240,26 +232,25 @@ Proof.
      intros a. apply Cpow_conj. }
  replace (Clistsum (map (Cpow γ) l)) with (RtoC n).
  2:{ clear. unfold l, decomp_u. rewrite map_map.
-     rewrite map_ext with (g := fun _ => C1), Clistsum_const, seq_length. lca.
-     intros a. now rewrite Cpow_mult, γ6, Cpow_1_l. }
- rewrite Cconj_R, <- !Cconj_mult_distr.
- simpl Clistsum.
+     rewrite map_ext with (g := fun _ => 1%C), Clistsum_const, seq_length.
+     lca. intros a. now rewrite Cpow_mult_r, γ6, Cpow_1_l. }
+ rewrite Cconj_R. conj_out. simpl Clistsum.
  rewrite (Rmult_comm 2), Rmult_assoc.
- rewrite RtoC_plus, !RtoC_mult, <- !re_alt'. ring.
+ rtoc. rewrite <- !re_alt'. ring.
 Qed.
 
 #[local] Instance : Approx 0.0189 (Re (coefdA 5 γ)) 0.0190.
 Proof.
  unfold coefdA, coefA. fold τ.
  rewrite !INR_IZR_INZ. simpl IZR.
- rewrite <- RtoC_minus. replace (5-1)%R with 4 by lra.
+ ctor. replace (5-1)%R with 4 by lra.
  unfold Cdiv. replace (/(5*γ-4))%C with ((/21)%R*(5*Cconj γ-4))%C.
  2:{ rewrite Cinv_alt.
      2:{ intros E. apply Cminus_eq_0 in E. injection E as E _.
          rewrite cos_PI3 in E. revert E. lra. }
      unfold Cdiv. rewrite Cmult_comm. f_equal.
-     - now rewrite Cconj_minus_distr, Cconj_mult_distr, !Cconj_R.
-     - rewrite RtoC_inv. f_equal.
+     - now conj_in.
+     - ctor. f_equal.
        rewrite Cmod2_alt. f_equal. simpl. rewrite cos_PI3, sin_PI3.
        field_simplify. rewrite pow2_sqrt by lra. field. }
  remember (Re _) as x eqn:Hx.
@@ -346,7 +337,7 @@ Proof.
  rewrite decomp_carac with (l:=(map (Nat.add 3) (decomp_u n))); try easy.
  2:{ eapply Delta_map; try apply decomp_u_delta. lia. }
  set (f := fun r => _).
- simpl map. simpl Clistsum. rewrite Cplus_assoc, RtoC_plus. f_equal.
+ simpl map. simpl Clistsum. rewrite Cplus_assoc. rtoc. f_equal.
  - unfold f. rewrite γ_conj. rewrite coefdA_conj.
    set (l := map _ (decomp_u n)).
    set (dγ := coefdA 5 γ).
@@ -355,11 +346,11 @@ Proof.
    2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
        intros a. apply Cpow_conj. }
    set (sum := Clistsum (map (Cpow α) l)).
-   rewrite <- Cconj_mult_distr, re_alt'.
+   conj_out. rewrite re_alt'.
    replace (Clistsum (map (Cpow γ) l)) with (RtoC (-n)).
    2:{ clear. unfold l, decomp_u. rewrite !map_map.
-       rewrite map_ext with (g := fun _ => Copp C1), Clistsum_const, seq_length.
-       lca. intros a. rewrite Cpow_add, Cpow_mult, γ6, γ3, Cpow_1_l. lca. }
+       rewrite map_ext with (g := fun _ => (-1)%C), Clistsum_const, seq_length.
+       lca. intros a. rewrite Cpow_add, Cpow_mult_r, γ6, γ3, Cpow_1_l. lca. }
    rewrite re_scal_r. lca.
  - rewrite Cplus_0_r. unfold f. clear f.
    rewrite <- α_conj. rewrite !coefdA_conj.
@@ -369,8 +360,7 @@ Proof.
    replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
    2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
        intros a. apply Cpow_conj. }
-   rewrite <- Cconj_mult_distr, re_alt'.
-   rewrite RtoC_mult, <- Cmult_assoc. do 4 f_equal.
+   conj_out. rewrite re_alt'. rtoc. rewrite <- Cmult_assoc. do 4 f_equal.
    rewrite Clistsum_factor_l. unfold sum, l. clear. f_equal.
    rewrite !map_map. apply map_ext. intros a. apply Cpow_add.
 Qed.

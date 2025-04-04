@@ -4,7 +4,9 @@ Require Import Setoid.
 Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.
-Import PolyNotations.
+Import Complex.Compat.
+Import Polynomial.PolyNotations.
+
 
 (*********************************************************************)
 (* defining poly_coef_norm and showing how it can be used as a bound *)
@@ -340,7 +342,7 @@ Proof. intros.
          rewrite app_length, repeat_length; simpl; easy. }
        rewrite H5, mul_by_x_to_n, Cpow_mul_l, (Cmult_comm (ϵ ^ (k + 1))), Cmult_assoc.
        repeat rewrite Cmod_mult.
-       rewrite RtoC_pow, Cmod_R, Rabs_pos_eq; try (apply pow_le; lra).
+       rewrite <- RtoC_pow, Cmod_R, Rabs_pos_eq; try (apply pow_le; lra).
        replace (k + 2)%nat with (1 + (k + 1))%nat by lia.
        rewrite (pow_add _ 1 (k + 1)).
        repeat rewrite <- Rmult_assoc.

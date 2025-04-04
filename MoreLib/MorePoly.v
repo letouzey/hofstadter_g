@@ -15,9 +15,9 @@ Definition coef n (p : Polynomial) := nth n p 0.
 
 Definition topcoef (p : Polynomial) := last (compactify p) 0.
 
-Definition monom (c:C) (k:nat) := repeat C0 k ++ [c].
+Definition monom (c:C) (k:nat) := repeat 0 k ++ [c].
 
-Definition _X_ := [C0;C1].
+Definition _X_ := [0;1].
 
 Definition Root c p := Peval p c = 0.
 
@@ -25,8 +25,8 @@ Definition monic p := topcoef p = 1.
 
 Fixpoint linfactors l :=
   match l with
-  | [] => [C1]
-  | c::l => linfactors l *, [-c;C1]
+  | [] => [1]
+  | c::l => linfactors l *, [-c;1]
   end.
 
 (** Extra properties *)
@@ -41,7 +41,7 @@ Proof.
  split. apply Peq_compactify_eq. apply compactify_eq_Peq.
 Qed.
 
-Lemma Pzero_alt : [C0] ≅ [].
+Lemma Pzero_alt : [0] ≅ [].
 Proof.
  apply Peq_iff. apply (app_C0_compactify_reduce_1 []).
 Qed.
@@ -57,7 +57,7 @@ Qed.
 
 Lemma prune_eqn (p : Polynomial) :
  let n := (length p - length (prune p))%nat in
- p = repeat C0 n ++ prune p.
+ p = repeat 0 n ++ prune p.
 Proof.
  induction p; cbn -[Nat.sub]; auto.
  destruct Ceq_dec as [->|N].
@@ -68,7 +68,7 @@ Qed.
 
 Lemma compactify_eqn (p : Polynomial) :
  let n := (length p - length (compactify p))%nat in
- p = compactify p ++ repeat C0 n.
+ p = compactify p ++ repeat 0 n.
 Proof.
  unfold compactify. rewrite rev_length.
  rewrite <- rev_repeat, <- rev_app_distr.
@@ -85,7 +85,7 @@ Proof.
  apply Peq_iff.
 Qed.
 
-Lemma Peq0_alt p : p≅[] <-> p = repeat C0 (length p).
+Lemma Peq0_alt p : p≅[] <-> p = repeat 0 (length p).
 Proof.
  rewrite Peq_iff. cbn.
  split.
@@ -175,7 +175,7 @@ Qed.
 Lemma Pscale_coef c P n : coef n ([c] *, P) = c * coef n P.
 Proof.
  unfold Pmult. rewrite Pzero_alt, Pplus_0_r. unfold coef.
- replace 0 with (c*0) at 1 by lca. apply map_nth.
+ apply map_nth'. lca.
 Qed.
 
 Lemma topcoef_alt p : topcoef p = coef (degree p) p.
@@ -191,12 +191,12 @@ Proof.
 Qed.
 
 Lemma topcoef_nz (p : Polynomial) :
- ~ p ≅ [] -> topcoef p <> C0.
+ ~ p ≅ [] -> topcoef p <> 0.
 Proof.
  intros H. contradict H. now apply topcoef_0_iff.
 Qed.
 
-Lemma coef_after_degree n p : (degree p < n)%nat -> coef n p = C0.
+Lemma coef_after_degree n p : (degree p < n)%nat -> coef n p = 0.
 Proof.
  unfold degree. rewrite <- (compactify_Peq p) at 2.
  intros H.
@@ -245,7 +245,7 @@ Proof.
  destruct (Ceq_dec c 0); subst.
  - unfold monom, topcoef.
    rewrite app_C0_compactify_reduce_1.
-   change (repeat C0 k) with ([]++repeat C0 k).
+   change (repeat 0 k) with ([]++repeat 0 k).
    now rewrite app_C0_compactify_reduce.
  - unfold topcoef. rewrite compactify_monom; auto.
    unfold monom. apply last_last.
@@ -256,7 +256,7 @@ Proof.
  apply cons_singleton_mult.
 Qed.
 
-Lemma monom_scale c k : monom c k ≅ [c] *, monom C1 k.
+Lemma monom_scale c k : monom c k ≅ [c] *, monom 1 k.
 Proof.
  unfold monom. rewrite Pscale_alt, map_app. simpl.
  apply Peq_iff. f_equal. f_equal.
@@ -264,7 +264,7 @@ Proof.
  f_equal. lca.
 Qed.
 
-Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ C0::p.
+Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ 0::p.
 Proof.
  simpl.
  rewrite <- Pscale_alt.
@@ -274,7 +274,7 @@ Proof.
 Qed.
 
 Lemma Pmult_repeat0_alt k p q :
- (repeat C0 k ++ p) *, q ≅ repeat C0 k ++ (p *, q).
+ (repeat 0 k ++ p) *, q ≅ repeat 0 k ++ (p *, q).
 Proof.
  induction k; simpl; try easy.
  rewrite IHk.
@@ -287,22 +287,21 @@ Proof.
  intros H. unfold monom. rewrite Pmult_repeat0_alt.
  unfold coef at 1. rewrite app_nth2; rewrite repeat_length; trivial.
  change (nth _ _ _) with (coef (n-k) ([c] *, p)).
- rewrite Pscale_alt. unfold coef.
- replace C0 with (c * 0) at 1 by lca. apply map_nth.
+ rewrite Pscale_alt. unfold coef. apply map_nth'. lca.
 Qed.
 
 Lemma Popp_coef n p : coef n (-, p) = - coef n p.
 Proof.
- change (-, p) with (monom (- C1) 0 *, p).
+ change (-, p) with (monom (- (1)) 0 *, p).
  rewrite Pmult_monom_coef by lia. rewrite Nat.sub_0_r. ring.
 Qed.
 
-Lemma Pconst_nonzero (c:C) : c<>C0 -> ~[c]≅[].
+Lemma Pconst_nonzero (c:C) : c<>0 -> ~[c]≅[].
 Proof.
  intros Hc. change [c] with (monom c 0). now apply monom_nz.
 Qed.
 
-Lemma Pscale_degree (c:C) p : c<>C0 -> degree ([c] *, p) = degree p.
+Lemma Pscale_degree (c:C) p : c<>0 -> degree ([c] *, p) = degree p.
 Proof.
  intros Hc.
  destruct (Peq_0_dec p) as [->|N].
@@ -314,7 +313,7 @@ Qed.
 
 Lemma Popp_degree p : degree (-, p) = degree p.
 Proof.
- apply Pscale_degree, Copp_neq_0_compat, C1_neq_C0.
+ apply Pscale_degree, Copp_neq_0_compat, C1_nz.
 Qed.
 
 Lemma Peval_compactify p c : Peval (compactify p) c = Peval p c.
@@ -359,7 +358,7 @@ Proof.
    { intro H. rewrite H in LT. change (degree []) with O in LT. lia. }
    assert (NZb : ~ b ≅ []).
    { intro H. now rewrite H in Hb. }
-   assert (NZ : top_a / top_b <> C0).
+   assert (NZ : top_a / top_b <> 0).
    { apply Cmult_neq_0. now apply topcoef_nz.
      apply nonzero_div_nonzero. now apply topcoef_nz. }
    set (a' := a +, -, (monom (top_a/top_b) k *, b)).
@@ -367,7 +366,7 @@ Proof.
    { unfold a'. etransitivity. eapply Pplus_degree1.
      rewrite Popp_degree, Pmult_degree, monom_degree; auto; try lia.
      now apply monom_nz. }
-   assert (Ha' : coef (degree a) a' = C0).
+   assert (Ha' : coef (degree a) a' = 0).
    { unfold a'. rewrite Pplus_coef. rewrite <- topcoef_alt. fold top_a.
      rewrite Popp_coef, Pmult_monom_coef by lia.
      replace (degree a - k)%nat with (degree b) by lia.
@@ -392,12 +391,12 @@ Proof.
  unfold degree, compactify. simpl. now destruct Ceq_dec.
 Qed.
 
-Lemma Pfactor_root p c : Root c p -> { q | p ≅ q *, [-c;C1] }.
+Lemma Pfactor_root p c : Root c p -> { q | p ≅ q *, [-c;1] }.
 Proof.
  intros H.
- assert (D : degree [-c; C1] = 1%nat).
- { apply degree_is_1. apply C1_neq_C0. }
- destruct (Pdiv p [-c;C1]) as (q & r & E & LT).
+ assert (D : degree [-c; 1] = 1%nat).
+ { apply degree_is_1. apply C1_nz. }
+ destruct (Pdiv p [-c;1]) as (q & r & E & LT).
  - rewrite D; lia.
  - rewrite D in LT. exists q.
    assert (D' : degree r = O) by lia. clear D LT.
@@ -411,7 +410,7 @@ Proof.
 Qed.
 
 Lemma linfactors_coef_after l n :
- (length l < n)%nat -> coef n (linfactors l) = C0.
+ (length l < n)%nat -> coef n (linfactors l) = 0.
 Proof.
  revert n.
  induction l; simpl; intros n Hn.
@@ -419,48 +418,43 @@ Proof.
  - rewrite Pmult_comm. simpl. rewrite Pplus_coef.
    rewrite Pzero_alt, Pplus_0_r.
    unfold coef in *.
-   replace C0 with (-a * 0) at 1 by ring.
-   rewrite map_nth. rewrite IHl. 2:lia.
-   destruct n.
-   + simpl. ring.
-   + simpl. replace C0 with (C1 * 0) at 2 by ring.
-     rewrite map_nth. rewrite IHl. 2:lia. ring.
+   rewrite map_nth' with (d':=0) by lca. rewrite IHl by lia. simpl.
+   destruct n; try ring.
+   rewrite map_nth' with (d':=0) by lca. rewrite IHl by lia. lca.
 Qed.
 
-Lemma linfactors_coef l : coef (length l) (linfactors l) = C1.
+Lemma linfactors_coef l : coef (length l) (linfactors l) = 1.
 Proof.
  induction l; simpl; auto.
  rewrite Pmult_comm. simpl. rewrite Pplus_coef.
  rewrite Pzero_alt, Pplus_0_r.
  unfold coef in *.
- replace C0 with (-a * 0) at 1 by ring.
- rewrite map_nth. fold (coef (S (length l)) (linfactors l)).
- rewrite linfactors_coef_after by lia.
- simpl.
- replace C0 with (C1 * 0) at 2 by ring.
- rewrite map_nth. rewrite IHl. ring.
+ rewrite map_nth' with (d':=0) by lca.
+ fold (coef (S (length l)) (linfactors l)).
+ rewrite linfactors_coef_after by lia. simpl. ring_simplify.
+ rewrite map_nth' with (d':=0) by lca. rewrite IHl. lca.
 Qed.
 
 Lemma linfactors_nz l : ~ linfactors l ≅ [].
 Proof.
  intros H.
- destruct (nth_in_or_default (length l) (linfactors l) C0) as [H'|H'].
+ destruct (nth_in_or_default (length l) (linfactors l) 0) as [H'|H'].
  - fold (coef (length l) (linfactors l)) in H'.
-   rewrite linfactors_coef in H'. apply C1_neq_C0.
-   apply (Peq_nil_contains_C0 _ H C1 H').
- - apply C1_neq_C0. rewrite <- (linfactors_coef l). unfold coef.
+   rewrite linfactors_coef in H'. apply C1_nz.
+   apply (Peq_nil_contains_C0 _ H 1 H').
+ - apply C1_nz. rewrite <- (linfactors_coef l). unfold coef.
    now rewrite H'.
 Qed.
 
 Lemma linfactors_degree l : degree (linfactors l) = length l.
 Proof.
  induction l; simpl.
- - change [C1] with (monom C1 0). apply monom_degree. apply C1_neq_C0.
+ - change [1] with (monom 1 0). apply monom_degree. apply C1_nz.
  - rewrite Pmult_degree, IHl.
-   rewrite degree_is_1. lia. apply C1_neq_C0.
+   rewrite degree_is_1. lia. apply C1_nz.
    apply linfactors_nz.
-   change (~[-a;C1]≅[]). intros H. apply Peq_compactify_eq in H. cbn in H.
-   destruct Ceq_dec. now apply C1_neq_C0. easy.
+   change (~[-a;1]≅[]). intros H. apply Peq_compactify_eq in H. cbn in H.
+   destruct Ceq_dec. now apply C1_nz. easy.
 Qed.
 
 Lemma degree_cons c p :
@@ -514,7 +508,7 @@ Proof.
  destruct (Peq_0_dec q) as [->|Hq]. cbn. rewrite Pmult_0_r. cbn. ring.
  rewrite <- compactify_Pmult; auto.
  rewrite Peq0_carac in Hp, Hq.
- apply app_removelast_last with (d:=C0) in Hp, Hq.
+ apply app_removelast_last with (d:=0) in Hp, Hq.
  set (p' := removelast (compactify p)) in *.
  set (q' := removelast (compactify q)) in *.
  set (a := last (compactify p) 0) in *.
@@ -529,20 +523,20 @@ Proof.
  cbn. destruct Ceq_dec; simpl; auto.
 Qed.
 
-Lemma topcoef_lin a b : a<>C0 -> topcoef [b;a] = a.
+Lemma topcoef_lin a b : a<>0 -> topcoef [b;a] = a.
 Proof.
  intros. cbn. destruct Ceq_dec; easy.
 Qed.
 
-Lemma deg0_monic_carac p : degree p = O -> monic p -> p ≅ [C1].
+Lemma deg0_monic_carac p : degree p = O -> monic p -> p ≅ [1].
 Proof.
  intros D M.
  apply Peq_iff.
- change [C1] with (monom C1 0). rewrite compactify_monom by apply C1_neq_C0.
+ change [1] with (monom 1 0). rewrite compactify_monom by apply C1_nz.
   unfold monom; simpl.
  unfold monic, topcoef, degree in *.
  destruct (compactify p) as [|a [|b q] ]; simpl in *; subst; try easy.
- now destruct C1_neq_C0.
+ now destruct C1_nz.
 Qed.
 
 Lemma All_roots p : monic p -> exists l, p ≅ linfactors l.
@@ -557,12 +551,12 @@ Proof.
    { destruct (Peq_0_dec q) as [Hq0|Hq0].
      - rewrite Hq0 in Hq. simpl in Hq. now rewrite Hq in D.
      - rewrite Hq in D. rewrite Pmult_degree in D; auto.
-       rewrite degree_is_1 in D. lia. apply C1_neq_C0.
-       change (~[-c;C1]≅[]). rewrite Peq0_carac. cbn.
-       destruct Ceq_dec; try easy. now destruct C1_neq_C0. }
+       rewrite degree_is_1 in D. lia. apply C1_nz.
+       change (~[-c;1]≅[]). rewrite Peq0_carac. cbn.
+       destruct Ceq_dec; try easy. now destruct C1_nz. }
    assert (monic q).
    { unfold monic in *. rewrite Hq, topcoef_mult in M.
-     rewrite topcoef_lin in M by apply C1_neq_C0.
+     rewrite topcoef_lin in M by apply C1_nz.
      now rewrite Cmult_1_r in M. }
    destruct (IHd q) as (l & Hl); try easy.
    exists (c::l). now rewrite Hq, Hl.
@@ -590,7 +584,7 @@ Qed.
 Lemma linfactors_roots l c : In c l <-> Root c (linfactors l).
 Proof.
  revert c. induction l; unfold Root in *; cbn [linfactors In].
- - intros c. cbn. rewrite Cmult_1_r, Cplus_0_l. split. easy. apply C1_neq_C0.
+ - intros c. cbn. rewrite Cmult_1_r, Cplus_0_l. split. easy. apply C1_nz.
  - intros c. rewrite IHl, Pmult_eval, Cmult_integral. clear IHl.
    cbn. rewrite Cplus_0_l, !Cmult_1_r, Cmult_1_l.
    split; destruct 1 as [A|B]; auto.
@@ -613,7 +607,7 @@ Proof.
  assert (M : monic p').
  { unfold monic. rewrite topcoef_alt, D. unfold p'.
    rewrite Pscale_alt. unfold coef.
-   rewrite <- (Cmult_0_r (/a)). rewrite map_nth.
+   rewrite map_nth' with (d':=0) by lca.
    change (/a * (coef (degree p) p) = 1). rewrite <- topcoef_alt.
    apply Cinv_l, N. }
  destruct (All_roots _ M) as (l', E').
@@ -630,7 +624,7 @@ Qed.
 Fixpoint Pdiff p :=
  match p with
  | [] => []
- | c::p => p +, (C0::Pdiff p)
+ | c::p => p +, (0::Pdiff p)
  end.
 
 Lemma Pdiff_compactify p : Pdiff (compactify p) ≅ Pdiff p.
@@ -656,7 +650,7 @@ Proof.
  revert q.
  induction p; simpl; try easy.
  destruct q; simpl. now rewrite Pplus_0_r.
- rewrite IHp. rewrite (Pplus_assoc p (C0::Pdiff p)), <- (Pplus_assoc _ q).
+ rewrite IHp. rewrite (Pplus_assoc p (0::Pdiff p)), <- (Pplus_assoc _ q).
  rewrite (Pplus_comm (_::_) q), !Pplus_assoc.
  simpl. now rewrite Cplus_0_l.
 Qed.
@@ -696,7 +690,7 @@ Proof.
  induction n.
  - cbn [repeat linfactors].
    rewrite Pmult_1_l. simpl. rewrite !Cplus_0_r, Cmult_1_l.
-   apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [C1]).
+   apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [1]).
  - set (n' := S n) in *.
    cbn [repeat linfactors].
    rewrite Pdiff_mult, IHn. clear IHn.
@@ -704,16 +698,16 @@ Proof.
    change (linfactors (repeat c n) *, _) with (linfactors (repeat c n')).
    set (lin := linfactors _).
    rewrite !S_INR, !RtoC_plus.
-   change [n'+1] with (Pplus [RtoC n'] [C1]).
+   change [n'+1] with (Pplus [RtoC n'] [1]).
    rewrite Pmult_plus_distr_r.
    apply Pplus_eq_compat; try easy. clearbody lin.
    rewrite Pmult_comm. apply Pmult_eq_compat; try easy.
    cbn.
    rewrite !Cplus_0_r.
-   apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [C1]).
+   apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [1]).
 Qed.
 
-Lemma monom_S a k : monom a (S k) = C0 :: monom a k.
+Lemma monom_S a k : monom a (S k) = 0 :: monom a k.
 Proof.
  now unfold monom.
 Qed.
@@ -724,12 +718,12 @@ Proof.
  - simpl. now rewrite Cmult_0_l, Cplus_0_l.
  - simpl pred.
    rewrite monom_S, S_INR, RtoC_plus. cbn -[Pmult]. rewrite IHk.
-   change [k+1] with (Pplus [RtoC k] [C1]).
+   change [k+1] with (Pplus [RtoC k] [1]).
    rewrite Pmult_plus_distr_r.
    rewrite Pmult_1_l. rewrite Pplus_comm. apply Pplus_eq_compat; try easy.
    destruct k.
    + simpl. rewrite !Cmult_0_l, !Cplus_0_l.
-     apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [C0]).
+     apply compactify_eq_Peq. apply (app_C0_compactify_reduce_1 [0]).
    + cbn [pred]. rewrite monom_S. cbn -[INR].
      now rewrite Cmult_0_r, Cplus_0_l, Pzero_alt, !Pplus_0_r.
 Qed.
@@ -810,7 +804,7 @@ Proof.
  - rewrite Pdiff_mult. simpl. rewrite Cplus_0_r.
    rewrite <- seq_shift, map_map. simpl.
    rewrite Pplus_comm. apply Pplus_eq_compat.
-   + now rewrite (last_C0_Peq_front [C1]), Pmult_1_r.
+   + now rewrite (last_C0_Peq_front [1]), Pmult_1_r.
    + rewrite IHl. apply Plistsum_mult_r.
 Qed.
 
@@ -1181,7 +1175,7 @@ Proof.
    symmetry in E. apply Cminus_eq_0 in E.
    rewrite <- !Cmult_assoc in E. apply Cmult_eq_reg_l in E.
    now rewrite !Cmult_1_l in E.
-   apply Cpow_nonzero. intros [= E' _]. revert E'. lra.
+   apply Cpow_nz. intros [= E' _]. revert E'. lra.
 Qed.
 
 Lemma newton_identities_adhoc l :
@@ -1213,5 +1207,5 @@ Proof.
  replace 1 with (newton_sum (S i) l) at 2.
  2:{ apply newton_identities_nosigma; trivial. lia. }
  unfold newton_sum. rewrite Clistsum_factor_l, map_map.
- f_equal. apply map_ext. intros r. rewrite Cpow_mul_l. simpl. ring.
+ f_equal. apply map_ext. intros r. rewrite Cpow_mult_l. simpl. ring.
 Qed.

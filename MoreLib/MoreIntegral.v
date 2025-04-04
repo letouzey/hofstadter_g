@@ -406,8 +406,7 @@ Proof.
  apply (is_RInt_ext (V:=C_NM))
    with (fun x => Cconj (sum_n (fun k => Cconj (a k) * Cexp ((m-k)%nat*x)) n)).
  { intros x _. rewrite sum_n_conj. apply (@sum_n_ext C_NM). intros p.
-   unfold compose. rewrite Cconj_mult_distr, Cconj_involutive. f_equal.
-   rewrite Cexp_conj_neg. f_equal. lra. }
+   unfold compose. conj_in. f_equal. rewrite Cexp_conj_neg. f_equal. lra. }
  rewrite <- Cconj_0. now apply is_CInt_conj, is_CInt_sum_n.
 Qed.
 

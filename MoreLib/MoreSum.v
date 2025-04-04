@@ -291,7 +291,7 @@ Qed.
 Lemma Gbigmult_0 (l : list C) : G_big_mult l = 0 <-> In 0 l.
 Proof.
  induction l; simpl.
- - split. apply C1_neq_C0. easy.
+ - split. apply C1_nz. easy.
  - rewrite <- IHl. apply Cmult_integral.
 Qed.
 
@@ -371,7 +371,7 @@ Lemma sum_n_conj (a : nat -> C) n :
 Proof.
  induction n.
  - now rewrite !sum_O.
- - rewrite !sum_Sn. rewrite <- IHn. apply Cconj_plus_distr.
+ - rewrite !sum_Sn. rewrite <- IHn. apply Cplus_conj.
 Qed.
 
 Lemma re_sum_n (a : nat -> C) n : Re (sum_n a n) = sum_n (Re ∘ a) n.

@@ -1,5 +1,6 @@
 Require Import Modulus.
 Require Export Complex. 
+Import Complex.Compat.
 Local Open Scope R.
 Local Open Scope C.
 

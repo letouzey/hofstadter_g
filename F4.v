@@ -71,7 +71,7 @@ Lemma α_conj : Cconj α = αbar.
 Proof. reflexivity. Qed.
 
 Lemma αbar_conj : Cconj αbar = α.
-Proof. now rewrite <- (Cconj_involutive α). Qed.
+Proof. now rewrite <- (Cconj_conj α). Qed.
 
 #[local] Instance : Approx 0.2194474721 re_α 0.2194474722.
 Proof. unfold re_α. approx. Qed.
@@ -143,11 +143,11 @@ Proof.
    unfold re_α. lca. }
  assert (Cb : Cmod b ^2 = Cmod α ^2).
  { apply RtoC_inj.
-   rewrite αmod2, <- RtoC_pow, Cmod_sqr.
+   rewrite αmod2, RtoC_pow, Cmod_sqr.
    replace (τ/-ν) with ((-1)*(τ/ν)) by (field; approx).
-   (*compat*) try replace (-(1))%C with (RtoC (-1)) in E0 by lca.
+   (*compat*) try replace (-(1))%C with (-1)%C in E0 by lca.
    rewrite <- ?RtoC_opp in E0.
-   rewrite RtoC_mult, RtoC_div, E0, τ_μ, RtoC_inv. field.
+   rtoc. rewrite E0, τ_μ. rtoc. field.
    split; apply RtoC_neq; approx. }
  assert (Ib : (Im b)^2 = im_α^2).
  { rewrite !Cmod2_alt, Rb in Cb. unfold α in Cb; simpl in Cb; lra. }
@@ -159,10 +159,6 @@ Proof.
  revert LT'. apply Rle_not_lt. approx.
 Qed.
 
-Local Hint Rewrite RtoC_pow : RtoC.
-Local Hint Rewrite <- RtoC_opp RtoC_plus RtoC_mult RtoC_minus RtoC_inv
- RtoC_div : RtoC.
-
 Lemma μ_is_Rroot : μ^4 = μ^3 + 1.
 Proof.
  exact (mu_carac 4 lia).
@@ -170,7 +166,7 @@ Qed.
 
 Lemma μ_is_Croot : (μ^4 = μ^3 + 1)%C.
 Proof.
- autorewrite with RtoC. f_equal. apply μ_is_Rroot.
+ ctor. f_equal. apply μ_is_Rroot.
 Qed.
 
 Lemma ν_is_Rroot : ν^4 = ν^3+1.
@@ -180,7 +176,7 @@ Qed.
 
 Lemma ν_is_Croot : (ν ^4 = ν ^3 + 1)%C.
 Proof.
- autorewrite with RtoC. f_equal. apply ν_is_Rroot.
+ ctor. f_equal. apply ν_is_Rroot.
 Qed.
 
 Lemma α_is_Croot : (α^4 = α^3 + 1)%C.
@@ -237,9 +233,8 @@ Proof.
   2:apply roots_sorted.
   cbn -[Cmult Cpow pow ν]. rewrite Cplus_0_r, RtoC_plus, Cplus_assoc. f_equal.
   - change αbar with (Cconj α).
-    rewrite coefdA_conj, <- Cpow_conj, <- Cconj_mult_distr, re_alt'.
-    now rewrite RtoC_mult.
-  - rewrite RtoC_mult, <- RtoC_pow. f_equal. apply coefdA_R.
+    rewrite coefdA_conj. conj_out. rewrite re_alt'. now rtoc.
+  - rtoc. f_equal. apply coefdA_R.
 Qed.
 
 
@@ -535,7 +530,7 @@ Lemma residue4_eqn n :
   residue 4 roots n = restα * Cmod α^n + restν * Rabs ν^n.
 Proof.
  unfold residue, roots. cbn -[pow ν].
- change αbar with (Cconj α). rewrite coefdA_conj, !Cmod_Cconj.
+ change αbar with (Cconj α). rewrite coefdA_conj. conj_out.
  rewrite Rplus_0_r, <- Rplus_assoc, <- double.
  unfold restα, restν. rewrite Cmod_R. field. approx.
 Qed.
@@ -544,8 +539,7 @@ Qed.
 Proof.
  unfold restν. unfold coefdA, coefA. fold τ.
  rewrite !INR_IZR_INZ. cbn -[pow Cpow ν].
- rewrite RtoC_pow, <- RtoC_inv, <- !RtoC_mult, <- !RtoC_minus.
- rewrite <- RtoC_div, <- RtoC_mult, Cmod_R. approx.
+ ctor. rewrite Cmod_R. approx.
 Qed.
 
 #[local] Instance : Approx 1.93 restα 1.94.

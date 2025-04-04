@@ -1041,7 +1041,7 @@ Qed.
 
 (** Particular cases : roots for Q_1 .. Q_5 *)
 
-Lemma TheRoots_1 : TheRoots 1 = [C2].
+Lemma TheRoots_1 : TheRoots 1 = [2].
 Proof.
  generalize (TheRoots_first 1 lia).
  generalize (TheRoots_length 1).
@@ -1141,7 +1141,7 @@ Lemma Equation_A k n : k<>O ->
 Proof.
  intros K. unfold A. rewrite (ThePoly.Equation_A k (TheRoots k)).
  2:{ apply SortedRoots_alt, TheRoots_ok; trivial. }
- rewrite Clistsum_map with (d:=C0). rewrite TheRoots_length.
+ rewrite Clistsum_map with (d:=0). rewrite TheRoots_length.
  rewrite Sigma_0. apply big_sum_eq_bounded.
  intros x Hx. now rewrite coef_c_alt.
 Qed.
@@ -1214,7 +1214,7 @@ Proof.
  intros K. unfold A. rewrite Sigma_alt by lia.
  rewrite (ThePoly.Equation_dA k (TheRoots k)); try lia.
  2:{ apply SortedRoots_alt, TheRoots_ok; lia. }
- rewrite Clistsum_map with (d:=C0).
+ rewrite Clistsum_map with (d:=0).
  replace (length (tl (TheRoots k))) with (k-1)%nat.
  2:{ generalize (TheRoots_length k).
      destruct (TheRoots k); simpl; try lia. }

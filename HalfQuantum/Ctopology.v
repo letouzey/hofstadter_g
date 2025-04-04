@@ -1,6 +1,8 @@
 Require Export Polynomial.
 Require Import Setoid.
+Import Complex.Compat.
 Import Polynomial.Continuity.
+
 
 Local Open Scope R.
 Local Open Scope C.

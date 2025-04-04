@@ -1000,7 +1000,7 @@ Proof.
        rewrite <- E, Cinv_r, Cmod_1 in Hx; trivial. lra. }
    unfold Cdiv. rewrite Cmult_comm, <- Cmult_assoc. f_equal.
    rewrite sum_n_ext with (b:=fun k => r * (r*x)^k).
-   2:{ intros k. now rewrite Cpow_S, Cpow_mul_l, Cmult_assoc. }
+   2:{ intros k. now rewrite Cpow_S, Cpow_mult_l, Cmult_assoc. }
    rewrite sum_n_Cmult_l, Cmult_assoc.
    replace ((/r-x)*r) with (1-r*x) by now field.
    symmetry. apply sum_n_Cpow. }
@@ -1082,7 +1082,7 @@ Proof.
  { intros n. rewrite <- sum_n_Cmult_l.
    rewrite <- sum_n_delay with (p:=p). apply sum_n_ext. clear n.
    intros n. unfold delay. case Nat.ltb_spec; intros.
-   - change zero with C0. lca.
+   - change zero with 0. lca.
    - rewrite Cmult_assoc, (Cmult_comm (z^p)), <- Cmult_assoc. f_equal.
      rewrite <- Cpow_add. f_equal. lia. }
  apply is_lim_Cseq_mult; trivial using is_lim_Cseq_const.

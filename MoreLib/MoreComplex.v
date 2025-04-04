@@ -27,21 +27,16 @@ Number Notation C of_number to_number (via IC mapping
   Zneg => QArith_base.IZneg
  ]) : C_scope.
 
-(** Properties in Coquelicot and QuantumLib, for which a precondition
-    can be removed now that [/0 = 0]
-    (cf Coq 8.16 and the future Coquelicot 4) *)
-
-(* RtoC_inv RtoC_div Cinv_0 without precond : already in QuantumLib *)
-
 Lemma Cinv_1 : /1 = 1.
 Proof.
  now rewrite <- RtoC_inv, Rinv_1.
 Qed.
 
-Lemma Cinv_Copp c : /-c = -/c.
-Proof.
- destruct (Ceq_dec c 0) as [->|N]; try lca. now field.
-Qed.
+(** Properties in Coquelicot and QuantumLib, for which a precondition
+    can be removed now that [/0 = 0]
+    (cf Coq 8.16 and the future Coquelicot 4) *)
+
+(* RtoC_inv RtoC_div Cinv_0 without precond : already in QuantumLib *)
 
 Lemma Cmod_inv (c : C) : Cmod (/ c) = Rinv (Cmod c).
 Proof.
@@ -74,7 +69,7 @@ Proof.
   now field.
 Qed.
 
-(* Also in QuantumLib, but with a worse precondition *)
+(* Also in QuantumLib, but with a wierd precondition *)
 Lemma Cpow_inv (c:C) n : (/c)^n = /(c^n).
 Proof.
   induction n; simpl; auto.
@@ -89,192 +84,15 @@ Qed.
 
 Lemma Cdiv_conj (a b : C) : Cconj (a/b) = Cconj a / Cconj b.
 Proof.
- unfold Cdiv. now rewrite Cconj_mult_distr, Cinv_conj.
-Qed.
-
-(* Properties now in Coquelicot 3.3, but only partly in
-   QuantumLib.Complex *)
-
-Lemma Cpow_1_l n : 1^n = 1.
-Proof.
- induction n; simpl; auto. now rewrite IHn, Cmult_1_l.
-Qed.
-Lemma Cpow_1_r c : c^1 = c. Proof. ring. Qed.
-Lemma Cpow_S c n : c^(S n) = c*c^n. Proof. reflexivity. Qed.
-
-(* Cpow_add_r : ok *)
-(* Cpow_mult_l --> Cpow_mul_l *)
-(* Cpow_mult_r --> Cpow_mult *)
-(* Cpow_nz --> Cpow_nonzero *)
-(* C1_nz --> C1_neq_C0 *)
-
-Lemma Ceq_minus (c c' : C) : c = c' <-> c-c' = 0.
-Proof.
- split; intros H.
- - subst c. apply Cplus_opp_r.
- - destruct c as (x,y), c' as (x',y'). compute in H.
-   injection H as Hx Hy.
-   apply Rminus_diag_uniq_sym in Hx. apply Rminus_diag_uniq_sym in Hy.
-   now f_equal.
-Qed.
-
-(* Cmod_pow : ok *)
-
-Lemma Cmod2_alt (c:C) : (Cmod c ^2 = Re c ^2 + Im c ^2)%R.
-Proof.
- unfold Cmod.
- rewrite <-Rsqr_pow2, Rsqr_sqrt. trivial.
- apply Rplus_le_le_0_compat; apply pow2_ge_0.
-Qed.
-
-Lemma Cmod2_conj (c:C) : RtoC (Cmod c ^2) = c * Cconj c.
-Proof.
- rewrite Cmod2_alt.
- destruct c as (x,y). unfold Cconj, Cmult, RtoC. simpl. f_equal; ring.
-Qed.
-
-Lemma re_alt (c:C) : RtoC (Re c) = (c + Cconj c)/2.
-Proof.
- destruct c as (x,y).
- unfold Cconj, RtoC, Cplus, Cdiv, Cmult. simpl. f_equal; field.
-Qed.
-
-Lemma im_alt (c:C) : RtoC (Im c) = (c - Cconj c)/(2*Ci).
-Proof.
- destruct c as (x,y).
- unfold Cconj, RtoC, Ci, Cminus, Cplus, Cdiv, Cmult. simpl. f_equal; field.
-Qed.
-
-Lemma im_alt' (c:C) : c - Cconj c = 2*Ci*Im c.
-Proof.
- rewrite im_alt. field. C_field.
-Qed.
-
-Lemma re_conj (c:C) : Re (Cconj c) = Re c.
-Proof.
- now destruct c.
-Qed.
-
-Lemma im_conj (c:C) : Im (Cconj c) = (- Im c)%R.
-Proof.
- now destruct c.
-Qed.
-
-Lemma re_plus a b : (Re (a+b) = Re a + Re b)%R.
-Proof.
- now destruct a as (xa,ya), b as (xb,yb).
-Qed.
-
-Lemma re_opp a : (Re (-a) = - Re a)%R.
-Proof.
- now destruct a as (xa,ya).
-Qed.
-
-Lemma re_mult a b : (Re (a*b) = Re a * Re b - Im a * Im b)%R.
-Proof.
- now destruct a as (xa,ya), b as (xb,yb).
-Qed.
-
-Lemma im_plus a b : (Im (a+b) = Im a + Im b)%R.
-Proof.
- now destruct a as (xa,ya), b as (xb,yb).
-Qed.
-
-Lemma im_opp a : (Im (-a) = - Im a)%R.
-Proof.
- now destruct a as (xa,ya).
-Qed.
-
-Lemma im_mult a b : (Im (a*b) = Re a * Im b + Im a * Re b)%R.
-Proof.
- now destruct a as (xa,ya), b as (xb,yb).
-Qed.
-
-Lemma re_RtoC (r:R) : Re (RtoC r) = r.
-Proof.
- reflexivity.
-Qed.
-
-Lemma im_RtoC (r:R) : Im (RtoC r) = 0%R.
-Proof.
- reflexivity.
-Qed.
-
-Lemma re_scal_l (r:R)(c:C) : (Re (r*c) = r * Re c)%R.
-Proof.
- destruct c as (x,y); simpl. ring.
-Qed.
-
-Lemma re_scal_r (c:C)(r:R) : (Re (c*r) = Re c * r)%R.
-Proof.
- destruct c as (x,y); simpl. ring.
-Qed.
-
-Lemma im_scal_l (r:R)(c:C) : (Im (r*c) = r * Im c)%R.
-Proof.
- destruct c as (x,y); simpl. ring.
-Qed.
-
-Lemma im_scal_r (c:C)(r:R) : (Im (c*r) = Im c * r)%R.
-Proof.
- destruct c as (x,y); simpl. ring.
-Qed.
-
-(* Cconj_conj --> Cconj_involutive *)
-(* Cplus_conj --> Cconj_plus_distr *)
-(* Cmult_conj --> Cconj_mult_distr *)
-(* Copp_conj --> Cconj_opp (* TODO: strange variable name C0 !! *) *)
-(* Cminus_conj --> Cconj_minus_distr *)
-
-Lemma Cpow_conj a n : Cconj (a^n) = (Cconj a)^n.
-Proof.
- induction n; simpl. compute; f_equal; lra. rewrite Cconj_mult_distr.
- now f_equal.
-Qed.
-
-(* Cmod_conj --> Cmod_Cconj *)
-
-(* Already in QuantumLib (but in the other direction)
-Lemma RtoC_pow (a:R)(n:nat) : RtoC (a^n) = (RtoC a)^n.
-Proof.
- induction n; simpl; auto. rewrite RtoC_mult. now f_equal.
-Qed.
-*)
-
-Lemma Ci_inv : /Ci = -Ci.
-Proof.
- lca.
-Qed.
-
-Lemma re_mult_Ci (c:C) : (Re (c*Ci) = - Im c)%R.
-Proof.
- destruct c as (x,y). compute. lra.
-Qed.
-
-Lemma im_mult_Ci (c:C) : (Im (c*Ci) = Re c)%R.
-Proof.
- destruct c as (x,y). compute. lra.
-Qed.
-
-Lemma re_le_Cmod (c:C) : Rabs (Re c) <= Cmod c.
-Proof.
- apply Rle_trans with (Rmax (Rabs (Re c)) (Rabs (Im c)));
-  [ apply Rmax_l | apply Rmax_Cmod ].
-Qed.
-
-Lemma im_le_Cmod (c:C) : Rabs (Im c) <= Cmod c.
-Proof.
- apply Rle_trans with (Rmax (Rabs (Re c)) (Rabs (Im c)));
-  [ apply Rmax_r | apply Rmax_Cmod ].
-Qed.
-
-Lemma Cmod_Ci : Cmod Ci = 1%R.
-Proof.
- unfold Cmod, Ci. simpl fst; simpl snd.
- replace (_ + _)%R with 1%R by (simpl; lra). apply sqrt_1.
+ unfold Cdiv. now rewrite Cmult_conj, Cinv_conj.
 Qed.
 
 (** Extra properties, not in Coquelicot nor in QuantumLib *)
+
+Lemma Cinv_Copp c : /-c = -/c.
+Proof.
+ destruct (Ceq_dec c 0) as [->|N]; try lca. now field.
+Qed.
 
 Lemma re_alt' (c:C) : c + Cconj c = 2*Re c.
 Proof. rewrite re_alt. field. Qed.
@@ -351,7 +169,7 @@ Proof.
  intros E.
  assert (b<>0).
  { intros ->. rewrite Cmult_0_r in E. symmetry in E.
-   revert E. apply C1_neq_C0. }
+   revert E. apply C1_nz. }
  apply Cmult_eq_reg_r with b; trivial. rewrite E. field; trivial.
 Qed.
 
@@ -368,6 +186,12 @@ Proof.
  assert (E' : (Cmod c ^2 = Re c ^2)%R) by now rewrite E.
  rewrite Cmod2_alt in E'.
  apply Rsqr_eq_0. rewrite Rsqr_pow2. lra.
+Qed.
+
+Lemma im_le_Cmod (c:C) : Rabs (Im c) <= Cmod c.
+Proof.
+ apply Rle_trans with (Rmax (Rabs (Re c)) (Rabs (Im c)));
+  [ apply Rmax_r | apply Rmax_Cmod ].
 Qed.
 
 (* Note: QuantumLib.Complex.Cconj_eq_implies_real is just the <- direction *)
@@ -404,6 +228,30 @@ Proof.
  assert (IM := Cmod_Re _ RE).
  rewrite <- RE. destruct c. simpl in *. now rewrite IM.
 Qed.
+
+(** Pushing RtoC inside or outside *)
+
+(* NB: RtoC_pow was also in QuantumLib, but in the opposite direction *)
+
+#[global] Hint Rewrite RtoC_plus RtoC_minus RtoC_opp RtoC_mult
+ RtoC_inv RtoC_div RtoC_pow : RtoC.
+Ltac rtoc := autorewrite with RtoC.
+
+#[global] Hint Rewrite <- RtoC_plus RtoC_minus RtoC_opp RtoC_mult
+ RtoC_inv RtoC_div RtoC_pow : CtoR.
+Ltac ctor := autorewrite with CtoR.
+
+(** Pushing Cconj inside or outside *)
+
+#[global] Hint Rewrite Copp_conj Cplus_conj Cminus_conj Cmult_conj
+ Cinv_conj Cdiv_conj Cpow_conj Cconj_R Ci_conj Cconj_conj : ConjIn.
+Ltac conj_in := autorewrite with ConjIn.
+
+#[global] Hint Rewrite <- Copp_conj Cplus_conj Cminus_conj Cmult_conj
+ Cinv_conj Cdiv_conj Cpow_conj : ConjOut.
+#[global] Hint Rewrite re_conj im_conj Cmod_conj Cconj_conj : ConjOut.
+Ltac conj_out := autorewrite with ConjOut.
+
 
 (** Lexicographic order on complex numbers *)
 

@@ -1,5 +1,4 @@
 From Coq Require Import Lia Reals Lra.
-From Coquelicot Require Complex.
 From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
@@ -40,25 +39,21 @@ Proof.
    rewrite (RInt_ext (V:=C_CNM)) with (g:=fun x => (a O)^2).
    2:{ intros x _. rewrite !sum_O. simpl. rewrite !Rmult_0_l.
        rewrite Cexp_0. fixeq C. ring. }
-   rewrite RInt_const.
-   rewrite Complex.scal_R_Cmult.
-   change Coquelicot.Complex.Cmult with Cmult.
-   change Coquelicot.Complex.RtoC with RtoC.
-   now rewrite Rminus_0_r, RtoC_mult.
+   rewrite RInt_const, scal_R_Cmult, Rminus_0_r. now rtoc.
  - intros h. rewrite !sum_Sn.
    set (h1 := fun t => sum_n (fun k : nat => a k * Cexp (k * t)) n) in *.
    assert (Hh : forall x, continuous h x).
    { intros x. apply sum_n_continuous. intros m _. simpl.
-     apply (continuous_scal_r (V:=Complex.C_NormedModule)).
+     apply (continuous_scal_r (V:=C_NormedModule)).
      apply continuous_Cexpn. }
    assert (Hh1 : forall x, continuous h1 x).
    { intro x. apply sum_n_continuous. intros m _. simpl.
-     apply (continuous_scal_r (V:=Complex.C_NormedModule)).
+     apply (continuous_scal_r (V:=C_NormedModule)).
      apply continuous_Cexpn. }
    simpl in *.
    set (h2 := fun t => a (S n) * Cexp (S n * t)).
    assert (Hh2 : forall x, continuous h2 x).
-   { intros x. apply (continuous_scal_r (V:=Complex.C_NormedModule)).
+   { intros x. apply (continuous_scal_r (V:=C_NormedModule)).
      apply continuous_Cexpn. }
    assert (E : forall t, h t = h1 t + h2 t).
    { intros t. unfold h. now rewrite sum_Sn. }
@@ -212,17 +207,16 @@ Proof.
  rewrite Cmult_comm in LE'. fold (Mu g) in LE'.
  rewrite <- Copp_mult_distr_l in LE'.
  assert (E := Mu_aux1 a n). fold h in E. rewrite E in LE'. clear E.
- set (p := C2*PI) in LE'.
+ set (p := 2*PI) in LE'.
  rewrite (Cmult_comm p), <- Cmult_assoc, Cinv_r, Cmult_1_r in LE'.
- 2:{ unfold p. rewrite <- RtoC_mult. apply RtoC_inj_neq.
-     generalize Rgt_2PI_0; lra. }
+ 2:{ unfold p. ctor. apply RtoC_inj_neq. generalize Rgt_2PI_0; lra. }
  unfold Cminus. eapply Rle_lt_trans; [apply LE'| ].
  generalize (cond_pos eps). lra.
 Qed.
 
 (** ThePoly's reciprocal polynomial *)
 
-Definition RevPoly k : Polynomial := monom C1 k +, [-C1;C1].
+Definition RevPoly k : Polynomial := monom 1 k +, [-1;1].
 
 Lemma RevPoly_eval k x : Peval (RevPoly k) x = x^k + x - 1.
 Proof.
@@ -234,7 +228,7 @@ Proof.
  unfold Root. now rewrite RevPoly_eval.
 Qed.
 
-Lemma revroot_nz k : k<>O -> ~ Root C0 (RevPoly k).
+Lemma revroot_nz k : k<>O -> ~ Root 0 (RevPoly k).
 Proof.
  rewrite !RevPoly_root_carac. intros K. replace k with (S (k-1)) by lia.
  simpl. unfold Cminus. rewrite Cmult_0_l, !Cplus_0_l. intros [= E _].
@@ -249,9 +243,9 @@ Proof.
  rewrite !Cmult_plus_distr_l.
  rewrite <- !Copp_mult_distr_r, Cmult_1_r, Copp_involutive.
  rewrite <- !Copp_mult_distr_l, Copp_involutive.
- rewrite <- Cpow_mul_l, Cinv_r, Cpow_1_l by trivial.
+ rewrite <- Cpow_mult_l, Cinv_r, Cpow_1_l by trivial.
  replace k with (S (k-1)) at 2 by lia. simpl.
- rewrite <- Cmult_assoc, <- Cpow_mul_l, Cinv_r, Cpow_1_l; trivial.
+ rewrite <- Cmult_assoc, <- Cpow_mult_l, Cinv_r, Cpow_1_l; trivial.
  ring.
 Qed.
 
@@ -261,12 +255,11 @@ Proof.
  unfold RevPoly.
  rewrite Pplus_comm.
  destruct (Nat.eq_dec k 1) as [->|K'].
- - simpl. rewrite Cplus_0_r. apply degree_is_1.
-   rewrite <- RtoC_plus. intros E. apply RtoC_inj in E. lra.
+ - simpl. rewrite Cplus_0_r. apply degree_is_1. ctor. intros [=E]. lra.
  - rewrite Pplus_degree2.
-   rewrite monom_degree. lia. apply C1_neq_C0.
-   rewrite monom_degree. 2:apply C1_neq_C0.
-   rewrite degree_is_1. lia. apply C1_neq_C0.
+   rewrite monom_degree. lia. apply C1_nz.
+   rewrite monom_degree. 2:apply C1_nz.
+   rewrite degree_is_1. lia. apply C1_nz.
 Qed.
 
 Lemma RevPoly_monic k : (1<k)%nat -> monic (RevPoly k).
@@ -274,8 +267,8 @@ Proof.
  intros K.
  unfold RevPoly. rewrite Pplus_comm. unfold monic.
  rewrite topcoef_plus_ltdeg. apply topcoef_monom.
- rewrite monom_degree. 2:apply C1_neq_C0.
- rewrite degree_is_1. lia. apply C1_neq_C0.
+ rewrite monom_degree. 2:apply C1_nz.
+ rewrite degree_is_1. lia. apply C1_nz.
 Qed.
 
 Lemma RevRoot_carac k x : k<>O ->
@@ -287,7 +280,7 @@ Proof.
    rewrite RevPoly_root_carac in H. rewrite ThePoly_root_carac.
    rewrite RevPoly_eqn in H by trivial.
    apply Cmult_integral in H. destruct H as [H|H].
-   + apply (Cpow_nonzero x k) in Hx.
+   + apply (Cpow_nz x k) in Hx.
      destruct Hx. now rewrite <- (Copp_involutive (x^k)), H, Copp_0.
    + apply Cminus_eq_0 in H. rewrite <- H. ring.
  - intros H.
@@ -366,13 +359,13 @@ Proof.
  intros K H1 H2 H3. unfold f.
  rewrite RevPoly_eqn by trivial.
  rewrite RevPoly_eqn, !Cinv_inv by (trivial; now apply nonzero_div_nonzero).
- rewrite !Cpow_inv. field. repeat split; try now apply Cpow_nonzero.
+ rewrite !Cpow_inv. field. repeat split; try now apply Cpow_nz.
  - intro E. apply H2, ThePoly_root_carac.
    apply Cminus_eq_0 in E. rewrite <- E. ring.
  - replace k with (S (k-1)) at 2 by lia. simpl.
    replace (_-_-_) with ((-x^(k-1))*(x^k + x - 1)) by ring.
    intros E. apply Cmult_integral in E. destruct E as [E|E].
-   + apply (Cpow_nonzero x (k-1)) in H1. apply H1.
+   + apply (Cpow_nz x (k-1)) in H1. apply H1.
      rewrite <- (Copp_involutive (x^(k-1))), E. lca.
    + apply H3. now apply RevPoly_root_carac.
 Qed.
@@ -453,7 +446,7 @@ Proof.
  simpl Pdiff. rewrite Cplus_0_r. unfold Peval; simpl. ring_simplify. f_equal.
  unfold Cminus (*compat*). replace (k*r+_) with (k*(r-1)) by ring. f_equal.
  assert (Hr' : r^(k-1) <> 0).
- { apply Cpow_nonzero. intros ->. eapply root_nz; eauto. }
+ { apply Cpow_nz. intros ->. eapply root_nz; eauto. }
  apply Cmult_eq_reg_l with (r ^(k-1)); trivial.
  rewrite ThePoly_root_eqn; trivial. rewrite Cpow_inv, Cinv_r; trivial.
 Qed.
@@ -541,7 +534,7 @@ Proof.
        replace (r^(k-1)) with (r*r^(k-2)).
        2:{ now replace (k-1)%nat with (S (k-2)) by lia. }
        field.
-       split; [apply Cpow_nonzero|]; now apply tl_roots_nz. }
+       split; [apply Cpow_nz|]; now apply tl_roots_nz. }
    rewrite <- Clistsum_minus.
    rewrite <- map_map, <- Clistsum_factor_l.
    assert (E0 := Equation_B k roots roots_ok (k-2)).
@@ -552,12 +545,11 @@ Proof.
    assert (E1 := Equation_B k roots roots_ok (k-1)).
    rewrite B_one in E1 by lia.
    rewrite E in E1. simpl in E1.
-   replace (RtoC (-1)) with (Copp C1) by lca. rewrite E1.
+   replace (-1) with (-(1)) by lca. rewrite E1.
    replace (mu k^(k-1)) with (mu k * mu k^(k-2)).
    2:{ now replace (k-1)%nat with (S (k-2)) by lia. }
    ring.
- - rewrite RtoC_minus, RtoC_mult.
-   destruct (Nat.le_gt_cases n (k-1)) as [LE|GT].
+ - rtoc. destruct (Nat.le_gt_cases n (k-1)) as [LE|GT].
    + replace (n-(k-1))%nat with O by lia.
      replace (n-k)%nat with O by lia. simpl Cminus.
      rewrite map_ext_in with
@@ -567,7 +559,7 @@ Proof.
          unfold coef', coefB. unfold Cdiv. fold (coef r).
          replace n with (S (n-1)) at 1 3 by lia. rewrite !Cpow_add, !Cpow_S.
          field.
-         split; [apply Cpow_nonzero|]; now apply tl_roots_nz. }
+         split; [apply Cpow_nz|]; now apply tl_roots_nz. }
      rewrite <- Clistsum_minus.
      rewrite <- map_map, <- Clistsum_factor_l.
      assert (E0 := Equation_B k roots roots_ok ((k-1)+(n-1))).
@@ -580,14 +572,14 @@ Proof.
      replace ((k-1)+n)%nat with (S ((k-1)+(n-1)))%nat by lia. simpl. ring.
    + replace (mu k * _ - _) with
          (mu k * (A k (n-(k-1)-1) - tau k * A k (n-(k-1)))%R).
-     2:{ unfold tau. rewrite RtoC_minus, RtoC_mult, RtoC_inv.
+     2:{ unfold tau. rtoc.
          replace (n-(k-1)-1)%nat with (n-k)%nat by lia. field.
          intros [= E']. generalize (mu_pos k); lra. }
      rewrite (Equation_dA k roots roots_ok) by lia.
      rewrite Clistsum_factor_l, map_map. f_equal. apply map_ext_in.
      intros r R.
      unfold coefdA, coefA, coef'. unfold Cdiv. fold (coef r).
-     unfold tau. rewrite RtoC_inv.
+     unfold tau. rtoc.
      rewrite !Cpow_S. replace n with (n-(k-1)+(k-1))%nat at 2 by lia.
      rewrite Cpow_add. replace k with (S (k-1)) at 2 by lia. simpl. field.
      split.
@@ -608,7 +600,7 @@ Proof.
    rewrite Clistsum_factor_l, map_map.
    eapply Rle_trans; [eapply Clistsum_mod|]. rewrite map_map.
    apply Rlistsum_le. intros r R.
-   rewrite <- RtoC_pow, Cpow_S, !Cmod_mult, Cmod_opp, !Cmod_pow.
+   rewrite RtoC_pow, Cpow_S, !Cmod_mult, Cmod_opp, !Cmod_pow.
    rewrite Rpow_mult_distr. ring_simplify. lra. }
  apply ex_series_Rlistsum.
  intros r R.
@@ -639,7 +631,7 @@ Proof.
  assert (Hx' : ~Root x (RevPoly k)).
  { intro R. rewrite RevPoly_alt, <- linfactors_roots, E in R.
    simpl in R. destruct R as [R|R].
-   - apply Hx. rewrite <- R. unfold tau. now rewrite RtoC_inv.
+   - apply Hx. rewrite <- R. unfold tau. now rtoc.
    - rewrite in_map_iff in R. destruct R as (r & <- & IN).
      specialize (Hr _ IN). rewrite Cinv_r, Cmod_1 in Hr; try lra.
      now apply tl_roots_nz. }
@@ -677,36 +669,31 @@ Proof.
  case Nat.eqb_spec; intros Hn.
  - subst. simpl. do 2 case Nat.ltb_spec; try lia.
    intros _ _. unfold dh. simpl. lca.
- - rewrite RtoC_minus, RtoC_mult.
-   do 2 case Nat.ltb_spec; try lia.
+ - rtoc. do 2 case Nat.ltb_spec; try lia.
    + intros Hn' _. unfold dh, df.
      case Nat.eqb_spec; try lia. intros _.
      do 2 case Nat.ltb_spec; try lia. intros _ _.
      replace (n-(k-1))%nat with O by lia. simpl.
-     replace (n-k)%nat with O by lia. simpl.
-     rewrite RtoC_minus, RtoC_mult. ring.
+     replace (n-k)%nat with O by lia. simpl. rtoc. ring.
    + intros Hn2 Hn3. replace n with (k-1)%nat by lia. clear Hn Hn2 Hn3.
      replace ((k-1)-(k-1))%nat with O by lia.
      unfold dh, df. simpl.
      case Nat.eqb_spec; try lia. intros _.
      do 2 case Nat.ltb_spec; try lia. intros _ _.
-     repeat (replace (_-_)%nat with O by lia). simpl.
-     rewrite RtoC_plus, RtoC_minus, RtoC_mult. ring.
+     repeat (replace (_-_)%nat with O by lia). simpl. rtoc. ring.
    + intros _ Hn'. unfold dh, df.
      do 2 case Nat.ltb_spec; try lia. intros _ _.
      repeat case Nat.eqb_spec; try lia; intros.
      * replace (n-(k-1))%nat with (S O) by lia.
-       repeat replace (_-_)%nat with O by lia. simpl.
-       rewrite !RtoC_minus, !RtoC_mult, !RtoC_plus. ring.
-     * apply Ceq_minus.
-       rewrite !plus_INR, !RtoC_minus, !RtoC_mult, !RtoC_plus.
+       repeat replace (_-_)%nat with O by lia. simpl. rtoc. ring.
+     * apply Ceq_minus. rewrite !plus_INR. rtoc.
        replace (n-2*(k-1))%nat with (n-(k-1)-(k-1))%nat by lia.
        ring_simplify.
        replace (n-(k-1))%nat with (S (n-k)) at 2 by lia.
-       rewrite A_S, plus_INR, RtoC_plus. ring_simplify.
+       rewrite A_S, plus_INR. rtoc. ring_simplify.
        replace (n-1-2*(k-1))%nat with (n-(k-1)-k)%nat by lia.
        ring_simplify.
-       rewrite (@A_sum k (n-k)), plus_INR, RtoC_plus by lia.
+       rewrite (@A_sum k (n-k)), plus_INR by lia. rtoc.
        replace (n-1-k)%nat with (n-k-1)%nat by lia. ring.
 Qed.
 
@@ -812,10 +799,10 @@ Proof.
  assert (Hyp' := Hyp_alt _ _ roots_ok Hyp).
  rewrite <- (Mu_series_square (dg k) (g k)).
  { unfold Mu.
-   assert (N : C2*PI <> 0).
+   assert (N : 2*PI <> 0).
    { intros E. rewrite <- RtoC_mult in E. apply RtoC_inj in E.
      generalize PI_RGT_0; lra. }
-   apply Cmult_eq_reg_l with (C2*PI); trivial.
+   apply Cmult_eq_reg_l with (2*PI); trivial.
    rewrite Cmult_assoc, Cinv_r, Cmult_1_l; trivial.
    apply is_CInt_unique.
    apply (is_RInt_ext (V:=C_NM))
@@ -840,10 +827,9 @@ Proof.
          assert (T := mu_itvl k).
          rewrite Cmod_Cexp, Cmod_R, Rabs_right in E; lra. }
        specialize (H N'). lra. }
-   replace (C2*_*_) with (C2*PI*(1+mu k^2) - 0) by ring.
+   replace (2*_*_) with (2*PI*(1+mu k^2) - 0) by ring.
    apply (is_RInt_minus (V:=C_NM)).
-   - rewrite <- RtoC_mult.
-     replace (RtoC (2*PI)) with (RtoC (2*PI)-0) by ring.
+   - rewrite <- RtoC_mult. replace (RtoC (2*PI)) with (RtoC (2*PI)-0) by ring.
      apply is_CInt_const.
    - replace 0 with ((mu k)*(0-0)) at 1 by ring.
      apply is_CInt_scal, (is_RInt_minus (V:=C_NM)).
@@ -871,10 +857,9 @@ Proof.
  apply is_series_unique.
  rewrite <- (re_RtoC (1+mu k^2)).
  apply CSeries_RtoC_impl.
- unfold compose. rewrite RtoC_plus, <- RtoC_pow.
- rewrite <- One by trivial.
+ unfold compose. rtoc. rewrite <- One by trivial.
  apply is_lim_Cseq_ext with (sum_n (fun m => dg k m^2))%C.
- - intros n. apply sum_n_ext. intros m. now rewrite <- RtoC_pow.
+ - intros n. apply sum_n_ext. intros m. now rtoc.
  - apply CSeries_correct.
    destruct (ex_series_square (dg k)) as (l & Hl).
    destruct (SortedRoots_exists k lia) as (roots, roots_ok).
@@ -882,7 +867,7 @@ Proof.
    exists (RtoC l).
    apply CSeries_RtoC in Hl.
    revert Hl. apply is_lim_Cseq_ext. intros n. apply sum_n_ext.
-   intros m. unfold compose. now rewrite RtoC_pow.
+   intros m. unfold compose. now ctor.
 Qed.
 
 Lemma One_le k : (1<k)%nat -> ThePoly_SndRootsLt1 k ->
@@ -1177,7 +1162,7 @@ Proof.
  - apply CexpPI3_root_carac in R; lia.
  - replace (-PI/3)%R with (-(PI/3))%R in R by field.
    rewrite <- Cexp_conj_neg in R. apply root_conj in R.
-   rewrite Cconj_involutive in R.
+   rewrite Cconj_conj in R.
    apply CexpPI3_root_carac in R; lia.
 Qed.
 
@@ -1228,7 +1213,7 @@ Proof.
     assert (T := mu_itvl k). rewrite Cmod_R, Rabs_right in E; lra. }
   destruct (Nat.eq_dec n 2) as [->|N2].
   { exfalso. rewrite E in Im2.
-    rewrite <- (Cconj_involutive (Cexp (PI/3))) in Im2.
+    rewrite <- (Cconj_conj (Cexp (PI/3))) in Im2.
     apply Cconj_simplify in Im2. rewrite <- Im2 in Im1.
     simpl in Im1. rewrite sin_PI3 in Im1. generalize Rlt_sqrt3_0; lra. }
   destruct (Nat.le_gt_cases 3 n).
@@ -1329,7 +1314,7 @@ Proof.
  unfold RevRest, revfactors, rootrest.
  set (l := skipn 3 roots).
  simpl. rewrite Pmult_eval, cons_eval, Pconst_eval.
- rewrite roots_0. unfold tau. rewrite RtoC_inv. ring.
+ rewrite roots_0. unfold tau. rtoc. ring.
 Qed.
 
 Lemma gbis_alt (x:C) : x<>tau k -> gbis x = (1 - mu k * x) * fbis x.
@@ -1412,7 +1397,7 @@ Proof.
  rewrite RevRest_carac; trivial.
  rewrite <- (Cinv_inv x) at 2.
  rewrite RevRest_carac, Cpow_inv by now apply nonzero_div_nonzero.
- field. repeat split; trivial. now apply Cpow_nonzero.
+ field. repeat split; trivial. now apply Cpow_nz.
 Qed.
 
 Lemma ggbis x : Cmod x = 1%R ->
@@ -1453,7 +1438,7 @@ Proof.
  { intros n. rewrite <- sum_n_Cmult_l, sum_n_minus. apply sum_n_ext.
    clear n. intros n. unfold delay.
    case Nat.eqb_spec; case Nat.ltb_spec; try lia.
-   - intros _ ->. simpl. change zero with C0. lca.
+   - intros _ ->. simpl. change zero with 0. lca.
    - intros _ N. fixeq C. ring. }
  replace ((x-c)*l) with (x^1*l-c*l) by ring.
  apply is_lim_Cseq_minus.
@@ -1659,10 +1644,10 @@ Lemma One_again : CSeries (fun n => (dgbis n)^2) = 1 + mu k^2.
 Proof.
  rewrite <- (Mu_series_square dgbis gbis).
  { unfold Mu.
-   assert (N : C2*PI <> 0).
+   assert (N : 2*PI <> 0).
    { intros E. rewrite <- RtoC_mult in E. apply RtoC_inj in E.
      generalize PI_RGT_0; lra. }
-   apply Cmult_eq_reg_l with (C2*PI); trivial.
+   apply Cmult_eq_reg_l with (2*PI); trivial.
    rewrite Cmult_assoc, Cinv_r, Cmult_1_l; trivial.
    apply is_CInt_unique.
    apply (is_RInt_ext (V:=C_NM))
@@ -1670,7 +1655,7 @@ Proof.
    { intros t _.
      rewrite Cexp_neg. rewrite ggbis by now rewrite Cmod_Cexp.
      fixeq C. field. apply Cexp_nonzero. }
-   replace (C2*_*_) with (C2*PI*(1+mu k^2) - 0) by ring.
+   replace (2*_*_) with (2*PI*(1+mu k^2) - 0) by ring.
    apply (is_RInt_minus (V:=C_NM)).
    - rewrite <- RtoC_mult.
      replace (RtoC (2*PI)) with (RtoC (2*PI)-0) by ring.
@@ -1694,10 +1679,9 @@ Proof.
  apply is_series_unique.
  rewrite <- (re_RtoC (1+mu k^2)).
  apply CSeries_RtoC_impl.
- unfold compose. rewrite RtoC_plus, <- RtoC_pow.
- rewrite <- One_again.
+ unfold compose. rtoc. rewrite <- One_again.
  apply is_lim_Cseq_ext with (sum_n (fun k => dgbis k^2))%C.
- - intros n. apply sum_n_ext. intros m. now rewrite <- RtoC_pow, dgbis_dg.
+ - intros n. apply sum_n_ext. intros m. now rewrite RtoC_pow, dgbis_dg.
  - apply CSeries_correct. apply ex_series_Cmod.
    apply ex_series_ext with (fun k => (Cmod (dgbis k))^2)%R.
    { intros n. unfold compose. now rewrite Cmod_pow. }
