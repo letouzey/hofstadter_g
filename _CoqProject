@@ -3,7 +3,6 @@ COQDOCFLAGS = "-interpolate -utf8 --lib-subtitles"
 -R . Hofstadter
 HalfQuantum/Prelim.v
 HalfQuantum/Summation.v
-HalfQuantum/Modulus.v
 HalfQuantum/RealAux.v
 HalfQuantum/Complex.v
 HalfQuantum/Polar.v

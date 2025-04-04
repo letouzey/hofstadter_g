@@ -1,4 +1,3 @@
-Require Import Modulus.
 Require Export Complex. 
 Import Complex.Compat.
 Local Open Scope R.
@@ -168,14 +167,28 @@ Proof.
   lra.
 Qed.
 
+Module Modulus.
+Lemma if_sumbool {A P Q} (x y : A) (c : {P} + {Q}) : 
+  (if c then x else y) = if RMicromega.sumboolb c then x else y.
+Proof.
+  destruct c; reflexivity.
+Qed.
+Lemma f_equal_if {A} (b c : bool) (u v x y : A) : 
+  b = c -> u = v -> x = y ->
+  (if b then u else x) = (if c then v else y).
+Proof.
+  intros; subst; easy.
+Qed.
+End Modulus.
+
 Lemma get_arg_Rmult (r : R) c (Hr : 0 < r) : 
   get_arg (r * c) = get_arg c.
 Proof.
   unfold get_arg.
   cbn.
   rewrite 2!Rmult_0_l, Rplus_0_r, Rminus_0_r.
-  rewrite 2!if_sumbool.
-  apply f_equal_if.
+  rewrite 2!Modulus.if_sumbool.
+  apply Modulus.f_equal_if.
   - destruct (Rcase_abs (snd c)) as [Hlt0 | Hgt0], 
       (Rcase_abs (r * snd c)) as [Hlt0' | Hgt0'];
     [reflexivity | | | reflexivity].
