@@ -6,7 +6,6 @@ Require Import GenFib GenG GenAdd Words Mu ThePoly.
 Local Open Scope Q.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Studying case k=5

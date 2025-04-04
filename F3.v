@@ -7,7 +7,6 @@ Require WordGrowth.
 Local Open Scope C.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Studying case k=3

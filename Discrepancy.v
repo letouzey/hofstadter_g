@@ -5,7 +5,6 @@ Require Import DeltaList GenFib GenG GenAdd Words Mu ThePoly.
 Local Open Scope C.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Discrepancy

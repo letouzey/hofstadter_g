@@ -5,24 +5,23 @@ Require Import MoreList DeltaList MoreSets MoreComplex MoreSum.
 Local Open Scope R.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Open Scope poly_scope.
 
 (** * More on QuantumLib polynomials *)
 
 (** Some extra definitions about polynomials on C *)
 
-Definition coef n (p : Polynomial) := nth n p C0.
+Definition coef n (p : Polynomial) := nth n p 0.
 
-Definition topcoef (p : Polynomial) := last (compactify p) C0.
+Definition topcoef (p : Polynomial) := last (compactify p) 0.
 
 Definition monom (c:C) (k:nat) := repeat C0 k ++ [c].
 
 Definition _X_ := [C0;C1].
 
-Definition Root c p := Peval p c = C0.
+Definition Root c p := Peval p c = 0.
 
-Definition monic p := topcoef p = C1.
+Definition monic p := topcoef p = 1.
 
 Fixpoint linfactors l :=
   match l with

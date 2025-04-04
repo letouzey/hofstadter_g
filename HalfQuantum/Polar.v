@@ -2,7 +2,6 @@ Require Import Modulus.
 Require Export Complex. 
 Local Open Scope R.
 Local Open Scope C.
-Local Coercion RtoC : R >-> C.
 
 (******************************)
 (* Defining polar coordinates *)

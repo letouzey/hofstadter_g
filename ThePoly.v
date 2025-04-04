@@ -6,7 +6,6 @@ Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Definition ThePoly (k:nat) : Polynomial :=
@@ -997,7 +996,7 @@ Proof.
    { destruct roots as [|a [|b l]]; simpl in *; try lia.
      f_equal; tauto. }
    unfold Amk. rewrite E, K'. simpl. rewrite pow_INR, <-RtoC_pow.
-   change (INR 2) with 2. field.
+   change (INR 2) with 2%R. field.
  - induction p as [[|p] IH] using lt_wf_ind.
    + rewrite Nat.add_0_r, A_base by lia. apply Amk_is_1; lia.
    + simpl. rewrite Amk_rec, plus_INR, RtoC_plus by lia. f_equal.

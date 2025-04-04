@@ -8,7 +8,6 @@ From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 Require Import MoreTac MoreList MoreReals MoreComplex MoreSum.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 Notation R_NM := R_NormedModule.
@@ -1257,4 +1256,3 @@ Proof.
  exists c; split; trivial. replace (f b - f a) with 0 in Hc' by lra.
  symmetry in Hc'. apply Rmult_integral in Hc'. destruct Hc'; trivial; lra.
 Qed.
-

@@ -3,7 +3,6 @@ Require Export Ctopology.
 Require Import Setoid.
 Local Open Scope R.
 Local Open Scope C.
-Local Coercion RtoC : R >-> C.
 Local Open Scope poly_scope.
 Import PolyNotations.
 

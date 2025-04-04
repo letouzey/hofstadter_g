@@ -6,7 +6,6 @@ Require Import MoreSum MoreLim.
 Require GenFib GenG Words WordGrowth Mu Freq RootEquiv F3 F4 F5.
 Require Import Article1.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Article2.v *)

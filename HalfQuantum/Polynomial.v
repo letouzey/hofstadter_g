@@ -6,7 +6,6 @@ Require Import Setoid.
 
 Local Open Scope R.
 Local Open Scope C.
-Local Coercion RtoC : R >-> C.
  
 Declare Scope poly_scope.
 Delimit Scope poly_scope with P.

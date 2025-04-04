@@ -3,120 +3,37 @@ From Hofstadter.HalfQuantum Require Import Complex.
 From Hofstadter.HalfQuantum Require Polar.
 Require Import MoreList MoreReals.
 
-Global Notation "0" := C0 : C_scope. (* TODO *)
-Global Notation "1" := C1 : C_scope. (* TODO *)
-
 Local Open Scope R.
 Local Open Scope C.
-Local Coercion RtoC : R >-> C.
 
-(** Better Ring / Field, handling Z constants and power
-    (now integrated in Coquelicot >= 3.3.0) *)
+(** Most of the time, the RtoC coercion already allows to parse numbers
+    as C constants. But that only works when the context clearly indicates
+    that a C term is expected. Several situations are hence problematic,
+    e.g. inside lists, equality starting by a number, etc. Instead
+    of writing RtoC manually in these cases, we add a proper Number Notation
+    for C. *)
 
-Definition C_ring_morph :
- ring_morph (RtoC 0) (RtoC 1) Cplus Cmult Cminus Copp (@eq C)
-  0%Z 1%Z Z.add Z.mul Z.sub Z.opp Z.eqb (fun z => RtoC (IZR z)).
-Proof.
- constructor; try reflexivity; intros.
- - now rewrite plus_IZR, RtoC_plus.
- - now rewrite minus_IZR, RtoC_minus.
- - now rewrite mult_IZR, RtoC_mult.
- - now rewrite opp_IZR, RtoC_opp.
- - f_equal. f_equal. now apply Z.eqb_eq.
-Qed.
 
-Lemma Zeqb_Ccomplete z z' : RtoC (IZR z) = RtoC (IZR z') -> Z.eqb z z' = true.
-Proof.
- intros H. apply Z.eqb_eq. now apply eq_IZR, RtoC_inj.
-Qed.
-
-Lemma C_power_theory : @power_theory C 1 Cmult (@eq C) _ N.to_nat Cpow.
-Proof.
- constructor. destruct n. reflexivity.
- simpl. induction p.
- - rewrite Pos2Nat.inj_xI. simpl. now rewrite Nat.add_0_r, Cpow_add_r, IHp.
- - rewrite Pos2Nat.inj_xO. simpl. now rewrite Nat.add_0_r, Cpow_add_r, IHp.
- - simpl. now rewrite Cmult_1_r.
-Qed.
-
-Ltac RtoC_IZR_tac t :=
-  match t with
-  | RtoC ?x => IZR_tac x
-  | _ => constr:(NotConstant)
-  end.
-
-Lemma C_ring_theory : ring_theory (RtoC 0) (RtoC 1) Cplus Cmult Cminus Copp eq.
-Proof.
-constructor.
-exact Cplus_0_l.
-exact Cplus_comm.
-exact Cplus_assoc.
-exact Cmult_1_l.
-exact Cmult_comm.
-exact Cmult_assoc.
-exact Cmult_plus_distr_r.
-easy.
-exact Cplus_opp_r.
-Qed.
-
-Add Ring C_ring_ring :
- C_ring_theory
-  (morphism C_ring_morph,
-   constants [RtoC_IZR_tac],
-   power_tac C_power_theory [Rpow_tac]).
-
-Lemma C_field_theory : field_theory (RtoC 0) (RtoC 1) Cplus Cmult Cminus Copp Cdiv Cinv eq.
-Proof.
-constructor.
-constructor.
-exact Cplus_0_l.
-exact Cplus_comm.
-exact Cplus_assoc.
-exact Cmult_1_l.
-exact Cmult_comm.
-exact Cmult_assoc.
-exact Cmult_plus_distr_r.
-easy.
-exact Cplus_opp_r.
-intros H.
-injection H.
-exact R1_neq_R0.
-easy.
-apply Cinv_l.
-Qed.
-
-Add Field C_field2 :
- C_field_theory
-  (morphism C_ring_morph,
-   completeness Zeqb_Ccomplete,
-   constants [RtoC_IZR_tac],
-   power_tac C_power_theory [Rpow_tac]).
+Local Set Warnings "-via-type-remapping,-via-type-mismatch".
+Variant IC := ICR : IR -> IC.
+Definition of_number n := ICR (Rdefinitions.of_number n).
+Definition to_number '(ICR r) := Rdefinitions.to_number r.
+Number Notation C of_number to_number (via IC mapping
+ [RtoC => ICR,
+  IZR => IRZ, Q2R => IRQ, Rmult => IRmult, Rdiv => IRdiv,
+  Z.pow_pos => QArith_base.IZpow_pos,
+  Z0 => QArith_base.IZ0,
+  Zpos => QArith_base.IZpos,
+  Zneg => QArith_base.IZneg
+ ]) : C_scope.
 
 (** Properties in Coquelicot and QuantumLib, for which a precondition
     can be removed now that [/0 = 0]
     (cf Coq 8.16 and the future Coquelicot 4) *)
 
-Lemma RtoC_inv (x : R) : RtoC (/ x) = / RtoC x.
-Proof.
-  apply injective_projections ; simpl.
-  2: unfold Rdiv; ring.
-  destruct (Req_dec x 0) as [->|Hx].
-  rewrite Rinv_0.
-  unfold Rdiv; ring.
-  now field.
-Qed.
+(* RtoC_inv RtoC_div Cinv_0 without precond : already in QuantumLib *)
 
-Lemma RtoC_div (x y : R) : RtoC (x / y) = RtoC x / RtoC y.
-Proof.
- unfold Cdiv, Rdiv. now rewrite <- RtoC_inv, <- RtoC_mult.
-Qed.
-
-Lemma Cinv_0 : /C0 = C0.
-Proof.
- now rewrite <- RtoC_inv, Rinv_0.
-Qed.
-
-Lemma Cinv_1 : /C1 = C1.
+Lemma Cinv_1 : /1 = 1.
 Proof.
  now rewrite <- RtoC_inv, Rinv_1.
 Qed.
@@ -445,18 +362,16 @@ Proof.
  - now apply Polar.rect_to_polar_to_rect.
 Qed.
 
-Local Open Scope R.
-
-Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0.
+Lemma Cmod_Re (c:C) : Re c = Cmod c -> Im c = 0%R.
 Proof.
  intros E.
- assert (E' : Cmod c ^2 = Re c ^2) by now rewrite E.
+ assert (E' : (Cmod c ^2 = Re c ^2)%R) by now rewrite E.
  rewrite Cmod2_alt in E'.
  apply Rsqr_eq_0. rewrite Rsqr_pow2. lra.
 Qed.
 
 (* Note: QuantumLib.Complex.Cconj_eq_implies_real is just the <- direction *)
-Lemma is_real_carac c : Im c = 0 <-> Cconj c = c.
+Lemma is_real_carac c : Im c = 0%R <-> Cconj c = c.
 Proof.
  split; intros H.
  - destruct c as (x,y); unfold Cconj, Im in *; simpl in *. subst.
@@ -472,15 +387,15 @@ Proof.
 Qed.
 
 Lemma Cmod_triangle_exact (c:C) :
-  Cmod (c - 1) = Cmod c - 1 -> c = Cmod c.
+  Cmod (c - 1) = (Cmod c - 1)%R -> c = Cmod c.
 Proof.
  intros E.
- assert (E' : Cmod (c-1)^2 = (Cmod c - 1)^2) by now rewrite E.
+ assert (E' : (Cmod (c-1)^2 = (Cmod c - 1)^2)%R) by now rewrite E.
  clear E. rename E' into E.
  rewrite <- (Rsqr_pow2 (_ - _)) in E.
  unfold Rsqr in E. ring_simplify in E.
  rewrite !Cmod2_alt in E.
- replace (Re (c-1)) with (Re c - 1) in E.
+ replace (Re (c-1)) with (Re c - 1)%R in E.
  2:{ destruct c as (x,y). simpl. lra. }
  replace (Im (c-1)) with (Im c) in E.
  2:{ destruct c as (x,y). simpl. lra. }
@@ -489,8 +404,6 @@ Proof.
  assert (IM := Cmod_Re _ RE).
  rewrite <- RE. destruct c. simpl in *. now rewrite IM.
 Qed.
-
-Local Close Scope R.
 
 (** Lexicographic order on complex numbers *)
 
@@ -593,7 +506,7 @@ Qed.
 
 Lemma StronglySorted_nth (R : C -> C -> Prop) (l : list C) :
  StronglySorted R l <->
- forall n m, (n < m < length l)%nat -> R (nth n l C0) (nth m l C0).
+ forall n m, (n < m < length l)%nat -> R (nth n l 0) (nth m l 0).
 Proof.
  split.
  - induction 1; simpl length; try lia.
@@ -603,7 +516,7 @@ Proof.
  - induction l; simpl length; intros H; constructor.
    + apply IHl. intros n m NM. apply (H (S n) (S m)). lia.
    + apply Forall_forall. intros x X.
-     destruct (In_nth l x C0 X) as (n & LT & <-). apply (H O (S n)). lia.
+     destruct (In_nth l x 0 X) as (n & LT & <-). apply (H O (S n)). lia.
 Qed.
 
 Lemma Csorted_rev l : Csorted l <-> Sorted Clt (rev l).
@@ -623,5 +536,5 @@ Qed.
 
 (** Short notation of nth element in a C list *)
 
-Definition Cnth l i := nth i l C0.
+Definition Cnth l i := nth i l 0.
 Infix "@" := Cnth (at level 10) : C_scope.

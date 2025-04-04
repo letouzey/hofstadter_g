@@ -6,7 +6,6 @@ From Hofstadter.HalfQuantum Require Import Complex.
 Require Import DeltaList MoreList MoreReals MoreComplex.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 
 (** * Various flavours of summations *)
 
@@ -189,7 +188,7 @@ Proof.
  induction l; simpl; rewrite ?IHl; ring.
 Qed.
 
-Lemma Clistsum_zero {A}(l:list A) : Clistsum (map (fun _ => C0) l) = C0.
+Lemma Clistsum_zero {A}(l:list A) : Clistsum (map (fun _ => 0) l) = 0.
 Proof.
  induction l; simpl; rewrite ?IHl; lca.
 Qed.
@@ -289,7 +288,7 @@ Qed.
 
 (** G_big_mult : Product of a list of complex *)
 
-Lemma Gbigmult_0 (l : list C) : G_big_mult l = C0 <-> In C0 l.
+Lemma Gbigmult_0 (l : list C) : G_big_mult l = 0 <-> In 0 l.
 Proof.
  induction l; simpl.
  - split. apply C1_neq_C0. easy.
@@ -351,12 +350,12 @@ Proof.
  - rewrite sum_Sn, IHn. apply plus_zero_l.
 Qed.
 
-Lemma sum_n_R0 n : sum_n (fun _ => R0) n = R0.
+Lemma sum_n_R0 n : sum_n (fun _ => 0%R) n = 0%R.
 Proof.
  apply (sum_n_zero (G:=R_AbelianMonoid)).
 Qed.
 
-Lemma sum_n_C0 n : sum_n (fun n => C0) n = C0.
+Lemma sum_n_C0 n : sum_n (fun n => 0) n = 0.
 Proof.
  apply (sum_n_zero (G:=Complex.C_AbelianMonoid)).
 Qed.
@@ -515,7 +514,7 @@ Proof.
  - eapply Rle_trans; [apply Cmod_triangle|apply Rplus_le_compat_r, IHn].
 Qed.
 
-Lemma big_sum_kronecker f n m :
+Lemma big_sum_kronecker (f : nat -> C) n m :
  (m < n)%nat ->
  (forall i, (i < n)%nat -> i<>m -> f i = 0) ->
  big_sum f n = f m.
@@ -525,7 +524,7 @@ Proof.
  - lia.
  - intros m M F. rewrite <- big_sum_extend_r. simpl.
    destruct (Nat.eq_dec n m) as [<-|M'].
-   + rewrite big_sum_0_bounded. lca. intros i Hi. apply F; lia.
+   + rewrite big_sum_0_bounded. simpl. ring. intros i Hi. apply F; lia.
    + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
      intros i Hi. apply F; lia.
 Qed.

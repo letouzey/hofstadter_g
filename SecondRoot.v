@@ -9,7 +9,6 @@ Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.
 Local Coercion INR : nat >-> R.
-Local Coercion RtoC : R >-> C.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * The second largest root of ThePoly has modulus>1 for k>=6
@@ -1087,7 +1086,7 @@ Proof.
  2:{ unfold Cexp. rewrite cos_PI3, cos_2PI3, sin_PI3, sin_2PI3.
      unfold Cminus, Cplus. simpl. f_equal; lra. }
  rewrite <- Cexp_add , <- Rmult_plus_distr_r.
- change 2 with (INR 2). rewrite <- plus_INR.
+ change 2%R with (INR 2). rewrite <- plus_INR.
  replace (k-1+2)%nat with (k+1)%nat by lia.
  rewrite (Nat.div_mod_eq (k+1) 6).
  set (q := ((k+1)/6)%nat).
@@ -1109,7 +1108,7 @@ Proof.
      * intros [= H _]. rewrite cos_2PI3 in H. lra.
    + replace (r * (PI/3))%R with (PI + (r-3)*(PI/3))%R by field.
      rewrite Cexp_add, Cexp_PI.
-     replace 3 with (INR 3) at 1 by now rewrite INR_IZR_INZ.
+     replace 3%R with (INR 3) at 1 by now rewrite INR_IZR_INZ.
      rewrite <- minus_INR by lia.
      assert (Hr' : (r-3 < 3)%nat)
        by (generalize (Nat.mod_upper_bound (k+1) 6); lia).
