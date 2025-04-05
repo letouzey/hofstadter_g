@@ -32,22 +32,12 @@ Qed.
 
 Lemma τ4 : τ^4 = 1 - τ.
 Proof.
- generalize (tau_carac 4 lia). fold τ. lra.
-Qed.
-
-Lemma τ5 : τ^5 = τ - τ^2.
-Proof.
- change (τ^5) with (τ*τ^4). rewrite τ4. ring.
-Qed.
-
-Lemma τ6 : τ^6 = τ^2 - τ^3.
-Proof.
- change (τ^6) with (τ*τ^5). rewrite τ5. ring.
+ rewrite <- (tau_carac 4) by easy. fold τ. lra.
 Qed.
 
 Lemma τ3456 : τ^3 + τ^4 + τ^5 + τ^6 = 1.
 Proof.
- rewrite τ6, τ5, τ4; ring.
+ ring [τ4].
 Qed.
 
 #[local] Instance : Approx 0.7244919590005 τ 0.7244919590006.
@@ -663,9 +653,7 @@ Lemma Diff0123 w :
 Proof.
  intros H.
  apply nbocc_total_lt in H. simpl in H.
- unfold Diff0, Diff1, Diff2, Diff3.
- rewrite τ4, τ5, τ6. ring_simplify.
- rewrite H, !plus_INR. change (INR 0) with 0. ring.
+ unfold Diff0, Diff1, Diff2, Diff3. rewrite H, !plus_INR. simpl. ring [τ4].
 Qed.
 
 Lemma diff0123 n : diff0 n + diff1 n + diff2 n + diff3 n = 0.
@@ -725,9 +713,7 @@ Lemma Diff0_ksubst4 w : Diff0 (ksubstw 4 w) = τ * Diff3 w.
 Proof.
  unfold Diff0, Diff3.
  rewrite len_ksubst, plus_INR.
- destruct (nbocc_ksubst4 w) as (-> & _ & _ & _).
- ring_simplify. unfold Rminus. rewrite Rplus_assoc. f_equal.
- rewrite τ4. simpl. lra.
+ destruct (nbocc_ksubst4 w) as (-> & _ & _ & _). simpl. ring [τ4].
 Qed.
 
 Lemma Diff3_ksubst4 w :
@@ -738,9 +724,7 @@ Proof.
  unfold Diff0, Diff1, Diff3.
  rewrite len_ksubst. simpl Nat.sub.
  destruct (nbocc_ksubst4 w) as (_ & _ & _ & ->).
- rewrite !plus_INR.
- ring_simplify. rewrite τ6, τ5, τ4. ring_simplify.
- rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
+ rewrite !len_nbocc_0123, !plus_INR by trivial. ring [τ4].
 Qed.
 
 Lemma Diff1_ksubst4 w :
@@ -751,10 +735,7 @@ Proof.
  unfold Diff0, Diff1, Diff3.
  rewrite len_ksubst. simpl Nat.sub.
  destruct (nbocc_ksubst4 w) as (_ & -> & _ & _).
- rewrite !plus_INR.
- ring_simplify. replace (τ^8) with ((τ^4)^2) by ring.
- rewrite τ5, τ4. ring_simplify.
- rewrite !len_nbocc_0123 by trivial. rewrite !plus_INR. ring.
+ rewrite !len_nbocc_0123, !plus_INR by trivial. ring [τ4].
 Qed.
 
 

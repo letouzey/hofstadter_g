@@ -26,12 +26,12 @@ Definition im_α := sqrt (τ * (3+τ))/2.
 Definition α : C := (re_α, im_α).
 Definition αbar : C := (re_α, - im_α).
 
-Lemma μ_inv : τ = /μ.
+Lemma τ_μ : τ = /μ.
 Proof.
  easy.
 Qed.
 
-Lemma τ_inv : μ = /τ.
+Lemma μ_τ : μ = /τ.
 Proof.
  apply tau_inv.
 Qed.
@@ -61,7 +61,7 @@ Proof. approx. Qed.
 
 Lemma re_α_alt : re_α = - τ^2 / 2.
 Proof.
- unfold re_α. rewrite τ_inv. field [τ3]. approx.
+ unfold re_α. rewrite μ_τ. field [τ3]. approx.
 Qed.
 
 Lemma im_α_2 : im_α ^ 2 = τ * (3+τ) / 4.
@@ -79,7 +79,7 @@ Qed.
 
 Lemma τ_as_μ : τ = μ*(μ-1).
 Proof.
- rewrite τ_inv. field [τ3]. approx.
+ rewrite μ_τ. field [τ3]. approx.
 Qed.
 
 #[local] Instance αmod_approx :
@@ -1108,7 +1108,7 @@ Proof.
  rewrite !Cpow_mult_l. ctor.
  unfold Rdiv. rewrite Rpow_mult_distr, pow2_sqrt by approx.
  rewrite pow_inv, Ci2'. ctor. f_equal.
- rewrite τ_inv. field [τ3]. approx.
+ rewrite μ_τ. field [τ3]. approx.
 Qed.
 
 Lemma det_eqn : det = Ci * sqrt 31.
