@@ -353,6 +353,18 @@ Proof.
    apply Pplus_opp_r.
 Qed.
 
+Lemma Pplus_map (f g : nat -> C) l (p q : Polynomial) :
+   (map f l ++ p) +, (map g l ++ q) ≅ map (fun k => f k + g k) l ++ (p +, q).
+Proof.
+ induction l; simpl. easy. now rewrite IHl.
+Qed.
+
+Lemma Pplus_map' (f g : nat -> C) l (p : Polynomial) :
+   (map f l) +, (map g l ++ p) ≅ map (fun k => f k + g k) l ++ p.
+Proof.
+ rewrite <- (app_nil_r (map f l)). now rewrite Pplus_map.
+Qed.
+
 
 (** Euclidean division of polynomial *)
 
@@ -1041,18 +1053,6 @@ Proof.
    + now rewrite !sigma_0.
    + rewrite !sigma_rec, !sigma_0. ring.
    + rewrite !sigma_rec. ring.
-Qed.
-
-Lemma Pplus_map (f g : nat -> C) l (p q : Polynomial) :
-   (map f l ++ p) +, (map g l ++ q) ≅ map (fun k => f k + g k) l ++ (p +, q).
-Proof.
- induction l; simpl. easy. now rewrite IHl.
-Qed.
-
-Lemma Pplus_map' (f g : nat -> C) l (p : Polynomial) :
-   (map f l) +, (map g l ++ p) ≅ map (fun k => f k + g k) l ++ p.
-Proof.
- rewrite <- (app_nil_r (map f l)). now rewrite Pplus_map.
 Qed.
 
 (** Writing a polynomial in term of symmetric functions of its roots *)
