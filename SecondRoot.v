@@ -538,12 +538,12 @@ Proof.
    rewrite <- Clistsum_minus.
    rewrite <- map_map, <- Clistsum_factor_l.
    assert (E0 := Equation_B k roots roots_ok (k-2)).
-   rewrite B_zero in E0 by lia.
+   rewrite Alt.B_zero in E0 by lia.
    rewrite E in E0. simpl in E0. symmetry in E0.
    rewrite Cplus_comm, <- (Copp_involutive (Cmult _ _)) in E0.
    apply Cminus_eq_0 in E0. rewrite E0. clear E0.
    assert (E1 := Equation_B k roots roots_ok (k-1)).
-   rewrite B_one in E1 by lia.
+   rewrite Alt.B_one in E1 by lia.
    rewrite E in E1. simpl in E1.
    replace (-1) with (-(1)) by lca. rewrite E1.
    replace (mu k^(k-1)) with (mu k * mu k^(k-2)).
@@ -563,10 +563,10 @@ Proof.
      rewrite <- Clistsum_minus.
      rewrite <- map_map, <- Clistsum_factor_l.
      assert (E0 := Equation_B k roots roots_ok ((k-1)+(n-1))).
-     rewrite B_one in E0 by lia.
+     rewrite Alt.B_one in E0 by lia.
      rewrite E in E0. simpl in E0. rewrite E0 at 1. clear E0.
      assert (E1 := Equation_B k roots roots_ok ((k-1)+n)).
-     rewrite B_one in E1 by lia.
+     rewrite Alt.B_one in E1 by lia.
      rewrite E in E1. simpl in E1. rewrite E1.
      rewrite Ceq_minus. ring_simplify.
      replace ((k-1)+n)%nat with (S ((k-1)+(n-1)))%nat by lia. simpl. ring.

@@ -1199,35 +1199,3 @@ Proof.
    now rewrite !Cmult_1_l in E.
    apply Cpow_nz. intros [= E' _]. revert E'. lra.
 Qed.
-
-Lemma newton_identities_adhoc l :
- let k := length l in
- sigma 1 l = 1 -> (forall p, (1<p<k)%nat -> sigma p l = 0) ->
- forall p, (p<k)%nat ->
-   Clistsum (map (fun r => (k*r+(1-k))^p) l) = 1 - (1-k)^S p.
-Proof.
- intros k H1 H0 p Hp.
- destruct (Nat.eq_dec p 0) as [->|Hp'].
- { simpl. rewrite Clistsum_const. fold k. lca. }
- erewrite map_ext.
- 2:{ intros r. rewrite binomial_formula, big_sum_sum_n. reflexivity. }
- rewrite <- Clistsum_sum_n, <- big_sum_sum_n.
- rewrite big_sum_shift.
- erewrite map_ext.
- 2:{ intros r. simpl.
-     replace (binom p 0) with 1%nat. 2:{ now destruct p. }
-     rewrite 2 Cmult_1_l, Nat.sub_0_r. reflexivity. }
- rewrite Clistsum_const. fold k.
- replace (big_sum _ _) with ((k+(1-k))^p-(1-k)^p).
- simpl. replace (k+(1-k)) with 1 by lca. rewrite Cpow_1_l. ring.
- rewrite binomial_formula, big_sum_shift.
- replace (binom p 0) with 1%nat. 2:{ now destruct p. }
- simpl Gplus. rewrite Nat.sub_0_r. ring_simplify.
- apply big_sum_eq_bounded.
- intros i Hi.
- rewrite <- (Cmult_1_r (binom _ _ * _ * _)).
- replace 1 with (newton_sum (S i) l) at 2.
- 2:{ apply newton_identities_nosigma; trivial. lia. }
- unfold newton_sum. rewrite Clistsum_factor_l, map_map.
- f_equal. apply map_ext. intros r. rewrite Cpow_mult_l. simpl. ring.
-Qed.

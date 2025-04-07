@@ -119,6 +119,12 @@ Proof.
  induction n; simpl; f_equal; auto.
 Qed.
 
+Lemma repeat_map_seq {A} (a:A) n :
+ repeat a n = map (fun _ => a) (seq 0 n).
+Proof.
+ induction n; simpl; trivial. rewrite <- seq_shift, map_map. now f_equal.
+Qed.
+
 (** Insertion at the right spot in a sorted [nat list] *)
 
 Fixpoint insert (x : nat) (l : list nat) :=

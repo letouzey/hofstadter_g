@@ -13,7 +13,6 @@ Local Open Scope C.
     of writing RtoC manually in these cases, we add a proper Number Notation
     for C. *)
 
-
 Local Set Warnings "-via-type-remapping,-via-type-mismatch".
 Variant IC := ICR : IR -> IC.
 Definition of_number n := ICR (Rdefinitions.of_number n).
@@ -235,6 +234,54 @@ Ltac conj_in := autorewrite with ConjIn.
  Cinv_conj Cdiv_conj Cpow_conj : ConjOut.
 #[global] Hint Rewrite re_conj im_conj Cmod_conj Cconj_conj : ConjOut.
 Ltac conj_out := autorewrite with ConjOut.
+
+(** ** Power function indexed by a relative integer *)
+
+Definition CpowZ (c:C)(z:Z) :=
+ match z with
+ | Z0 => 1
+ | Zpos p => c^(Z.to_nat (Zpos p))
+ | Zneg p => (/c)^(Z.to_nat (Zpos p))
+ end.
+
+Lemma Cpow_CpowZ (c:C) n : c^n = CpowZ c (Z.of_nat n).
+Proof.
+ destruct n. trivial. simpl CpowZ. f_equal. lia.
+Qed.
+
+Lemma CpowZ_pos_sub (c:C) (a b : positive) :
+  c <> 0 ->
+  CpowZ c (Z.pos_sub a b) = c ^ Pos.to_nat a * (/ c) ^ Pos.to_nat b.
+Proof.
+ intros Hc. rewrite Cpow_inv.
+ rewrite (Z.pos_sub_spec a b). case Pos.compare_spec.
+ - intros <-. simpl. field. now apply Cpow_nz.
+ - intros LT. simpl.
+   replace (Pos.to_nat b) with (Pos.to_nat (b-a) + Pos.to_nat a)%nat
+    by lia.
+   rewrite Cpow_add_r. rewrite Cpow_inv. field. split; now apply Cpow_nz.
+ - intros LT. simpl.
+   replace (Pos.to_nat a) with (Pos.to_nat (a-b) + Pos.to_nat b)%nat
+    by lia.
+   rewrite Cpow_add_r. field. now apply Cpow_nz.
+Qed.
+
+Lemma CpowZ_add_r c a b : c<>0 -> CpowZ c (a+b) = CpowZ c a * CpowZ c b.
+Proof.
+ intros Hc.
+ destruct a as [|a|a], b as [|b|b]; simpl; try lca.
+ - rewrite <- Cpow_add_r. f_equal. lia.
+ - now rewrite CpowZ_pos_sub.
+ - rewrite CpowZ_pos_sub; trivial. ring.
+ - rewrite <- Cpow_add_r. f_equal. lia.
+Qed.
+
+Lemma RtoC_powZ (a : R) (z : Z) : RtoC (powerRZ a z) = CpowZ a z.
+Proof.
+ destruct z; simpl; trivial.
+ - apply RtoC_pow.
+ - rewrite Cpow_inv. now rewrite RtoC_inv, RtoC_pow.
+Qed.
 
 
 (** Lexicographic order on complex numbers *)
