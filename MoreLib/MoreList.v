@@ -399,13 +399,6 @@ Proof.
    simpl. rewrite Nat.sub_0_r. destruct k; try lia. f_equal. lia.
 Qed.
 
-Lemma insert_at_perm {A} (l:list A) i x :
-  Permutation (insert_at i x l) (x::l).
-Proof.
- revert i. induction l; destruct i; simpl; try easy.
- rewrite perm_swap. now apply perm_skip.
-Qed.
-
 (** remove_at : dual of insert_at *)
 
 Fixpoint remove_at {A} i (l:list A) :=
@@ -424,17 +417,22 @@ Proof.
 Qed.
 
 Lemma remove_at_length {A} (l:list A) i :
-  (i < length l)%nat -> length (remove_at i l) = pred (length l).
+  i < length l -> length (remove_at i l) = pred (length l).
 Proof.
  revert i. induction l; destruct i; simpl; intros; trivial. rewrite IHl; lia.
 Qed.
 
 Lemma insert_at_remove_at {A} (l:list A) i (d:A) :
-  (i < length l)%nat ->
-  insert_at i (nth i l d) (remove_at i l) = l.
+  i < length l -> insert_at i (nth i l d) (remove_at i l) = l.
 Proof.
  revert i. induction l; destruct i; simpl; trivial; try lia.
  intros Hi. f_equal. apply IHl. lia.
+Qed.
+
+Lemma remove_at_permut {A} (l:list A) i (d:A) :
+  i < length l -> Permutation (nth i l d :: remove_at i l) l.
+Proof.
+ intros Hi. now rewrite <- insert_permut with (n:=i), insert_at_remove_at.
 Qed.
 
 Lemma remove_at_notIn {A} (l:list A) i d :

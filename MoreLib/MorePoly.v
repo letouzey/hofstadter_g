@@ -337,6 +337,23 @@ Proof.
  intros c c' <- p p' Hp. unfold Root. now rewrite Hp.
 Qed.
 
+Lemma Pmult_Peq_reg_l (p q r : Polynomial) :
+ ~(p ≅ []) -> p *, q ≅ p *, r -> q ≅ r.
+Proof.
+ intros N E.
+ destruct (Peq_dec q r) as [E2|N2]; trivial. exfalso.
+ apply (Pmult_neq_0 p (q +, -,r)); trivial.
+ - change (~(q +, -, r ≅ [])). contradict N2.
+   rewrite <- (Pplus_0_r r), <- N2.
+   rewrite <- Pplus_assoc, (Pplus_comm r), Pplus_assoc, Pplus_opp_r.
+   now rewrite Pplus_0_r.
+ - change (p *, (q +, -,r) ≅ []).
+   rewrite Pmult_plus_distr_l, E.
+   unfold Popp. rewrite <- Pmult_assoc, (Pmult_comm _ [_]), Pmult_assoc.
+   apply Pplus_opp_r.
+Qed.
+
+
 (** Euclidean division of polynomial *)
 
 Lemma Pdiv (a b : Polynomial) :
@@ -887,8 +904,7 @@ Proof.
  2:{ intros i Hi. rewrite Pmult_eval. simpl. rewrite Pconst_eval.
      unfold Cdiv. rewrite <- Cmult_assoc. f_equal.
      rewrite (linfactors_perm l (l@i :: remove_at i l)).
-     2:{ rewrite <- insert_permut with (n:=i).
-         unfold Cnth. now rewrite insert_at_remove_at. }
+     2:{ unfold Cnth. now rewrite remove_at_permut. }
      simpl. rewrite Pmult_eval. rewrite cons_eval, Pconst_eval. field.
      rewrite <- Ceq_minus. contradict Hx. subst. now apply nth_In. }
  rewrite <- Psum_eval.
@@ -1027,10 +1043,16 @@ Proof.
    + rewrite !sigma_rec. ring.
 Qed.
 
-Lemma Pplus_map (f g : nat -> C) l l' :
-   map f l +, (map g l ++ l') ≅ map (fun k => f k + g k) l ++ l'.
+Lemma Pplus_map (f g : nat -> C) l (p q : Polynomial) :
+   (map f l ++ p) +, (map g l ++ q) ≅ map (fun k => f k + g k) l ++ (p +, q).
 Proof.
  induction l; simpl. easy. now rewrite IHl.
+Qed.
+
+Lemma Pplus_map' (f g : nat -> C) l (p : Polynomial) :
+   (map f l) +, (map g l ++ p) ≅ map (fun k => f k + g k) l ++ p.
+Proof.
+ rewrite <- (app_nil_r (map f l)). now rewrite Pplus_map.
 Qed.
 
 (** Writing a polynomial in term of symmetric functions of its roots *)
@@ -1055,7 +1077,7 @@ Proof.
    2:{ intros k Hk.
        rewrite in_seq in Hk. replace (n'-k)%nat with (S (n-k)) by lia.
        rewrite sigma_rec. simpl. ring. }
-   rewrite <- Pplus_map. f_equiv.
+   rewrite <- Pplus_map'. f_equiv.
    replace (seq 0 n') with (seq 0 (S n)) by (f_equal; lia).
    rewrite seq_S at 2. rewrite map_app. simpl.
    apply eq_Peq. f_equal; [|f_equal].

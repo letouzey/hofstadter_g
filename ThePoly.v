@@ -661,6 +661,7 @@ Section Roots.
 Variable k : nat.
 Variable roots : list C.
 Hypothesis roots_ok : SortedRoots k roots.
+Local Notation roots_ok' := (SortedRoots_roots _ _ roots_ok).
 
 Let K : k<>O.
 Proof.
@@ -670,6 +671,11 @@ Qed.
 Let roots_len : length roots = k.
 Proof.
  now apply SortedRoots_length.
+Qed.
+
+Let roots_nz r : In r roots -> r<>0.
+Proof.
+ intros Hr ->. now apply roots_ok', root_nz in Hr.
 Qed.
 
 (** sum of roots, product, sigma functions, newton sums *)
@@ -731,27 +737,19 @@ Proof.
  assert (E' : r = (k-1)/k).
  { rewrite <- E; field. intros [=EQ]. apply (INR_eq k 0) in EQ.
    subst k. now apply (ThePoly_0_NoRoot r). }
- apply (root_non_km1k k). rewrite <- E'.
- now apply (SortedRoots_roots _ _ roots_ok).
+ apply (root_non_km1k k). rewrite <- E'. now apply roots_ok'.
 Qed.
 
 Lemma coefB_nz r : In r roots -> coefB r <> 0.
 Proof.
- unfold coefB. intros R. apply (SortedRoots_roots _ _ roots_ok) in R.
+ unfold coefB. intros R.
  unfold Cdiv.
  rewrite <- Cmult_assoc, !Cmult_integral.
  intros [->|[E|E]].
- - now apply root_nz in R.
+ - now apply (roots_nz _ R).
  - apply C1_nz.
-   rewrite <- (Cinv_l (r^(k-1))), E. lca. apply Cpow_nz.
-   intros ->. now apply root_nz in R.
- - apply C1_nz.
-   rewrite <- (Cinv_l (k*r-(k-1))), E. lca.
-   intros E'. apply Cminus_eq_0 in E'.
-   assert (E'' : r = (k-1)/k).
-   { rewrite <- E'; field. intros [=EQ]. apply (INR_eq k 0) in EQ.
-     subst k. now apply (ThePoly_0_NoRoot r). }
-   apply (root_non_km1k k). now rewrite <- E''.
+   rewrite <- (Cinv_l (r^(k-1))), E. lca. apply Cpow_nz. now apply roots_nz.
+ - apply C1_nz. rewrite <- (Cinv_l (k*r-(k-1))), E. lca. now apply krkm1_nz.
 Qed.
 
 Lemma coefB_diff r : r<>0 -> coefB r = / Peval (Pdiff (ThePoly k)) r.
@@ -780,12 +778,9 @@ Proof.
  rewrite Pmult_eval, !Pconst_eval.
  rewrite Peval_linfactors, <- Peval_Pdiff_linfactors; try lia.
  2:{ now apply (SortedRoots_nodup k). }
- rewrite coefB_diff, <- (proj1 roots_ok).
- 2:{ intros E. apply (root_nz k). rewrite <- E.
-     now apply (SortedRoots_roots _ _ roots_ok). }
+ rewrite coefB_diff, <- (proj1 roots_ok) by now apply roots_nz.
  field.
- apply ThePoly_no_common_root_with_diff.
- now apply (SortedRoots_roots _ _ roots_ok).
+ now apply ThePoly_no_common_root_with_diff, roots_ok'.
 Qed.
 
 Lemma Interpol_degree : (degree Interpol <= k-1)%nat.
@@ -810,6 +805,53 @@ Proof.
  - generalize Interpol_degree. lia.
 Qed.
 
+Lemma repeat_map_seq {A} (a:A) n : repeat a n = map (fun _ => a) (seq 0 n).
+Proof.
+ induction n; simpl; trivial. rewrite <- seq_shift, map_map. now f_equal.
+Qed.
+
+Lemma linfactors_remove_at i : (i < k)%nat ->
+ Peq (linfactors (remove_at i roots))
+     (map (fun j => /(roots@i)^(S j)) (seq 0 (k-1)) ++ [1]).
+Proof.
+intros Hi.
+destruct (Nat.eq_dec k 1) as [->|K'].
+{ replace i with O by lia. simpl. now destruct roots as [|a [|b l]]. }
+apply Pmult_Peq_reg_l with [- roots@i;1].
+{ intro E. generalize (eq_refl (coef 1 [])). rewrite <- E at 1. apply C1_nz. }
+rewrite Pmult_comm.
+change (linfactors _ *, _) with (linfactors (roots@i :: remove_at i roots)).
+rewrite linfactors_perm with (l' := roots).
+2:{ unfold Cnth at 1. rewrite remove_at_permut; trivial. lia. }
+rewrite <- (proj1 roots_ok).
+unfold Pmult. rewrite !map_app, !map_map. simpl.
+rewrite !Cmult_1_r, C0_Peq_nil, Pplus_0_r.
+replace (k-1)%nat with (S (k-2))%nat by lia.
+rewrite seq_S at 2. simpl seq. rewrite <- seq_shift. simpl.
+rewrite !map_app, map_map, <- app_assoc; simpl.
+replace (_+0) with (-1). 2:{ field. apply roots_nz, nth_In; lia. }
+rewrite Pplus_map. simpl.
+rewrite map_ext_in with (g:= fun _ => 0).
+2:{ intros r Hr. field.
+    split; try apply Cpow_nz; apply roots_nz, nth_In; lia. }
+replace (_+_) with (-1).
+2:{ assert (Hr := @nth_In _ i roots 0 lia). fold (roots@i) in Hr.
+    apply roots_ok', ThePoly_root_carac in Hr.
+    replace (k-1)%nat with (S (k-2)) in Hr by lia.
+    replace k%nat with (S (S (k-2))) in Hr at 1 by lia. simpl in Hr.
+    field [Hr].
+    split; try apply Cpow_nz; apply roots_nz, nth_In; lia. }
+unfold ThePoly, monom.
+rewrite !repeat_map_seq.
+replace k with (S (k-1)) at 1 by lia.
+rewrite seq_S, map_app, <- app_assoc. simpl.
+rewrite Pplus_map. simpl.
+replace (k-1)%nat with (S (k-2)) by lia. simpl.
+rewrite Pplus_0_r, <- seq_shift, map_map.
+apply eq_Peq. f_equal. lca. f_equal. apply map_ext; intros; lca. f_equal; lca.
+Qed.
+
+
 Lemma sum_coefB_div_r : (1<k)%nat ->
   Clistsum (map (fun r => coefB r / r) roots) = 1.
 Proof.
@@ -820,9 +862,7 @@ Proof.
  apply Ceq_minus in E. rewrite <- E. clear E.
  apply big_sum_eq_bounded. intros i Hi.
  rewrite Pmult_eval, Pconst_eval. unfold Cdiv. f_equal.
- assert (Z : roots@i <> 0).
- { intros E. apply (root_nz k). rewrite <- E.
-   apply (SortedRoots_roots _ _ roots_ok). apply nth_In; lia. }
+ assert (Z : roots@i <> 0). { apply roots_nz, nth_In; lia. }
  apply Cmult_eq_reg_l with (roots@i); trivial. rewrite Cinv_r; trivial.
  symmetry.
  rewrite Peval_linfactors.
@@ -872,7 +912,7 @@ Proof.
  apply map_ext_in. intros r Hr. unfold coefB.
  set (d := k * r - (k - 1)).
  assert (D : d<>0) by now apply krkm1_nz.
- apply (SortedRoots_roots _ _ roots_ok) in Hr.
+ apply roots_ok' in Hr.
  assert (R : r<>0). { intros E. apply (root_nz k). now rewrite <- E. }
  assert (R' : r^(k-1)<>0) by now apply Cpow_nz.
  apply Cmult_eq_reg_l with (d * r ^(k-1)).
@@ -973,7 +1013,7 @@ Proof.
  rewrite Clistsum_plus. f_equal. apply map_ext_in. intros r Hr.
  set (d := _ - _).
  assert (d <> 0) by now apply krkm1_nz.
- apply (SortedRoots_roots _ _ roots_ok), ThePoly_root_carac in Hr.
+ apply roots_ok', ThePoly_root_carac in Hr.
  replace p with (k + (p-k))%nat at 1 by lia.
  rewrite Cpow_add_r, Hr, Cmult_plus_distr_r, <- Cpow_add_r.
  replace (k-1+(p-k))%nat with (p-1)%nat by lia. now field.
@@ -984,8 +1024,7 @@ Proof.
  destruct (Nat.eq_dec k 1) as [K'|K'].
  - rewrite K', A_1_pow2.
    assert (In 2 roots).
-   { rewrite (SortedRoots_roots _ _ roots_ok).
-     rewrite <- mu_1. rewrite K'. now apply mu_is_root. }
+   { rewrite roots_ok', <- mu_1, K'. now apply mu_is_root. }
    assert (E : roots = [2]).
    { destruct roots as [|a [|b l]]; simpl in *; try lia.
      f_equal; tauto. }
@@ -1028,9 +1067,7 @@ Proof.
      rewrite (Cmult_comm _ (/r + _)), !Cmult_assoc, !Copp_mult_distr_l.
      rewrite <- Cmult_plus_distr_r. f_equal.
      rewrite Cmult_plus_distr_r. f_equal.
-     assert (r <> 0).
-     { intros ->.
-       now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr. }
+     assert (r <> 0) by now apply roots_nz.
      apply Cmult_eq_reg_l with r; trivial.
      rewrite <- !Cpow_S. fixpred. now field. }
  rewrite !Amk_is_1; try lia. lca.
@@ -1043,8 +1080,7 @@ Lemma Equation_dA n :
 Proof.
  intros K'.
  assert (E : roots = RtoC (mu k) :: tl roots).
- { assert (len := SortedRoots_length _ _ roots_ok).
-   destruct roots; simpl in *; try lia. f_equal.
+ { destruct roots; simpl in *; try lia. f_equal.
    now apply SortedRoots_mu in roots_ok. }
  destruct (Nat.eq_dec n 0) as [->|N].
  - simpl. rewrite Rmult_1_r, RtoC_minus, <- coefdA_sum; trivial.
