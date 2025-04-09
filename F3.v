@@ -507,7 +507,7 @@ Qed.
 
 End NN.
 
-(** Taking n=400 is enough to get 30 decimal digits of precision *)
+(** Taking n=400 is enough to get 32 decimal digits of precision *)
 
 #[local] Instance maxdeltas_400 :
   Approx 0.854187179928304211983581540152665 (MaxDeltas 3 400)
@@ -548,23 +548,23 @@ Proof.
  approx.
 Qed.
 
-Lemma residue3_400_upper : residue 3 roots 400 < / 10^31.
+Lemma residue3_400_upper : residue 3 roots 400 < / 10^33.
 Proof.
  rewrite residue3_eqn.
  change (400)%nat with (2*200)%nat. rewrite pow_mult, αmod2.
- apply Rmult_lt_reg_r with (10^31). apply pow_lt; lra.
+ apply Rmult_lt_reg_r with (10^33). apply pow_lt; lra.
  rewrite Rinv_l. 2:{ apply pow_nonzero. lra. }
- replace (10^31) with (Q2R (10^31)).
+ replace (10^33) with (Q2R (10^33)).
  2:{ replace 10 with (Q2R 10). now rewrite <- Q2R_pow. apply Q2R_IZR. }
  rewrite (Rmult_comm rest), Rmult_assoc.
- apply Rlt_trans with (0.6824^200 * (rest * Q2R (10 ^ 31))); [|approx].
+ apply Rlt_trans with (0.6824^200 * (rest * Q2R (10 ^ 33))); [|approx].
  apply Rmult_lt_compat_r. approx.
  apply Rpow_lt_compat_r. lia. approx. approx.
 Qed.
 
 #[local] Instance sup_deltas_approx :
-  Approx 0.8541871799283042119835815401526 (sup_deltas' 3)
-         0.8541871799283042119835815401528.
+  Approx 0.854187179928304211983581540152665 (sup_deltas' 3)
+         0.854187179928304211983581540152668.
 Proof.
  split.
  - eapply Rle_trans;
@@ -580,7 +580,7 @@ Qed.
 
 (* Print Assumptions sup_deltas_approx. *)
 
-(* Current final precision : slightly below 1O^-30 *)
+(* Current final precision : slightly below 1O^-32 *)
 
 #[local] Instance mindeltas_400 :
   Approx (-0.708415898743967960305146324178772) (MinDeltas 3 400)
@@ -590,8 +590,8 @@ Proof.
 Qed.
 
 #[local] Instance inf_deltas_approx :
-  Approx (-0.7084158987439679603051463241789) (inf_deltas' 3)
-         (-0.7084158987439679603051463241787).
+  Approx (-0.708415898743967960305146324178773) (inf_deltas' 3)
+         (-0.708415898743967960305146324178770).
 Proof.
  split.
  - eapply Rle_trans;
@@ -607,7 +607,8 @@ Proof.
 Qed.
 
 Lemma diff_bound n :
- -0.7084158987439679603051463241789 <= diff 3 n <= 0.8541871799283042119835815401528.
+ -0.708415898743967960305146324178773 <= diff 3 n <=
+  0.854187179928304211983581540152668.
 Proof.
  split.
  - apply Rle_trans with (inf_deltas' 3). approx.
@@ -618,7 +619,8 @@ Proof.
    unfold roots, Cnth; simpl; approx. approx.
 Qed.
 
-Lemma abs_diff_bound n : Rabs (diff 3 n) <= 0.8541871799283042119835815401528.
+Lemma abs_diff_bound n :
+  Rabs (diff 3 n) <= 0.854187179928304211983581540152668.
 Proof.
  apply Rabs_le. generalize (diff_bound n). lra.
 Qed.
@@ -721,7 +723,8 @@ Proof.
 Qed.
 
 Lemma diff_bound_rank0 n : rank 3 n = Some O ->
- -0.0260880949159486329356625844679 <= diff 3 n <= 0.8541871799283042119835815401528.
+ -0.026088094915948632935662584467725 <= diff 3 n <=
+  0.854187179928304211983581540152668.
 Proof.
  intros H.
  split.
@@ -732,7 +735,8 @@ Proof.
 Qed.
 
 Lemma diff_bound_ranknz n : rank 3 n <> Some O ->
- -0.7084158987439679603051463241789 <= diff 3 n <= 0.5365149837563235393530652798639.
+ -0.708415898743967960305146324178773 <= diff 3 n <=
+  0.536514983756323539353065279863717.
 Proof.
  intros H.
  split.
