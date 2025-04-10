@@ -1363,7 +1363,7 @@ Qed.
 
 (** Theorem 8.7 *)
 
-Lemma delta_bound_3 n : Rabs (δ 3 n) <= 0.8541871799283042119835815401528.
+Lemma delta_bound_3 n : Rabs (δ 3 n) <= 0.854187179928304211983581540152668.
 Proof.
  unfold δ. rewrite F_alt by lia. apply F3.abs_diff_bound.
 Qed.
