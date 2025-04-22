@@ -895,7 +895,7 @@ Proof.
  rewrite τ3. simpl. lra.
 Qed.
 
-Lemma Diff2_qsubst2 w :
+Lemma Diff2_ksubst3 w :
   List.Forall (fun a => a < 3)%nat w ->
   Diff2 (ksubstw 3 w) = - τ^2 * Diff2 w - Diff0 w.
 Proof.
@@ -915,6 +915,14 @@ Lemma diff0_diff2_A n : diff0 (A 3 (S n)) = τ * diff2 (A 3 n).
 Proof.
  unfold diff0, diff2. rewrite <- Diff0_ksubst3. f_equal.
  rewrite !kprefix_A_kword. apply kword_S.
+Qed.
+
+Lemma diff2_diff0_A n :
+ diff2 (A 3 (S n)) = -τ^2 * diff2 (A 3 n) - diff0 (A 3 n).
+Proof.
+ unfold diff0, diff2.
+ rewrite <- Diff2_ksubst3; rewrite !kprefix_A_kword, ?kword_S; trivial.
+ now apply kword_letters.
 Qed.
 
 (** See also diffh2_eqn: *)
