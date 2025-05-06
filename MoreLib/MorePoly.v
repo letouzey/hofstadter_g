@@ -959,7 +959,7 @@ Proof.
  - simpl. lca.
  - cbn - [big_sum]. rewrite IHn. clear IHn.
    rewrite Cmult_plus_distr_r.
-   change Cmult with Gmult. rewrite !big_sum_mult_l.
+   rewrite !big_sum_Cmult_l.
    rewrite (big_sum_shift (S n)), (big_sum_shift n (fun _ => y * _)).
    rewrite big_sum_eq_bounded with
      (f:=fun k => F _ _ ) (g:=fun k => (x * F n k + y * F n (S k))%G).
@@ -968,8 +968,8 @@ Proof.
        destruct (Nat.eq_dec k n) as [->|Hk'].
        - rewrite (binom_zero n (S n)) by lia. simpl. ring.
        - replace (n - k)%nat with (S (n-S k))%nat by lia. simpl. ring. }
-   rewrite big_sum_plus.
-   change Gplus with Cplus. rewrite (Cplus_comm (F (S n) O)), <-Cplus_assoc.
+   rewrite big_sum_Cplus.
+   rewrite (Cplus_comm (F (S n) O)), <-Cplus_assoc.
    f_equal. simpl. rewrite Cplus_comm, <- Cplus_assoc. f_equal.
    unfold F. simpl.
    rewrite Nat.sub_0_r, binom_one, binom_zero by lia. simpl. ring.
@@ -1031,12 +1031,10 @@ Proof.
    + simpl; rewrite !sigma_0. ring.
    + rewrite sigma_rec.
      rewrite big_sum_shift. rewrite sigma_0, Nat.sub_0_r.
-     change Gplus with Cplus.
      erewrite big_sum_eq_bounded.
-     2:{ intros x Hx. rewrite sigma_rec, Cmult_plus_distr_r, <- Cmult_assoc.
-         change Cmult with (Gmult (R:=C)) at 1.
-         change Cplus with (Gplus (G:=C)). reflexivity. }
-     rewrite big_sum_plus, <- big_sum_mult_l.
+     2:{ intros x Hx.
+         now rewrite sigma_rec, Cmult_plus_distr_r, <- Cmult_assoc. }
+     rewrite big_sum_Cplus, <- big_sum_Cmult_l.
      simpl Nat.sub. rewrite <- IHl1.
      rewrite (IHl1 (S k)).
      rewrite big_sum_shift. simpl Nat.sub. rewrite sigma_0.
@@ -1136,8 +1134,8 @@ Proof.
    rewrite sigma_null by (simpl; lia). rewrite big_sum_0; try lca.
    intros i. unfold newton_sum. simpl. ring.
  - destruct k; [simpl; lca|].
-   set (sgn := fun i => (-(1))^i) in *.
-   rewrite <- big_sum_extend_r.
+   set (sgn := fun i => (-1)^i) in *.
+   rewrite <- big_sum_extend_r. change Gplus with Cplus.
    rewrite Nat.sub_diag. rewrite sigma_0.
    rewrite newton_sum_cons.
    erewrite big_sum_eq_bounded.
@@ -1151,8 +1149,8 @@ Proof.
        replace (a*a^S i) with (a^(S (S i))) by (simpl; ring).
        rewrite Cmult_assoc.
        rewrite (Cmult_assoc _ a), (Cmult_comm _ a), <- 2 (Cmult_assoc a).
-       change Cplus with (Gplus (G:=C)). reflexivity. }
-   rewrite 3 big_sum_plus.
+       reflexivity. }
+   rewrite 3 big_sum_Cplus.
    set (f1 := fun i => _).
    set (f2 := fun i => _).
    set (f3 := fun i => _).
@@ -1164,17 +1162,14 @@ Proof.
    unfold f4. rewrite Nat.sub_diag, sigma_0. clear E f4.
    replace (big_sum f2 k) with (big_sum f2 (S k) +(- f2 k)) by (simpl; ring).
    rewrite big_sum_shift. rewrite (Cplus_comm (f2 O)).
-   rewrite !Cplus_assoc. change Cplus with (Gplus (G:=C)).
-   rewrite <- big_sum_plus, big_sum_0_bounded.
+   rewrite !Cplus_assoc.
+   rewrite <- big_sum_Cplus, big_sum_0_bounded; simpl 0%G.
    2:{ intros i Hi. unfold f1, f2. simpl. unfold sgn; simpl; ring. }
    unfold f2. clear f1 f2.
    rewrite Nat.sub_diag, sigma_0.
    simpl Cpow. simpl Nat.sub. rewrite Nat.sub_0_r, S_INR, RtoC_plus.
-   change Gplus with Cplus. change (0%G) with 0. unfold sgn.
-   symmetry. rewrite Ceq_minus. rewrite sigma_rec. ring_simplify.
-   unfold f3. change Cmult with (Gmult (R:=C)).
-   rewrite <- big_sum_mult_l. change Gmult with Cmult.
-   rewrite <- IHl. ring.
+   unfold sgn. symmetry. rewrite Ceq_minus. rewrite sigma_rec. ring_simplify.
+   unfold f3. rewrite <- big_sum_Cmult_l. rewrite <- IHl. ring.
 Qed.
 
 Lemma newton_identities_nosigma l :

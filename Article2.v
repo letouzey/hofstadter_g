@@ -1562,7 +1562,7 @@ Proof.
    assert (E' := int_frac (α k * n + b)).
    replace (F k n - α k * n) with (b - frac_part (α k * n + b)).
    2:{ rewrite (INR_IZR_INZ (F k n)), E. lra. }
-   unfold Rminus. eapply Rle_trans; [apply Rabs_triang|].
+   unfold Rminus. rewrite apply Rabs_triang.
    apply Rplus_le_compat_l. rewrite Rabs_Ropp. apply Rabs_le.
    generalize (base_fp (α k*n+b)). lra. }
  destruct (Nat.le_gt_cases 5 k) as [K'|K'].

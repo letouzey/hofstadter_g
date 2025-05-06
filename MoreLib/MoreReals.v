@@ -15,6 +15,39 @@ Local Open Scope R.
 Local Coercion IZR : Z >-> R.
 Local Coercion INR : nat >-> R.
 
+(** Instances concerning Rlt and Rle *)
+#[global] Instance Rlt_strorder : StrictOrder Rlt.
+Proof.
+ split; repeat red; intros; lra.
+Qed.
+#[global] Instance Rlt_compat : Proper (Logic.eq==>Logic.eq==>iff) Rlt.
+Proof.
+ repeat red; intros; lra.
+Qed.
+#[global] Instance Rle_preorder : PreOrder Rle.
+Proof.
+ split; red; intros; lra.
+Qed.
+#[global] Instance Rle_partorder : PartialOrder Logic.eq Rle.
+Proof.
+ cbn. unfold Basics.flip. intros. lra.
+Qed.
+#[global] Instance Rle_compat : Proper (Logic.eq==>Logic.eq==>iff) Rle.
+Proof.
+ repeat red; intros; lra.
+Qed.
+#[global] Instance Rplus_le_compat : Proper (Rle ==> Rle ==> Rle) Rplus.
+Proof.
+ intros x x' Hx y y' Hy. lra.
+Qed.
+#[global] Instance Rplus_lt_compat : Proper (Rlt ==> Rlt ==> Rlt) Rplus.
+Proof.
+ intros x x' Hx y y' Hy. lra.
+Qed.
+
+(** Rabs_right, but with Rle instead of Rge precondition *)
+Definition Rabs_right' := Rabs_pos_eq.
+
 Lemma Rdist_pos_pos a b : 0<=a -> 0<=b -> R_dist a b <= Rmax a b.
 Proof.
 unfold R_dist. intros Ha Hb.
@@ -343,6 +376,34 @@ Proof.
    { rewrite Z.lt_nge in LT. rewrite <- int_part_le in LT. lra. }
    assert (LT' : a < 0) by lra.
    apply Rlt_not_le in LT'. rewrite int_part_le in LT'. lia.
+Qed.
+
+Lemma Int_part_addZ x z : Int_part (x + IZR z) = (Int_part x + z)%Z.
+Proof.
+ apply int_part_iff.
+ rewrite plus_IZR.
+ replace (_+_-_) with (x-IZR (Int_part x)) by ring.
+ now apply int_part_iff.
+Qed.
+
+Lemma frac_part_addZ z x : frac_part (x + IZR z) = frac_part x.
+Proof.
+ unfold frac_part. rewrite Int_part_addZ, plus_IZR. ring.
+Qed.
+
+Lemma Int_part_opp x : frac_part x <> 0 ->
+ (Int_part (-x) = - Int_part x -1)%Z.
+Proof.
+ intros Hx. unfold frac_part in Hx.
+ apply int_part_iff. rewrite minus_IZR, opp_IZR.
+ generalize (eq_refl (Int_part x)). rewrite <- int_part_iff. lra.
+Qed.
+
+Lemma frac_part_opp x : frac_part x <> 0 ->
+  frac_part (-x) = 1 - frac_part x.
+Proof.
+ intros Hx. unfold frac_part.
+ rewrite Int_part_opp, minus_IZR, opp_IZR by trivial. lra.
 Qed.
 
 (** Ceil function (from R to Z) : [1+Int_part] except on integers *)

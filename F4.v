@@ -563,12 +563,10 @@ Qed.
   Approx 1.5834687793247470 (sup_deltas' 4) 1.5834687793247475.
 Proof.
  split.
- - eapply Rle_trans;
-   [|apply (MaxDeltas_below_lim' 4 lia roots) with (p:=600%nat)].
+ - rewrite <- (MaxDeltas_below_lim' 4 lia roots) with (p:=600%nat).
    approx. apply roots_sorted. unfold roots, Cnth; simpl; approx.
- - eapply Rle_trans;
-   [apply (sup_deltas_upper 4 lia roots) with (p:=600%nat)|].
-   apply roots_sorted. unfold roots, Cnth; simpl; approx.
+ - rewrite (sup_deltas_upper 4 lia roots) with (p:=600%nat).
+   2:apply roots_sorted. 2:unfold roots, Cnth; simpl; approx.
    eapply Rle_trans;
    [apply Rplus_le_compat_l; apply Rlt_le; apply residue4_600_upper|].
    approx.
@@ -588,16 +586,14 @@ Qed.
   Approx (-1.5060895457389591) (inf_deltas' 4) (-1.5060895457389585).
 Proof.
  split.
- - eapply Rle_trans;
-   [|apply (inf_deltas_lower 4 lia roots) with (p:=600%nat)].
+ - rewrite <- (inf_deltas_lower 4 lia roots) with (p:=600%nat).
    2:apply roots_sorted. 2:unfold roots, Cnth; simpl; approx.
    eapply Rle_trans;
    [|apply Rplus_le_compat_l, Ropp_le_contravar, Rlt_le;
      apply residue4_600_upper].
    approx.
- - eapply Rle_trans;
-   [apply (MinDeltas_above_lim' 4 lia roots) with (p:=600%nat)|].
-   apply roots_sorted. unfold roots, Cnth; simpl; approx. approx.
+ - rewrite (MinDeltas_above_lim' 4 lia roots) with (p:=600%nat).
+   approx. apply roots_sorted. unfold roots, Cnth; simpl; approx.
 Qed.
 
 Lemma diff_bound n : -1.5060895457389591 <= diff 4 n <= 1.5834687793247475.
@@ -759,8 +755,7 @@ Lemma sup_diff0_lt_2 :
  Rbar.Rbar_lt (Sup_seq (fun n => Rabs (diff0 n))) 2.
 Proof.
  apply Rbar.Rbar_le_lt_trans with (Sup_seq (fun _ => 1.6)).
- - apply Sup_seq_le. intros n. simpl.
-   eapply Rle_trans. apply diff0_bound. lra.
+ - apply Sup_seq_le. intros n. simpl. rewrite diff0_bound. lra.
  - replace (Sup_seq _) with (Rbar.Finite 1.6); simpl. approx.
    symmetry. apply is_sup_seq_unique. apply is_sup_seq_const.
 Qed.

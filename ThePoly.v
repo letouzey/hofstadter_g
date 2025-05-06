@@ -178,7 +178,7 @@ Proof.
  { apply Rlt_le_trans with (Cmod r -1)%R; try lra.
    apply Rle_minus_l.
    replace r with ((r-1)+1) at 1 by lca.
-   eapply Rle_trans; [apply Cmod_triangle|]. rewrite Cmod_1. lra. }
+   rewrite Cmod_triangle, Cmod_1. lra. }
  assert (H' : (mu k)^(k-1) <= Cmod (r^(k-1))).
  { rewrite Cmod_pow. apply pow_incr; lra. }
  assert (LT : (mu k)^(k-1)*(mu k -1) < Cmod (r^(k-1)*(r-1))).
@@ -326,7 +326,7 @@ Proof.
  assert (Iv := nu_itvl k K K').
  assert (H : (Cmod (r-1) < 1 - nu k)%R).
  { apply Rle_lt_trans with (1 + Cmod r)%R; try lra.
-   eapply Rle_trans; [apply Cmod_triangle|]. rewrite Cmod_opp, Cmod_1. lra. }
+   unfold Cminus. rewrite Cmod_triangle, Cmod_opp, Cmod_1. lra. }
  assert (H' : Cmod (r^(k-1)) <= (-nu k)^(k-1)).
  { rewrite Cmod_pow. apply pow_incr. split; try lra. apply Cmod_ge_0. }
  assert (LT : Cmod (r^(k-1)*(r-1)) < (-nu k)^(k-1)*(1 - nu k)).
@@ -1175,7 +1175,7 @@ Proof.
      (fun n => Cmod (coef (S i)) * (Cmod (root (S i)) / mu k)^n)%R.
    + exists O. intros n _. unfold rest. clear rest.
      unfold Rdiv. rewrite <- re_scal_r.
-     eapply Rle_trans; [apply re_le_Cmod|].
+     rewrite re_le_Cmod.
      rewrite <- Cmult_assoc, Cmod_mult.
      apply Rmult_le_compat_l. apply Cmod_ge_0.
      rewrite Cmod_mult.

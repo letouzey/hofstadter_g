@@ -335,6 +335,26 @@ Proof.
    intros M. destruct (Hu' M O) as (n & _ & H). now exists n.
 Qed.
 
+Lemma finite_lim_finite_sup (u:nat -> R) :
+ ex_finite_lim_seq u -> Rbar.is_finite (Sup_seq u).
+Proof.
+ intros (l & H).
+ destruct (Sup_seq u) eqn:E; try easy.
+ - exfalso.
+   apply is_lim_LimSup_seq, is_LimSup_seq_unique in H.
+   rewrite Sup_LimSup_pinfty in E. now rewrite E in H.
+ - exfalso. now apply (sup_no_minfty u).
+Qed.
+
+Lemma finite_lim_bounded (u:nat -> R) :
+  ex_finite_lim_seq u -> forall n, u n <= Rbar.real (Sup_seq u).
+Proof.
+ intros H. apply finite_lim_finite_sup in H.
+ destruct (Sup_seq u) eqn:E; try easy. intros n. simpl.
+ change (Rbar.Rbar_le ((fun n => Rbar.Finite (u n)) n) r).
+ apply is_sup_seq_major. rewrite <- E. apply Sup_seq_correct.
+Qed.
+
 Lemma is_inf_seq_minor (u : nat -> Rbar.Rbar) (l : Rbar.Rbar) :
   is_inf_seq u l -> forall n, Rbar.Rbar_le l (u n).
 Proof.
@@ -788,6 +808,15 @@ Proof.
  - simpl. apply is_lim_Cseq_plus.
    + apply IHm. intros i Hi. apply Hf. lia.
    + apply Hf. lia.
+Qed.
+
+Lemma is_lim_Cseq_subseq (u : nat -> C)(l : C)(phi : nat -> nat) :
+  Hierarchy.filterlim phi Hierarchy.eventually Hierarchy.eventually ->
+  is_lim_Cseq u l -> is_lim_Cseq (fun n : nat => u (phi n)) l.
+Proof.
+ intros H1 H2. rewrite is_lim_Cseq_proj in *. split; unfold compose.
+ - now apply (is_lim_seq_subseq (fun n => Re (u n))).
+ - now apply (is_lim_seq_subseq (fun n => Im (u n))).
 Qed.
 
 (** Series on C *)

@@ -138,14 +138,13 @@ Proof.
    destruct (Nat.ltb_spec n (A k p)).
    + rewrite app_nth1.
      2:{ now rewrite AllDeltas_len. }
-     eapply Rle_trans; [apply IH|]; trivial; try lia. apply Rmax_l.
+     rewrite IH; trivial; try lia. apply Rmax_l.
    + rewrite app_nth2.
      2:{ now rewrite AllDeltas_len. }
      rewrite nth_map_indep with (d':=0).
      2:{ rewrite !AllDeltas_len. simpl in Hn. lia. }
      rewrite AllDeltas_len. simpl in Hn.
-     rewrite Rplus_comm.
-     eapply Rle_trans; [|apply Rmax_r].
+     rewrite Rplus_comm, <- Rmax_r.
      apply Rplus_le_compat_r, IH; lia.
 Qed.
 
@@ -171,7 +170,7 @@ Qed.
 Lemma MaxDeltas_mono k p p' :
   (p <= p')%nat -> MaxDeltas k p <= MaxDeltas k p'.
 Proof.
- induction 1. lra. eapply Rle_trans; [apply IHle|]. apply MaxDeltas_incr.
+ induction 1. lra. rewrite IHle. apply MaxDeltas_incr.
 Qed.
 
 Lemma MaxDeltas_pos k p : 0 <= MaxDeltas k p.
@@ -247,14 +246,13 @@ Proof.
    destruct (Nat.ltb_spec n (A k p)).
    + rewrite app_nth1.
      2:{ now rewrite AllDeltas_len. }
-     eapply Rle_trans; [|apply IH]; trivial; try lia. apply Rmin_l.
+     rewrite <- IH; trivial; try lia. apply Rmin_l.
    + rewrite app_nth2.
      2:{ now rewrite AllDeltas_len. }
      rewrite nth_map_indep with (d':=0).
      2:{ rewrite !AllDeltas_len. simpl in Hn. lia. }
      rewrite AllDeltas_len. simpl in Hn.
-     rewrite Rplus_comm.
-     eapply Rle_trans; [apply Rmin_r|].
+     rewrite Rplus_comm, Rmin_r.
      apply Rplus_le_compat_l, IH; lia.
 Qed.
 
@@ -280,7 +278,7 @@ Qed.
 Lemma MinDeltas_mono k p p' :
   (p <= p')%nat -> MinDeltas k p' <= MinDeltas k p.
 Proof.
- induction 1. lra. eapply Rle_trans; [|apply IHle]. apply MinDeltas_decr.
+ induction 1. lra. rewrite <- IHle. apply MinDeltas_decr.
 Qed.
 
 Lemma MinDeltas_neg k p : MinDeltas k p <= 0.

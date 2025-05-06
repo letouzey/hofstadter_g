@@ -53,7 +53,7 @@ Proof.
    replace (n-(k-1))%nat with O by lia. simpl.
    apply Rle_trans with (mu k ^ n + 1).
    + rewrite Rplus_comm; apply Rcomplements.Rle_minus_l.
-     eapply Rle_trans; [|apply (mu_ineq k n lia); trivial].
+     rewrite <- (mu_ineq k n lia); trivial.
      ring_simplify. lra.
    + rewrite Nat.add_1_r, S_INR. generalize (IH n (Nat.le_refl _)). lra.
  - (* k <= n *)
@@ -198,42 +198,41 @@ Proof.
  rewrite Rmult_plus_distr_l.
  apply Rplus_le_lt_compat.
  - rewrite !listsum_INR, Rlistsum_distr, !map_map.
-   eapply Rle_trans. apply Rdist_listsum. simpl R_dist.
-   eapply Rle_trans.
-   apply Rlistsum_le with (g := fun x => A k x * (eps/2)).
-   intros a Ha.
-   assert (Ha' : (S G <= a)%nat).
-   { rewrite Forall_forall in F. now apply F. }
-   assert (Ha2 : (G <= a-1)%nat) by lia.
-   specialize (HG (a-1)%nat Ha2).
-   rewrite kword_len. replace a with (S (a-1))%nat at 1 by lia.
-   rewrite nbocc_0_kword; try lia.
-   replace (S (a-1))%nat with a in HG by lia.
-   assert (HAa := A_pos k a).
-   assert (HAa' : 0 < / A k a). { apply Rinv_0_lt_compat; lra. }
-   apply Rmult_le_reg_l with (/ A k a); trivial.
-   rewrite <- (Rabs_right (/ A k a)) at 1; try lra.
-   rewrite <- R_dist_mult_l.
-   replace (/ A k a * (A k a * lim)) with lim by (field; lra).
-   replace (/ A k a * (A k a * (eps /2))) with (eps / 2) by (field; lra).
-   rewrite Rmult_comm.
-   apply Rlt_le. apply HG.
-   rewrite <- Hw, E, app_length, plus_INR, Rmult_plus_distr_r.
-   rewrite flat_map_concat_map, length_concat, map_map.
-   rewrite listsum_INR, Rlistsum_distr, !map_map.
-   rewrite (map_ext (fun x => length _ * (eps/2))
-                    (fun x => A k x * (eps/2))).
-   2:{ intros a. now rewrite kword_len. }
-   assert (0 <= length z * (eps/2)); try lra.
-   apply Rmult_le_pos. apply pos_INR. lra.
+   rewrite Rdist_listsum. simpl R_dist.
+   rewrite Rlistsum_le with (g := fun x => A k x * (eps/2)).
+   + rewrite <- Hw, E, app_length, plus_INR, Rmult_plus_distr_r.
+     rewrite flat_map_concat_map, length_concat, map_map.
+     rewrite listsum_INR, Rlistsum_distr, !map_map.
+     rewrite (map_ext (fun x => length _ * (eps/2))
+                      (fun x => A k x * (eps/2))).
+     2:{ intros a. now rewrite kword_len. }
+     assert (0 <= length z * (eps/2)); try lra.
+     apply Rmult_le_pos. apply pos_INR. lra.
+   + intros a Ha.
+     assert (Ha' : (S G <= a)%nat).
+     { rewrite Forall_forall in F. now apply F. }
+     assert (Ha2 : (G <= a-1)%nat) by lia.
+     specialize (HG (a-1)%nat Ha2).
+     rewrite kword_len. replace a with (S (a-1))%nat at 1 by lia.
+     rewrite nbocc_0_kword; try lia.
+     replace (S (a-1))%nat with a in HG by lia.
+     assert (HAa := A_pos k a).
+     assert (HAa' : 0 < / A k a). { apply Rinv_0_lt_compat; lra. }
+     apply Rmult_le_reg_l with (/ A k a); trivial.
+     rewrite <- (Rabs_right (/ A k a)) at 1; try lra.
+     rewrite <- R_dist_mult_l.
+     replace (/ A k a * (A k a * lim)) with lim by (field; lra).
+     replace (/ A k a * (A k a * (eps /2))) with (eps / 2) by (field; lra).
+     rewrite Rmult_comm.
+     apply Rlt_le. apply HG.
  - apply Rle_lt_trans with (length z).
-   + eapply Rle_trans. eapply Rdist_pos_pos.
-     apply (le_INR 0); lia.
-     apply Rmult_le_pos; try lra. apply (le_INR 0); lia.
-     apply Rmax_lub. apply le_INR, nbocc_all.
-     assert (Hz' := pos_INR (length z)).
-     rewrite <- (Rmult_1_r (length z)) at 2.
-     apply Rmult_le_compat_l; lra.
+   + rewrite Rdist_pos_pos.
+     * apply Rmax_lub. apply le_INR, nbocc_all.
+       assert (Hz' := pos_INR (length z)).
+       rewrite <- (Rmult_1_r (length z)) at 2.
+       apply Rmult_le_compat_l; lra.
+     * apply (le_INR 0); lia.
+     * apply Rmult_le_pos; try lra. apply (le_INR 0); lia.
    + apply Rle_lt_trans with (A k (k-1+S G)).
      now apply le_INR.
      apply Rmult_lt_reg_l with (2/eps).
@@ -385,7 +384,7 @@ Proof.
  set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
  destruct (Hc N) as (n & Hn & Hn').
- exists n. eapply Rlt_trans; [|apply Hn'].
+ exists n. rewrite <- Hn'.
  rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
  eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.
 Qed.
@@ -407,7 +406,7 @@ Proof.
  set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (-M/c)) as (N, HN); trivial.
  destruct (Hc N) as (n & Hn & Hn').
- exists n. eapply Rlt_trans; [apply Hn'|].
+ exists n. rewrite Hn'.
  apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_involutive.
  rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
  eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.

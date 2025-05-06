@@ -145,7 +145,7 @@ Proof.
    replace (_ - _) with
        (g (Cexp t) * (g (Cexp (- t)) - h (-t)%R)
         + (g (Cexp t) - h t)*h(-t)%R) by ring.
-   eapply Rle_trans; [apply Cmod_triangle| ].
+   rewrite Cmod_triangle.
    rewrite !Cmod_mult.
    rewrite !Hg by (rewrite Cmod_Cexp; lra).
    assert (Cmod (CPowerSeries a (Cexp t)) <= l).
@@ -154,9 +154,9 @@ Proof.
    { intros t'. unfold h.
      rewrite sum_n_ext with (b := fun k => a k * Cexp t'^k).
      2:{ intros m. rewrite Cexp_pow. f_equal. f_equal. lra. }
-     eapply Rle_trans. apply CPowerSeries_bound3; eauto.
-     rewrite Cmod_Cexp; lra.
-     apply Rabs_def2 in HN. lra. }
+     rewrite CPowerSeries_bound3; eauto.
+     apply Rabs_def2 in HN. lra.
+     rewrite Cmod_Cexp; lra. }
    apply Rle_trans with (l*eps' + eps'*l)%R.
    - apply Rplus_le_compat.
      + apply Rmult_le_compat; try apply Cmod_ge_0; easy.
@@ -597,8 +597,7 @@ Proof.
    Rlistsum (map (fun r => Cmod (coef' r * r) * (Cmod (r * x))^n)%R (tl roots))).
  { intros n. change norm with Rabs. rewrite Rabs_Rabsolu.
    rewrite Rabs_mult, <- !Cmod_R, dh_eqn, <- Cmod_mult, Cmult_comm.
-   rewrite Clistsum_factor_l, map_map.
-   eapply Rle_trans; [eapply Clistsum_mod|]. rewrite map_map.
+   rewrite Clistsum_factor_l, map_map, Clistsum_mod, map_map.
    apply Rlistsum_le. intros r R.
    rewrite RtoC_pow, Cpow_S, !Cmod_mult, Cmod_opp, !Cmod_pow.
    rewrite Rpow_mult_distr. ring_simplify. lra. }
@@ -712,9 +711,7 @@ Proof.
    rewrite Rabs_pos_eq by apply Rabs_pos.
    rewrite Rabs_mult. apply Rmult_le_compat_r; try apply Rabs_pos.
    rewrite <- Cmod_R, dg_eqn, <- !RtoC_minus, Cmod_R. unfold Rminus.
-   eapply Rle_trans; [eapply Rabs_triang|rewrite Rabs_Ropp].
-   apply Rplus_le_compat_r.
-   eapply Rle_trans; [eapply Rabs_triang|rewrite Rabs_Ropp; lra]. }
+   now rewrite !Rabs_triang, !Rabs_Ropp. }
  eapply ex_series_ext.
  { intros n. symmetry. rewrite 2 Rmult_plus_distr_r. rewrite <- Rabs_mult.
    rewrite <- RPow_abs. reflexivity. }
@@ -1140,7 +1137,7 @@ Proof.
    * rewrite <- H2. apply nth_In; lia.
    * apply Rnot_le_lt. intros H4. apply H.
      intros r Hr Hr'. rewrite <- H2 in Hr.
-     eapply Rle_trans; [ | apply H4 ].
+     rewrite <- H4.
      apply SortedRoots_Cmod_sorted in Hl.
      rewrite StronglySorted_nth in Hl.
      destruct (In_nth l r 0 Hr) as (i & Hi & <-).
@@ -1460,8 +1457,8 @@ Proof.
    unfold delay. case Nat.eqb_spec; case Nat.ltb_spec; try lia; intros.
    - subst. unfold compose. change zero with 0%R.
      rewrite Cmod_mult, Cmod_opp. lra.
-   - unfold compose, Cminus. eapply Rle_trans; [apply Cmod_triangle| ].
-     rewrite Cmod_opp, Cmod_mult. lra. }
+   - unfold compose, Cminus.
+     rewrite Cmod_triangle, Cmod_opp, Cmod_mult. lra. }
  apply (ex_series_plus (V:=R_CNM)).
  - exists l. now apply delay_series_R.
  - apply ex_series_scal_r. now exists l.

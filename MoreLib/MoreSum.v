@@ -93,6 +93,11 @@ Proof.
  rewrite Rlistsum_const; lra.
 Qed.
 
+Lemma Rlistsum_perm l l' : Permutation l l' -> Rlistsum l = Rlistsum l'.
+Proof.
+ induction 1; simpl; lra.
+Qed.
+
 Definition Rpoly x l := Rlistsum (List.map (pow x) l).
 
 Lemma Rpoly_cons x n l : Rpoly x (n::l) = (x^n + Rpoly x l)%R.
@@ -468,6 +473,70 @@ Qed.
 
 (** QuantumLib's big_sum *)
 
+Lemma big_sum_INR (f : nat -> nat) n :
+  INR (big_sum f n) = big_sum (INR ∘ f) n.
+Proof.
+ induction n; trivial. simpl. now rewrite plus_INR, IHn.
+Qed.
+
+Lemma big_sum_Rconst (r:R) n : big_sum (fun _ => r) n = (r * n)%R.
+Proof.
+ induction n; simpl big_sum. simpl; lra. rewrite IHn, S_INR. lra.
+Qed.
+
+Lemma big_sum_Cconst (c:C) n : big_sum (fun _ => c) n = c * n.
+Proof.
+ induction n; simpl big_sum. simpl; lca. rewrite IHn, S_INR. lca.
+Qed.
+
+Lemma big_sum_id n : big_sum INR n = ((n-1) * n /2)%R.
+Proof.
+ induction n.
+ - simpl. lra.
+ - simpl big_sum. rewrite IHn. rewrite S_INR. field.
+Qed.
+
+(** Specialized versions, e.g. big_sum_Rplus instead of big_sum_plus.
+    Much easier to use than the generic versions. *)
+
+Lemma big_sum_Rplus (f g : nat -> R) n :
+  (big_sum (fun x : nat => f x + g x) n = big_sum f n + big_sum g n)%R.
+Proof. change Rplus with (@Gplus R _). apply big_sum_plus. Qed.
+Lemma big_sum_Cplus (f g : nat -> C) n :
+  big_sum (fun x : nat => f x + g x) n = big_sum f n + big_sum g n.
+Proof. change Cplus with (@Gplus C _). apply big_sum_plus. Qed.
+Lemma big_sum_Ropp (f : nat -> R) n :
+  (- big_sum f n = big_sum (fun k : nat => - f k) n)%R.
+Proof. change Ropp with (@Gopp R _ _). apply big_sum_opp. Qed.
+Lemma big_sum_Copp (f : nat -> C) n :
+  - big_sum f n = big_sum (fun k : nat => - f k) n.
+Proof. change Copp with (@Gopp C _ _). apply big_sum_opp. Qed.
+Lemma big_sum_Rmult_l (r : R) (f : nat-> R) n :
+  (r * big_sum f n = big_sum (fun x : nat => r * f x) n)%R.
+Proof. change Rmult with (@Gmult R _ _ _ _). apply big_sum_mult_l. Qed.
+Lemma big_sum_Cmult_l (c : C) (f : nat-> C) n :
+  c * big_sum f n = big_sum (fun x : nat => c * f x) n.
+Proof. change Cmult with (@Gmult C _ _ _ _). apply big_sum_mult_l. Qed.
+Lemma big_sum_Rmult_r (r : R) (f : nat-> R) n :
+  (big_sum f n * r = big_sum (fun x : nat => f x * r) n)%R.
+Proof. change Rmult with (@Gmult R _ _ _ _). apply big_sum_mult_r. Qed.
+Lemma big_sum_Cmult_r (c : C) (f : nat-> C) n :
+  big_sum f n * c = big_sum (fun x : nat => f x * c) n.
+Proof. change Cmult with (@Gmult C _ _ _ _). apply big_sum_mult_r. Qed.
+
+Lemma big_sum_Rlistsum (u:nat->R) n :
+  big_sum u n = Rlistsum (map u (seq 0 n)).
+Proof.
+ induction n; trivial. rewrite seq_S, map_app, Rlistsum_app. simpl. lra.
+Qed.
+
+Lemma big_sum_Clistsum (u:nat->C) n :
+  big_sum u n = Clistsum (map u (seq 0 n)).
+Proof.
+ induction n; trivial. rewrite seq_S, map_app, Clistsum_app. simpl.
+ rewrite <- IHn. ring.
+Qed.
+
 Lemma big_sum_sum_n (f : nat -> C) (n : nat) : big_sum f (S n) = sum_n f n.
 Proof.
  induction n; simpl.
@@ -482,10 +551,8 @@ Proof.
  induction n; simpl.
  - rewrite sum_O. apply big_sum_eq_bounded.
    intros i _. now rewrite sum_O.
- - rewrite sum_Sn, IHn. change plus with Cplus.
-   rewrite <- (@big_sum_plus _ _ _ C_is_comm_group).
-   apply big_sum_eq_bounded.
-   intros i _. now rewrite sum_Sn.
+ - rewrite sum_Sn, IHn. rewrite <- big_sum_Cplus.
+   apply big_sum_eq_bounded. intros i _. now rewrite sum_Sn.
 Qed.
 
 Lemma sum_n_big_sum_adhoc (f : nat -> nat -> C) (g : nat -> C) n m :
@@ -512,6 +579,21 @@ Proof.
  induction n; simpl.
  - rewrite Cmod_0. lra.
  - eapply Rle_trans; [apply Cmod_triangle|apply Rplus_le_compat_r, IHn].
+Qed.
+
+Lemma big_sum_kronecker_R (f:nat->R) n m :
+  (m<n)%nat ->
+  (forall i : nat, (i < n)%nat -> i <> m -> f i = 0%R) ->
+  big_sum f n = f m.
+Proof.
+ revert m.
+ induction n.
+ - lia.
+ - intros m M F. rewrite <- big_sum_extend_r. simpl.
+   destruct (Nat.eq_dec n m) as [<-|M'].
+   + rewrite big_sum_0_bounded. simpl. ring. intros i Hi. apply F; lia.
+   + rewrite F, Rplus_0_r by lia. apply IHn; try lia.
+     intros i Hi. apply F; lia.
 Qed.
 
 Lemma big_sum_kronecker (f : nat -> C) n m :
