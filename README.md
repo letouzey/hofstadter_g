@@ -82,6 +82,8 @@ Summary of files:
   - [F3.v](F3.v): Hofstadter H (i.e. `f 3`) at dist <1 of `n*τ_3`
   - [F4.v](F4.v): `f 4` at dist <2 of `n*τ_4`
   - [F5.v](F5.v): `f 5` at unbounded dist of `n*τ_5`
+  - [Equidistrib.v](Equidistrib.v): equidistribution theorem (irrational multiples mod 1)
+  - [F3bis.v](F3bis.v): mean discrepancy for Hofstadter H (i.e `f 3`)
 6. Two companion Coq files for two forthcoming articles
   - [Article1.v](Article1.v)
   - [Article2.v](Article2.v)
