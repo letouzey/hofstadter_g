@@ -232,6 +232,40 @@ Proof.
  rewrite <- app_length. apply Permutation_length, filter_partition.
 Qed.
 
+Lemma filter_or_and {A} (f g : A -> bool) l :
+ length (filter (fun a => f a || g a) l)
+ + length (filter (fun a => f a && g a) l)
+ = length (filter f l) + length (filter g l).
+Proof.
+ induction l; trivial. simpl. destruct (f a), (g a); simpl; lia.
+Qed.
+
+Lemma filter_or_disj {A} (f g : A -> bool) l :
+ (forall a, In a l -> f a && g a = false) ->
+ length (filter (fun a => f a || g a) l)
+ = length (filter f l) + length (filter g l).
+Proof.
+ intros H. rewrite <- filter_or_and.
+ set (m := length _). rewrite filter_nop by apply H. simpl; lia.
+Qed.
+
+Lemma filter_uniq {A} (f : A -> bool) l :
+  (forall a a', In a l -> In a' l -> f a = true -> f a' = true -> a = a') ->
+  NoDup l ->
+  length (filter f l) <= 1.
+Proof.
+ intros H.
+ induction l; simpl; try lia. intros D.
+ destruct (f a) eqn:E; simpl.
+ - rewrite filter_nop; simpl; try lia.
+   intros a' Ha'. destruct (f a') eqn:E'; trivial. exfalso.
+   replace a' with a in *. inversion_clear D; tauto.
+   apply H; intuition.
+ - apply IHl.
+   + intros b b' Hb Hb'. apply H. now right. now right.
+   + now inversion_clear D.
+Qed.
+
 (** More on flat_map *)
 
 Lemma flat_map_length {A B} (f:A->list B) l k :

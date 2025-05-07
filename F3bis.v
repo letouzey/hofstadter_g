@@ -945,10 +945,6 @@ Proof.
  eapply is_lim_seq_ext.
  { intros n. symmetry. apply meanintdiff_meandiff. }
  apply is_lim_seq_plus'. apply meandiff_CV.
- eapply is_lim_seq_ext.
- { intros n. symmetry. erewrite big_sum_eq_bounded.
-   2:{ intros m Hm. now rewrite Rmult_comm. }
-   reflexivity. }
  apply Equidistrib.MultIrrat_mean.
  intros q. apply tau_irrat; lia.
 Qed.
@@ -963,6 +959,203 @@ Lemma lim_meanintdiff_poly :
 Proof.
  unfold lim_meanintdiff, limit. simpl.
  replace 0.5 with (/2) by lra. field [τ3].
+Qed.
+
+(** By the way, peculiar distribution of the (diff 3 n) points:
+    - the central zone between (sup_deltas' 3 - 1) and (inf_deltas' 3 + 1)
+      has an uniform density
+    - the two sides outside the center have complementary density. *)
+
+Import Equidistrib.
+
+Lemma irrat_fracpart_inj t :
+  irrat t -> FinFun.Injective (fun n:nat => frac_part (t*n)).
+Proof.
+ intros Ht.
+ assert (forall n m, (n<m)%nat -> frac_part (t*n) <> frac_part (t*m)).
+ { intros n m LT E. unfold frac_part in E.
+   apply (Ht (Qmake (Int_part (t*m) - Int_part (t*n)) (Pos.of_nat (m-n)))).
+   unfold Q2R. simpl. rewrite minus_IZR.
+   replace (Z.pos _) with (Z.of_nat (m-n)).
+   2:{ destruct (m-n)%nat eqn:E'; simpl; try lia.
+       now rewrite Pos.of_nat_succ. }
+   rewrite <- INR_IZR_INZ.
+   apply Rmult_eq_reg_r with (r:=(m-n)%nat). 2:{ apply (not_INR _ 0); lia. }
+   field_simplify. 2:{ apply (not_INR _ 0); lia. }
+   rewrite minus_INR by lia.
+   apply Rminus_diag_eq in E.
+   apply Rminus_diag_uniq. replace 0 with (-0) by lra. rewrite <- E. ring. }
+ intros n m E. destruct (Nat.compare_spec n m); trivial.
+ - exfalso. apply (H n m); trivial.
+ - exfalso. apply (H m n); trivial. lra.
+Qed.
+
+Lemma diff_count_center_pos a b n :
+  0 <= a -> b <= inf_deltas' 3 + 1 ->
+  RcountStrIn (diff 3) a b n =
+  RcountStrIn (fun m => frac_part (τ*m)) (1-b) (1-a) n.
+Proof.
+ intros Ha Hb. rewrite <- (RcountStrIn_opp _ (1-b) (1-a)).
+ unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ f_equal. apply filter_map, map_ext_in. intros m Hm.
+ apply eq_true_iff_eq; rewrite !RStrIn_spec. split.
+ - intros D. assert (D' : 0 < diff 3 m) by lra.
+   rewrite diff_eqn in D.
+   destruct (intdiff_carac_1 m) as (_,E).
+   rewrite (E D') in D. simpl in D. lra.
+ - intros F.
+   destruct (intdiff_0_1 m) as [E|E]; try (rewrite diff_eqn, E; simpl; lra).
+   assert (LE := diff_ge_inf' 3 lia roots roots_sorted).
+   unfold roots, Cnth in LE. simpl in LE. specialize (LE ltac:(approx) m).
+   rewrite diff_eqn in LE. rewrite E in LE. simpl in LE. lra.
+Qed.
+
+Lemma diff_count_center_neg a b n :
+  sup_deltas' 3 - 1 <= a -> b <= 0 ->
+  RcountStrIn (diff 3) a b n =
+  RcountStrIn (fun m => frac_part (τ*m)) (-b) (-a) n.
+Proof.
+ intros Ha Hb. rewrite <- (RcountStrIn_opp _ (-b) (-a)), !Ropp_involutive.
+ unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ f_equal. apply filter_map, map_ext_in. intros m Hm.
+ apply eq_true_iff_eq; rewrite !RStrIn_spec. split.
+ - intros D. assert (D' : diff 3 m <= 0) by lra.
+   rewrite diff_eqn in D.
+   destruct (intdiff_carac_0 m) as (_,E).
+   rewrite (E D') in D. simpl in D. lra.
+ - intros F.
+   destruct (intdiff_0_1 m) as [E|E].
+   + rewrite diff_eqn, E; simpl; lra.
+   + exfalso.
+     assert (LE := diff_le_sup' 3 lia roots roots_sorted).
+     unfold roots, Cnth in LE. simpl in LE. specialize (LE ltac:(approx) m).
+     rewrite diff_eqn in LE. rewrite E in LE. simpl in LE. lra.
+Qed.
+
+Lemma diff_density_center a b :
+  sup_deltas' 3 - 1 <= a -> a <= b -> b <= inf_deltas' 3 + 1 ->
+  is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a).
+Proof.
+ revert a b.
+ assert (Pos : forall a b, 0 <= a -> a <= b -> b <= inf_deltas' 3 + 1 ->
+               is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a)).
+ { intros a b Ha Hab Hb.
+   rewrite Rcountin_strin_lim. 2:{ intros n m. apply diff_inj; lia. }
+   eapply is_lim_seq_ext.
+   { intros n. symmetry. rewrite diff_count_center_pos; trivial. reflexivity. }
+   rewrite <- Rcountin_strin_lim.
+   2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
+   replace (b-a) with ((1-a)-(1-b)) by lra.
+   apply MultIrrat_EquiDistrMod1; try lra.
+   intro; apply tau_irrat; lia.
+   generalize inf_deltas_approx; unfold Approx; lra. }
+ assert (Neg : forall a b, sup_deltas' 3 - 1 <= a -> a <= b -> b <= 0 ->
+               is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a)).
+ { intros a b Ha Hab Hb.
+   rewrite Rcountin_strin_lim. 2:{ intros n m. apply diff_inj; lia. }
+   eapply is_lim_seq_ext.
+   { intros n. symmetry. rewrite diff_count_center_neg; trivial. reflexivity. }
+   rewrite <- Rcountin_strin_lim.
+   2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
+   replace (b-a) with ((-a)-(-b)) by lra.
+   apply MultIrrat_EquiDistrMod1; try lra.
+   intro; apply tau_irrat; lia.
+   generalize sup_deltas_approx; unfold Approx; lra. }
+ intros a b Ha Hab Hb.
+ destruct (Rle_lt_dec b 0). { apply Neg; trivial. }
+ destruct (Rle_lt_dec 0 a). { apply Pos; trivial. }
+ replace (b-a) with ((0-a)+(b-0)) by lra.
+ eapply is_lim_seq_ext.
+ { intros n. symmetry. rewrite (Rcountin_split (diff 3) a 0 b) by lra.
+   unfold Rdiv. now rewrite plus_INR, Rmult_plus_distr_r. }
+ apply is_lim_seq_plus'; [apply Neg|apply Pos]; trivial; lra.
+Qed.
+
+Lemma diff_bicount_borders a b n :
+ inf_deltas' 3 <= a -> b <= sup_deltas' 3 - 1 ->
+ (RcountStrIn (diff 3) a b n + RcountStrIn (diff 3) (a+1) (b+1) n)%nat =
+ RcountStrIn (fun m => frac_part (τ*m)) (-b) (-a) n.
+Proof.
+ intros Ha Hb. rewrite <- (RcountStrIn_opp _ (-b) (-a)), !Ropp_involutive.
+ unfold RcountStrIn. rewrite !map_filter, !map_length.
+ unfold compose.
+ rewrite <- app_length. apply Permutation_length, NoDup_Permutation.
+ - apply app_nodup.
+   + apply NoDup_filter, seq_NoDup.
+   + apply NoDup_filter, seq_NoDup.
+   + intros x. rewrite !filter_In, !RStrIn_spec. simpl.
+     intros ((_,H),(_,H')).
+     generalize inf_deltas_approx, sup_deltas_approx.
+     unfold Approx. lra.
+ - apply NoDup_filter, seq_NoDup.
+ - intros x. rewrite in_app_iff, !filter_In, !RStrIn_spec.
+   rewrite diff_eqn.
+   split.
+   + intros [(IN,L)|(IN,L)]; split; trivial.
+     * destruct (intdiff_0_1 x) as [E|E]; rewrite E in L; simpl in L; try lra.
+       exfalso.
+       generalize sup_deltas_approx. unfold Approx.
+       generalize (base_fp (τ*x)).
+       lra.
+     * destruct (intdiff_0_1 x) as [E|E]; rewrite E in L; simpl in L; try lra.
+       exfalso.
+       generalize inf_deltas_approx. unfold Approx.
+       generalize (base_fp (τ*x)).
+       lra.
+   + intros (IN,L).
+     destruct (intdiff_0_1 x) as [-> | ->]; [left|right];
+       split; trivial; simpl; lra.
+Qed.
+
+Lemma diff_density_complement_v1 a b :
+  inf_deltas' 3 <= a -> a <= b -> b <= sup_deltas' 3 - 1 ->
+  is_lim_seq (fun n => RcountStrIn (diff 3) a b n / n
+                       + RcountStrIn (diff 3) (a+1) (b+1) n / n) (b-a).
+Proof.
+ intros Ha Hab Hb.
+ eapply is_lim_seq_ext.
+ { intros n. symmetry.
+   unfold Rdiv. rewrite <- Rmult_plus_distr_r, <- plus_INR, <- Rdiv_unfold.
+   rewrite diff_bicount_borders; trivial. reflexivity. }
+ replace (b-a) with ((-a)-(-b)) by lra.
+ rewrite <- Rcountin_strin_lim.
+ 2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
+ apply MultIrrat_EquiDistrMod1.
+ - intros q. apply tau_irrat; lia.
+ - generalize sup_deltas_approx; unfold Approx; lra.
+ - lra.
+ - generalize inf_deltas_approx; unfold Approx; lra.
+Qed.
+
+Lemma diff_density_complement_v2 a b :
+  inf_deltas' 3 <= a -> a <= b -> b <= sup_deltas' 3 - 1 ->
+  is_lim_seq (fun n => Rcountin (diff 3) a b n / n
+                       + Rcountin (diff 3) (a+1) (b+1) n / n) (b-a).
+Proof.
+ intros Ha Hab Hb.
+ eapply is_lim_seq_le_le with
+  (u := fun n => RcountStrIn (diff 3) a b n / n
+                 + RcountStrIn (diff 3) (a+1) (b+1) n / n)
+  (w := fun n => RcountStrIn (diff 3) a b n / n
+                 + RcountStrIn (diff 3) (a+1) (b+1) n / n + 2*/n).
+ 2:{ apply diff_density_complement_v1; trivial. }
+ 2:{ replace (b-a) with (b-a+2*0) by lra.
+     apply is_lim_seq_plus'. apply diff_density_complement_v1; trivial.
+     apply is_lim_seq_mult'. apply is_lim_seq_const. apply is_lim_seq_invn. }
+ intros n.
+ assert (Hn : 0 <= /n).
+ { destruct n. simpl. rewrite Rinv_0; lra.
+   apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+ unfold Rdiv. change 2 with (INR 2).
+ rewrite <- !Rmult_plus_distr_r, <- !plus_INR.
+ split.
+ - apply Rmult_le_compat_r, le_INR, Nat.add_le_mono; trivial;
+   apply Rcountin_strin; intros p q; apply diff_inj; lia.
+ - apply Rmult_le_compat_r, le_INR; trivial.
+   rewrite 2 Nat.add_succ_r, Nat.add_0_r.
+   rewrite <- Nat.add_succ_l, <- Nat.add_succ_r.
+   apply Nat.add_le_mono;
+   apply Rcountin_strin; intros p q; apply diff_inj; lia.
 Qed.
 
 (* TODO : median diff3 also CV to (Re limit) *)

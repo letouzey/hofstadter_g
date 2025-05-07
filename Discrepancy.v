@@ -47,6 +47,36 @@ Fixpoint MinDeltas (k p:nat) :=
 
 (** Basic properties about diff *)
 
+Lemma diff_not_apart_int k n m (z:Z) :
+ (1<k)%nat -> diff k n - diff k m = IZR z -> n = m.
+Proof.
+ intros Hk E. unfold diff in *.
+ destruct (Nat.compare_spec n m) as [H|H|H]; trivial; exfalso.
+ - set (q := Qmake (z + Z.of_nat (f k m) - Z.of_nat (f k n)) (Pos.of_nat (m-n))).
+   apply (tau_irrat k Hk q).
+   unfold q, Q2R. simpl. rewrite minus_IZR, plus_IZR, <- !INR_IZR_INZ.
+   replace (Z.pos _) with (Z.of_nat (m-n)).
+   2:{ assert (0 < m-n)%nat by lia.
+       destruct (m-n)%nat; try easy. now rewrite <- Pos.of_nat_succ. }
+   rewrite <- INR_IZR_INZ, minus_INR by lia.
+   rewrite <- E. field.
+   rewrite <- minus_INR by lia. apply (not_INR _ 0); lia.
+ - set (q := Qmake (Z.of_nat (f k n) - Z.of_nat (f k m) - z) (Pos.of_nat (n-m))).
+   apply (tau_irrat k Hk q).
+   unfold q, Q2R. simpl. rewrite !minus_IZR, <- !INR_IZR_INZ.
+   replace (Z.pos _) with (Z.of_nat (n-m)).
+   2:{ assert (0 < n-m)%nat by lia.
+       destruct (n-m)%nat; try easy. now rewrite <- Pos.of_nat_succ. }
+   rewrite <- INR_IZR_INZ, minus_INR by lia.
+   rewrite <- E. field.
+   rewrite <- minus_INR by lia. apply (not_INR _ 0); lia.
+Qed.
+
+Lemma diff_inj k n m : (1<k)%nat -> diff k n = diff k m -> n = m.
+Proof.
+ intros Hk E. apply (diff_not_apart_int k n m Z0 Hk). rewrite E; lra.
+Qed.
+
 Lemma diff_app k l l' : k<>O -> Delta k (l++l') ->
  diff k (sumA k (l++l')) = diff k (sumA k l) + diff k (sumA k l').
 Proof.

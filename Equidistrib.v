@@ -56,10 +56,18 @@ Proof.
  repeat case Rleb_spec; repeat case Rltb_spec; intros; simpl; lra || lia.
 Qed.
 
-Lemma Rcountin_diff0 u a b n : 0<=a<=b ->
+Lemma Rcountin_via_0 u a b n : 0<=a<=b ->
   (Rcountin u a b n = Rcountin u 0 b n - Rcountin u 0 a n)%nat.
 Proof.
  intros H. rewrite (Rcountin_split u 0 a b n H). lia.
+Qed.
+
+Lemma Rcountin_noitvl (f:nat->R) a b n : b<a -> Rcountin f a b n = O.
+Proof.
+ intros Hab.
+ unfold Rcountin. rewrite map_filter, map_length.
+ rewrite filter_nop; trivial.
+ intros x _. apply not_true_iff_false. unfold compose. rewrite RIn_spec; lra.
 Qed.
 
 Lemma EquiDistr01_alt1 u :
@@ -70,7 +78,7 @@ Proof.
  - intros b Hb. replace b with (b-0) at 1 by lra. apply (H 0 b); lra.
  - intros a b Ha Hab Hb.
    eapply is_lim_seq_ext.
-   { symmetry. rewrite Rcountin_diff0 by lra. rewrite minus_INR.
+   { symmetry. rewrite Rcountin_via_0 by lra. rewrite minus_INR.
      apply Rdiv_minus_distr.
      rewrite (Rcountin_split u 0 a b n). lia. lra. }
    apply is_lim_seq_minus'; apply H; lra.
@@ -211,7 +219,7 @@ Proof.
 Qed.
 
 Theorem MultIrrat_EquiDistrMod1 t :
-  irrat t -> EquiDistr01 (fun n => frac_part (n*t)).
+  irrat t -> EquiDistr01 (fun n => frac_part (t*n)).
 Proof.
  intros Ht.
  apply EquiDistr01_alt2b.
@@ -233,17 +241,17 @@ Proof.
  set (eps2 := Rcomplements.pos_div_2 (mkposreal eps' (proj1 Heps'))).
  destruct (kronecker t (a+eps'/2) eps2) as (q1 & p1 & H1); trivial.
  destruct (kronecker t (a-eps'/2) eps2) as (q2 & p2 & H2); trivial.
- assert (H1' : a < frac_part (q1*t) < a + eps').
+ assert (H1' : a < frac_part (t*q1) < a + eps').
  { unfold frac_part.
    apply Rcomplements.Rabs_lt_between in H1.
    unfold eps2 in H1. simpl in H1.
-   replace (Int_part (q1*t)) with p1. lra.
+   replace (Int_part (t*q1)) with p1. lra.
    symmetry; apply int_part_iff. lra. }
- assert (H2' : a-eps' < frac_part (q2*t) < a).
+ assert (H2' : a-eps' < frac_part (t*q2) < a).
  { unfold frac_part.
    apply Rcomplements.Rabs_lt_between in H2.
    unfold eps2 in H2. simpl in H2.
-   replace (Int_part (q2*t)) with p2. lra.
+   replace (Int_part (t*q2)) with p2. lra.
    symmetry; apply int_part_iff. lra. }
  clearbody eps'. clear p1 p2 H1 H2 eps2.
  exists (Nat.max (Nat.max q1 q2) (S (nat_part (Nat.max q1 q2 / eps')))).
@@ -264,41 +272,41 @@ Proof.
  rewrite <- Rdiv_minus_distr.
  apply Rcomplements.Rabs_lt_between, and_comm; split.
  - assert (Q : q1<>O).
-   { intros ->. simpl in H1'. rewrite Rmult_0_l, fp_R0 in H1'. lra. }
+   { intros ->. simpl in H1'. rewrite Rmult_0_r, fp_R0 in H1'. lra. }
    apply Rcomplements.Rlt_div_l. apply lt_0_INR; lia.
    assert (Hn1' : q1 < n * eps').
    { eapply Rle_lt_trans; [|apply Hn']. apply le_INR; lia. }
    clear Hn'.
-   assert (E : frac_part (-q1*t) = 1 - frac_part (q1*t)).
-   { rewrite <- Ropp_mult_distr_l, frac_part_opp. lra.
+   assert (E : frac_part (t*(-q1)) = 1 - frac_part (t*q1)).
+   { rewrite <- Ropp_mult_distr_r, frac_part_opp. lra.
      unfold frac_part. intros E. apply Rminus_diag_uniq_sym in E.
-     apply (Ht (Qmake (Int_part (q1*t)) (Pos.of_nat q1))).
+     apply (Ht (Qmake (Int_part (t*q1)) (Pos.of_nat q1))).
      unfold Q2R. simpl. rewrite E.
      replace (Z.pos (Pos.of_nat q1)) with (Z.of_nat q1).
      rewrite <-INR_IZR_INZ. field. apply not_0_INR; lia.
      destruct q1; try lia. }
-   assert (LT : forall m, frac_part (m*t) < frac_part ((m-q1)*t+a)+eps').
+   assert (LT : forall m, frac_part (t*m) < frac_part (t*(m-q1)+a)+eps').
    { intros m.
-     destruct (Rle_lt_dec 1 (frac_part ((m-q1)*t)+frac_part (q1*t)))
+     destruct (Rle_lt_dec 1 (frac_part (t*(m-q1))+frac_part (t*q1)))
       as [H|H].
-     - assert (H' : frac_part(-q1*t) <= frac_part ((m-q1)*t)).
+     - assert (H' : frac_part(t*(-q1)) <= frac_part (t*(m-q1))).
        { rewrite E. lra. }
-       replace (m*t) with ((m-q1)*t - (-q1*t)) by ring.
+       replace (t*m) with (t*(m-q1) - t*(-q1)) by ring.
        rewrite Rminus_fp1, E by lra.
        apply Rlt_le_trans
-         with (frac_part ((m - q1) * t) - frac_part (-a) + eps').
+         with (frac_part (t*(m - q1)) - frac_part (-a) + eps').
        lra. apply Rplus_le_compat_r.
-       replace (_+a) with ((m-q1)*t-(-a)) by lra.
-       destruct (Rle_lt_dec (frac_part (-a)) (frac_part ((m-q1)*t))).
+       replace (_+a) with (t*(m-q1)-(-a)) by lra.
+       destruct (Rle_lt_dec (frac_part (-a)) (frac_part (t*(m-q1)))).
        + rewrite Rminus_fp1; lra.
        + rewrite Rminus_fp2; lra.
-     - assert (H' : frac_part ((m-q1)*t) < frac_part(-q1*t)).
+     - assert (H' : frac_part (t*(m-q1)) < frac_part(t*(-q1))).
        { rewrite E. lra. }
-       replace (m*t) with ((m-q1)*t - (-q1*t)) by ring.
+       replace (t*m) with (t*(m-q1) - t*(-q1)) by ring.
        rewrite Rminus_fp2, E by lra. ring_simplify.
-       assert (LT' : frac_part ((m - q1) * t) < frac_part (-a)).
+       assert (LT' : frac_part (t*(m - q1)) < frac_part (-a)).
        { eapply Rlt_le_trans; [apply H'|]. rewrite E, Ha2. lra. }
-       replace (_+a) with ((m-q1)*t-(-a)) by lra.
+       replace (_+a) with (t*(m-q1)--a) by lra.
        rewrite Rminus_fp2 by lra. rewrite Ha2. ring_simplify. lra. }
    clear E.
    replace n with (q1+(n-q1))%nat at 1 by lia.
@@ -311,7 +319,7 @@ Proof.
    apply Rlt_le_trans with (eps*n).
    2:{ rewrite <- (Rplus_0_r (eps*n)) at 1. apply Rplus_le_compat_l.
        apply RealAux.Rsum_ge_0. intros i _.
-       generalize (base_fp ((n-q1+i)%nat*t+a)); lra. }
+       generalize (base_fp (t*(n-q1+i)%nat+a)); lra. }
    rewrite Rplus_assoc, big_sum_Ropp, <- big_sum_Rplus.
    apply Rle_lt_trans with (q1 + n *eps').
    2:{ apply Rlt_le_trans with (n*eps' + n*eps'); try lra.
@@ -320,7 +328,7 @@ Proof.
    apply Rplus_le_compat.
    + rewrite <- (Rmult_1_l q1), <- big_sum_Rconst.
      apply RealAux.Rsum_le. intros i _.
-     generalize (base_fp (i*t)); lra.
+     generalize (base_fp (t*i)); lra.
    + apply Rle_trans with ((n-q1)%nat*eps').
      2:{ apply Rmult_le_compat_r. lra. apply le_INR; lia. }
      rewrite Rmult_comm, <- big_sum_Rconst.
@@ -328,40 +336,40 @@ Proof.
      specialize (LT (q1+i)%nat). rewrite plus_INR in LT at 2.
      replace (q1+i-q1) with (INR i) in LT; lra.
  - assert (Q : q2<>O).
-   { intros ->. simpl in H2'. rewrite Rmult_0_l, fp_R0 in H2'. lra. }
+   { intros ->. simpl in H2'. rewrite Rmult_0_r, fp_R0 in H2'. lra. }
    apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia.
    assert (Hn2' : q2 < n * eps').
    { eapply Rle_lt_trans; [|apply Hn']. apply le_INR; lia. }
    clear Hn'.
-   assert (E : frac_part (-q2*t) = 1 - frac_part (q2*t)).
-   { rewrite <- Ropp_mult_distr_l, frac_part_opp. lra.
+   assert (E : frac_part (t*(-q2)) = 1 - frac_part (t*q2)).
+   { rewrite <- Ropp_mult_distr_r, frac_part_opp. lra.
      unfold frac_part. intros E. apply Rminus_diag_uniq_sym in E.
-     apply (Ht (Qmake (Int_part (q2*t)) (Pos.of_nat q2))).
+     apply (Ht (Qmake (Int_part (t*q2)) (Pos.of_nat q2))).
      unfold Q2R. simpl. rewrite E.
      replace (Z.pos (Pos.of_nat q2)) with (Z.of_nat q2).
      rewrite <-INR_IZR_INZ. field. apply not_0_INR; lia.
      destruct q2; try lia. }
-   assert (LT : forall m, frac_part (m*t) > frac_part ((m-q2)*t+a)-eps').
+   assert (LT : forall m, frac_part (t*m) > frac_part (t*(m-q2)+a)-eps').
    { intros m.
-     destruct (Rle_lt_dec 1 (frac_part ((m-q2)*t)+frac_part (q2*t)))
+     destruct (Rle_lt_dec 1 (frac_part (t*(m-q2))+frac_part (t*q2)))
       as [H|H].
-     - assert (H' : frac_part(-q2*t) <= frac_part ((m-q2)*t)).
+     - assert (H' : frac_part(t*(-q2)) <= frac_part (t*(m-q2))).
        { rewrite E. lra. }
-       replace (m*t) with ((m-q2)*t - (-q2*t)) by ring.
+       replace (t*m) with (t*(m-q2) - t*(-q2)) by ring.
        rewrite Rminus_fp1, E by lra.
        apply Rle_lt_trans
-         with (frac_part ((m - q2) * t) - frac_part (-a) - eps').
+         with (frac_part (t*(m - q2)) - frac_part (-a) - eps').
        2:lra. apply Rplus_le_compat_r.
-       assert (LT' : frac_part ((m - q2) * t) > frac_part (-a)).
+       assert (LT' : frac_part (t*(m - q2)) > frac_part (-a)).
        { eapply Rlt_le_trans; [|apply H']. rewrite E, Ha2. lra. }
-       replace (_+a) with ((m-q2)*t-(-a)) by lra.
+       replace (_+a) with (t*(m-q2)--a) by lra.
        rewrite Rminus_fp1; lra.
-     - assert (H' : frac_part ((m-q2)*t) < frac_part(-q2*t)).
+     - assert (H' : frac_part (t*(m-q2)) < frac_part(t*(-q2))).
        { rewrite E. lra. }
-       replace (m*t) with ((m-q2)*t - (-q2*t)) by ring.
+       replace (t*m) with (t*(m-q2) - t*(-q2)) by ring.
        rewrite Rminus_fp2, E by lra.
-       replace (_+a) with ((m-q2)*t-(-a)) by lra.
-       destruct (Rle_lt_dec (frac_part (-a)) (frac_part ((m-q2)*t))).
+       replace (_+a) with (t*(m-q2)--a) by lra.
+       destruct (Rle_lt_dec (frac_part (-a)) (frac_part (t*(m-q2)))).
        + rewrite Rminus_fp1; lra.
        + rewrite Rminus_fp2; lra. }
    clear E.
@@ -374,7 +382,7 @@ Proof.
    rewrite <- (Rplus_0_l (-eps*n)).
    apply Rplus_le_lt_compat.
    { apply RealAux.Rsum_ge_0. intros i _.
-     generalize (base_fp (i*t)); lra. }
+     generalize (base_fp (t*i)); lra. }
    rewrite <- Rplus_assoc, big_sum_Ropp, <- big_sum_Rplus.
    apply Rlt_le_trans with (- n*eps' - q2).
    { apply Rle_lt_trans with (-n*eps' + -n*eps'); try lra.
@@ -393,7 +401,7 @@ Proof.
    + apply Ropp_le_contravar.
      rewrite <- (Rmult_1_l q2), <- big_sum_Rconst.
      apply RealAux.Rsum_le. intros i _.
-     generalize (base_fp ((n-q2+i)%nat*t+a)); lra.
+     generalize (base_fp (t*(n-q2+i)%nat+a)); lra.
 Qed.
 
 Lemma maxseqexists p (u : nat -> nat -> R) (eps:posreal) lim :
@@ -481,7 +489,7 @@ Qed.
     We rather formalize here a direct proof. *)
 
 Theorem MultIrrat_mean t :
-  irrat t -> is_lim_seq (fun n => mean (fun m => frac_part (m*t)) n) 0.5.
+  irrat t -> is_lim_seq (fun n => mean (fun m => frac_part (t*m)) n) 0.5.
 Proof.
  intros Ht.
  apply is_lim_seq_incr_1.
@@ -498,7 +506,7 @@ Proof.
  assert (LT : 0 < /(p*(p+1))).
  { apply Rinv_0_lt_compat, Rmult_lt_0_compat; lra. }
  set (eps' := mkposreal _ LT).
- set (f := fun (m:nat) => frac_part (m*t)).
+ set (f := fun (m:nat) => frac_part (t*m)).
  destruct (maxseqexists p (fun q n => Rcountin f (q/p) ((S q)/p) (S n) /S n)
             eps' (/p)) as (N & HN).
  { intros q Hq.
@@ -516,7 +524,7 @@ Proof.
      apply le_INR. lia. }}
  exists N. intros n Hn. specialize (HN n Hn).
  assert (Hf : forall n, 0 <= f n < 1).
- { intros m. generalize (base_fp (m*t)); unfold f; lra. }
+ { intros m. generalize (base_fp (t*m)); unfold f; lra. }
  destruct (sum_rcountin_bounds f p lia Hf (S n)) as (LE,GE).
  unfold mean. apply Rcomplements.Rabs_lt_between. split.
  - apply RealAux.Rlt_minus_r. rewrite Rplus_comm.
@@ -585,4 +593,103 @@ Proof.
    replace 0.5 with (/2) by lra.
    apply Rle_lt_trans with (/p + /2); try lra.
    apply RealAux.Rminus_le_0. field_simplify; nra.
+Qed.
+
+(** A strict version of Rcountin, handy for Ropp *)
+
+Definition RStrIn a b x := Rltb a x && Rltb x b.
+
+Lemma RStrIn_spec a b r : RStrIn a b r = true <-> a < r < b.
+Proof.
+ unfold RStrIn. repeat case Rltb_spec; simpl; lra.
+Qed.
+
+Definition RcountStrIn (u:nat->R) a b n :=
+ length (filter (RStrIn a b) (map u (seq 0 n))).
+
+Lemma RcountStrIn_noitvl (f:nat->R) a b n : b<=a -> RcountStrIn f a b n = O.
+Proof.
+ intros Hab.
+ unfold RcountStrIn. rewrite map_filter, map_length.
+ rewrite filter_nop; trivial.
+ intros x _. apply not_true_iff_false. unfold compose.
+ rewrite RStrIn_spec; lra.
+Qed.
+
+Lemma RcountStrIn_opp u a b n:
+  RcountStrIn (Ropp ∘ u) (-b) (-a) n = RcountStrIn u a b n.
+Proof.
+ unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ f_equal. apply filter_ext.
+ intros m. apply eq_true_iff_eq. rewrite !RStrIn_spec. lra.
+Qed.
+
+(** For injective functions, RcountStrIn and Rcountin differ by at most 1 *)
+
+Lemma Rcountin_strin (u:nat->R) a b n :
+ FinFun.Injective u ->
+ (RcountStrIn u a b n <= Rcountin u a b n <= S (RcountStrIn u a b n))%nat.
+Proof.
+ intros Hu.
+ destruct (Rlt_le_dec b a).
+ { rewrite Rcountin_noitvl, RcountStrIn_noitvl; try lia; try lra. }
+ unfold Rcountin, RcountStrIn.
+ rewrite !map_filter, !map_length. unfold compose.
+ erewrite filter_ext with
+  (f:=fun m => RIn _ _ _)
+  (g:=fun m => (RStrIn a b (u m)) || (Rltb a b && (Req_EM_T (u m) a ||| false))).
+ 2:{ intros m. unfold RIn, RStrIn.
+     destruct (Req_EM_T (u m) a) as [->|N];
+     case Rleb_spec; intros; simpl; try lra;
+     repeat (case Rltb_spec; intros; simpl; try lra). }
+ rewrite filter_or_disj.
+ 2:{ intros m _.
+     destruct (Req_EM_T (u m) a) as [->|N].
+     - unfold RStrIn. case (Rltb_spec a a); intros; simpl; lra.
+     - now rewrite !andb_false_r. }
+ set (L1 := length _).
+ set (L2 := length _).
+ assert (H2 : (L2 <= 1)%nat); try lia.
+ { apply filter_uniq. 2:apply seq_NoDup.
+   intros p q _ _. destruct (Rltb a b); simpl; try easy.
+   destruct (Req_EM_T (u p) a) as [E|N]; try easy.
+   destruct (Req_EM_T (u q) a) as [E'|N']; try easy.
+   intros _ _. apply (Hu p q). lra. }
+Qed.
+
+(** The densities are hence unchanged *)
+
+Lemma Rcountin_strin_lim (u:nat->R) a b (lim:R) :
+ FinFun.Injective u ->
+ is_lim_seq (fun n => Rcountin u a b n/n) lim <->
+ is_lim_seq (fun n => RcountStrIn u a b n/n) lim.
+Proof.
+ intros Hu.
+ split; intros LI.
+ - eapply is_lim_seq_le_le
+     with (u:=fun n => Rcountin u a b n/n-/n)
+          (w:=fun n => Rcountin u a b n/n); trivial.
+   2:{ replace lim with (lim-0) by lra. apply is_lim_seq_minus'; trivial.
+       apply is_lim_seq_invn. }
+   intros n.
+   destruct (Rcountin_strin u a b n Hu) as (H,H').
+   apply le_INR in H, H'. rewrite S_INR in H'.
+   assert (Hn : 0 <= /n).
+   { destruct n. simpl. rewrite Rinv_0; lra.
+     apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+   apply Rmult_le_compat_r with (r:=/n) in H, H'; trivial.
+   unfold Rdiv; lra.
+ - eapply is_lim_seq_le_le
+     with (u:=fun n => RcountStrIn u a b n/n)
+          (w:=fun n => RcountStrIn u a b n/n+/n); trivial.
+   2:{ replace lim with (lim+0) by lra. apply is_lim_seq_plus'; trivial.
+       apply is_lim_seq_invn. }
+   intros n.
+   destruct (Rcountin_strin u a b n Hu) as (H,H').
+   apply le_INR in H, H'. rewrite S_INR in H'.
+   assert (Hn : 0 <= /n).
+   { destruct n. simpl. rewrite Rinv_0; lra.
+     apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+   apply Rmult_le_compat_r with (r:=/n) in H, H'; trivial.
+   unfold Rdiv; lra.
 Qed.
