@@ -62,7 +62,7 @@ Proof.
  intros H. rewrite (Rcountin_split u 0 a b n H). lia.
 Qed.
 
-Lemma Rcountin_noitvl (f:nat->R) a b n : b<a -> Rcountin f a b n = O.
+Lemma Rcountin_noitvl (f:nat->R) a b n : b<=a -> Rcountin f a b n = O.
 Proof.
  intros Hab.
  unfold Rcountin. rewrite map_filter, map_length.
@@ -408,7 +408,7 @@ Lemma maxseqexists p (u : nat -> nat -> R) (eps:posreal) lim :
  (forall q, (q < p)%nat ->
   exists N, forall n, (N<=n)%nat -> Rabs (u q n - lim) < eps) ->
  exists N, forall n, (N <= n)%nat ->
-  forall q, (q<p)%nat -> Rabs ((u q n) - lim) < eps.
+  forall q, (q<p)%nat -> Rabs (u q n - lim) < eps.
 Proof.
  induction p; intros H.
  - now exists O.
@@ -595,101 +595,165 @@ Proof.
    apply RealAux.Rminus_le_0. field_simplify; nra.
 Qed.
 
-(** A strict version of Rcountin, handy for Ropp *)
+(** A generalized version of Rcountin, handy for Ropp *)
 
-Definition RStrIn a b x := Rltb a x && Rltb x b.
+Variant kind := LE | LT.
+Definition Rcmp kd := match kd with LE => Rleb | LT => Rltb end.
+Definition Rord kd := match kd with LE => Rle | LT => Rlt end.
 
-Lemma RStrIn_spec a b r : RStrIn a b r = true <-> a < r < b.
+Module Gen.
+Definition RIn kd kd' a b x := Rcmp kd a x && Rcmp kd' x b.
+Definition Rcountin kd kd' (u:nat->R) a b n :=
+ length (filter (RIn kd kd' a b) (map u (seq 0 n))).
+
+Lemma RIn_spec kd kd' a b r :
+  RIn kd kd' a b r = true <-> Rord kd a r /\ Rord kd' r b.
 Proof.
- unfold RStrIn. repeat case Rltb_spec; simpl; lra.
+ unfold RIn.
+ destruct kd,kd'; simpl;
+ repeat case Rleb_spec; repeat case Rltb_spec; simpl; lra.
 Qed.
 
-Definition RcountStrIn (u:nat->R) a b n :=
- length (filter (RStrIn a b) (map u (seq 0 n))).
+End Gen.
 
-Lemma RcountStrIn_noitvl (f:nat->R) a b n : b<=a -> RcountStrIn f a b n = O.
+Lemma RIn_RIn_gen : RIn = Gen.RIn LE LT.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Rcountin_Rcountin_gen : Rcountin = Gen.Rcountin LE LT.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma Rcountin_gen_noitvl kd kd' (f:nat->R) a b n :
+  b<a -> Gen.Rcountin kd kd' f a b n = O.
 Proof.
  intros Hab.
- unfold RcountStrIn. rewrite map_filter, map_length.
+ unfold Gen.Rcountin. rewrite map_filter, map_length.
  rewrite filter_nop; trivial.
  intros x _. apply not_true_iff_false. unfold compose.
- rewrite RStrIn_spec; lra.
+ rewrite Gen.RIn_spec. destruct kd,kd'; simpl; lra.
 Qed.
 
-Lemma RcountStrIn_opp u a b n:
-  RcountStrIn (Ropp ∘ u) (-b) (-a) n = RcountStrIn u a b n.
+Lemma Rcountin_gen_opp kd kd' u a b n:
+  Gen.Rcountin kd' kd (Ropp ∘ u) (-b) (-a) n = Gen.Rcountin kd kd' u a b n.
 Proof.
- unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ unfold Gen.Rcountin. rewrite !map_filter, !map_length. unfold compose.
  f_equal. apply filter_ext.
- intros m. apply eq_true_iff_eq. rewrite !RStrIn_spec. lra.
+ intros m. apply eq_true_iff_eq. rewrite !Gen.RIn_spec.
+ destruct kd,kd'; simpl; lra.
 Qed.
 
-(** For injective functions, RcountStrIn and Rcountin differ by at most 1 *)
+(** For injective functions, all these possible Gen.Rcountin differ
+    by at most 2 *)
 
-Lemma Rcountin_strin (u:nat->R) a b n :
+Lemma Rcountin_gen_close1 kd (u:nat->R) a b n :
  FinFun.Injective u ->
- (RcountStrIn u a b n <= Rcountin u a b n <= S (RcountStrIn u a b n))%nat.
+ (Gen.Rcountin LT kd u a b n <=
+  Gen.Rcountin LE kd u a b n <=
+  S (Gen.Rcountin LT kd u a b n))%nat.
 Proof.
  intros Hu.
  destruct (Rlt_le_dec b a).
- { rewrite Rcountin_noitvl, RcountStrIn_noitvl; try lia; try lra. }
- unfold Rcountin, RcountStrIn.
+ { rewrite !Rcountin_gen_noitvl; try lia; try lra. }
+ unfold Gen.Rcountin.
  rewrite !map_filter, !map_length. unfold compose.
  erewrite filter_ext with
-  (f:=fun m => RIn _ _ _)
-  (g:=fun m => (RStrIn a b (u m)) || (Rltb a b && (Req_EM_T (u m) a ||| false))).
- 2:{ intros m. unfold RIn, RStrIn.
-     destruct (Req_EM_T (u m) a) as [->|N];
-     case Rleb_spec; intros; simpl; try lra;
-     repeat (case Rltb_spec; intros; simpl; try lra). }
- rewrite filter_or_disj.
- 2:{ intros m _.
+  (f:=fun m => Gen.RIn LE kd _ _ _)
+  (g:=fun m => (Gen.RIn LT kd a b (u m))
+               || (Rcmp kd a b && (Req_EM_T (u m) a ||| false))).
+ 2:{ intros m. unfold Gen.RIn. simpl.
      destruct (Req_EM_T (u m) a) as [->|N].
-     - unfold RStrIn. case (Rltb_spec a a); intros; simpl; lra.
+     - destruct (Rcmp kd a b); simpl;
+         case Rleb_spec; case Rltb_spec; simpl; lra.
+     - rewrite andb_false_r, orb_false_r.
+       destruct (Rcmp kd (u m) b); simpl.
+       + case Rleb_spec; case Rltb_spec; simpl; lra.
+       + now rewrite !andb_false_r. }
+ rewrite filter_or_disj.
+ 2:{ intros m _. unfold Gen.RIn. simpl.
+     destruct (Req_EM_T (u m) a) as [->|N].
+     - case (Rltb_spec a a); intros; simpl; lra.
      - now rewrite !andb_false_r. }
  set (L1 := length _).
  set (L2 := length _).
  assert (H2 : (L2 <= 1)%nat); try lia.
  { apply filter_uniq. 2:apply seq_NoDup.
-   intros p q _ _. destruct (Rltb a b); simpl; try easy.
+   intros p q _ _. destruct (Rcmp kd a b); simpl; try easy.
    destruct (Req_EM_T (u p) a) as [E|N]; try easy.
    destruct (Req_EM_T (u q) a) as [E'|N']; try easy.
    intros _ _. apply (Hu p q). lra. }
 Qed.
 
+Lemma Rcountin_gen_close2 kd kd' (u:nat->R) a b n :
+ FinFun.Injective u ->
+ (Gen.Rcountin LT LT u a b n <=
+  Gen.Rcountin kd kd' u a b n <=
+  2+Gen.Rcountin LT LT u a b n)%nat.
+Proof.
+ intros Hu.
+ split.
+ - transitivity (Gen.Rcountin kd LT u a b n).
+   { destruct kd; trivial. now apply Rcountin_gen_close1. }
+   rewrite <- Rcountin_gen_opp. rewrite <- (Rcountin_gen_opp kd).
+   destruct kd'; trivial. apply Rcountin_gen_close1.
+   { intros x y H. apply (Hu x y). unfold compose in H; lra. }
+ - transitivity (S (Gen.Rcountin kd LT u a b n)).
+   2:{ destruct kd; try lia. simpl. rewrite <- Nat.succ_le_mono.
+       now apply Rcountin_gen_close1. }
+   rewrite <- Rcountin_gen_opp. rewrite <- (Rcountin_gen_opp kd).
+   destruct kd'; try lia. apply Rcountin_gen_close1.
+   { intros x y H. apply (Hu x y). unfold compose in H; lra. }
+Qed.
+
 (** The densities are hence unchanged *)
 
-Lemma Rcountin_strin_lim (u:nat->R) a b (lim:R) :
+Lemma Rcountin_gen_lim kd kd' (u:nat->R) a b (lim:R) :
  FinFun.Injective u ->
- is_lim_seq (fun n => Rcountin u a b n/n) lim <->
- is_lim_seq (fun n => RcountStrIn u a b n/n) lim.
+ is_lim_seq (fun n => Gen.Rcountin kd kd' u a b n/n) lim <->
+ is_lim_seq (fun n => Rcountin u a b n/n) lim.
 Proof.
  intros Hu.
  split; intros LI.
  - eapply is_lim_seq_le_le
-     with (u:=fun n => Rcountin u a b n/n-/n)
-          (w:=fun n => Rcountin u a b n/n); trivial.
-   2:{ replace lim with (lim-0) by lra. apply is_lim_seq_minus'; trivial.
+     with (u:=fun n => Gen.Rcountin kd kd' u a b n/n-2/n)
+          (w:=fun n => Gen.Rcountin kd kd' u a b n/n+2/n); trivial.
+   2:{ replace lim with (lim-2*0) by lra. apply is_lim_seq_minus'; trivial.
+       apply is_lim_seq_mult'. apply is_lim_seq_const.
+       apply is_lim_seq_invn. }
+   2:{ replace lim with (lim+2*0) by lra. apply is_lim_seq_plus'; trivial.
+       apply is_lim_seq_mult'. apply is_lim_seq_const.
        apply is_lim_seq_invn. }
    intros n.
-   destruct (Rcountin_strin u a b n Hu) as (H,H').
-   apply le_INR in H, H'. rewrite S_INR in H'.
+   destruct (Rcountin_gen_close2 kd kd' u a b n Hu) as (H1,H2).
+   destruct (Rcountin_gen_close2 LE LT u a b n Hu) as (H3,H4).
+   rewrite <- Rcountin_Rcountin_gen in *.
+   apply le_INR in H1, H2, H3,H4. rewrite plus_INR, (INR_IZR_INZ 2) in *.
+   simpl in *.
    assert (Hn : 0 <= /n).
    { destruct n. simpl. rewrite Rinv_0; lra.
      apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
-   apply Rmult_le_compat_r with (r:=/n) in H, H'; trivial.
-   unfold Rdiv; lra.
+   apply Rmult_le_compat_r with (r:=/n) in H1,H2,H3,H4; trivial.
+   unfold Rdiv. lra.
  - eapply is_lim_seq_le_le
-     with (u:=fun n => RcountStrIn u a b n/n)
-          (w:=fun n => RcountStrIn u a b n/n+/n); trivial.
-   2:{ replace lim with (lim+0) by lra. apply is_lim_seq_plus'; trivial.
+     with (u:=fun n => Rcountin u a b n/n-2/n)
+          (w:=fun n => Rcountin u a b n/n+2/n); trivial.
+   2:{ replace lim with (lim-2*0) by lra. apply is_lim_seq_minus'; trivial.
+       apply is_lim_seq_mult'. apply is_lim_seq_const.
+       apply is_lim_seq_invn. }
+   2:{ replace lim with (lim+2*0) by lra. apply is_lim_seq_plus'; trivial.
+       apply is_lim_seq_mult'. apply is_lim_seq_const.
        apply is_lim_seq_invn. }
    intros n.
-   destruct (Rcountin_strin u a b n Hu) as (H,H').
-   apply le_INR in H, H'. rewrite S_INR in H'.
+   destruct (Rcountin_gen_close2 kd kd' u a b n Hu) as (H1,H2).
+   destruct (Rcountin_gen_close2 LE LT u a b n Hu) as (H3,H4).
+   rewrite <- Rcountin_Rcountin_gen in *.
+   apply le_INR in H1, H2, H3,H4. rewrite plus_INR, (INR_IZR_INZ 2) in *.
+   simpl in *.
    assert (Hn : 0 <= /n).
    { destruct n. simpl. rewrite Rinv_0; lra.
      apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
-   apply Rmult_le_compat_r with (r:=/n) in H, H'; trivial.
-   unfold Rdiv; lra.
+   apply Rmult_le_compat_r with (r:=/n) in H1,H2,H3,H4; trivial.
+   unfold Rdiv. lra.
 Qed.

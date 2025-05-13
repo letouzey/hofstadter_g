@@ -9,7 +9,9 @@ Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
-#[local] Hint Resolve μ_approx τ_approx αmod_approx : typeclass_instances.
+#[local] Hint Resolve
+ μ_approx τ_approx αmod_approx sup_deltas_approx inf_deltas_approx
+ : typeclass_instances.
 
 (** * Mean discrepancy in the case k=3
 
@@ -277,12 +279,14 @@ Qed.
 
 Definition limit : C := ((-τ^2+4*τ-2)/6,(5*τ^2+τ-2)/6)%R.
 
-#[local] Instance : Approx 0.043956663905 (Re limit) 0.043956663906.
+#[local] Instance re_limit_approx :
+  Approx 0.043956663905 (Re limit) 0.043956663906.
 Proof.
  unfold limit. simpl. approx.
 Qed.
 
-#[local] Instance : Approx 0.168363993868 (Im limit) 0.168363993869.
+#[local] Instance im_limit_approx :
+  Approx 0.168363993868 (Im limit) 0.168363993869.
 Proof.
  unfold limit. simpl. approx.
 Qed.
@@ -968,6 +972,9 @@ Qed.
 
 Import Equidistrib.
 
+Local Notation sup3 := (sup_deltas' 3).
+Local Notation inf3 := (inf_deltas' 3).
+
 Lemma irrat_fracpart_inj t :
   irrat t -> FinFun.Injective (fun n:nat => frac_part (t*n)).
 Proof.
@@ -991,14 +998,14 @@ Proof.
 Qed.
 
 Lemma diff_count_center_pos a b n :
-  0 <= a -> b <= inf_deltas' 3 + 1 ->
-  RcountStrIn (diff 3) a b n =
-  RcountStrIn (fun m => frac_part (τ*m)) (1-b) (1-a) n.
+  0 <= a -> b <= inf3 + 1 ->
+  Gen.Rcountin LT LT (diff 3) a b n =
+  Gen.Rcountin LT LT (fun m => frac_part (τ*m)) (1-b) (1-a) n.
 Proof.
- intros Ha Hb. rewrite <- (RcountStrIn_opp _ (1-b) (1-a)).
- unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ intros Ha Hb. rewrite <- (Rcountin_gen_opp _ _ _ (1-b) (1-a)).
+ unfold Gen.Rcountin. rewrite !map_filter, !map_length. unfold compose.
  f_equal. apply filter_map, map_ext_in. intros m Hm.
- apply eq_true_iff_eq; rewrite !RStrIn_spec. split.
+ apply eq_true_iff_eq; rewrite !Gen.RIn_spec. simpl. split.
  - intros D. assert (D' : 0 < diff 3 m) by lra.
    rewrite diff_eqn in D.
    destruct (intdiff_carac_1 m) as (_,E).
@@ -1011,14 +1018,15 @@ Proof.
 Qed.
 
 Lemma diff_count_center_neg a b n :
-  sup_deltas' 3 - 1 <= a -> b <= 0 ->
-  RcountStrIn (diff 3) a b n =
-  RcountStrIn (fun m => frac_part (τ*m)) (-b) (-a) n.
+  sup3 - 1 <= a -> b <= 0 ->
+  Gen.Rcountin LT LT (diff 3) a b n =
+  Gen.Rcountin LT LT (fun m => frac_part (τ*m)) (-b) (-a) n.
 Proof.
- intros Ha Hb. rewrite <- (RcountStrIn_opp _ (-b) (-a)), !Ropp_involutive.
- unfold RcountStrIn. rewrite !map_filter, !map_length. unfold compose.
+ intros Ha Hb.
+ rewrite <- (Rcountin_gen_opp _ _ _ (-b) (-a)), !Ropp_involutive.
+ unfold Gen.Rcountin. rewrite !map_filter, !map_length. unfold compose.
  f_equal. apply filter_map, map_ext_in. intros m Hm.
- apply eq_true_iff_eq; rewrite !RStrIn_spec. split.
+ apply eq_true_iff_eq; rewrite !Gen.RIn_spec. simpl. split.
  - intros D. assert (D' : diff 3 m <= 0) by lra.
    rewrite diff_eqn in D.
    destruct (intdiff_carac_0 m) as (_,E).
@@ -1033,29 +1041,29 @@ Proof.
 Qed.
 
 Lemma diff_density_center a b :
-  sup_deltas' 3 - 1 <= a -> a <= b -> b <= inf_deltas' 3 + 1 ->
+  sup3 - 1 <= a -> a <= b -> b <= inf3 + 1 ->
   is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a).
 Proof.
  revert a b.
- assert (Pos : forall a b, 0 <= a -> a <= b -> b <= inf_deltas' 3 + 1 ->
+ assert (Pos : forall a b, 0 <= a -> a <= b -> b <= inf3 + 1 ->
                is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a)).
  { intros a b Ha Hab Hb.
-   rewrite Rcountin_strin_lim. 2:{ intros n m. apply diff_inj; lia. }
+   rewrite <- (Rcountin_gen_lim LT LT). 2:{ intros n m. apply diff_inj; lia. }
    eapply is_lim_seq_ext.
    { intros n. symmetry. rewrite diff_count_center_pos; trivial. reflexivity. }
-   rewrite <- Rcountin_strin_lim.
+   rewrite Rcountin_gen_lim.
    2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
    replace (b-a) with ((1-a)-(1-b)) by lra.
    apply MultIrrat_EquiDistrMod1; try lra.
    intro; apply tau_irrat; lia.
    generalize inf_deltas_approx; unfold Approx; lra. }
- assert (Neg : forall a b, sup_deltas' 3 - 1 <= a -> a <= b -> b <= 0 ->
+ assert (Neg : forall a b, sup3 - 1 <= a -> a <= b -> b <= 0 ->
                is_lim_seq (fun n => Rcountin (diff 3) a b n / n) (b-a)).
  { intros a b Ha Hab Hb.
-   rewrite Rcountin_strin_lim. 2:{ intros n m. apply diff_inj; lia. }
+   rewrite <- (Rcountin_gen_lim LT LT). 2:{ intros n m. apply diff_inj; lia. }
    eapply is_lim_seq_ext.
    { intros n. symmetry. rewrite diff_count_center_neg; trivial. reflexivity. }
-   rewrite <- Rcountin_strin_lim.
+   rewrite Rcountin_gen_lim.
    2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
    replace (b-a) with ((-a)-(-b)) by lra.
    apply MultIrrat_EquiDistrMod1; try lra.
@@ -1072,23 +1080,24 @@ Proof.
 Qed.
 
 Lemma diff_bicount_borders a b n :
- inf_deltas' 3 <= a -> b <= sup_deltas' 3 - 1 ->
- (RcountStrIn (diff 3) a b n + RcountStrIn (diff 3) (a+1) (b+1) n)%nat =
- RcountStrIn (fun m => frac_part (τ*m)) (-b) (-a) n.
+ inf3 <= a -> b <= sup3 - 1 ->
+ (Gen.Rcountin LT LT (diff 3) a b n +
+  Gen.Rcountin LT LT (diff 3) (a+1) (b+1) n)%nat =
+ Gen.Rcountin LT LT (fun m => frac_part (τ*m)) (-b) (-a) n.
 Proof.
- intros Ha Hb. rewrite <- (RcountStrIn_opp _ (-b) (-a)), !Ropp_involutive.
- unfold RcountStrIn. rewrite !map_filter, !map_length.
- unfold compose.
+ intros Ha Hb.
+ rewrite <- (Rcountin_gen_opp _ _ _ (-b) (-a)), !Ropp_involutive.
+ unfold Gen.Rcountin. rewrite !map_filter, !map_length. unfold compose.
  rewrite <- app_length. apply Permutation_length, NoDup_Permutation.
  - apply app_nodup.
    + apply NoDup_filter, seq_NoDup.
    + apply NoDup_filter, seq_NoDup.
-   + intros x. rewrite !filter_In, !RStrIn_spec. simpl.
+   + intros x. rewrite !filter_In, !Gen.RIn_spec. simpl.
      intros ((_,H),(_,H')).
      generalize inf_deltas_approx, sup_deltas_approx.
      unfold Approx. lra.
  - apply NoDup_filter, seq_NoDup.
- - intros x. rewrite in_app_iff, !filter_In, !RStrIn_spec.
+ - intros x. rewrite in_app_iff, !filter_In, !Gen.RIn_spec. simpl.
    rewrite diff_eqn.
    split.
    + intros [(IN,L)|(IN,L)]; split; trivial.
@@ -1108,9 +1117,9 @@ Proof.
 Qed.
 
 Lemma diff_density_complement_v1 a b :
-  inf_deltas' 3 <= a -> a <= b -> b <= sup_deltas' 3 - 1 ->
-  is_lim_seq (fun n => RcountStrIn (diff 3) a b n / n
-                       + RcountStrIn (diff 3) (a+1) (b+1) n / n) (b-a).
+  inf3 <= a -> a <= b -> b <= sup3 - 1 ->
+  is_lim_seq (fun n => Gen.Rcountin LT LT (diff 3) a b n / n
+                       + Gen.Rcountin LT LT (diff 3) (a+1) (b+1) n / n) (b-a).
 Proof.
  intros Ha Hab Hb.
  eapply is_lim_seq_ext.
@@ -1118,7 +1127,7 @@ Proof.
    unfold Rdiv. rewrite <- Rmult_plus_distr_r, <- plus_INR, <- Rdiv_unfold.
    rewrite diff_bicount_borders; trivial. reflexivity. }
  replace (b-a) with ((-a)-(-b)) by lra.
- rewrite <- Rcountin_strin_lim.
+ rewrite Rcountin_gen_lim.
  2:{ apply irrat_fracpart_inj. intros q. apply tau_irrat; lia. }
  apply MultIrrat_EquiDistrMod1.
  - intros q. apply tau_irrat; lia.
@@ -1128,16 +1137,16 @@ Proof.
 Qed.
 
 Lemma diff_density_complement_v2 a b :
-  inf_deltas' 3 <= a -> a <= b -> b <= sup_deltas' 3 - 1 ->
+  inf3 <= a -> a <= b -> b <= sup3 - 1 ->
   is_lim_seq (fun n => Rcountin (diff 3) a b n / n
                        + Rcountin (diff 3) (a+1) (b+1) n / n) (b-a).
 Proof.
  intros Ha Hab Hb.
  eapply is_lim_seq_le_le with
-  (u := fun n => RcountStrIn (diff 3) a b n / n
-                 + RcountStrIn (diff 3) (a+1) (b+1) n / n)
-  (w := fun n => RcountStrIn (diff 3) a b n / n
-                 + RcountStrIn (diff 3) (a+1) (b+1) n / n + 2*/n).
+  (u := fun n => Gen.Rcountin LT LT (diff 3) a b n / n
+                 + Gen.Rcountin LT LT (diff 3) (a+1) (b+1) n / n)
+  (w := fun n => Gen.Rcountin LT LT (diff 3) a b n / n
+                 + Gen.Rcountin LT LT (diff 3) (a+1) (b+1) n / n + 2*/n).
  2:{ apply diff_density_complement_v1; trivial. }
  2:{ replace (b-a) with (b-a+2*0) by lra.
      apply is_lim_seq_plus'. apply diff_density_complement_v1; trivial.
@@ -1150,12 +1159,11 @@ Proof.
  rewrite <- !Rmult_plus_distr_r, <- !plus_INR.
  split.
  - apply Rmult_le_compat_r, le_INR, Nat.add_le_mono; trivial;
-   apply Rcountin_strin; intros p q; apply diff_inj; lia.
+   apply Rcountin_gen_close1; intros p q; apply diff_inj; lia.
  - apply Rmult_le_compat_r, le_INR; trivial.
    rewrite 2 Nat.add_succ_r, Nat.add_0_r.
    rewrite <- Nat.add_succ_l, <- Nat.add_succ_r.
+   rewrite Rcountin_Rcountin_gen.
    apply Nat.add_le_mono;
-   apply Rcountin_strin; intros p q; apply diff_inj; lia.
+   apply Rcountin_gen_close1; intros p q; apply diff_inj; lia.
 Qed.
-
-(* TODO : median diff3 also CV to (Re limit) *)
