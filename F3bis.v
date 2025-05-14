@@ -965,6 +965,27 @@ Proof.
  replace 0.5 with (/2) by lra. field [τ3].
 Qed.
 
+(** The exact formulation of the conjecture in https://oeis.org/A082401
+    is with a sum between 1 and n, but that does not matter. *)
+
+Lemma meanintdiff_CV_really :
+ is_lim_seq (fun n => big_sum (intdiff∘S) n / n) lim_meanintdiff.
+Proof.
+ apply is_lim_seq_ext with (u:=fun n => big_sum intdiff (S n) / (S n) * (S n/n)).
+ { intros n. unfold Rdiv. rewrite <- Rmult_assoc. f_equal.
+   field_simplify; try (apply not_0_INR; lia).
+   now rewrite <- big_sum_extend_l. }
+ replace lim_meanintdiff with (lim_meanintdiff*(1+0)) by lra.
+ apply is_lim_seq_mult'.
+ - rewrite <- is_lim_seq_incr_1 with (u:=fun n => big_sum intdiff n / n).
+   apply meanintdiff_CV.
+ - apply is_lim_seq_incr_1.
+   eapply is_lim_seq_ext with (u:=fun n => 1+/S n).
+   { intros n. rewrite (S_INR (S n)). field. apply not_0_INR; lia. }
+   apply is_lim_seq_plus'. apply is_lim_seq_const.
+   rewrite <- is_lim_seq_incr_1 with (u:=fun n => /n). apply is_lim_seq_invn.
+Qed.
+
 (** By the way, peculiar distribution of the (diff 3 n) points:
     - the central zone between (sup_deltas' 3 - 1) and (inf_deltas' 3 + 1)
       has an uniform density
