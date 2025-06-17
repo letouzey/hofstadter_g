@@ -789,6 +789,34 @@ Proof.
  rewrite (is_lim_seq_incr_n (Im∘_) N). easy.
 Qed.
 
+Lemma is_lim_Cseq_alt0 a (l:C) :
+  is_lim_Cseq a l <-> is_lim_seq (fun n => Cmod (a n - l)) 0%R.
+Proof.
+ split.
+ - intros H.
+   rewrite <- Cmod_0.
+   apply is_lim_Cseq_Cmod.
+   replace 0 with (l-l) by lca. apply is_lim_Cseq_minus; trivial.
+   apply is_lim_Cseq_const.
+ - intros H.
+   apply is_lim_Cseq_0_Cmod in H.
+   apply is_lim_Cseq_ext with (fun n => (a n -l)+l); try (intros; ring).
+   rewrite <- (Cplus_0_l l) at 1.
+   apply is_lim_Cseq_plus; trivial. apply is_lim_Cseq_const.
+Qed.
+
+Lemma is_lim_Cseq_alt a (l:C) :
+  is_lim_Cseq a l <->
+  forall eps : posreal, exists N, forall n, (N<=n)%nat ->
+   Cmod (a n - l) < eps.
+Proof.
+ rewrite is_lim_Cseq_alt0.
+ rewrite <- is_lim_seq_spec. unfold is_lim_seq'. simpl.
+ split; intros H eps; destruct (H eps) as (N & HN); exists N; intros n Hn;
+  specialize (HN n Hn);
+  now rewrite Rminus_0_r, Rabs_pos_eq in * by apply Cmod_ge_0.
+Qed.
+
 Lemma is_lim_Cseq_Clistsum (f : nat -> C -> C) (g : C -> C) l :
  (forall x, In x l -> is_lim_Cseq (fun n => f n x) (g x)) ->
  is_lim_Cseq (fun n => Clistsum (map (f n) l)) (Clistsum (map g l)).
@@ -935,7 +963,177 @@ Proof.
      now apply sum_n_R0.
 Qed.
 
+Lemma ex_series_lim_C0 (a : nat -> C) :
+  ex_series a -> is_lim_Cseq a 0.
+Proof.
+ intros H.
+ apply (Cauchy_ex_series (V := C_CNM)) in H. red in H.
+ apply is_lim_Cseq_alt. intros eps.
+ destruct (H eps) as (N & HN). clear H.
+ exists N. intros n Hn.
+ replace (a n - 0) with (a n) by lca.
+ specialize (HN n n Hn Hn).
+ now rewrite sum_n_n, <- Cmod_norm in HN.
+Qed.
+
+Local Open Scope R.
+
+(** Extra facts about order on Rbar *)
+
+Lemma Rbar_le_carac_via_lt a b :
+  (forall c:R, Rbar.Rbar_lt c a -> Rbar.Rbar_le c b) -> Rbar.Rbar_le a b.
+Proof.
+ destruct a as [a| | ], b as [b| | ]; simpl; trivial; intros H.
+ - destruct (Rle_lt_dec a b) as [LE|LT]; trivial.
+   specialize (H ((b+a)/2)). lra.
+ - apply (H (a-1)%R). lra.
+ - specialize (H (b+1)%R). lra.
+ - now apply (H 0).
+Qed.
+
+Lemma Rbar_le_mult_div (a : R) (b c : Rbar.Rbar) :
+ 0 < a ->
+ Rbar.Rbar_le (Rbar.Rbar_mult a b) c <->
+ Rbar.Rbar_le b (Rbar.Rbar_mult (/a) c).
+Proof.
+ intros Ha.
+ assert (Ha' : 0 < /a) by now apply Rinv_0_lt_compat.
+ destruct b as [b| | ], c as [c| | ]; simpl; trivial;
+ repeat destruct Rle_dec; try lra;
+ repeat destruct Rle_lt_or_eq_dec; simpl; try lra.
+ split; intros H.
+ - apply Rmult_le_reg_l with a; trivial. field_simplify; try lra.
+ - replace c with (a * (c * /a)) by (field; lra).
+   apply Rmult_le_compat_l; lra.
+Qed.
+
+Lemma Rbar_lt_mult_div (a : R) (b c : Rbar.Rbar) :
+ 0 < a ->
+ Rbar.Rbar_lt (Rbar.Rbar_mult a b) c <->
+ Rbar.Rbar_lt b (Rbar.Rbar_mult (/a) c).
+Proof.
+ intros Ha.
+ assert (Ha' : 0 < /a) by now apply Rinv_0_lt_compat.
+ destruct b as [b| | ], c as [c| | ]; simpl; trivial;
+ repeat destruct Rle_dec; try lra;
+ repeat destruct Rle_lt_or_eq_dec; simpl; try lra.
+ split; intros H.
+ - apply Rmult_lt_reg_l with a; trivial. field_simplify; try lra.
+ - replace c with (a * (c * /a)) by (field; lra).
+   apply Rmult_lt_compat_l; lra.
+Qed.
+
+(** Customized versions of Rolle Lemma and Mean-Value-Theorem.
+    - For simplicity, we ask for derivability also on the interval borders
+      (instead of just continuity).
+    - Unlike many other MVT (e.g. Coquelicot's one) the existing point c
+      is strictly inside a b. *)
+
+Lemma MVT_weak (f df : R -> R) (a b : R) :
+ (forall x, a <= x <= b -> is_derive f x (df x)) ->
+ a < b ->
+ exists c, a < c < b /\ f b - f a = df c * (b-a).
+Proof.
+ intros Df Hab.
+ destruct (MVT_cor2 f df a b) as (c & Hc & Hc'); trivial.
+ { intros. apply is_derive_Reals. apply Df; lra. }
+ now exists c.
+Qed.
+
+Lemma Rolle_weak (f df : R -> R) (a b : R) :
+  (forall x, a <= x <= b -> is_derive f x (df x)) ->
+  a < b ->
+  f a = f b ->
+  exists c, a < c < b /\ df c = 0.
+Proof.
+ intros Hf Hab E.
+ destruct (MVT_weak f df a b) as (c & Hc & Hc'); trivial.
+ exists c; split; trivial. replace (f b - f a) with 0 in Hc' by lra.
+ symmetry in Hc'. apply Rmult_integral in Hc'. destruct Hc'; trivial; lra.
+Qed.
+
+(** Key properties of Lub_Rbar *)
+
+Lemma Lub_Rbar_ub (E:R->Prop) x : E x -> Rbar.Rbar_le x (Lub.Lub_Rbar E).
+Proof.
+ intros. now apply Lub.Lub_Rbar_correct.
+Qed.
+
+Lemma Lub_Rbar_least (E:R->Prop) l :
+ (forall x, E x -> Rbar.Rbar_le x l) -> Rbar.Rbar_le (Lub.Lub_Rbar E) l.
+Proof.
+ intros H. apply Lub.Lub_Rbar_correct. exact H.
+Qed.
+
+(** Power series on R : More on CV_disk and CV_radius *)
+
+Lemma CV_disk_rabs a x : CV_disk a x <-> CV_disk a (Rabs x).
+Proof.
+ unfold CV_disk.
+ split; apply ex_series_ext; intros n;
+  now rewrite !Rabs_mult, !RPow_abs, Rabs_Rabsolu.
+Qed.
+
+Lemma CV_disk_le_radius (a:nat->R) (x:R) :
+ CV_disk a x -> Rbar.Rbar_le x (CV_radius a).
+Proof.
+ intros. now apply Lub_Rbar_ub.
+Qed.
+
+Lemma CV_radius_ge_1 (a : nat -> R) :
+  ex_series (Rabs∘a) -> Rbar.Rbar_le 1%R (CV_radius a).
+Proof.
+ intros H. apply CV_disk_le_radius.
+ red. eapply ex_series_ext; eauto. intros n. now rewrite pow1, Rmult_1_r.
+Qed.
+
+Lemma CV_radius_le (a b : nat -> R) :
+ (forall n, Rabs (a n) <= Rabs (b n)) ->
+ Rbar.Rbar_le (CV_radius b) (CV_radius a).
+Proof.
+ intros H.
+ unfold CV_radius, Lub.Lub_Rbar.
+ destruct Lub.ex_lub_Rbar as (ubb & Hb & Hb').
+ destruct Lub.ex_lub_Rbar as (uba & Ha & Ha'). simpl.
+ - red in Hb, Ha. apply Hb'. red. intros x Hx. apply Ha.
+   clear - H Hx. unfold CV_disk in *.
+   eapply (ex_series_le (V:=R_CNM)); eauto.
+   intros n. change norm with Rabs. rewrite Rabs_Rabsolu, !Rabs_mult.
+   apply Rmult_le_compat_r; trivial using Rabs_pos.
+Qed.
+
+Definition CV_disk' (a : nat -> R) (r : R) :=
+ exists r', Rabs r' = r /\ ex_series (fun n => a n * r'^n)%R.
+
+Definition CV_radius' (a : nat -> R) : Rbar.Rbar :=
+  Lub.Lub_Rbar (CV_disk' a).
+
+Lemma CV_disk_disk' a r : 0<=r -> CV_disk a r -> CV_disk' a r.
+Proof.
+ unfold CV_disk, CV_disk'. intros Hr H.
+ apply ex_series_Rabs in H. exists r. split; trivial. now apply Rabs_pos_eq.
+Qed.
+
+Lemma CV_radius_radius' a : CV_radius a = CV_radius' a.
+Proof.
+ apply Rbar.Rbar_le_antisym.
+ { apply Lub.Lub_Rbar_correct. red.
+   intros x Hx. destruct (Rle_lt_dec 0 x).
+   - apply Lub_Rbar_ub. now apply CV_disk_disk'.
+   - apply Rbar.Rbar_le_trans with (Rbar.Finite 0). simpl; lra.
+     apply Lub_Rbar_ub. red. exists 0%R. split. apply Rabs_pos_eq; lra.
+     eapply ex_series_ext; [ | exists (a O); apply is_pseries_0 ].
+     intros n. simpl. now rewrite Rmult_comm. }
+ { apply Lub_Rbar_least.
+   intros x (x' & <- & E).
+   destruct (Rbar.Rbar_le_lt_dec (Rabs x') (CV_radius a)) as [LE|LT]; trivial.
+   exfalso.
+   now apply (CV_disk_outside _ _ LT), ex_series_lim_0. }
+Qed.
+
 (** Power series on C *)
+
+Local Open Scope C.
 
 Definition is_CPowerSeries (a : nat -> C) (z lim : C) :=
   is_lim_Cseq (sum_n (fun n => a n * z^n)) lim.
@@ -956,6 +1154,33 @@ Lemma CPowerSeries_correct (a : nat -> C) z :
   ex_CPowerSeries a z -> is_CPowerSeries a z (CPowerSeries a z).
 Proof.
  apply CSeries_correct.
+Qed.
+
+Lemma is_CPowerSeries_alt a z l : is_CPowerSeries a z l <-> is_pseries a z l.
+Proof.
+ unfold is_CPowerSeries, is_lim_Cseq.
+ change (filterlim _ _ _) with (is_series (fun n => a n * z^n) l).
+ unfold is_pseries.
+ assert (E : forall n, a n * z ^ n = scal (pow_n z n) (a n)).
+ { intros n. change scal with Cmult. change pow_n with Cpow. ring. }
+ split; apply is_series_ext. apply E. intros n; now rewrite E.
+Qed.
+
+Lemma ex_CPowerSeries_alt a z : ex_CPowerSeries a z <-> ex_pseries a z.
+Proof.
+ split; intros (l & L); exists l; revert L; apply (is_CPowerSeries_alt a z l).
+Qed.
+
+Lemma ex_CPowerSeries_Cmod a z :
+  ex_pseries (Cmod∘a) (Cmod z) -> ex_CPowerSeries a z.
+Proof.
+ intros H.
+ rewrite ex_pseries_R in H.
+ eapply ex_series_ext in H.
+ 2:{ intros n. unfold "∘". now rewrite <- Cmod_pow, <- Cmod_mult. }
+ apply ex_series_Cmod in H.
+ rewrite ex_CPowerSeries_alt. revert H. apply ex_series_ext.
+ intros n. change scal with Cmult; change pow_n with Cpow. lca.
 Qed.
 
 Lemma Cmod_prod_aux a b n : Cmod b <= 1 -> Cmod (a * b^n) <= Cmod a.
@@ -1117,44 +1342,89 @@ Proof.
  apply is_lim_Cseq_mult; trivial using is_lim_Cseq_const.
 Qed.
 
-Local Open Scope R.
+(** Convergence disk and radius for C power series *)
 
-(** More on CV_radius *)
+Definition C_CV_disk (a : nat -> C) (r : C) :=
+  ex_series (fun n => Cmod (a n * r^n)).
 
-Lemma CV_disk_le_radius (a:nat->R) (x:R) :
- CV_disk a x -> Rbar.Rbar_le x (CV_radius a).
+Definition C_CV_radius (a : nat -> C) : Rbar.Rbar :=
+  Lub.Lub_Rbar (C_CV_disk a).
+
+Lemma C_CV_disk_alt a r : C_CV_disk a r <-> CV_disk (Cmod∘a) (Cmod r).
 Proof.
- intros H.
- unfold CV_radius, Lub.Lub_Rbar.
- destruct (Lub.ex_lub_Rbar _) as (lu & Hlu). now apply Hlu.
+ unfold C_CV_disk, CV_disk.
+ split; apply ex_series_ext;
+  intros n; unfold "∘";
+   now rewrite <- Cmod_pow, <- Cmod_mult, Rabs_pos_eq by apply Cmod_ge_0.
 Qed.
 
-Lemma CV_radius_ge_1 (a : nat -> R) :
-  ex_series (Rabs∘a) -> Rbar.Rbar_le 1 (CV_radius a).
+Lemma C_CV_radius_alt a : C_CV_radius a = CV_radius (Cmod∘a).
 Proof.
- intros H. apply CV_disk_le_radius.
- red. eapply ex_series_ext; eauto. intros n. now rewrite pow1, Rmult_1_r.
+ unfold C_CV_radius, CV_radius. apply Lub.Lub_Rbar_eqset.
+ intros x. now rewrite C_CV_disk_alt, Cmod_R, <- CV_disk_rabs.
 Qed.
 
-Lemma CV_radius_le (a b : nat -> R) :
- (forall n, Rabs (a n) <= Rabs (b n)) ->
- Rbar.Rbar_le (CV_radius b) (CV_radius a).
+Lemma C_CV_disk_correct (a : nat -> C) (z : C) :
+  C_CV_disk a z -> ex_CPowerSeries a z.
 Proof.
- intros H.
- unfold CV_radius, Lub.Lub_Rbar.
- destruct Lub.ex_lub_Rbar as (ubb & Hb & Hb').
- destruct Lub.ex_lub_Rbar as (uba & Ha & Ha'). simpl.
- - red in Hb, Ha. apply Hb'. red. intros x Hx. apply Ha.
-   clear - H Hx. unfold CV_disk in *.
-   eapply (ex_series_le (V:=R_CNM)); eauto.
-   intros n. change norm with Rabs. rewrite Rabs_Rabsolu, !Rabs_mult.
-   apply Rmult_le_compat_r; trivial using Rabs_pos.
+ rewrite C_CV_disk_alt. intros H. apply ex_CPowerSeries_Cmod.
+ now apply CV_disk_correct.
+Qed.
+
+Lemma C_CV_radius_inside (a : nat -> C) (z : C) :
+  Rbar.Rbar_lt (Cmod z) (C_CV_radius a) -> ex_CPowerSeries a z.
+Proof.
+ intros H. apply ex_CPowerSeries_Cmod. apply CV_radius_inside.
+ now rewrite <- C_CV_radius_alt, Rabs_pos_eq by apply Cmod_ge_0.
+Qed.
+
+Lemma C_CV_radius_outside (a : nat -> C) (z : C) :
+  Rbar.Rbar_lt (C_CV_radius a) (Cmod z) ->
+  ~is_lim_Cseq (fun n => a n * z^n) 0.
+Proof.
+ intros H. rewrite C_CV_radius_alt in H.
+ rewrite <- (Rabs_pos_eq (Cmod z)) in H by apply Cmod_ge_0.
+ apply CV_disk_outside in H. contradict H.
+ apply is_lim_Cseq_Cmod in H. rewrite Cmod_0 in H.
+ eapply is_lim_seq_ext; eauto.
+ intros n. unfold "∘". now rewrite <- Cmod_pow, <- Cmod_mult.
+Qed.
+
+Definition C_CV_disk' (a : nat -> C) (r : R) :=
+ exists z, Cmod z = r /\ ex_CPowerSeries a z.
+
+Definition C_CV_radius' (a : nat -> C) : Rbar.Rbar :=
+  Lub.Lub_Rbar (C_CV_disk' a).
+
+Lemma C_CV_radius_radius' a : C_CV_radius a = C_CV_radius' a.
+Proof.
+ apply Rbar.Rbar_le_antisym.
+ { apply Lub.Lub_Rbar_correct.
+   intros x Hx. destruct (Rle_lt_dec 0 x).
+   - apply Lub_Rbar_ub. exists x. split.
+     + now rewrite Cmod_R, Rabs_pos_eq.
+     + now apply ex_series_Cmod.
+   - apply Rbar.Rbar_le_trans with (Rbar.Finite 0). simpl; lra.
+     apply Lub_Rbar_ub. red. exists 0%R. split. apply Cmod_0.
+     exists (a O). rewrite is_CPowerSeries_alt. apply (is_pseries_0 a). }
+ { apply Lub_Rbar_least.
+   intros x (z & <- & E).
+   destruct (Rbar.Rbar_le_lt_dec (Cmod z) (C_CV_radius a)) as [LE|LT];
+    trivial.
+   exfalso.
+   rewrite C_CV_radius_alt in LT.
+   rewrite <- (Rabs_pos_eq (Cmod z)) in LT by apply Cmod_ge_0.
+   apply ex_series_lim_C0 in E.
+   apply is_lim_Cseq_Cmod in E. rewrite Cmod_0 in E.
+   apply (CV_disk_outside _ _ LT).
+   eapply is_lim_seq_ext; eauto.
+   intros n. unfold "∘". now rewrite <- Cmod_pow, <- Cmod_mult. }
 Qed.
 
 (** C power series projection (when point x is a Real) *)
 
 Lemma is_CPowerSeries_proj (a:nat->C)(x:R) :
-  ex_series (fun n => Cmod (a n) * Rabs x^n) ->
+  ex_pseries (Cmod∘a) (Rabs x) ->
   is_CPowerSeries a x (PSeries (Re∘a) x, PSeries (Im∘a) x).
 Proof.
  intros H.
@@ -1167,7 +1437,8 @@ Proof.
    eapply (ex_series_le (V:=R_CNM)); eauto.
    { intros n. change norm with Rabs.
      rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
-     apply Rmult_le_compat_r; try apply Rabs_pos. apply re_le_Cmod. }
+     change scal with Rmult. rewrite Rmult_comm.
+     apply Rmult_le_compat_l. apply Rabs_pos. apply re_le_Cmod. }
  - eapply is_lim_seq_ext with (u:=sum_n (fun k => (Im∘a) k * x^k)%R).
    { intros n. unfold compose. rewrite im_sum_n. apply sum_n_ext.
      clear n. intros n. unfold compose.
@@ -1176,11 +1447,12 @@ Proof.
    eapply (ex_series_le (V:=R_CNM)); eauto.
    { intros n. change norm with Rabs.
      rewrite Rabs_mult. unfold compose. rewrite RPow_abs.
-     apply Rmult_le_compat_r; try apply Rabs_pos. apply im_le_Cmod. }
+     change scal with Rmult. rewrite Rmult_comm.
+     apply Rmult_le_compat_l. apply Rabs_pos. apply im_le_Cmod. }
 Qed.
 
 Lemma CPowerSeries_proj (a:nat->C)(x:R) :
-  ex_series (fun n => Cmod (a n) * Rabs x^n) ->
+  ex_pseries (Cmod∘a) (Rabs x) ->
   CPowerSeries a x = (PSeries (Re∘a) x, PSeries (Im∘a) x).
 Proof.
  intros. now apply CPowerSeries_unique, is_CPowerSeries_proj.
@@ -1189,22 +1461,22 @@ Qed.
 (** Unicity of coefficients of C power series *)
 
 Lemma CPowerSeries_coef_ext (a b : nat -> C) :
- Rbar.Rbar_lt 0 (CV_radius (Cmod∘a)) ->
- Rbar.Rbar_lt 0 (CV_radius (Cmod∘b)) ->
- locally 0 (fun (x:R) => CPowerSeries a x = CPowerSeries b x) ->
+ Rbar.Rbar_lt R0 (C_CV_radius a) ->
+ Rbar.Rbar_lt R0 (C_CV_radius b) ->
+ locally R0 (fun x:R => CPowerSeries a x = CPowerSeries b x) ->
  forall n, a n = b n.
 Proof.
  intros Ha Hb E n.
  rewrite (surjective_pairing (a n)), (surjective_pairing (b n)).
- assert (L: locally 0 (fun x : R => PSeries (Re ∘ a) x = PSeries (Re ∘ b) x
+ assert (L: locally R0 (fun x : R => PSeries (Re ∘ a) x = PSeries (Re ∘ b) x
                                  /\ PSeries (Im ∘ a) x = PSeries (Im ∘ b) x)).
  { destruct E as (eps & E).
-   set (ra := match CV_radius (Cmod∘a) with Rbar.Finite r => r | _ => 1 end).
+   set (ra := match C_CV_radius a with Rbar.Finite r => r | _ => 1%R end).
    assert (Ra : 0 < ra).
-   { unfold ra. destruct (CV_radius (Cmod∘a)); try easy. lra. }
-   set (rb := match CV_radius (Cmod∘b) with Rbar.Finite r => r | _ => 1 end).
+   { unfold ra. destruct (C_CV_radius a); try easy. lra. }
+   set (rb := match C_CV_radius b with Rbar.Finite r => r | _ => 1%R end).
    assert (Rb : 0 < rb).
-   { unfold rb. destruct (CV_radius (Cmod∘b)); try easy. lra. }
+   { unfold rb. destruct (C_CV_radius b); try easy. lra. }
    assert (LT : 0 < Rmin eps (Rmin ra rb)).
    { apply Rmin_glb_lt. apply eps. now apply Rmin_glb_lt. }
    set (eps' := mkposreal _ LT).
@@ -1218,10 +1490,11 @@ Proof.
      rewrite Rminus_0_r in Y.
      assert (ex_pseries (Cmod∘b) (Rabs y)).
      { apply CV_radius_inside. rewrite Rabs_Rabsolu.
+       rewrite <- C_CV_radius_alt.
        apply Rbar.Rbar_lt_le_trans with eps'; trivial.
        apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
        apply Rbar.Rbar_le_trans with rb; [apply Rmin_r|].
-       unfold rb. destruct CV_radius; simpl; trivial; lra. }
+       unfold rb. destruct C_CV_radius; simpl; trivial; lra. }
      red in H. eapply ex_series_ext; eauto.
      intros k. unfold compose. unfold scal. simpl.
      change mult with Rmult.
@@ -1230,58 +1503,341 @@ Proof.
      rewrite Rminus_0_r in Y.
      assert (ex_pseries (Cmod∘a) (Rabs y)).
      { apply CV_radius_inside. rewrite Rabs_Rabsolu.
+       rewrite <- C_CV_radius_alt.
        apply Rbar.Rbar_lt_le_trans with eps'; trivial.
        apply Rbar.Rbar_le_trans with (Rmin ra rb); [apply Rmin_r|].
        apply Rbar.Rbar_le_trans with ra; [apply Rmin_l|].
-       unfold ra. destruct CV_radius; simpl; trivial; lra. }
+       unfold ra. destruct C_CV_radius; simpl; trivial; lra. }
      red in H. eapply ex_series_ext; eauto.
      intros k. unfold compose. unfold scal. simpl.
      change mult with Rmult.
      rewrite pow_n_pow. ring. }
  f_equal.
  - apply (PSeries_ext_recip (Re∘a) (Re∘b) n).
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
+   + apply Rbar.Rbar_lt_le_trans with (C_CV_radius a); auto.
+     rewrite C_CV_radius_alt.
      apply CV_radius_le. intros k. unfold compose.
      rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
+   + apply Rbar.Rbar_lt_le_trans with (C_CV_radius b); auto.
+     rewrite C_CV_radius_alt.
      apply CV_radius_le. intros k. unfold compose.
      rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply re_le_Cmod.
    + destruct L as (eps & L). exists eps. apply L.
  - apply (PSeries_ext_recip (Im∘a) (Im∘b) n).
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘a)); auto.
+   + apply Rbar.Rbar_lt_le_trans with (C_CV_radius a); auto.
+     rewrite C_CV_radius_alt.
      apply CV_radius_le. intros k. unfold compose.
      rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
-   + apply Rbar.Rbar_lt_le_trans with (CV_radius (Cmod∘b)); auto.
+   + apply Rbar.Rbar_lt_le_trans with (C_CV_radius b); auto.
+     rewrite C_CV_radius_alt.
      apply CV_radius_le. intros k. unfold compose.
      rewrite (Rabs_pos_eq (Cmod _)) by apply Cmod_ge_0. apply im_le_Cmod.
    + destruct L as (eps & L). exists eps. apply L.
 Qed.
 
-(** Customized versions of Rolle Lemma and Mean-Value-Theorem.
-    - For simplicity, we ask for derivability also on the interval borders
-      (instead of just continuity).
-    - Unlike many other MVT (e.g. Coquelicot's one) the existing point c
-      is strictly inside a b. *)
+(** Addition and multiplication of C power series *)
 
-Lemma MVT_weak (f df : R -> R) (a b : R) :
- (forall x, a <= x <= b -> is_derive f x (df x)) ->
- a < b ->
- exists c, a < c < b /\ f b - f a = df c * (b-a).
+Definition CPS_plus : (nat->C) -> (nat->C) -> (nat->C) := PS_plus (V:=C_NM).
+Definition CPS_mult (a b : nat->C) (n:nat) : C :=
+  sum_n (fun k => a k * b (n - k)%nat) n.
+
+Lemma CPS_mult_eqn a b n :
+ CPS_mult a b n = (PS_mult (Re∘a) (Re∘b) n - PS_mult (Im∘a) (Im∘b) n,
+                   PS_mult (Re∘a) (Im∘b) n + PS_mult (Im∘a) (Re∘b) n)%R.
 Proof.
- intros Df Hab.
- destruct (MVT_cor2 f df a b) as (c & Hc & Hc'); trivial.
- { intros. apply is_derive_Reals. apply Df; lra. }
- now exists c.
+ unfold CPS_mult, PS_mult.
+ rewrite <- !sum_n_Reals.
+ rewrite sum_n_proj; f_equal.
+ - unfold "∘". simpl. rewrite sum_n_Rminus. now apply sum_n_ext.
+ - unfold "∘". simpl. rewrite sum_n_Rplus. now apply sum_n_ext.
 Qed.
 
-Lemma Rolle_weak (f df : R -> R) (a b : R) :
-  (forall x, a <= x <= b -> is_derive f x (df x)) ->
-  a < b ->
-  f a = f b ->
-  exists c, a < c < b /\ df c = 0.
+Lemma CPS_mult_scal (a b : nat -> C) (z : C) n :
+  CPS_mult (fun k : nat => scal (pow_n z k) (a k))
+           (fun k : nat => scal (pow_n z k) (b k)) n =
+  scal (pow_n z n) (CPS_mult a b n).
 Proof.
- intros Hf Hab E.
- destruct (MVT_weak f df a b) as (c & Hc & Hc'); trivial.
- exists c; split; trivial. replace (f b - f a) with 0 in Hc' by lra.
- symmetry in Hc'. apply Rmult_integral in Hc'. destruct Hc'; trivial; lra.
+ unfold CPS_mult, PS_mult.
+ change pow_n with Cpow. change scal with Cmult.
+ rewrite <- sum_n_Cmult_l. apply sum_n_ext_loc.
+ intros k Hk. replace n with (k+(n-k))%nat at 3 by lia.
+ rewrite Cpow_add_r. fixeq C. ring.
+Qed.
+
+Lemma is_CPS_plus (a b : nat->C) (z la lb : C) :
+  is_CPowerSeries a z la -> is_CPowerSeries b z lb
+    -> is_CPowerSeries (CPS_plus a b) z (la+lb).
+Proof.
+ rewrite !is_CPowerSeries_alt. apply (is_pseries_plus a b).
+Qed.
+
+Lemma ex_CPS_plus (a b : nat->C) (z : C) :
+  ex_CPowerSeries a z -> ex_CPowerSeries b z
+    -> ex_CPowerSeries (CPS_plus a b) z.
+Proof.
+ rewrite !ex_CPowerSeries_alt. apply (ex_pseries_plus a b).
+Qed.
+
+Lemma CPowerSeries_plus (a b : nat -> C) (z : C) :
+  ex_CPowerSeries a z -> ex_CPowerSeries b z ->
+  CPowerSeries (CPS_plus a b) z = CPowerSeries a z + CPowerSeries b z.
+Proof.
+ intros (la,Ha) (lb,Hb).
+ rewrite (CPowerSeries_unique _ _ _ Ha), (CPowerSeries_unique _ _ _ Hb).
+ now apply CPowerSeries_unique, is_CPS_plus.
+Qed.
+
+Lemma C_CV_disk_plus (a b : nat -> C) (z : C) :
+ C_CV_disk a z -> C_CV_disk b z -> C_CV_disk (CPS_plus a b) z.
+Proof.
+ intros Ha Hb.
+ rewrite C_CV_disk_alt in *.
+ unfold CPS_plus.
+ assert (Hc := CV_disk_plus _ _ _ Ha Hb).
+ red. red in Hc.
+ eapply (ex_series_le (V:=R_CNM)); eauto.
+ intros n. change norm with Rabs. simpl. rewrite Rabs_Rabsolu.
+ rewrite !Rabs_mult. apply Rmult_le_compat_r. apply Rabs_pos.
+ unfold "∘". unfold PS_plus.
+ change plus with Cplus at 1. change plus with Rplus at 1.
+ rewrite !Rabs_pos_eq. apply Cmod_triangle.
+ generalize (Cmod_ge_0 (a n)), (Cmod_ge_0 (b n)); lra.
+ apply Cmod_ge_0.
+Qed.
+
+Lemma C_CV_radius_plus (a b : nat -> C) :
+  Rbar.Rbar_le (Rbar.Rbar_min (C_CV_radius a) (C_CV_radius b))
+               (C_CV_radius (CPS_plus a b)).
+Proof.
+ apply Rbar_le_carac_via_lt.
+ intros c Hc.
+ assert (Ha : Rbar.Rbar_lt c (C_CV_radius a)).
+ { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
+   intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
+ assert (Hb : Rbar.Rbar_lt c (C_CV_radius b)).
+ { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
+   intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
+ clear Hc.
+ destruct (Rle_lt_dec 0 c).
+ - replace c with (Cmod c) in Ha, Hb.
+   2:{ rewrite Cmod_R, Rabs_pos_eq; trivial. }
+   apply C_CV_radius_inside in Ha,Hb.
+   rewrite C_CV_radius_radius'.
+   apply Lub_Rbar_ub. exists c.
+   split. rewrite Cmod_R, Rabs_pos_eq; trivial.
+   now apply ex_CPS_plus.
+ - apply Rbar.Rbar_le_trans with 0%R. simpl; lra.
+   rewrite C_CV_radius_alt. apply CV_radius_ge_0.
+Qed.
+
+Lemma is_pseries_1 (a : nat -> R) (l : R) :
+ is_pseries a 1%R l <-> is_series a l.
+Proof.
+ unfold is_pseries. change pow_n with pow. change scal with Rmult.
+ split; apply is_series_ext; intros n; rewrite pow1; lra.
+Qed.
+
+(** NB: is_series_mult coud have weaker preconditions, see Mertens thm. *)
+
+Lemma is_series_mult (a b : nat -> C) (la lb : C) :
+ Rbar.Rbar_lt 1%R (C_CV_radius a) ->
+ Rbar.Rbar_lt 1%R (C_CV_radius b) ->
+ is_series a la -> is_series b lb ->
+ is_series (CPS_mult a b) (la * lb).
+Proof.
+ intros Ha0 Hb0 Ha Hb. rewrite is_Cseries_alt, is_lim_Cseq_proj.
+ unfold "∘".
+ rewrite C_CV_radius_alt, <- (Rabs_pos_eq 1) in Ha0, Hb0 by lra.
+ assert (Ra : Rbar.Rbar_lt (Rabs 1) (CV_radius (Re ∘ a))).
+ { eapply Rbar.Rbar_lt_le_trans; [ apply Ha0 | ].
+   apply CV_radius_le. intros n. unfold "∘". rewrite re_le_Cmod.
+   rewrite Rabs_pos_eq by apply Cmod_ge_0. lra. }
+ assert (Rb : Rbar.Rbar_lt (Rabs 1) (CV_radius (Re ∘ b))).
+ { eapply Rbar.Rbar_lt_le_trans; [ apply Hb0 | ].
+   apply CV_radius_le. intros n. unfold "∘". rewrite re_le_Cmod.
+   rewrite Rabs_pos_eq by apply Cmod_ge_0. lra. }
+ assert (Ia : Rbar.Rbar_lt (Rabs 1) (CV_radius (Im ∘ a))).
+ { eapply Rbar.Rbar_lt_le_trans; [ apply Ha0 | ].
+   apply CV_radius_le. intros n. unfold "∘". rewrite im_le_Cmod.
+   rewrite Rabs_pos_eq by apply Cmod_ge_0. lra. }
+ assert (Ib : Rbar.Rbar_lt (Rabs 1) (CV_radius (Im ∘ b))).
+ { eapply Rbar.Rbar_lt_le_trans; [ apply Hb0 | ].
+   apply CV_radius_le. intros n. unfold "∘". rewrite im_le_Cmod.
+   rewrite Rabs_pos_eq by apply Cmod_ge_0. lra. }
+ split.
+ - eapply is_lim_seq_ext.
+   { intros n. symmetry. rewrite re_sum_n. unfold "∘".
+     erewrite sum_n_ext.
+     2:{ intros k. rewrite CPS_mult_eqn. now simpl. }
+     symmetry. apply sum_n_Rminus. }
+   simpl Re. apply is_lim_seq_minus'; rewrite <- is_series_alt.
+   + rewrite <- is_pseries_1.
+     apply is_pseries_mult; try rewrite is_pseries_1; trivial.
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Ha.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Ha.
+       apply re_sum_n. }
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Hb.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Hb.
+       apply re_sum_n. }
+   + rewrite <- is_pseries_1.
+     apply is_pseries_mult; try rewrite is_pseries_1; trivial.
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Ha.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Ha.
+       apply im_sum_n. }
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Hb.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Hb.
+       apply im_sum_n. }
+ - eapply is_lim_seq_ext.
+   { intros n. symmetry. rewrite im_sum_n. unfold "∘".
+     erewrite sum_n_ext.
+     2:{ intros k. rewrite CPS_mult_eqn. now simpl. }
+     symmetry. apply sum_n_Rplus. }
+   simpl Im. apply is_lim_seq_plus'; rewrite <- is_series_alt.
+   + rewrite <- is_pseries_1.
+     apply is_pseries_mult; try rewrite is_pseries_1; trivial.
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Ha.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Ha.
+       apply re_sum_n. }
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Hb.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Hb.
+       apply im_sum_n. }
+   + rewrite <- is_pseries_1.
+     apply is_pseries_mult; try rewrite is_pseries_1; trivial.
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Ha.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Ha.
+       apply im_sum_n. }
+     { rewrite is_Cseries_alt, is_lim_Cseq_proj in Hb.
+       rewrite is_series_alt. eapply is_lim_seq_ext; try apply Hb.
+       apply re_sum_n. }
+Qed.
+
+Lemma CV_radius_scal (a : nat -> R) (r : R) :
+ 0 < r ->
+ CV_radius (fun n => scal (pow_n r n) (a n)) =
+ Rbar.Rbar_mult (/r)%R (CV_radius a).
+Proof.
+ intros Hr.
+ set (b := fun n => _).
+ apply Lub.is_lub_Rbar_unique. unfold CV_disk.
+ split.
+ - intros x Hx.
+   apply Rbar_le_mult_div; trivial.
+   apply CV_disk_le_radius. red.
+   eapply ex_series_ext; eauto.
+   intros n. simpl. f_equal. unfold b.
+   change scal with Rmult. change pow_n with pow.
+   rewrite Rpow_mult_distr. ring.
+ - intros l Hl. red in Hl.
+   assert (Hr' : 0 < /r) by now apply Rinv_0_lt_compat.
+   apply Rbar_le_mult_div; trivial.
+   destruct (Lub.Lub_Rbar_correct (CV_disk a)) as (H1,H2).
+   fold (CV_radius a) in H1,H2.
+   red in H1. unfold CV_disk in H1.
+   apply H2. red. intros x Hx. red in Hx.
+   rewrite <- Rbar_le_mult_div; trivial.
+   apply Hl.
+   eapply ex_series_ext; eauto.
+   intros n. simpl. f_equal. unfold b.
+   change scal with Rmult. change pow_n with pow.
+   rewrite Rpow_mult_distr, pow_inv. field. apply pow_nonzero. lra.
+Qed.
+
+Lemma CV_radius_scal_lt (a : nat -> R) (r : R) :
+ 0 < r ->
+ Rbar.Rbar_lt r (CV_radius a) ->
+ Rbar.Rbar_lt 1%R (CV_radius (fun n => scal (pow_n r n) (a n))).
+Proof.
+ intros Hr LT.
+ rewrite CV_radius_scal; trivial.
+ rewrite <- Rbar_lt_mult_div; trivial. simpl Rbar.Rbar_mult.
+ rewrite Rmult_1_r; trivial.
+Qed.
+
+Lemma is_CPS_mult (a b : nat -> C) (z la lb : C) :
+  is_CPowerSeries a z la -> is_CPowerSeries b z lb
+  -> Rbar.Rbar_lt (Cmod z) (C_CV_radius a)
+  -> Rbar.Rbar_lt (Cmod z) (C_CV_radius b)
+  -> is_CPowerSeries (CPS_mult a b) z (la * lb).
+Proof.
+ intros Ha Hb Ha' Hb'.
+ destruct (Ceq_dec z 0) as [->|Hz].
+ { replace la with (a O).
+   2:{ apply CPowerSeries_unique in Ha. rewrite <- Ha.
+       symmetry. apply CPowerSeries_unique.
+       rewrite is_CPowerSeries_alt.
+       apply (is_pseries_0 a). }
+   replace lb with (b O).
+   2:{ apply CPowerSeries_unique in Hb. rewrite <- Hb.
+       symmetry. apply CPowerSeries_unique.
+       rewrite is_CPowerSeries_alt.
+       apply (is_pseries_0 b). }
+   replace (a O * b O) with (CPS_mult a b 0).
+   2:{ unfold CPS_mult, PS_mult. now rewrite sum_O. }
+   rewrite is_CPowerSeries_alt.
+   apply (is_pseries_0 (CPS_mult a b)). }
+ rewrite is_CPowerSeries_alt.
+ unfold is_pseries.
+ eapply is_series_ext; [ apply CPS_mult_scal | ].
+ apply is_series_mult; try now rewrite is_CPowerSeries_alt in *.
+ - rewrite C_CV_radius_alt in *.
+   erewrite CV_radius_ext.
+   apply (CV_radius_scal_lt (Cmod∘a)); eauto.
+   now apply Cmod_gt_0.
+   intros k. unfold "∘".
+   change (Cmod (z^k * a k) = Cmod z^k * Cmod (a k))%R.
+   now rewrite <- Cmod_pow, <- Cmod_mult.
+ - rewrite C_CV_radius_alt in *.
+   erewrite CV_radius_ext.
+   apply (CV_radius_scal_lt (Cmod∘b)); eauto.
+   now apply Cmod_gt_0.
+   intros k. unfold "∘".
+   change (Cmod (z^k * b k) = Cmod z^k * Cmod (b k))%R.
+   now rewrite <- Cmod_pow, <- Cmod_mult.
+Qed.
+
+Lemma ex_CPS_mult (a b : nat -> C) (z : C) :
+  Rbar.Rbar_lt (Cmod z) (C_CV_radius a) ->
+  Rbar.Rbar_lt (Cmod z) (C_CV_radius b) ->
+  ex_CPowerSeries (CPS_mult a b) z.
+Proof.
+ intros Ha Hb.
+ exists ((CPowerSeries a z) * (CPowerSeries b z)).
+ apply is_CPS_mult; trivial.
+ - apply CPowerSeries_correct. now apply C_CV_radius_inside.
+ - apply CPowerSeries_correct. now apply C_CV_radius_inside.
+Qed.
+
+Lemma CPowerSeries_mult (a b : nat -> C) (z : C) :
+  Rbar.Rbar_lt (Cmod z) (C_CV_radius a) ->
+  Rbar.Rbar_lt (Cmod z) (C_CV_radius b) ->
+  CPowerSeries (CPS_mult a b) z = CPowerSeries a z * CPowerSeries b z.
+Proof.
+ intros Ha Hb.
+ apply CPowerSeries_unique, is_CPS_mult; trivial.
+ - apply CPowerSeries_correct. now apply C_CV_radius_inside.
+ - apply CPowerSeries_correct. now apply C_CV_radius_inside.
+Qed.
+
+Lemma C_CV_radius_mult (a b : nat -> C) :
+  Rbar.Rbar_le (Rbar.Rbar_min (C_CV_radius a) (C_CV_radius b))
+               (C_CV_radius (CPS_mult a b)).
+Proof.
+ apply Rbar_le_carac_via_lt.
+ intros c Hc.
+ assert (Ha : Rbar.Rbar_lt c (C_CV_radius a)).
+ { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
+   intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
+ assert (Hb : Rbar.Rbar_lt c (C_CV_radius b)).
+ { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
+   intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
+ clear Hc.
+ destruct (Rle_lt_dec 0 c).
+ - replace c with (Cmod c) in Ha, Hb.
+   2:{ rewrite Cmod_R, Rabs_pos_eq; trivial. }
+   rewrite C_CV_radius_radius'.
+   apply Lub_Rbar_ub. exists c.
+   split. rewrite Cmod_R, Rabs_pos_eq; trivial.
+   now apply ex_CPS_mult.
+ - apply Rbar.Rbar_le_trans with 0%R. simpl; lra.
+   rewrite C_CV_radius_alt. apply CV_radius_ge_0.
 Qed.

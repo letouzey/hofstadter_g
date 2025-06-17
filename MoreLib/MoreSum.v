@@ -313,7 +313,21 @@ Qed.
 
 (** More on Coquelicot [sum_n_m] and [sum_n] *)
 
-Lemma sum_n_minus (a b : nat -> C) n :
+Lemma sum_n_Rplus (a b : nat -> R) n :
+ (sum_n a n + sum_n b n = sum_n (fun k => a k + b k) n)%R.
+Proof.
+ induction n; rewrite ?sum_O, ?sum_Sn; try easy.
+ rewrite <- IHn. change plus with Rplus; lra.
+Qed.
+
+Lemma sum_n_Rminus (a b : nat -> R) n :
+ (sum_n a n - sum_n b n = sum_n (fun k => a k - b k) n)%R.
+Proof.
+ induction n; rewrite ?sum_O, ?sum_Sn; try easy.
+ rewrite <- IHn. change plus with Rplus; lra.
+Qed.
+
+Lemma sum_n_Cminus (a b : nat -> C) n :
  sum_n a n - sum_n b n = sum_n (fun n => a n - b n) n.
 Proof.
  induction n.

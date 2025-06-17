@@ -753,7 +753,7 @@ Proof.
  unfold Cminus. rewrite !Cmult_plus_distr_r.
  rewrite <- !Copp_mult_distr_l, Cmult_1_l.
  eapply is_lim_Cseq_ext; [|apply H4]. clear H H4.
- intros n. simpl. rewrite !sum_n_minus. apply sum_n_ext. clear n.
+ intros n. simpl. rewrite !sum_n_Cminus. apply sum_n_ext. clear n.
  intros n.
  unfold Cminus. rewrite !Copp_mult_distr_l, <- !Cmult_plus_distr_r. f_equal.
  symmetry. rewrite dg_eqn. now rewrite <- !(delay_comp RtoC).
@@ -1432,7 +1432,7 @@ Proof.
  apply is_lim_Cseq_ext with
   (f:=fun n => sum_n (fun k => (delay a 1 k) * x^k) n -
                c * sum_n (fun k => a k * x^k) n).
- { intros n. rewrite <- sum_n_Cmult_l, sum_n_minus. apply sum_n_ext.
+ { intros n. rewrite <- sum_n_Cmult_l, sum_n_Cminus. apply sum_n_ext.
    clear n. intros n. unfold delay.
    case Nat.eqb_spec; case Nat.ltb_spec; try lia.
    - intros _ ->. simpl. change zero with 0. lca.
@@ -1604,11 +1604,13 @@ Qed.
 Lemma dgbis_dg : forall n, dgbis n = dg k n.
 Proof.
  apply CPowerSeries_coef_ext.
- - apply Rbar.Rbar_lt_le_trans with (1%R). simpl; lra. apply CV_radius_ge_1.
+ - apply Rbar.Rbar_lt_le_trans with (1%R). simpl; lra.
+   rewrite C_CV_radius_alt. apply CV_radius_ge_1.
    apply ex_series_ext with (a:=Cmod∘dgbis).
    + intros n. symmetry. apply Rabs_pos_eq. apply Cmod_ge_0.
    + apply ex_series_Cmod_dgbis.
  - apply Rbar.Rbar_lt_le_trans with (/2)%R. simpl; lra.
+   rewrite C_CV_radius_alt.
    apply CV_disk_le_radius. red.
    eapply ex_series_ext;
    [|apply (ex_pseries_Rabs_dg k lia roots roots_ok) with (x:=(/2)%R)].
