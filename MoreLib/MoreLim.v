@@ -1889,10 +1889,96 @@ Proof.
  rewrite (@big_sum_0 C); intros; lca.
 Qed.
 
+Lemma C_CV_radius_one : C_CV_radius PS_one = Rbar.p_infty.
+Proof.
+ assert (H : forall x, Rbar.Rbar_le (Cmod x) (C_CV_radius PS_one)).
+ { intros x. rewrite C_CV_radius_radius'. apply Lub_Rbar_ub.
+   exists x; split; trivial. exists 1. apply PS_one_ok. }
+ destruct (C_CV_radius PS_one) as [x | | ]; trivial; exfalso.
+ - specialize (H (Rabs x + 1)%R). simpl in H.
+   rewrite Cmod_R in H.
+   destruct (Rle_lt_dec 0 x).
+   + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
+   + generalize (Rabs_pos (Rabs x + 1)); lra.
+ - apply (H 0).
+Qed.
+
 Definition PS_inv_linfactors (l:list C) :=
   fold_right (fun r => CPS_mult (PS_opp (PS_geom (/r)))) PS_one l.
 
-(*
+Lemma C_CV_radius_opp (a : nat -> C) :
+  C_CV_radius (PS_opp a) = C_CV_radius a.
+Proof.
+ rewrite !C_CV_radius_alt. apply CV_radius_ext.
+ intros n. apply Cmod_opp.
+Qed.
+
+Lemma C_CV_radius_geom (r:C) : r<>0 ->
+ C_CV_radius (PS_geom r) = (/Cmod r)%R.
+Proof.
+ intros Hr.
+ rewrite C_CV_radius_alt.
+ apply CV_radius_finite_DAlembert.
+ - intros n. unfold "∘", PS_geom.
+   rewrite Cmod_pow. apply pow_nonzero.
+   rewrite (Cmod_gt_0 r) in Hr. lra.
+ - now apply Cmod_gt_0.
+ - unfold "∘", PS_geom.
+   eapply is_lim_seq_ext; try apply is_lim_seq_const.
+   intros n; simpl. rewrite Cmod_mult.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_r.
+   + now rewrite Rmult_1_r, Rabs_pos_eq by apply Cmod_ge_0.
+   + change (Cmod (r^S n) <> 0)%R.
+     rewrite Cmod_pow. apply pow_nonzero.
+     rewrite (Cmod_gt_0 r) in Hr. lra.
+Qed.
+
+Definition Rbar_minlist (l : list Rbar.Rbar) :=
+  fold_right Rbar.Rbar_min Rbar.p_infty l.
+
+Definition min_Cmod_list (l : list C) :=
+  Rbar_minlist (map (fun r => Rbar.Finite (Cmod r)) l).
+
+Lemma min_Cmod_cons z l :
+  min_Cmod_list (z::l) = Rbar.Rbar_min (Cmod z) (min_Cmod_list l).
+Proof.
+ easy.
+Qed.
+
+Lemma min_Cmod_list_spec (x:R) l :
+ Rbar.Rbar_lt x (min_Cmod_list l) <-> Forall (fun r => x < Cmod r) l.
+Proof.
+ induction l.
+ - simpl. split; constructor.
+ - rewrite min_Cmod_cons. split; intros H.
+   + constructor.
+     * change (Rbar.Rbar_lt x (Cmod a)).
+       eapply Rbar.Rbar_lt_le_trans; eauto. apply Rbar.Rbar_min_l.
+     * apply IHl.
+       eapply Rbar.Rbar_lt_le_trans; eauto. apply Rbar.Rbar_min_r.
+   + inversion_clear H. apply Rbar.Rbar_min_case; trivial.
+     now apply IHl.
+Qed.
+
+Lemma PS_inv_linfactors_radius (l : list C) :
+  ~In 0 l ->
+  Rbar.Rbar_le (min_Cmod_list l) (C_CV_radius (PS_inv_linfactors l)).
+Proof.
+ induction l.
+ - intros _; simpl; now rewrite C_CV_radius_one.
+ - rewrite min_Cmod_cons.
+   cbn -[Rbar.Rbar_min]. intros H.
+   eapply Rbar.Rbar_le_trans; [| apply C_CV_radius_mult].
+   remember (Rbar.Rbar_min _ _) as x.
+   apply Rbar.Rbar_min_case; subst x;
+     [ eapply Rbar.Rbar_le_trans; try apply Rbar.Rbar_min_l
+     | eapply Rbar.Rbar_le_trans; try apply Rbar.Rbar_min_r ].
+   + rewrite C_CV_radius_opp, C_CV_radius_geom.
+     * rewrite Cmod_inv, Rinv_inv. apply Rbar.Rbar_le_refl.
+     * apply nonzero_div_nonzero. tauto.
+   + apply IHl; tauto.
+Qed.
+
 Lemma PS_inv_linfactors_ok l z :
   Forall (fun r => Cmod z < Cmod r) l ->
   is_CPowerSeries (PS_inv_linfactors l) z (/ Peval (linfactors l) z).
@@ -1900,6 +1986,10 @@ Proof.
  induction l.
  - intros _. simpl. rewrite Pconst_eval, Cinv_1. apply PS_one_ok.
  - inversion_clear 1. simpl. rewrite Pmult_eval, Cinv_mult.
+   assert (Ha : a <> 0).
+   { apply Cmod_gt_0. generalize (Cmod_ge_0 z); lra. }
+   assert (Ha' : /a <> 0).
+   { now apply nonzero_div_nonzero. }
    replace (Peval [-a;1] z) with (z-a).
    2:{ unfold Peval. simpl. ring. }
    rewrite Cmult_comm.
@@ -1910,14 +2000,15 @@ Proof.
      rewrite is_CPowerSeries_alt.
      apply (@is_pseries_opp C_AbsRing).
      rewrite <- is_CPowerSeries_alt.
-     assert (a <> 0).
-     { apply Cmod_gt_0. generalize (Cmod_ge_0 z); lra. }
-     apply is_powerseries_invlin.
-     { now apply nonzero_div_nonzero. }
-     rewrite Cmod_mult, Cmod_inv. apply Cmod_gt_0 in H.
+     apply is_powerseries_invlin; trivial.
+     rewrite Cmod_mult, Cmod_inv. apply Cmod_gt_0 in Ha.
      rewrite <- (Rinv_l (Cmod a)) by lra. apply Rmult_lt_compat_l; trivial.
      now apply Rinv_0_lt_compat.
-   + admit.
-   + admit.
-Admitted.
-*)
+   + rewrite C_CV_radius_opp, C_CV_radius_geom; trivial.
+     simpl. now rewrite Cmod_inv, Rinv_inv.
+   + eapply Rbar.Rbar_lt_le_trans.
+     2:{ apply PS_inv_linfactors_radius.
+         intros IN. rewrite Forall_forall in H1. specialize (H1 0 IN).
+         rewrite Cmod_0 in H1. generalize (Cmod_ge_0 z); lra. }
+     now apply min_Cmod_list_spec.
+Qed.
