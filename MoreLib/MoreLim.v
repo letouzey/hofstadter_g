@@ -5,7 +5,7 @@ From Coquelicot Require Import Rcomplements Hierarchy Continuity Series PSeries.
 From Coquelicot Require Import ElemFct Derive.
 Close Scope R. (* Issue with Coquelicot *)
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
-Require Import MoreTac MoreList MoreReals MoreComplex MoreSum.
+Require Import MoreTac MoreList MoreReals MoreComplex MoreSum MorePoly.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -708,6 +708,17 @@ Proof.
    intros n. unfold compose. now rewrite E.
 Qed.
 
+Lemma is_lim_Cseq_ext_loc (f g : nat -> C)(l : C) :
+ Hierarchy.eventually (fun n => f n = g n) ->
+ is_lim_Cseq f l -> is_lim_Cseq g l.
+Proof.
+ intros (N & HN). rewrite !is_lim_Cseq_proj. intros (Hf,Hg). split.
+ - apply is_lim_seq_ext_loc with (u:=Re∘f); trivial.
+   exists N. intros n Hn. unfold compose. now rewrite HN.
+ - apply is_lim_seq_ext_loc with (u:=Im∘f); trivial.
+   exists N. intros n Hn. unfold compose. now rewrite HN.
+Qed.
+
 Lemma is_lim_Cseq_Cmod' (a : nat -> C) (b : nat -> R) (la : C) (lb : R) :
   (forall n, Cmod (a n) <= b n) ->
   is_lim_Cseq a la -> is_lim_seq b lb -> Cmod la <= lb.
@@ -1243,10 +1254,12 @@ Proof.
  apply sum_n_m_le. intros k. now apply Cmod_prod_aux.
 Qed.
 
+Definition PS_geom r := fun n => r^S n.
+
 Lemma is_powerseries_invlin r x : r<>0 -> Cmod (r*x) < 1 ->
- is_CPowerSeries (fun n => r^S n) x (/ (/r - x)).
+ is_CPowerSeries (PS_geom r) x (/ (/r - x)).
 Proof.
- intros Hr Hx.
+ intros Hr Hx. unfold PS_geom.
  apply is_lim_Cseq_ext with (fun n => (1 - (r*x)^S n)/(/r-x)).
  { intros n. rewrite <- (Cmult_1_l (sum_n _ _)).
    rewrite <- (Cinv_l (/r-x)) at 2.
@@ -1841,3 +1854,70 @@ Proof.
  - apply Rbar.Rbar_le_trans with 0%R. simpl; lra.
    rewrite C_CV_radius_alt. apply CV_radius_ge_0.
 Qed.
+
+(** Power series and polynomial *)
+
+Definition PS_poly (P:Polynomial) := fun n => coef n P.
+
+Lemma PS_poly_ok (P:Polynomial) z :
+  is_CPowerSeries (PS_poly P) z (Peval P z).
+Proof.
+ red. apply is_lim_Cseq_ext_loc with (fun _ => Peval P z).
+ 2:apply is_lim_Cseq_const.
+ exists (length P); intros n Hn. unfold PS_poly, coef.
+ unfold Peval.
+ rewrite <- big_sum_sum_n.
+ replace (S n) with (length P + (S n - length P))%nat by lia.
+ rewrite big_sum_sum.
+ rewrite <- (Cplus_0_r (big_sum _ _)) at 1.
+ change Gplus with Cplus. f_equal. symmetry.
+ apply (@big_sum_0 C). intros x.
+ change Gzero with 0.
+ rewrite nth_overflow; try lca. lia.
+Qed.
+
+Definition PS_one n := match n with O => 1 | _ => 0 end.
+
+Lemma PS_one_ok z : is_CPowerSeries PS_one z 1.
+Proof.
+ red. apply is_lim_Cseq_ext_loc with (fun _ => 1).
+ 2:apply is_lim_Cseq_const.
+ exists 1%nat. intros [|n] Hn; try lia.
+ rewrite <- big_sum_sum_n.
+ replace (S (S n)) with (1+S n)%nat by lia.
+ rewrite big_sum_sum. simpl. ring_simplify.
+ rewrite (@big_sum_0 C); intros; lca.
+Qed.
+
+Definition PS_inv_linfactors (l:list C) :=
+  fold_right (fun r => CPS_mult (PS_opp (PS_geom (/r)))) PS_one l.
+
+(*
+Lemma PS_inv_linfactors_ok l z :
+  Forall (fun r => Cmod z < Cmod r) l ->
+  is_CPowerSeries (PS_inv_linfactors l) z (/ Peval (linfactors l) z).
+Proof.
+ induction l.
+ - intros _. simpl. rewrite Pconst_eval, Cinv_1. apply PS_one_ok.
+ - inversion_clear 1. simpl. rewrite Pmult_eval, Cinv_mult.
+   replace (Peval [-a;1] z) with (z-a).
+   2:{ unfold Peval. simpl. ring. }
+   rewrite Cmult_comm.
+   apply is_CPS_mult; auto.
+   + replace (/(z-a)) with (opp (/(a-z))).
+     2:{ change opp with Copp. fixeq C. rewrite <- Cinv_Copp. f_equal. ring. }
+     rewrite <- (Cinv_inv a) at 2.
+     rewrite is_CPowerSeries_alt.
+     apply (@is_pseries_opp C_AbsRing).
+     rewrite <- is_CPowerSeries_alt.
+     assert (a <> 0).
+     { apply Cmod_gt_0. generalize (Cmod_ge_0 z); lra. }
+     apply is_powerseries_invlin.
+     { now apply nonzero_div_nonzero. }
+     rewrite Cmod_mult, Cmod_inv. apply Cmod_gt_0 in H.
+     rewrite <- (Rinv_l (Cmod a)) by lra. apply Rmult_lt_compat_l; trivial.
+     now apply Rinv_0_lt_compat.
+   + admit.
+   + admit.
+Admitted.
+*)
