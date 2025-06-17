@@ -152,15 +152,20 @@ Qed.
 
 Definition roots := [RtoC μ; α; αbar].
 
+Lemma linfactors_roots : MorePoly.linfactors roots = ThePoly 3.
+Proof.
+ unfold ThePoly, roots. simpl. symmetry.
+ f_equal;[|f_equal;[|f_equal]].
+ + replace (-1)%C with (-(1))%C by ring. rewrite <- roots_prod at 1. ring.
+ + ring_simplify. rewrite <- sigma2_nul. ring.
+ + replace (-1)%C with (-(1))%C by ring. rewrite <- roots_sum at 1. ring.
+ + f_equal; lca.
+Qed.
+
 Lemma roots_sorted : SortedRoots 3 roots.
 Proof.
  split.
- - unfold roots, ThePoly. simpl.
-   apply MorePoly.eq_Peq. f_equal;[|f_equal;[|f_equal]].
-   + replace (-1)%C with (-(1))%C by ring. rewrite <- roots_prod at 1. ring.
-   + ring_simplify. rewrite <- sigma2_nul. ring.
-   + replace (-1)%C with (-(1))%C by ring. rewrite <- roots_sum at 1. ring.
-   + f_equal; lca.
+ - apply MorePoly.eq_Peq. symmetry. apply linfactors_roots.
  - do 2 constructor.
    + repeat constructor.
    + constructor. right. unfold α, αbar. simpl. split; trivial. approx.

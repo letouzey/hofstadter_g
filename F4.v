@@ -46,7 +46,7 @@ Proof. red. unfold τ. generalize tau_4. lra. Qed.
 #[local] Instance : Approx 1.380277569097 μ 1.380277569098.
 Proof. red. unfold μ. generalize mu_4. lra. Qed.
 
-#[local] Instance : Approx (-0.819172513397) ν (-0.819172513396).
+#[local] Instance ν_approx : Approx (-0.819172513397) ν (-0.819172513396).
 Proof. red. unfold ν. generalize nu_4. lra. Qed.
 
 (** The complex roots of [X^4-X^3-1] *)

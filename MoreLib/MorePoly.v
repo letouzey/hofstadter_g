@@ -599,6 +599,14 @@ Proof.
  - now rewrite IHl1, !Pmult_assoc, (Pmult_comm (linfactors l2)).
 Qed.
 
+Lemma linfactors_monic l : monic (linfactors l).
+Proof.
+ unfold monic.
+ induction l; simpl.
+ - apply topcoef_singl.
+ - rewrite topcoef_mult, IHl, topcoef_lin. lca. apply C1_nz.
+Qed.
+
 (** In [linfactors] we can freely permute the roots *)
 
 Lemma linfactors_perm l l' :
