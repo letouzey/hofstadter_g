@@ -368,21 +368,53 @@ Qed.
 
 (** Euclidean division of polynomial *)
 
-Lemma Pdiv (a b : Polynomial) :
-  (0 < degree b)%nat ->
-  { q & { r | a ≅ q *, b +, r /\ (degree r < degree b)%nat}}.
+Fixpoint Pdiv_loop a b d :=
+ match d with
+ | 0 => ([],a)
+ | S d' =>
+   if (degree a <? degree b)%nat then
+     ([], a)
+   else
+     let k := (degree a - degree b)%nat in
+     let c := topcoef a / topcoef b in
+     let '(q,r) := Pdiv_loop (a +, -, (monom c k *, b)) b d' in
+     (q +, monom c k, r)
+ end.
+
+Definition Pdiv a b := Pdiv_loop a b (degree a).
+
+Lemma Pdiv_eqn a b :
+  Peq a (fst (Pdiv a b) *, b +, snd (Pdiv a b)).
 Proof.
- intros Hb.
- remember (degree a) as n eqn:Ha. revert a Ha.
- induction n as [n IH] using lt_wf_rec.
- intros a Ha.
- destruct (Nat.ltb (degree a) (degree b)) eqn:LT.
- - apply Nat.ltb_lt in LT.
-   exists [], a. simpl; split; [easy | lia].
- - apply Nat.ltb_ge in LT.
-   set (k := (degree a - degree b)%nat).
+ unfold Pdiv. remember (degree a) as d. clear Heqd.
+ revert a b.
+ induction d; simpl; intros; try easy.
+ case Nat.ltb_spec; intros. simpl; easy.
+ set (k := (degree a - degree b)%nat).
+ set (c := topcoef a / topcoef b).
+ set (a' := a +, _).
+ specialize (IHd a' b). destruct (Pdiv_loop a' b d) as (q,r).
+ simpl in *. rewrite Pmult_plus_distr_r.
+ rewrite Pplus_assoc, (Pplus_comm _ r), <- Pplus_assoc, <- IHd.
+ unfold a'. rewrite Pplus_assoc, Pplus_opp_l.
+ simpl. now rewrite Pplus_0_r.
+Qed.
+
+Lemma Pdiv_degree a b :
+  (0 < degree b)%nat -> (degree (snd (Pdiv a b)) < degree b)%nat.
+Proof.
+ intros Hb. revert a.
+ assert (forall d a, (degree a <= d)%nat ->
+                     (degree (snd (Pdiv_loop a b d)) < degree b)%nat).
+ { induction d; simpl; intros a D; try lia.
+   case Nat.ltb_spec; [intros LE|intros LT]; trivial.
    set (top_a := topcoef a).
    set (top_b := topcoef b).
+   set (k := (degree a - degree b)%nat).
+   set (c := top_a / top_b).
+   set (a' := a +, _).
+   specialize (IHd a'). destruct (Pdiv_loop a' b d) as (q,r).
+   simpl in *. apply IHd.
    assert (NZa : ~ a ≅ []).
    { intro H. rewrite H in LT. change (degree []) with O in LT. lia. }
    assert (NZb : ~ b ≅ []).
@@ -390,29 +422,22 @@ Proof.
    assert (NZ : top_a / top_b <> 0).
    { apply Cmult_neq_0. now apply topcoef_nz.
      apply nonzero_div_nonzero. now apply topcoef_nz. }
-   set (a' := a +, -, (monom (top_a/top_b) k *, b)).
    assert (LE : (degree a' <= degree a)%nat).
    { unfold a'. etransitivity. eapply Pplus_degree1.
-     rewrite Popp_degree, Pmult_degree, monom_degree; auto; try lia.
-     now apply monom_nz. }
+     rewrite Popp_degree, Pmult_degree, monom_degree. auto; try lia.
+     apply NZ. now apply monom_nz. auto. }
    assert (Ha' : coef (degree a) a' = 0).
    { unfold a'. rewrite Pplus_coef. rewrite <- topcoef_alt. fold top_a.
      rewrite Popp_coef, Pmult_monom_coef by lia.
      replace (degree a - k)%nat with (degree b) by lia.
-     rewrite <- topcoef_alt. fold top_b. field. now apply topcoef_nz. }
-   assert (LT' : (degree a' < n)%nat).
-   { destruct (Nat.eq_dec (degree a') 0) as [E0|N0]; try lia.
-     destruct (Nat.eq_dec (degree a') (degree a)) as [E|N]; try lia.
-     rewrite <- E in Ha'. rewrite <- topcoef_alt in Ha'.
-     apply topcoef_nz in Ha'; try lia.
-     intro H. rewrite H in N0. now apply N0. }
-   destruct (IH (degree a') LT' a' eq_refl) as (q & r & E & LTr).
-   exists (q +, monom (top_a / top_b) k), r.
-   split; trivial.
-   rewrite Pmult_plus_distr_r.
-   rewrite Pplus_assoc, (Pplus_comm _ r), <- Pplus_assoc.
-   rewrite <- E. unfold a'. rewrite Pplus_assoc, Pplus_opp_l, Pplus_0_r.
-   easy.
+     rewrite <- topcoef_alt. fold top_b. unfold c. field.
+     now apply topcoef_nz. }
+   destruct (Nat.eq_dec (degree a') 0) as [E0|N0]; try lia.
+   destruct (Nat.eq_dec (degree a') (degree a)) as [E|N]; try lia.
+   rewrite <- E in Ha'. rewrite <- topcoef_alt in Ha'.
+   apply topcoef_nz in Ha'; try lia.
+   intro H. rewrite H in N0. now apply N0. }
+ intros. now apply H.
 Qed.
 
 Lemma degree_is_1 (c c':C) : c'<>0 -> degree [c;c'] = 1%nat.
@@ -425,17 +450,19 @@ Proof.
  intros H.
  assert (D : degree [-c; 1] = 1%nat).
  { apply degree_is_1. apply C1_nz. }
- destruct (Pdiv p [-c;1]) as (q & r & E & LT).
- - rewrite D; lia.
- - rewrite D in LT. exists q.
-   assert (D' : degree r = O) by lia. clear D LT.
-   rewrite <- (compactify_Peq r) in E. unfold degree in D'.
-   destruct (compactify r) as [|c0 [|c1 s] ].
-   + now rewrite Pplus_0_r in E.
-   + rewrite E in H. red in H. rewrite Pplus_eval, Pmult_eval in H. cbn in H.
-     ring_simplify in H. rewrite H in E. rewrite Pzero_alt in E.
-     now rewrite Pplus_0_r in E.
-   + now simpl in D'.
+ assert (E := Pdiv_eqn p [-c;1]).
+ assert (LT := Pdiv_degree p [-c;1]).
+ destruct (Pdiv p [-c;1]) as (q & r). simpl in *. rewrite D in LT.
+ specialize (LT ltac:(lia)).
+ exists q.
+ assert (D' : degree r = O) by lia. clear D LT.
+ rewrite <- (compactify_Peq r) in E. unfold degree in D'.
+ destruct (compactify r) as [|c0 [|c1 s] ].
+ - now rewrite Pplus_0_r in E.
+ - rewrite E in H. red in H. rewrite Pplus_eval, Pmult_eval in H. cbn in H.
+   ring_simplify in H. rewrite H in E. rewrite Pzero_alt in E.
+   now rewrite Pplus_0_r in E.
+ - now simpl in D'.
 Qed.
 
 Lemma linfactors_coef_after l n :
