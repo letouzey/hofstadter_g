@@ -1,4 +1,5 @@
-From Coq Require Import Lia Reals Lra Morphisms.
+From Coq Require Import Lia Reals Lra Morphisms QArith.
+Close Scope Q. (* Issue with QArith. *)
 From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
@@ -12,6 +13,176 @@ Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (** * Definition of Pisot number and Siegel Theorem *)
+
+(** Rational numbers seen as subsets of R, C. Polynomials in Q[x] *)
+
+Definition Rational (x : R) := exists q:Q, x = Q2R q.
+Definition CRational (z : C) := exists q:Q, z = RtoC (Q2R q).
+Definition RatPoly (p : Polynomial) := Forall CRational p.
+
+Lemma Rational_RtoC (r:R) : Rational r -> CRational (RtoC r).
+Proof.
+ intros (z & ->). now exists z.
+Qed.
+
+Lemma Rational_Q (q:Q) : Rational (Q2R q).
+Proof.
+ now eexists.
+Qed.
+
+Lemma Rational_Z (n:Z) : Rational (IZR n).
+Proof.
+ exists (inject_Z n). now rewrite Q2R_IZR.
+Qed.
+
+Lemma Rational_nat (n:nat) : Rational n.
+Proof.
+ rewrite INR_IZR_INZ. apply Rational_Z.
+Qed.
+
+Lemma CRational_Q (q:Q) : CRational (Q2R q).
+Proof.
+ apply Rational_RtoC, Rational_Q.
+Qed.
+
+Lemma CRational_Z (n:Z) : CRational (IZR n).
+Proof.
+ apply Rational_RtoC, Rational_Z.
+Qed.
+
+Lemma CRational_nat (n:nat) : CRational n.
+Proof.
+ apply Rational_RtoC, Rational_nat.
+Qed.
+
+Lemma RatPoly_alt p :
+  RatPoly p <-> exists (q : list Q), p = map (RtoC∘Q2R) q.
+Proof.
+ induction p; split.
+ - now exists [].
+ - constructor.
+ - inversion_clear 1. apply IHp in H1. destruct H1 as (q & ->).
+   destruct H0 as (n & ->). now exists (n::q).
+ - intros ([|n q] & E); try easy. injection E as -> ->.
+   constructor. now exists n. rewrite IHp. now exists q.
+Qed.
+
+Lemma RatPoly_prune p :  RatPoly (prune p) <-> RatPoly p.
+Proof.
+ induction p as [|a p]; simpl; try easy.
+ destruct Ceq_dec.
+ - subst a. rewrite IHp.
+   split. constructor; trivial. apply CRational_Z. now inversion_clear 1.
+ - split; inversion_clear 1; constructor; trivial.
+Qed.
+
+Lemma RatPoly_compactify p : RatPoly p <-> RatPoly (compactify p).
+Proof.
+ unfold compactify, RatPoly.
+ split; intros H. now apply Forall_rev, RatPoly_prune, Forall_rev.
+ apply Forall_rev in H. rewrite rev_involutive, RatPoly_prune in H.
+ apply Forall_rev in H. now rewrite rev_involutive in H.
+Qed.
+
+Global Instance RatPoly_Peq : Proper (Peq ==> iff) RatPoly.
+Proof.
+ intros p q E. apply Peq_compactify_eq in E.
+ now rewrite (RatPoly_compactify p), (RatPoly_compactify q), E.
+Qed.
+
+Lemma RatPoly_coef p n : RatPoly p -> CRational (coef n p).
+Proof.
+ rewrite RatPoly_alt. intros (q & ->). unfold coef.
+ replace 0%C with ((RtoC∘Q2R) 0%Q) by (unfold "∘"; f_equal; lra).
+ rewrite map_nth. now eexists.
+Qed.
+
+Lemma RatPoly_topcoef p : RatPoly p -> CRational (topcoef p).
+Proof.
+ rewrite topcoef_alt. apply RatPoly_coef.
+Qed.
+
+Lemma Rational_plus a b : Rational a -> Rational b -> Rational (a+b).
+Proof.
+ intros (qa, ->) (qb, ->). exists (qa+qb)%Q. now rewrite Qreals.Q2R_plus.
+Qed.
+
+Lemma Rational_mult a b : Rational a -> Rational b -> Rational (a*b).
+Proof.
+ intros (qa, ->) (qb, ->). exists (qa*qb)%Q. now rewrite Qreals.Q2R_mult.
+Qed.
+
+Lemma Rational_inv a : Rational a -> Rational (/a).
+Proof.
+ destruct (Req_dec a 0) as [->|N].
+ - now rewrite Rinv_0.
+ - intros (qa, ->). exists (Qinv qa). rewrite Qreals.Q2R_inv; trivial.
+   contradict N. rewrite N. lra.
+Qed.
+
+Lemma Rational_div a b : Rational a -> Rational b -> Rational (a/b).
+Proof.
+ intros. apply Rational_mult; trivial. now apply Rational_inv.
+Qed.
+
+Lemma CRational_plus a b : CRational a -> CRational b -> CRational (a+b).
+Proof.
+ intros (qa, ->) (qb, ->). exists (qa+qb)%Q.
+ now rewrite <- RtoC_plus, Qreals.Q2R_plus.
+Qed.
+
+Lemma CRational_mult a b : CRational a -> CRational b -> CRational (a*b).
+Proof.
+ intros (qa, ->) (qb, ->). exists (qa*qb)%Q.
+ now rewrite <- RtoC_mult, Qreals.Q2R_mult.
+Qed.
+
+Lemma CRational_inv a : CRational a -> CRational (/a).
+Proof.
+ destruct (Ceq_dec a 0) as [E|N]; subst.
+ - now rewrite Cinv_0.
+ - intros (qa, ->). exists (Qinv qa).
+   rewrite <- RtoC_inv, Qreals.Q2R_inv; trivial.
+   contradict N. rewrite N. f_equal. lra.
+Qed.
+
+Lemma CRational_div a b : CRational a -> CRational b -> CRational (a/b).
+Proof.
+ intros. apply CRational_mult; trivial. now apply CRational_inv.
+Qed.
+
+Lemma RatPoly_plus p q : RatPoly p -> RatPoly q -> RatPoly (p +, q).
+Proof.
+ revert q. induction p; simpl; trivial.
+ intros q H1 H2. destruct q; simpl; trivial.
+ inversion_clear H1. inversion_clear H2. constructor; try apply IHp; trivial.
+ now apply CRational_plus.
+Qed.
+
+Lemma RatPoly_mult p q : RatPoly p -> RatPoly q -> RatPoly (p *, q).
+Proof.
+ revert q. induction p; simpl; trivial.
+ intros q H1 H2. apply RatPoly_plus.
+ - inversion_clear H1. apply Forall_map.
+   rewrite Forall_forall. intros x IN. apply CRational_mult; trivial.
+   red in H2. rewrite Forall_forall in H2. now apply H2.
+ - constructor. apply CRational_Z.
+   apply IHp; trivial. now inversion_clear H1.
+Qed.
+
+Lemma RatPoly_opp p : RatPoly p -> RatPoly (-, p).
+Proof.
+ intros Hp. apply RatPoly_mult; trivial. constructor; [|constructor].
+ rewrite <- RtoC_opp, <- opp_IZR. apply CRational_Z.
+Qed.
+
+Lemma RatPoly_monom z k : CRational z -> RatPoly (monom z k).
+Proof.
+ intros. unfold monom. apply Forall_app. split.
+ - apply Forall_forall. intros x Hx. apply repeat_spec in Hx. subst.
+   apply CRational_Z.
+ - now constructor.
+Qed.
 
 (** Integers seen as subsets of R, C. Polynomials in Z[x] *)
 
@@ -90,6 +261,75 @@ Global Instance IntPoly_Peq : Proper (Peq ==> iff) IntPoly.
 Proof.
  intros p q E. apply Peq_compactify_eq in E.
  now rewrite (IntPoly_compactify p), (IntPoly_compactify q), E.
+Qed.
+
+Lemma IntPoly_coef p n : IntPoly p -> CInteger (coef n p).
+Proof.
+ rewrite IntPoly_alt. intros (q & ->). unfold coef.
+ change 0%C with ((RtoC∘IZR) Z0).
+ rewrite map_nth. apply CInteger_alt. now eexists.
+Qed.
+
+Lemma IntPoly_topcoef p : IntPoly p -> CInteger (topcoef p).
+Proof.
+ rewrite topcoef_alt. apply IntPoly_coef.
+Qed.
+
+Lemma Integer_plus a b : Integer a -> Integer b -> Integer (a+b).
+Proof.
+ rewrite !Integer_alt. intros (za, ->) (zb, ->). exists (za+zb)%Z.
+ now rewrite plus_IZR.
+Qed.
+
+Lemma Integer_mult a b : Integer a -> Integer b -> Integer (a*b).
+Proof.
+ rewrite !Integer_alt. intros (za, ->) (zb, ->). exists (za*zb)%Z.
+ now rewrite mult_IZR.
+Qed.
+
+Lemma CInteger_plus a b : CInteger a -> CInteger b -> CInteger (a+b).
+Proof.
+ rewrite !CInteger_alt. intros (za, ->) (zb, ->). exists (za+zb)%Z.
+ now rewrite <- RtoC_plus, plus_IZR.
+Qed.
+
+Lemma CInteger_mult a b : CInteger a -> CInteger b -> CInteger (a*b).
+Proof.
+ rewrite !CInteger_alt. intros (za, ->) (zb, ->). exists (za*zb)%Z.
+ now rewrite <- RtoC_mult, mult_IZR.
+Qed.
+
+Lemma IntPoly_plus p q : IntPoly p -> IntPoly q -> IntPoly (p +, q).
+Proof.
+ revert q. induction p; simpl; trivial.
+ intros q H1 H2. destruct q; simpl; trivial.
+ inversion_clear H1. inversion_clear H2. constructor; try apply IHp; trivial.
+ now apply CInteger_plus.
+Qed.
+
+Lemma IntPoly_mult p q : IntPoly p -> IntPoly q -> IntPoly (p *, q).
+Proof.
+ revert q. induction p; simpl; trivial.
+ intros q H1 H2. apply IntPoly_plus.
+ - inversion_clear H1. apply Forall_map.
+   rewrite Forall_forall. intros x IN. apply CInteger_mult; trivial.
+   red in H2. rewrite Forall_forall in H2. now apply H2.
+ - constructor. rewrite CInteger_alt. now exists Z0.
+   apply IHp; trivial. now inversion_clear H1.
+Qed.
+
+Lemma IntPoly_opp p : IntPoly p -> IntPoly (-, p).
+Proof.
+ intros Hp. apply IntPoly_mult; trivial. constructor; [|constructor].
+ rewrite <- RtoC_opp, <- opp_IZR. apply CInteger_Z.
+Qed.
+
+Lemma IntPoly_monom z k : CInteger z -> IntPoly (monom z k).
+Proof.
+ intros. unfold monom. apply Forall_app. split.
+ - apply Forall_forall. intros x Hx. apply repeat_spec in Hx. subst.
+   apply CInteger_Z.
+ - now constructor.
 Qed.
 
 (** Definition of Pisot numbers *)
@@ -211,61 +451,6 @@ Qed.
 Lemma PisotPolyRoot x p : PisotPoly x p -> Root x p.
 Proof.
  intros (l & H1 & H2). rewrite H2. rewrite <- linfactors_roots. now left.
-Qed.
-
-Lemma IntPoly_coef p n : IntPoly p -> CInteger (coef n p).
-Proof.
- rewrite IntPoly_alt. intros (q & ->). unfold coef.
- change 0%C with ((RtoC∘IZR) Z0).
- rewrite map_nth. apply CInteger_alt. now eexists.
-Qed.
-
-Lemma IntPoly_topcoef p : IntPoly p -> CInteger (topcoef p).
-Proof.
- rewrite topcoef_alt. apply IntPoly_coef.
-Qed.
-
-Lemma Integer_plus a b : Integer a -> Integer b -> Integer (a+b).
-Proof.
- rewrite !Integer_alt. intros (za, ->) (zb, ->). exists (za+zb)%Z.
- now rewrite plus_IZR.
-Qed.
-
-Lemma Integer_mult a b : Integer a -> Integer b -> Integer (a*b).
-Proof.
- rewrite !Integer_alt. intros (za, ->) (zb, ->). exists (za*zb)%Z.
- now rewrite mult_IZR.
-Qed.
-
-Lemma CInteger_plus a b : CInteger a -> CInteger b -> CInteger (a+b).
-Proof.
- rewrite !CInteger_alt. intros (za, ->) (zb, ->). exists (za+zb)%Z.
- now rewrite <- RtoC_plus, plus_IZR.
-Qed.
-
-Lemma CInteger_mult a b : CInteger a -> CInteger b -> CInteger (a*b).
-Proof.
- rewrite !CInteger_alt. intros (za, ->) (zb, ->). exists (za*zb)%Z.
- now rewrite <- RtoC_mult, mult_IZR.
-Qed.
-
-Lemma IntPoly_plus p q : IntPoly p -> IntPoly q -> IntPoly (p +, q).
-Proof.
- revert q. induction p; simpl; trivial.
- intros q H1 H2. destruct q; simpl; trivial.
- inversion_clear H1. inversion_clear H2. constructor; try apply IHp; trivial.
- now apply CInteger_plus.
-Qed.
-
-Lemma IntPoly_mult p q : IntPoly p -> IntPoly q -> IntPoly (p *, q).
-Proof.
- revert q. induction p; simpl; trivial.
- intros q H1 H2. apply IntPoly_plus.
- - inversion_clear H1. apply Forall_map.
-   rewrite Forall_forall. intros x IN. apply CInteger_mult; trivial.
-   red in H2. rewrite Forall_forall in H2. now apply H2.
- - constructor. rewrite CInteger_alt. now exists Z0.
-   apply IHp; trivial. now inversion_clear H1.
 Qed.
 
 Lemma All_roots' (p : Polynomial) :
@@ -422,9 +607,143 @@ Proof.
    rewrite <- Cmod_eq_0_iff in Hr'. generalize (Cmod_ge_0 r); lra.
 Qed.
 
+Lemma linfactors_eq_iff_perm (l l' : list C) :
+  linfactors l ≅ linfactors l' <-> Permutation l l'.
+Proof.
+ split; [ |apply linfactors_perm].
+ revert l'.
+ induction l; intros l'.
+ - simpl. intros E. replace l' with (@nil C); try easy.
+   symmetry. rewrite <- length_zero_iff_nil.
+   rewrite <- linfactors_degree, <- E.
+   generalize (degree_length [1]); simpl; lia.
+ - simpl. intros E.
+   assert (IN : In a l').
+   { rewrite linfactors_roots, <- E. red. rewrite Pmult_eval.
+     replace (Peval [-a;1] a) with 0; lca. }
+   destruct (in_split _ _ IN) as (l1 & l2 & ->).
+   apply Permutation_cons_app. apply IHl.
+   rewrite <- (linfactors_perm _ _ (Permutation_middle l1 l2 a)) in E.
+   simpl in E.
+   rewrite !(Pmult_comm _ [_;_]) in E.
+   apply Pmult_Peq_reg_l in E; trivial.
+   rewrite <- topcoef_0_iff, topcoef_lin; intros [= ?]; lra.
+Qed.
+
 (*
+Lemma RatPoly_div a b :
+  RatPoly a -> RatPoly b ->
+  let '(q,r) := Pdiv a b in RatPoly q /\ RatPoly r.
+Proof.
+ unfold Pdiv.
+ remember (degree a) as d. clear Heqd.
+ revert a b. induction d; simpl; intros a b Ha Hb.
+ - split; trivial. constructor.
+ - case Nat.ltb_spec; intros. split; trivial. constructor.
+   set (k := (degree a - degree b)%nat).
+   set (c := topcoef a / topcoef b).
+   set (a' := a +, _).
+   assert (
+   specialize (IHd a' b).
+
+Lemma IntPoly_div a b :
+  IntPoly a -> IntPoly b ->
+  let '(q,r) := Pdiv a b in IntPoly q /\ IntPoly r.
+Proof.
+*)
+
+Lemma Pintdiv (a b : Polynomial) :
+  IntPoly a -> IntPoly b -> (0 < degree b)%nat -> monic b ->
+  { q & { r | a ≅ q *, b +, r /\ IntPoly q /\ IntPoly r /\
+              (degree r < degree b)%nat}}.
+Proof.
+ intros Ia Ib Hb Mb.
+ remember (degree a) as n eqn:Ha. revert a Ia Ha.
+ induction n as [n IH] using lt_wf_rec.
+ intros a Ia Ha.
+ destruct (Nat.ltb (degree a) (degree b)) eqn:LT.
+ - apply Nat.ltb_lt in LT.
+   exists [], a. simpl; repeat split; try easy. constructor.
+ - apply Nat.ltb_ge in LT.
+   set (k := (degree a - degree b)%nat).
+   set (top_a := topcoef a).
+   assert (NZa : ~ a ≅ []).
+   { intro H. rewrite H in LT. change (degree []) with O in LT. lia. }
+   assert (NZb : ~ b ≅ []).
+   { intro H. now rewrite H in Hb. }
+   assert (NZ : top_a <> 0) by now apply topcoef_nz.
+   set (a' := a +, -, (monom top_a k *, b)).
+   assert (LE : (degree a' <= degree a)%nat).
+   { unfold a'. etransitivity. eapply Pplus_degree1.
+     rewrite Popp_degree, Pmult_degree, monom_degree; auto; try lia.
+     now apply monom_nz. }
+   assert (Ha' : coef (degree a) a' = 0).
+   { unfold a'. rewrite Pplus_coef. rewrite <- topcoef_alt. fold top_a.
+     rewrite Popp_coef, Pmult_monom_coef by lia.
+     replace (degree a - k)%nat with (degree b) by lia.
+     rewrite <- topcoef_alt. rewrite Mb. ring. }
+   assert (LT' : (degree a' < n)%nat).
+   { destruct (Nat.eq_dec (degree a') 0) as [E0|N0]; try lia.
+     destruct (Nat.eq_dec (degree a') (degree a)) as [E|N]; try lia.
+     rewrite <- E in Ha'. rewrite <- topcoef_alt in Ha'.
+     apply topcoef_nz in Ha'; try lia.
+     intro H. rewrite H in N0. now apply N0. }
+   destruct (IH (degree a') LT' a') as (q & r & E & Iq & Ir & LTr);
+     trivial; clear IH.
+   { apply IntPoly_plus; trivial.
+     apply IntPoly_opp, IntPoly_mult; trivial.
+     apply IntPoly_monom. now apply IntPoly_topcoef. }
+   exists (q +, monom top_a k), r.
+   repeat split; trivial.
+   + rewrite Pmult_plus_distr_r.
+     rewrite Pplus_assoc, (Pplus_comm _ r), <- Pplus_assoc.
+     rewrite <- E. unfold a'. rewrite Pplus_assoc, Pplus_opp_l, Pplus_0_r.
+     easy.
+   + apply IntPoly_plus; trivial. apply IntPoly_monom.
+     now apply IntPoly_topcoef.
+Qed.
+
+(*
+Lemma MinPoly_unique_aux x p q :
+  monic p -> IntPoly p -> ~Zreducible p -> Root x p ->
+  IntPoly q -> Root x q -> exists u, IntPoly u /\ Peq q (p *, u).
+Proof.
+ intros MO IP IR Hx.
+ remember (degree q) as d. revert q Heqd.
+ induction d as [d IH] using lt_wf_ind.
+ intros q -> IP' Hx'.
+ destruct (Nat.eq_dec (degree p) 0) as [D0|D0].
+ { exists q; split; trivial.
+   now rewrite (deg0_monic_carac _ D0 MO), Pmult_1_l. }
+ destruct (Nat.le_gt_cases (degree p) (degree q)) as [D1|D1].
+ { destruct (Pintdiv q p) as (u & v & E & Hv); trivial; try lia.
+   destruct (IH (degree v) ltac:(lia) v) as (w & Hw & EQ);
+     try easy; try lia; clear IH.
+   { rewrite E in Hx'. red in Hx'. rewrite Pplus_eval, Pmult_eval in Hx'.
+     rewrite Hx, Cmult_0_r, Cplus_0_l in Hx'. apply Hx'. }
+   exists (u+,w); split.
+   - now apply IntPoly_plus.
+   - now rewrite Pmult_plus_distr_l, <- EQ, Pmult_comm. }
+ { 
+
+
+
+
+
 Lemma PisotPolyUnique x p q : PisotPoly x p -> PisotPoly x q -> Peq p q.
 Proof.
+ remember (degree q) as d. revert q Heqd.
+ induction d using lt_wf_ind.
+ intros q D Hp Hq.
+
+
+
+Lemma Pdiv (a b : Polynomial) :
+  (0 < degree b)%nat ->
+  { q & { r | a ≅ q *, b +, r /\ (degree r < degree b)%nat}}.
+
+
+
 Admitted.
 *)
 
