@@ -899,10 +899,36 @@ Qed.
 Definition Qcontent (l : list Q) :=
   (inject_Z (Zcontent (PolyQ_factor l)) / inject_Z (lcm_denoms l))%Q.
 
+Lemma coef_P0 k : coef k [] = 0.
+Proof.
+ now destruct k.
+Qed.
+
+Lemma Pmult_coef p q n:
+ coef n (p*,q) = big_sum (fun k => coef k p * coef (n-k) q) (S n).
+Proof.
+ revert q n.
+ induction p; intros.
+ - simpl. rewrite coef_P0. rewrite big_sum_0. lca.
+   intros k. rewrite coef_P0. lca.
+ - simpl. rewrite <- Pscale_alt, Pplus_coef, Pscale_coef.
+   replace (n-n)%nat with O by lia.
+   destruct n as [|n]. unfold coef; simpl; lca.
+   change (coef (S n) (0 :: _)) with (coef n (p*,q)).
+   change (coef (S n) (a::p)) with (coef n p).
+   rewrite IHp.
+   symmetry. rewrite big_sum_shift. rewrite <- big_sum_extend_r.
+   change (coef 0 (a::p)) with a.
+   replace (n-n)%nat with O by lia.
+   change Gplus with Cplus. rewrite Nat.sub_0_r. ring_simplify.
+   rewrite <- !Cplus_assoc. f_equal. apply Cplus_comm.
+Qed.
+
 (*
 Il faudrait ~Zreducible p -> ~Qreducible p (pour p monic)
 et donc Qreducible p -> Zreducible ie lemme de Gauss
 https://proofwiki.org/wiki/Gauss%27s_Lemma_on_Irreducible_Polynomials
+https://people.math.wisc.edu/~jwrobbin/541dir/gaussLemma.pdf
 
 Lemma PisotPolyUnique x p q : PisotPoly x p -> PisotPoly x q -> Peq p q.
 Proof.
