@@ -353,6 +353,12 @@ Proof.
    apply Pplus_opp_r.
 Qed.
 
+Lemma Pmult_Peq_reg_r (p q r : Polynomial) :
+ ~(r ≅ []) -> p *, r ≅ q *, r -> p ≅ q.
+Proof.
+ intros R. rewrite !(Pmult_comm _ r). now apply Pmult_Peq_reg_l.
+Qed.
+
 Lemma Pplus_map (f g : nat -> C) l (p q : Polynomial) :
    (map f l ++ p) +, (map g l ++ q) ≅ map (fun k => f k + g k) l ++ (p +, q).
 Proof.
@@ -364,7 +370,6 @@ Lemma Pplus_map' (f g : nat -> C) l (p : Polynomial) :
 Proof.
  rewrite <- (app_nil_r (map f l)). now rewrite Pplus_map.
 Qed.
-
 
 (** Euclidean division of polynomial *)
 
@@ -634,6 +639,17 @@ Proof.
  - rewrite topcoef_mult, IHl, topcoef_lin. lca. apply C1_nz.
 Qed.
 
+Lemma linfactors_roots l c : In c l <-> Root c (linfactors l).
+Proof.
+ revert c. induction l; unfold Root in *; cbn [linfactors In].
+ - intros c. cbn. rewrite Cmult_1_r, Cplus_0_l. split. easy. apply C1_nz.
+ - intros c. rewrite IHl, Pmult_eval, Cmult_integral. clear IHl.
+   cbn. rewrite Cplus_0_l, !Cmult_1_r, Cmult_1_l.
+   split; destruct 1 as [A|B]; auto.
+   + right. subst. ring.
+   + left. symmetry. apply Ceq_minus. now rewrite Cplus_comm in B.
+Qed.
+
 (** In [linfactors] we can freely permute the roots *)
 
 Lemma linfactors_perm l l' :
@@ -645,15 +661,25 @@ Proof.
  - now rewrite IHPermutation1, IHPermutation2.
 Qed.
 
-Lemma linfactors_roots l c : In c l <-> Root c (linfactors l).
+Lemma linfactors_perm_iff l l' :
+ linfactors l ≅ linfactors l' <-> Permutation l l'.
 Proof.
- revert c. induction l; unfold Root in *; cbn [linfactors In].
- - intros c. cbn. rewrite Cmult_1_r, Cplus_0_l. split. easy. apply C1_nz.
- - intros c. rewrite IHl, Pmult_eval, Cmult_integral. clear IHl.
-   cbn. rewrite Cplus_0_l, !Cmult_1_r, Cmult_1_l.
-   split; destruct 1 as [A|B]; auto.
-   + right. subst. ring.
-   + left. symmetry. apply Ceq_minus. now rewrite Cplus_comm in B.
+ split; [|apply linfactors_perm].
+ revert l'.
+ induction l; intros l'.
+ - simpl. intros E. replace l' with (@nil C); try easy.
+   symmetry. rewrite <- length_zero_iff_nil.
+   rewrite <- linfactors_degree, <- E.
+   generalize (degree_length [1]); simpl; lia.
+ - simpl. intros E.
+   assert (IN : In a l').
+   { rewrite linfactors_roots, <- E. red. rewrite Pmult_eval.
+     replace (Peval [-a;1] a) with 0; lca. }
+   destruct (in_split _ _ IN) as (l1 & l2 & ->).
+   apply Permutation_cons_app. apply IHl.
+   rewrite linfactors_app in *. simpl in E. rewrite <- Pmult_assoc in E.
+   apply Pmult_Peq_reg_r in E; trivial.
+   rewrite <- topcoef_0_iff, topcoef_lin; intros [= ?]; lra.
 Qed.
 
 Lemma extra_roots_implies_null p l :
