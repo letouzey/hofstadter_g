@@ -1363,7 +1363,7 @@ Lemma RevRest_carac x :
 Proof.
  intros Hx.
  unfold RevRest, TheRest.
- rewrite (Reciprocal_gen rootrest x); trivial.
+ rewrite (Peval_revfactors rootrest x); trivial.
  2:{ rewrite rootrest_spec. intros (IN, _).
      apply (SortedRoots_roots _ _ roots_ok) in IN.
      now apply root_nz in IN. }

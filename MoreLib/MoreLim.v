@@ -1876,6 +1876,20 @@ Proof.
  rewrite nth_overflow; try lca. lia.
 Qed.
 
+Lemma PS_poly_radius p : C_CV_radius (PS_poly p) = Rbar.p_infty.
+Proof.
+ assert (H : forall x, Rbar.Rbar_le (Cmod x) (C_CV_radius (PS_poly p))).
+ { intros x. rewrite C_CV_radius_radius'. apply Lub_Rbar_ub.
+   exists x; split; trivial. eexists. apply PS_poly_ok. }
+ destruct (C_CV_radius (PS_poly p)) as [x | | ]; trivial; exfalso.
+ - specialize (H (Rabs x + 1)%R). simpl in H.
+   rewrite Cmod_R in H.
+   destruct (Rle_lt_dec 0 x).
+   + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
+   + generalize (Rabs_pos (Rabs x + 1)); lra.
+ - apply (H 0).
+Qed.
+
 Definition PS_one n := match n with O => 1 | _ => 0 end.
 
 Lemma PS_one_ok z : is_CPowerSeries PS_one z 1.

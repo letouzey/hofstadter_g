@@ -1266,6 +1266,84 @@ Qed.
 (** Siegel Theorem : the smallest Pisot number is the Plastic Ratio.
     (Ref: Algbraic numbers whose conjugates lie in the unit circle, 1944) *)
 
+Definition cstcoef roots := Peval (linfactors roots) 0.
+
+(* TODO f <- +/- f *)
+
+Definition f p x := Peval p x / Peval (reciprocal p) x.
+
+Lemma ff p x :
+ x <> 0 -> ~Root x p -> ~Root (/x) p ->
+ (f p x) * (f p (/x)) = 1.
+Proof.
+ intros Hx Hx1 Hx2. unfold f.
+ rewrite !Peval_reciprocal, Cinv_inv, Cpow_inv; trivial.
+ 2:{ now apply nonzero_div_nonzero. }
+ 2:{ contradict Hx1. now rewrite Hx1. }
+ 2:{ contradict Hx1. now rewrite Hx1. }
+ field; repeat split; trivial.
+ now apply Cpow_nz.
+Qed.
+
+Global Instance : Proper (Peq ==> eq) reciprocal.
+Proof.
+ intros p q E. unfold reciprocal. apply Peq_iff in E. now f_equal.
+Qed.
+
+Definition PS_f roots :=
+  CPS_mult (PS_poly ([/Peval (linfactors roots) 0] *, linfactors roots))
+           (PS_inv_linfactors (map Cinv roots)).
+
+Lemma PS_f_ok p roots x :
+  ~In 0 roots ->
+  Peq p (linfactors roots) ->
+  (forall r, In r roots -> Cmod x < /Cmod r) ->
+  is_CPowerSeries (PS_f roots) x (f p x).
+Proof.
+ intros R E Hx.
+ unfold PS_f.
+ replace (f p x)
+ with ((/Peval p 0 * Peval p x) * (Peval p 0 * /Peval (reciprocal p) x)).
+ 2:{ unfold f. field. split.
+     - destruct (Ceq_dec x 0) as [Y|N].
+       + subst. rewrite Peval_reciprocal_0.
+         rewrite E, linfactors_monic. intros [=H]; lra.
+       + rewrite Peval_reciprocal; trivial.
+         * intros H. apply Cmult_integral in H. destruct H.
+           { change (Root (/x) p) in H. rewrite E in H.
+             apply linfactors_roots in H. specialize (Hx (/x) H).
+             rewrite Cmod_inv, Rinv_inv in Hx; lra. }
+           { now apply (Cpow_nz x (degree p)) in N. }
+         * rewrite <- topcoef_0_iff, E, linfactors_monic.
+           intros [=H]; lra.
+     - rewrite E. rewrite linfactors_roots in R. apply R. }
+ apply is_CPS_mult.
+ - rewrite E.
+   rewrite <- (Pconst_eval (/Peval _ 0) x) at 2. rewrite <- Pmult_eval.
+   apply PS_poly_ok.
+ - rewrite E, reciprocal_revfactors by trivial.
+   rewrite Pmult_eval, Pconst_eval.
+   rewrite Cinv_mult, Cmult_assoc, Cinv_r, Cmult_1_l.
+   2:{ apply revfactors_at_0 in R. intros H.
+       rewrite H, Cmult_0_r in R. injection R. lra. }
+   unfold revfactors.
+   apply PS_inv_linfactors_ok.
+   apply Forall_forall. intros y.
+   rewrite in_map_iff. intros (r & <- & IN). rewrite Cmod_inv.
+   now apply Hx.
+ - now rewrite PS_poly_radius.
+ - eapply Rbar.Rbar_lt_le_trans; [|apply PS_inv_linfactors_radius].
+   2:{ contradict R. rewrite in_map_iff in R.
+       destruct R as (y & Hy & IN).
+       rewrite Cinv_eq_0_iff in Hy. now subst y. }
+   apply min_Cmod_list_spec. apply Forall_forall. intros y.
+   rewrite in_map_iff. intros (r & <- & IN). rewrite Cmod_inv.
+   now apply Hx.
+Qed.
+
+(** PS_f entier ? *)
+
+
 (*
 Lemma SiegelTheorem x : Pisot x -> mu 5 <= x.
 Proof.

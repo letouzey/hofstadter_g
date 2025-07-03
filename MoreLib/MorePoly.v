@@ -926,9 +926,82 @@ Proof.
    rewrite <- linfactors_roots. now apply remove_at_In.
 Qed.
 
+Definition reciprocal p := rev (compactify p).
+
+Lemma reciprocal_coef p i : (i <= degree p)%nat ->
+  coef i (reciprocal p) = coef (degree p - i) p.
+Proof.
+ unfold coef, reciprocal, degree.
+ intros Hi.
+ destruct (Nat.eq_dec (length (compactify p)) 0) as [E|N].
+ - rewrite length_zero_iff_nil in E. rewrite E in *. simpl in *.
+   replace i with O by lia.
+   change (0 = coef 0 p). now rewrite <- compactify_coef, E.
+ - set (n := length (compactify p)) in *.
+   rewrite rev_nth by lia.
+   replace (length _ - S i)%nat with (n-1-i)%nat by lia.
+   apply compactify_coef.
+Qed.
+
+Lemma Peval_rev_aux l x : x<>0 ->
+  Peval (rev l) x * x = Peval l (/x) * x^length l.
+Proof.
+ intros Hx. induction l as [|a l IH].
+ - cbn. lca.
+ - simpl.
+   rewrite app_eval_to_mul, rev_length, Pconst_eval, cons_eval.
+   rewrite !Cmult_plus_distr_r, IH. now field.
+Qed.
+
+Lemma Peval_rev l x : x<>0 -> l<>[] ->
+  Peval (rev l) x = Peval l (/x) * x^(length l - 1).
+Proof.
+ intros Hx Hl.
+ apply Cmult_eq_reg_r with x; trivial.
+ rewrite Peval_rev_aux; trivial. rewrite <- Cmult_assoc.
+ f_equal. rewrite <- length_zero_iff_nil in Hl.
+ replace (length l) with (S (length l - 1)) at 1 by lia. simpl. ring.
+Qed.
+
+Lemma Peval_reciprocal p x : x<>0 -> ~Peq p [] ->
+  Peval (reciprocal p) x = Peval p (/x) * x^degree p.
+Proof.
+ intros Hx Hp.
+ rewrite <- (Peval_compactify p). unfold reciprocal, degree.
+ apply Peval_rev; trivial. contradict Hp. rewrite <- Hp.
+ symmetry. apply compactify_Peq.
+Qed.
+
+Lemma Peval_reciprocal_0 p : Peval (reciprocal p) 0 = topcoef p.
+Proof.
+ unfold Peval, reciprocal, topcoef.
+ rewrite rev_length.
+ destruct (compactify p) as [|a q] eqn:E; try easy.
+ simpl length.
+ rewrite <- big_sum_extend_l.
+ rewrite big_sum_0.
+ 2:{ intros x. simpl. lca. }
+ rewrite (@app_removelast_last _ (a::q) 0) at 1; try easy.
+ rewrite rev_app_distr. simpl. ring.
+Qed.
+
+Lemma reciprocal_root p x :
+  x<>0 -> Root x (reciprocal p) <-> Root (/x) p.
+Proof.
+ intros Hx.
+ destruct (Ceq_dec (topcoef p) 0) as [Y|N].
+ - rewrite topcoef_0_iff in Y. unfold reciprocal. now rewrite Y.
+ - rewrite topcoef_0_iff in N. unfold Root.
+   rewrite Peval_reciprocal; trivial.
+   split.
+   + intros H. apply Cmult_integral in H. destruct H; trivial.
+     now apply (Cpow_nz x (degree p)) in Hx.
+   + intros ->. lca.
+Qed.
+
 Definition revfactors l := linfactors (map Cinv l).
 
-Lemma Reciprocal_gen l x :
+Lemma Peval_revfactors l x :
   ~In 0 l -> x<>0 ->
   Peval (revfactors l) (/x) =
   Peval (revfactors l) 0 * Peval (linfactors l) x / x^length l.
@@ -946,6 +1019,40 @@ Proof.
    rewrite !Cmult_assoc. f_equal.
    rewrite !cons_eval. change (Peval [] _) with 0.
    field. split; trivial. contradict Hl. now left.
+Qed.
+
+Lemma revfactors_at_0 l :
+ ~In 0 l -> Peval (revfactors l) 0 * Peval (linfactors l) 0 = 1.
+Proof.
+ induction l.
+ - intros _. unfold revfactors. simpl. rewrite Pconst_eval. lca.
+ - simpl. intros Hl.
+   unfold revfactors. simpl. rewrite !Pmult_eval.
+   change (linfactors (map _ _)) with (revfactors l).
+   rewrite (Cmult_comm (Peval (revfactors l) 0)).
+   rewrite Cmult_assoc, <- (Cmult_assoc (Peval [_;_] 0)).
+   rewrite IHl by tauto.
+   rewrite !cons_eval, !Cmult_0_l, !Cplus_0_r. field. tauto.
+Qed.
+
+Lemma reciprocal_revfactors l :
+ ~In 0 l ->
+ Peq (reciprocal (linfactors l))
+     ([Peval (linfactors l) 0] *, revfactors l).
+Proof.
+ intros Hl.
+ apply almost_Peq_implies_Peq. intros x Hx.
+ rewrite Peval_reciprocal; trivial.
+ 2:{ rewrite <- topcoef_0_iff. rewrite linfactors_monic.
+     intros [=H]; lra. }
+ rewrite Pmult_eval, Pconst_eval.
+ rewrite <- (Cinv_inv x) at 3.
+ rewrite Peval_revfactors; trivial.
+ 2:{ now apply nonzero_div_nonzero. }
+ rewrite linfactors_degree, Cpow_inv.
+ unfold Cdiv. rewrite Cinv_inv. rewrite Cmult_assoc. f_equal.
+ rewrite Cmult_assoc, (Cmult_comm (Peval _ 0)), revfactors_at_0; trivial.
+ lca.
 Qed.
 
 (** Partial fraction decomposition for 1/P when P has simple roots *)
