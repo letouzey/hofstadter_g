@@ -20,6 +20,8 @@ Definition Rational (x : R) := exists q:Q, x = Q2R q.
 Definition CRational (z : C) := exists q:Q, z = RtoC (Q2R q).
 Definition RatPoly (p : Polynomial) := Forall CRational p.
 
+Definition Qpoly := map (RtoC∘Q2R).
+
 Lemma Rational_RtoC (r:R) : Rational r -> CRational (RtoC r).
 Proof.
  intros (z & ->). now exists z.
@@ -56,7 +58,7 @@ Proof.
 Qed.
 
 Lemma RatPoly_alt p :
-  RatPoly p <-> exists (q : list Q), p = map (RtoC∘Q2R) q.
+  RatPoly p <-> exists (q : list Q), p = Qpoly q.
 Proof.
  induction p; split.
  - now exists [].
@@ -91,7 +93,7 @@ Proof.
 Qed.
 
 Lemma RatPoly_alt' p :
-  RatPoly p <-> exists (q : list Q), Peq p (map (RtoC∘Q2R) q).
+  RatPoly p <-> exists (q : list Q), Peq p (Qpoly q).
 Proof.
  induction p; split.
  - now exists [].
@@ -108,7 +110,7 @@ Qed.
 
 Lemma RatPoly_coef p n : RatPoly p -> CRational (coef n p).
 Proof.
- rewrite RatPoly_alt. intros (q & ->). unfold coef.
+ rewrite RatPoly_alt. intros (q & ->). unfold coef, Qpoly.
  replace 0%C with ((RtoC∘Q2R) 0%Q) by (unfold "∘"; f_equal; lra).
  rewrite map_nth. now eexists.
 Qed.
@@ -206,6 +208,8 @@ Definition Integer (x : R) := frac_part x = 0%R.
 Definition CInteger (z : C) := Integer (Re z) /\ Im z = 0%R.
 Definition IntPoly (p : Polynomial) := Forall CInteger p.
 
+Definition Zpoly := map (RtoC∘IZR).
+
 Lemma Integer_alt (x : R) : Integer x <-> exists n:Z, x = IZR n.
 Proof.
  split.
@@ -243,7 +247,7 @@ Proof.
 Qed.
 
 Lemma IntPoly_alt p :
-  IntPoly p <-> exists (q : list Z), p = map (RtoC∘IZR) q.
+  IntPoly p <-> exists (q : list Z), p = Zpoly q.
 Proof.
  induction p; split.
  - now exists [].
@@ -280,7 +284,7 @@ Proof.
 Qed.
 
 Lemma IntPoly_alt' p :
-  IntPoly p <-> exists (l : list Z), Peq p (map (RtoC∘IZR) l).
+  IntPoly p <-> exists (l : list Z), Peq p (Zpoly l).
 Proof.
  induction p; split.
  - now exists [].
@@ -298,7 +302,7 @@ Qed.
 
 Lemma IntPoly_coef p n : IntPoly p -> CInteger (coef n p).
 Proof.
- rewrite IntPoly_alt. intros (q & ->). unfold coef.
+ rewrite IntPoly_alt. intros (q & ->). unfold coef, Zpoly.
  change 0%C with ((RtoC∘IZR) Z0).
  rewrite map_nth. apply CInteger_alt. now eexists.
 Qed.
@@ -385,7 +389,6 @@ Proof.
  - intros (l & Hx & H1 & H2). split; trivial. now exists l.
 Qed.
 
-
 (** First examples *)
 
 Lemma Pisot_nat_ge_2 (n:nat) : (2<=n)%nat -> Pisot n.
@@ -470,6 +473,13 @@ Qed.
 
 Definition PisotPoly (x:R)(p : Polynomial) :=
   exists l, PisotConjugates x l /\ Peq p (linfactors (RtoC x :: l)).
+
+Lemma Pisot_alt' x : Pisot x <-> exists p, PisotPoly x p.
+Proof.
+ rewrite Pisot_alt. split.
+ - intros (l & Hl). exists (linfactors (RtoC x :: l)). now exists l.
+ - intros (p & (l & Hl & Hl')). now exists l.
+Qed.
 
 Definition Zreducible (p:Polynomial) :=
   exists q r,
@@ -833,13 +843,25 @@ Qed.
 
 Definition Zcontent (l : list Z) := fold_right Z.gcd Z0 l.
 
+Lemma Zcontent_pos l : (0 <= Zcontent l)%Z.
+Proof.
+ destruct l; simpl. lia. apply Z.gcd_nonneg.
+Qed.
+
 Lemma Zcontent_0 l : (forall x, In x l -> x=Z0) -> Zcontent l = Z0.
 Proof.
  induction l; simpl; trivial.
- - intros H. now rewrite (H a), IHl by firstorder.
+ intros H. now rewrite (H a), IHl by firstorder.
 Qed.
 
-Lemma monic_Zcontent l : monic (map (RtoC∘IZR) l) -> Zcontent l = 1%Z.
+Lemma Zcontent_0_rev l : Zcontent l = Z0 -> Peq (Zpoly l) [].
+Proof.
+ induction l; simpl; try easy.
+ intros E. rewrite (Z.gcd_eq_0_l _ _ E). unfold "∘".
+ rewrite IHl. 2:now apply Z.gcd_eq_0_r in E. apply C0_Peq_nil.
+Qed.
+
+Lemma monic_Zcontent l : monic (Zpoly l) -> Zcontent l = 1%Z.
 Proof.
  unfold monic.
  induction l; simpl.
@@ -852,7 +874,76 @@ Proof.
    + intros H. rewrite IHl; trivial. now rewrite Z.gcd_1_r.
 Qed.
 
-Definition lcm_denoms (l : list Q) :=
+Lemma Zcontent_ok (l : list Z) x : In x l -> Z.divide (Zcontent l) x.
+Proof.
+ unfold Zcontent.
+ revert x.
+ induction l; simpl; try easy.
+ intros x [->|IN]. apply Z.gcd_divide_l.
+ eapply Z.divide_trans; [apply Z.gcd_divide_r|]. now apply IHl.
+Qed.
+
+Lemma Zcontent_1_first_nondiv (l : list Z) x :
+ (1 < x)%Z -> Z.gcd x (Zcontent l) = 1%Z ->
+ exists i, ~Z.divide x (nth i l Z0)
+           /\ forall j, (j<i)%nat -> Z.divide x (nth j l Z0).
+Proof.
+ intros Hx.
+ induction l; intros H; simpl in H.
+ - rewrite Z.gcd_0_r in H. lia.
+ - destruct (Znumtheory.Zdivide_dec x a) as [D|ND].
+   + rewrite Z.gcd_assoc in H.
+     destruct IHl as (i & H1 & H2).
+     { rewrite Z.divide_gcd_iff in D by lia. now rewrite D in H. }
+     exists (S i); split; try easy.
+     intros [|j] Hj; simpl; trivial. apply H2; lia.
+   + exists O; split; simpl; trivial; try lia.
+Qed.
+
+Definition PolyZ_factor (l : list Z) : list Z :=
+  map (fun x => x / Zcontent l)%Z l.
+
+Lemma PolyZ_factor_ok (l : list Z) :
+ Peq ([RtoC (IZR (Zcontent l))] *, Zpoly (PolyZ_factor l)) (Zpoly l).
+Proof.
+ destruct (Z.eq_dec (Zcontent l) 0) as [E|N].
+ - rewrite E. apply Zcontent_0_rev in E. rewrite E, C0_Peq_nil. easy.
+ - simpl.
+   unfold PolyZ_factor, Zpoly.
+   simpl. rewrite !map_map, C0_Peq_nil, Pplus_0_r. apply eq_Peq.
+   apply map_ext_in. intros x Hx. unfold "∘".
+   rewrite <- RtoC_mult, <- mult_IZR. do 2 f_equal.
+   destruct (Zcontent_ok l x Hx) as (r & ->).
+   rewrite Zdiv.Z_div_mult_full; trivial. ring.
+Qed.
+
+Lemma Zcontent_factor (l : list Z) a :
+ Zcontent (map (Z.mul a) l) = (Z.abs a * Zcontent l)%Z.
+Proof.
+ induction l; simpl. ring.
+ rewrite IHl.
+ destruct (Z.abs_eq_or_opp a) as [E|N].
+ - rewrite E at 1. now rewrite Z.gcd_mul_mono_l.
+ - rewrite N at 1. now rewrite Z.mul_opp_l, Z.gcd_opp_r, Z.gcd_mul_mono_l.
+Qed.
+
+Lemma PolyZ_factor_content (l : list Z) :
+ ~Peq (Zpoly l) [] ->
+ Zcontent (PolyZ_factor l) = 1%Z.
+Proof.
+ intros H.
+ assert (NZ : Zcontent l <> Z0).
+ { contradict H. now apply Zcontent_0_rev. }
+ apply Z.mul_cancel_l with (Zcontent l); trivial.
+ rewrite <- (Z.abs_eq (Zcontent l)) at 1 by apply Zcontent_pos.
+ rewrite <- Zcontent_factor, Z.mul_1_r. f_equal.
+ unfold PolyZ_factor. rewrite map_map.
+ erewrite map_ext_in; [apply map_id|]. intros x Hx. simpl.
+ destruct (Zcontent_ok l x Hx) as (r & ->).
+ rewrite Zdiv.Z_div_mult_full by easy. ring.
+Qed.
+
+Definition lcm_denoms (l : list Q) : Z :=
   fold_right Z.lcm 1%Z (map (Z.pos ∘ Qden) l).
 
 Lemma lcm_denoms_ok (l : list Q) q :
@@ -871,14 +962,14 @@ Proof.
  induction l; simpl; try lia. rewrite Z.lcm_eq_0. now intros [E|E].
 Qed.
 
-Definition PolyQ_factor (l : list Q) :=
+Definition PolyQ_factor (l : list Q) : list Z :=
   map (fun q => lcm_denoms l/(Zpos (Qden q)) * Qnum q)%Z l.
 
 Lemma PolyQ_factor_ok (l : list Q) :
- Peq (map (RtoC∘IZR) (PolyQ_factor l))
-     ([RtoC (IZR (lcm_denoms l))] *, map (RtoC∘Q2R) l).
+ Peq (Zpoly (PolyQ_factor l))
+     ([RtoC (IZR (lcm_denoms l))] *, Qpoly l).
 Proof.
- unfold PolyQ_factor.
+ unfold PolyQ_factor, Zpoly, Qpoly.
  simpl. rewrite !map_map, C0_Peq_nil, Pplus_0_r. apply eq_Peq.
  apply map_ext_in. intros q Hq. unfold "∘". rewrite <- RtoC_mult. f_equal.
  unfold Q2R. rewrite mult_IZR.
@@ -924,20 +1015,253 @@ Proof.
    rewrite <- !Cplus_assoc. f_equal. apply Cplus_comm.
 Qed.
 
-(*
-Il faudrait ~Zreducible p -> ~Qreducible p (pour p monic)
-et donc Qreducible p -> Zreducible ie lemme de Gauss
-https://proofwiki.org/wiki/Gauss%27s_Lemma_on_Irreducible_Polynomials
-https://people.math.wisc.edu/~jwrobbin/541dir/gaussLemma.pdf
+Global Program Instance Z_is_monoid : Monoid Z :=
+ { Gzero := Z0 ; Gplus := Z.add }.
+Solve All Obligations with lia.
+
+Lemma Zpoly_coef (l : list Z) i : coef i (Zpoly l) = IZR (nth i l Z0).
+Proof.
+ unfold coef, Zpoly, "∘". apply (map_nth (fun x => RtoC (IZR x))).
+Qed.
+
+Lemma big_sum_IZR (f : nat -> Z) n :
+ IZR (big_sum f n) = big_sum (IZR∘f) n.
+Proof.
+ induction n; simpl; trivial. now rewrite plus_IZR, IHn.
+Qed.
+
+Lemma big_sum_RtoC (f : nat -> R) n :
+ RtoC (big_sum f n) = big_sum (RtoC∘f) n.
+Proof.
+ induction n; simpl; trivial. now rewrite RtoC_plus, IHn.
+Qed.
+
+Lemma Pmult_Zpoly_coef (p q : list Z) n:
+ coef n (Zpoly p *, Zpoly q) =
+ IZR (big_sum (fun k => nth k p Z0 * nth (n-k) q Z0)%Z (S n)).
+Proof.
+ rewrite Pmult_coef, big_sum_IZR, big_sum_RtoC.
+ apply big_sum_eq_bounded. intros x Hx.
+ rewrite !Zpoly_coef. unfold "∘". now rewrite mult_IZR, RtoC_mult.
+Qed.
+
+Lemma divide_big_sum (f : nat -> Z) n x :
+ (forall i, (i < n)%nat -> Z.divide x (f i)) -> Z.divide x (big_sum f n).
+Proof.
+ induction n; simpl; intros H.
+ - apply Z.divide_0_r.
+ - apply Z.divide_add_r.
+   + apply IHn. intros i Hi. apply H; lia.
+   + apply H. lia.
+Qed.
+
+Lemma prime_divisor (n : Z) :
+  (1 < n)%Z -> exists p, Znumtheory.prime p /\ Z.divide p n.
+Proof.
+ intros Hn. generalize Hn.
+ pattern n. apply Z_lt_induction; try lia. clear n Hn.
+ intros n IH Hn.
+ destruct (Znumtheory.prime_dec n) as [P|NP].
+ - now exists n.
+ - apply Znumtheory.not_prime_divide in NP; try lia.
+   destruct NP as (q & Hq & D).
+   destruct (IH q) as (p & Hp & D'); try lia.
+   exists p; split; trivial. eapply Z.divide_trans; eauto.
+Qed.
+
+Lemma GaussLemma p : IntPoly p -> monic p -> Qreducible p -> Zreducible p.
+Proof.
+ intros Hp Mp (q & r & E & Hq & Hr & D).
+ destruct (RatPoly_scal_IntPoly q Hq) as (c & Hc & Hq1).
+ set (c1 := RtoC (IZR c)) in *.
+ set (q1 := [c1] *, q) in *.
+ destruct (RatPoly_scal_IntPoly r Hr) as (d & Hd & Hr1).
+ set (d1 := RtoC (IZR d)) in *.
+ set (r1 := [d1] *, r) in *.
+ apply (Pmult_eq_compat [c1*d1] ([c1]*,[d1])) in E.
+ 2:{ simpl. now rewrite Cplus_0_r. }
+ rewrite Pmult_assoc, (Pmult_comm _ (q*,r)), !Pmult_assoc in E.
+ rewrite (Pmult_comm r) in E. fold r1 in E.
+ rewrite <- Pmult_assoc in E. fold q1 in E.
+ assert (D' : (0 < degree q1 < degree p)%nat).
+ { unfold q1. rewrite Pscale_degree; trivial. intros [= H].
+   now apply (not_0_IZR c). }
+ clearbody q1 r1. clear q r Hq Hr D.
+ assert (NZq : ~Peq q1 []).
+ { intros E1. rewrite E1 in D'. unfold degree in D'. simpl in D'. lia. }
+ apply IntPoly_alt in Hq1. destruct Hq1 as (q1', ->).
+ rewrite <- (PolyZ_factor_ok q1') in E.
+ set (c2 := RtoC (IZR (Zcontent q1'))) in *.
+ assert (Hq2 := PolyZ_factor_content q1' NZq).
+ set (q2 := PolyZ_factor q1') in *.
+ assert (NZr : ~Peq r1 []).
+ { intros E2. rewrite E2 in E. rewrite Pmult_0_r in E.
+   rewrite <- (Pscale_degree (c1 * d1) p) in D'. rewrite E in D'.
+   unfold degree in D'. simpl in D'. lia. unfold c1, d1.
+   rewrite <- RtoC_mult, <- mult_IZR. intros [= H].
+   apply not_0_IZR in H; trivial. lia. }
+ apply IntPoly_alt in Hr1. destruct Hr1 as (r1', ->).
+ rewrite <- (PolyZ_factor_ok r1') in E.
+ set (d2 := RtoC (IZR (Zcontent r1'))) in *.
+ assert (Hr2 := PolyZ_factor_content r1' NZr).
+ set (r2 := PolyZ_factor r1') in *.
+ rewrite Pmult_assoc, <- (Pmult_assoc (Zpoly q2)) in E.
+ rewrite (Pmult_comm (Zpoly q2)), <- !Pmult_assoc in E.
+ assert (Hc2 : c2 <> 0).
+ { intros [= H]. apply not_0_IZR in H; trivial.
+   contradict NZq. now apply Zcontent_0_rev. }
+ assert (Hd2 : d2 <> 0).
+ { intros [= H]. apply not_0_IZR in H; trivial.
+   contradict NZr. now apply Zcontent_0_rev. }
+ assert (E' : Peq ([c2]*,[d2]) [c2 * d2]).
+ { simpl. now rewrite Cplus_0_r. }
+ rewrite E' in E. clear E'.
+ assert (D2 : (0 < degree (Zpoly q2) < degree p)%nat).
+ { unfold q2.
+   rewrite <- (Pscale_degree c2 (Zpoly (PolyZ_factor q1'))); trivial.
+   unfold c2. now rewrite PolyZ_factor_ok. }
+ set (g := Z.gcd (c * d) (Zcontent q1' * Zcontent r1')).
+ set (m := (c * d / g)%Z).
+ set (l := (Zcontent q1' * Zcontent r1' / g)%Z).
+ assert (Hg : (0 < g)%Z).
+ { apply Z.le_neq; split.
+   - apply Z.gcd_nonneg.
+   - intros H. symmetry in H. apply Z.gcd_eq_0_l in H. lia. }
+ assert (E1 : c1 * d1 = RtoC (IZR g) * RtoC (IZR m)).
+ { unfold c1, d1. rewrite <- !RtoC_mult, <- !mult_IZR. do 2 f_equal.
+   unfold m. rewrite <- Znumtheory.Zdivide_Zdiv_eq; trivial.
+   apply Z.gcd_divide_l. }
+ rewrite E1 in E.
+ assert (Hm : m <> Z0).
+ { intros ->. rewrite Cmult_0_r in E1.
+   unfold c1, d1 in E1. rewrite <- !RtoC_mult, <- !mult_IZR in E1.
+   injection E1 as E1. apply not_0_IZR in E1; trivial. lia. }
+ assert (E2 : c2 * d2 = RtoC (IZR g) * RtoC (IZR l)).
+ { unfold c2, d2. rewrite <- !RtoC_mult, <- !mult_IZR. do 2 f_equal.
+   unfold l. rewrite <- Znumtheory.Zdivide_Zdiv_eq; trivial.
+   apply Z.gcd_divide_r. }
+ rewrite E2 in E.
+ assert (Hl : (0 < l)%Z).
+ { apply Z.le_neq. split.
+   - apply Z.div_pos; trivial. apply Z.mul_nonneg_nonneg; apply Zcontent_pos.
+   - intros <-. rewrite Cmult_0_r in E2.
+     apply Cmult_integral in E2. now destruct E2. }
+ assert (Hml : Z.gcd m l = 1%Z).
+ { apply Z.mul_cancel_l with g; try lia.
+   rewrite <- (Z.abs_eq g) at 1 by apply Z.gcd_nonneg.
+   rewrite <- Z.gcd_mul_mono_l.
+   unfold c1, d1 in E1.
+   rewrite <- !RtoC_mult, <- !mult_IZR in E1.
+   apply RtoC_inj, eq_IZR in E1. rewrite <- E1.
+   unfold c2, d2 in E2.
+   rewrite <- !RtoC_mult, <- !mult_IZR in E2.
+   apply RtoC_inj, eq_IZR in E2. rewrite <- E2.
+   fold g. lia. }
+ clear E1 E2.
+ assert (E1 : Peq [RtoC (IZR g) * RtoC (IZR m)]
+                  ([RtoC (IZR g)] *, [RtoC (IZR m)])).
+ { simpl. now rewrite Cplus_0_r. }
+ rewrite E1 in E.
+ assert (E2 : Peq [RtoC (IZR g) * RtoC (IZR l)]
+                  ([RtoC (IZR g)] *, [RtoC (IZR l)])).
+ { simpl. now rewrite Cplus_0_r. }
+ rewrite E2 in E. clear E1 E2.
+ rewrite !Pmult_assoc in E. apply Pmult_Peq_reg_l in E.
+ 2:{ rewrite <- topcoef_0_iff, topcoef_singl.
+     intros [= H]. apply not_0_IZR in H; lia. }
+ clearbody r2 q2 g l m.
+ clear c d Hc Hd c1 d1 q1' r1' c2 d2 NZq NZr D' Hc2 Hd2.
+ replace l with 1%Z in *.
+ 2:{ assert (H := Proper_instance_1 _ _ E).
+     rewrite !topcoef_mult, !topcoef_singl in H. rewrite Mp in H.
+     rewrite Cmult_1_r in H.
+     assert (Tq := IntPoly_topcoef (Zpoly q2)).
+     rewrite IntPoly_alt, CInteger_alt in Tq.
+     destruct Tq as (z & Hz). now eexists. rewrite Hz in H.
+     assert (Tr := IntPoly_topcoef (Zpoly r2)).
+     rewrite IntPoly_alt, CInteger_alt in Tr.
+     destruct Tr as (z' & Hz'). now eexists. rewrite Hz' in H. clear Hz Hz'.
+     rewrite <- !RtoC_mult, <- !mult_IZR in H. apply RtoC_inj in H.
+     apply eq_IZR in H.
+     assert (H' : Z.divide l m). { exists (z*z')%Z. subst m. ring. }
+     rewrite Z.divide_gcd_iff in H'; try lia. rewrite Z.gcd_comm in H'.
+     now rewrite Hml in H'. }
+ rewrite Pmult_1_l in E.
+ clear g l Hml Hg Hl.
+ destruct (Z.eq_dec m 1%Z) as [->|Hm1].
+ { rewrite Pmult_1_l in E.
+   exists (Zpoly q2), (Zpoly r2); repeat split; try easy.
+   rewrite IntPoly_alt. now eexists.
+   rewrite IntPoly_alt. now eexists. }
+ destruct (Z.eq_dec m (-1)%Z) as [->|Hm1'].
+ { rewrite <- (Pmult_1_l (Zpoly q2 *, _)) in E.
+   replace [1] with ([-1]*,[-1]) in E.
+   2:{ simpl. f_equal. ring. }
+   rewrite Pmult_assoc in E. apply Pmult_Peq_reg_l in E.
+   2:{ rewrite <- topcoef_0_iff, topcoef_singl. intros [= H]; lra. }
+   rewrite <- Pmult_assoc in E.
+   exists ([-1] *, Zpoly q2), (Zpoly r2); repeat split; try easy.
+   - apply IntPoly_mult.
+     + rewrite IntPoly_alt. now exists [(-1)%Z].
+     + rewrite IntPoly_alt. now eexists.
+   - rewrite IntPoly_alt. now eexists.
+   - rewrite Pscale_degree; try easy. intros [= H]; lra.
+   - rewrite Pscale_degree; try easy. intros [= H]; lra. }
+ exfalso.
+ assert (Hm2 : (1 < Z.abs m)%Z) by lia.
+ destruct (prime_divisor (Z.abs m) Hm2) as (pr & Hpr & D).
+ rewrite Z.divide_abs_r in D.
+ destruct (Zcontent_1_first_nondiv q2 pr) as (i & Hi & Hi').
+ { apply Hpr. }
+ { now rewrite Hq2, Z.gcd_1_r. }
+ destruct (Zcontent_1_first_nondiv r2 pr) as (j & Hj & Hj').
+ { apply Hpr. }
+ { now rewrite Hr2, Z.gcd_1_r. }
+ rewrite IntPoly_alt in Hp. destruct Hp as (p2 & ->).
+ assert (E' := Pmult_Zpoly_coef q2 r2 (i+j)).
+ rewrite <- E in E'.
+ rewrite Pscale_coef, Zpoly_coef, <- RtoC_mult, <- mult_IZR in E'.
+ apply RtoC_inj, eq_IZR in E'.
+ set (bs := big_sum _ _) in E'.
+ assert (D' : Z.divide pr bs).
+ { apply Z.divide_trans with m; trivial. eexists.
+   symmetry. rewrite Z.mul_comm. apply E'. }
+ unfold bs in *; clear E' bs.
+ rewrite <- Nat.add_succ_r in D'.
+ rewrite big_sum_sum in D'.
+ apply Z.divide_add_cancel_r in D'.
+ 2:{ clear D'. apply divide_big_sum. intros k Hk. apply Z.divide_mul_l.
+     apply Hi'; trivial. }
+ rewrite <- big_sum_extend_l, Z.add_comm in D'.
+ apply Z.divide_add_cancel_r in D'.
+ 2:{ clear D'. apply divide_big_sum. intros k Hk. apply Z.divide_mul_r.
+     apply Hj'. lia. }
+ rewrite Nat.add_0_r in D'.
+ replace (i+j-i)%nat with j in D' by lia.
+ apply Znumtheory.prime_mult in D'; trivial. tauto.
+Qed.
+
+Lemma PisotPoly_minimal x p : PisotPoly x p -> MinPolyQ x p.
+Proof.
+ intros Hp.
+ assert (Mp : monic p).
+ { destruct Hp as (l & Hl & Hl'). red. rewrite Hl'.
+   apply linfactors_monic. }
+ rewrite MinPolyQ_alt; repeat split; trivial.
+ - apply PisotIntPoly in Hp. rewrite IntPoly_alt in Hp.
+   destruct Hp as (p' & ->).
+   rewrite RatPoly_alt. exists (map inject_Z p').
+   unfold Zpoly, Qpoly. rewrite map_map. unfold "∘". apply map_ext.
+   intros z. now rewrite Q2R_IZR.
+ - now apply PisotPolyRoot.
+ - intros Hp'. apply (PisotPolyIrred x p); trivial.
+   apply GaussLemma; trivial. eapply PisotIntPoly; eauto.
+Qed.
 
 Lemma PisotPolyUnique x p q : PisotPoly x p -> PisotPoly x q -> Peq p q.
 Proof.
- remember (degree q) as d. revert q Heqd.
- induction d using lt_wf_ind.
- intros q D Hp Hq.
-
-Admitted.
-*)
+ intros. apply (MinPolyQ_unique x); now apply PisotPoly_minimal.
+Qed.
 
 (** Siegel Theorem : the smallest Pisot number is the Plastic Ratio.
     (Ref: Algbraic numbers whose conjugates lie in the unit circle, 1944) *)
