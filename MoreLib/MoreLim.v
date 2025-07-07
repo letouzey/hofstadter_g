@@ -719,6 +719,50 @@ Proof.
    exists N. intros n Hn. unfold compose. now rewrite HN.
 Qed.
 
+Lemma ex_lim_Cseq_ext (u v : nat -> C) :
+  (forall n : nat, u n = v n) ->
+  ex_lim_Cseq u -> ex_lim_Cseq v.
+Proof.
+ intros E (l & H). exists l. eapply is_lim_Cseq_ext; eauto.
+Qed.
+
+Lemma LimSup_ext (u v : nat -> R) :
+  Hierarchy.eventually (fun n : nat => u n = v n) ->
+  LimSup_seq u = LimSup_seq v.
+Proof.
+ intros H.
+ apply Rbar.Rbar_le_antisym; apply LimSup_le.
+ - destruct H as (N & HN). exists N. intros n Hn. now rewrite HN.
+ - destruct H as (N & HN). exists N. intros n Hn. now rewrite HN.
+Qed.
+
+Lemma LimInf_ext (u v : nat -> R) :
+  Hierarchy.eventually (fun n : nat => u n = v n) ->
+  LimInf_seq u = LimInf_seq v.
+Proof.
+ intros H.
+ apply Rbar.Rbar_le_antisym; apply LimInf_le.
+ - destruct H as (N & HN). exists N. intros n Hn. now rewrite HN.
+ - destruct H as (N & HN). exists N. intros n Hn. now rewrite HN.
+Qed.
+
+Lemma LimSeq_ext (u v : nat -> R) :
+  Hierarchy.eventually (fun n : nat => u n = v n) ->
+  Lim_seq u = Lim_seq v.
+Proof.
+ intros H. unfold Lim_seq.
+ now rewrite (LimInf_ext _ _ H), (LimSup_ext _ _ H).
+Qed.
+
+Lemma Lim_CSeq_ext (u v : nat -> C) :
+  Hierarchy.eventually (fun n : nat => u n = v n) ->
+  Lim_Cseq u = Lim_Cseq v.
+Proof.
+ intros H. unfold Lim_Cseq. f_equal; f_equal; apply LimSeq_ext.
+ - destruct H as (N & HN). exists N. intros n Hn. unfold "∘". now rewrite HN.
+ - destruct H as (N & HN). exists N. intros n Hn. unfold "∘". now rewrite HN.
+Qed.
+
 Lemma is_lim_Cseq_Cmod' (a : nat -> C) (b : nat -> R) (la : C) (lb : R) :
   (forall n, Cmod (a n) <= b n) ->
   is_lim_Cseq a la -> is_lim_seq b lb -> Cmod la <= lb.
@@ -800,6 +844,12 @@ Proof.
  rewrite (is_lim_seq_incr_n (Im∘_) N). easy.
 Qed.
 
+Lemma ex_lim_Cseq_incr_n (u : nat -> C) (N : nat) :
+  ex_lim_Cseq u <-> ex_lim_Cseq (fun n : nat => u (n + N)%nat).
+Proof.
+ split; intros (l & H); exists l; revert H; now apply is_lim_Cseq_incr_n.
+Qed.
+
 Lemma is_lim_Cseq_alt0 a (l:C) :
   is_lim_Cseq a l <-> is_lim_seq (fun n => Cmod (a n - l)) 0%R.
 Proof.
@@ -866,6 +916,12 @@ Proof.
  reflexivity.
 Qed.
 
+Lemma ex_Cseries_alt (a : nat -> C) :
+  ex_series a <-> ex_lim_Cseq (sum_n a).
+Proof.
+ split; intros (l & H); exists l; revert H; apply is_Cseries_alt.
+Qed.
+
 Definition CSeries (a : nat -> C) : C := Lim_Cseq (sum_n a).
 
 Lemma CSeries_unique (a : nat -> C) (l : C) :
@@ -882,6 +938,13 @@ Lemma CSeries_correct (a : nat -> C) :
   ex_series a -> is_series a (CSeries a).
 Proof.
  intros (l & H). simpl in l. now rewrite (CSeries_unique a l).
+Qed.
+
+Lemma CSeries_ext (u v : nat -> C) :
+  (forall n, u n = v n) -> CSeries u = CSeries v.
+Proof.
+ intros H. unfold CSeries. apply Lim_CSeq_ext. exists O.
+ intros n _. apply sum_n_ext; trivial.
 Qed.
 
 Lemma pos_series_pos_sum (a : nat -> R) l :
@@ -985,6 +1048,32 @@ Proof.
  replace (a n - 0) with (a n) by lca.
  specialize (HN n n Hn Hn).
  now rewrite sum_n_n, <- Cmod_norm in HN.
+Qed.
+
+Lemma CSeries_shift (a : nat -> C) :
+ ex_series a -> CSeries a = a O + CSeries (a∘S).
+Proof.
+ intros (l & Ha).
+ unfold CSeries.
+ assert (E : forall n, sum_n a (n + 1) = a O + sum_n (a ∘ S) n).
+ { intros. simpl. rewrite <- !big_sum_sum_n.
+   rewrite <- (big_sum_extend_l (n+1)). change Gplus with Cplus. f_equal.
+   now rewrite Nat.add_1_r. }
+ rewrite <- (Lim_Cseq_const (a O)), <- Lim_Cseq_plus.
+ { apply is_lim_Cseq_unique.
+   apply (is_lim_Cseq_incr_n _ 1).
+   eapply is_lim_Cseq_ext; try apply Lim_Cseq_correct.
+   { intros. simpl. now rewrite <- E. }
+   exists l.
+   rewrite is_Cseries_alt in Ha.
+   apply (is_lim_Cseq_incr_n _ 1) in Ha.
+   eapply is_lim_Cseq_ext; [apply E|apply Ha]. }
+ { eexists. apply is_lim_Cseq_const. }
+ { exists (l - a O).
+   eapply is_lim_Cseq_ext with (fun n => sum_n a (n+1) - a O).
+   { intros. rewrite E. ring. }
+   apply is_lim_Cseq_minus. 2:apply is_lim_Cseq_const.
+   now rewrite <- (is_lim_Cseq_incr_n _ 1). }
 Qed.
 
 Local Open Scope R.

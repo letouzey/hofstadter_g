@@ -928,6 +928,11 @@ Qed.
 
 Definition reciprocal p := rev (compactify p).
 
+Global Instance : Proper (Peq ==> eq) reciprocal.
+Proof.
+ intros p q E. unfold reciprocal. apply Peq_iff in E. now f_equal.
+Qed.
+
 Lemma reciprocal_coef p i : (i <= degree p)%nat ->
   coef i (reciprocal p) = coef (degree p - i) p.
 Proof.
@@ -941,6 +946,13 @@ Proof.
    rewrite rev_nth by lia.
    replace (length _ - S i)%nat with (n-1-i)%nat by lia.
    apply compactify_coef.
+Qed.
+
+Lemma reciprocal_coef_0 p i :
+  (degree p < i)%nat -> coef i (reciprocal p) = 0.
+Proof.
+ intros H. unfold reciprocal, coef.
+ apply nth_overflow. rewrite rev_length. unfold degree in *. lia.
 Qed.
 
 Lemma Peval_rev_aux l x : x<>0 ->
