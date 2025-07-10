@@ -1749,35 +1749,233 @@ Proof.
  change 0 with ((RtoC∘IZR) Z0). rewrite map_nth. unfold "∘". now rewrite E.
 Qed.
 
+Section PS_f_eventually_zero.
 
-(*
-Lemma PS_f_eventually_zero :
-  Hierarchy.eventually (fun n : nat => PS_f n = 0) ->
-  exists (a:Z), (3<=a)%Z /\ coefs = [1;-a;1]%Z.
+Hypothesis PS_f_ez : Hierarchy.eventually (fun n : nat => PS_f n = 0).
 
-Lemma PS_f_eventually_zero' :
-  Hierarchy.eventually (fun n : nat => PS_f n = 0) -> 2<root.
+Lemma PS_f_poly : exists q, forall n, PS_f n = PS_poly q n.
+Proof.
+ destruct PS_f_ez as (n & Hn).
+ exists (take n PS_f). intros m. unfold PS_poly, coef, take.
+ destruct (Nat.ltb_spec m n).
+ - rewrite nth_map_indep with (d':=O) by now rewrite seq_length.
+   now rewrite seq_nth.
+ - rewrite nth_overflow. now apply Hn. now rewrite map_length, seq_length.
+Qed.
 
-PS_f correspond à un Zpoly pf
+(* MOVE *)
+Lemma CPS_mult_poly q r n :
+ CPS_mult (PS_poly q) (PS_poly r) n = PS_poly (q *, r) n.
+Proof.
+ unfold CPS_mult, PS_poly. now rewrite Pmult_coef, big_sum_sum_n.
+Qed.
 
-PS_f_eqn
- --> Peq ([IZR sgn] *, p) = (pf *, reciprocal p))
+(* MOVE *)
+Lemma Peq_via_coef q r : Peq q r <-> forall n, coef n q = coef n r.
+Proof.
+ split.
+ - intros E n. now rewrite E.
+ - intros E. apply Peq_iff.
+   assert (E' : forall n, coef n (compactify q) = coef n (compactify r)).
+   { intros n. rewrite !compactify_coef. apply E. }
+   clear E.
+   apply nth_ext with (d:=0) (d':=0); [|intros; apply E'].
+   destruct (compactify_last q) as [Hq|Hq], (compactify_last r) as [Hr|Hr].
+   + now rewrite Hq, Hr.
+   + exfalso. rewrite Hq in E'. rewrite last_nth in Hr.
+     unfold coef in E'. rewrite <- E' in Hr.
+     now destruct (length _-1)%nat in Hr.
+   + exfalso. rewrite Hr in E'. rewrite last_nth in Hq.
+     unfold coef in E'. rewrite E' in Hq.
+     now destruct (length _-1)%nat in Hq.
+   + destruct (Nat.compare_spec (length (compactify q))
+                                (length (compactify r)));
+      trivial || exfalso.
+     * apply Hr. rewrite last_nth. unfold coef in E'.
+       rewrite <- E'. apply nth_overflow. lia.
+     * apply Hq. rewrite last_nth. unfold coef in E'.
+       rewrite E'. apply nth_overflow. lia.
+Qed.
 
-coefs[0]<>0 sinon In 0 roots
-donc degree (reciprocal) = degree p
-donc degree pf = 0
- pf = +/-1
- racines invariantes par inv
- donc une seule autre que root, à savoir /root
- p=(X-root)(X-/root) = X^2 -X(root+/root) +1
- et root+/root somme entiere, au moins 2.
- Sauf que X^2-2X+1 = (X-1)^2 de seule racine 1, impossible
- donc root+/root somme entiere au moins 3
+Lemma PF_f_ez_p_eqn : exists q, Peq ([RtoC (IZR sgn)] *, p) (q *, reciprocal p).
+Proof.
+ destruct PS_f_poly as (q,Hq).
+ exists q. apply Peq_via_coef. intros n.
+ change (coef n ([RtoC (IZR sgn)] *, p))
+  with (PS_poly ([RtoC (IZR sgn)] *, p) n).
+ rewrite <- PS_f_eqn.
+ change (coef n (q *, reciprocal p)) with (PS_poly (q *, reciprocal p) n).
+ rewrite <- CPS_mult_poly.
+ unfold CPS_mult. apply sum_n_ext. intros m. now rewrite Hq.
+Qed.
 
- Delta = b^2-4 >= 9-4>0
- deux racines (b+/-sqrt(b^2-4))/2
- La grande est au moins (3+sqrt(5))/2 > 2
-*)
+(* MOVE *)
+Lemma reciprocal_degree q :
+ coef 0 q <> 0 -> degree (reciprocal q) = degree q.
+Proof.
+ intros H.
+ unfold degree, reciprocal. unfold compactify at 1.
+ rewrite rev_involutive, rev_length.
+ rewrite <- compactify_coef in H.
+ destruct (compactify q) as [|x l]; simpl; try easy.
+ unfold coef in H; simpl in H. now destruct Ceq_dec.
+Qed.
+
+Lemma PF_f_ez_p_eqn' : exists c, c<>0 /\ Peq p ([c] *, reciprocal p).
+Proof.
+ destruct PF_f_ez_p_eqn as (q & E).
+ assert (NZ : RtoC (IZR sgn) <> 0).
+ { unfold sgn. intros [=H]. apply eq_IZR in H.
+   rewrite Z.sgn_null_iff in H. revert H. apply coefs0_nz. }
+ assert (Hq : ~Peq q []).
+ { apply degree_mor in E. rewrite Pscale_degree in E by trivial.
+   intros H. revert E. rewrite H. change (degree ([] *, _)) with O.
+   unfold p. rewrite Hcoefs. now rewrite linfactors_degree. }
+ assert (Hr : ~Peq (reciprocal p) []).
+ { apply degree_mor in E. rewrite Pscale_degree in E by trivial.
+   intros H. revert E. rewrite H, Pmult_0_r. change (degree []) with O.
+   unfold p. rewrite Hcoefs. now rewrite linfactors_degree. }
+ assert (degree q = O).
+ { apply degree_mor in E. rewrite Pscale_degree in E by trivial.
+   rewrite Pmult_degree in E; trivial.
+   rewrite reciprocal_degree in E; try lia.
+   unfold p, Zpoly, coef. change 0 with ((RtoC∘IZR) Z0) at 1.
+   rewrite map_nth. intros [=H]. apply eq_IZR in H. revert H.
+   apply coefs0_nz. }
+ destruct q as [|c q].
+ - exfalso. now apply Hq.
+ - rewrite degree_cons in H.
+   destruct Peq_0_dec as [Hq'|Hq']; try easy. rewrite Hq' in *.
+   exists (c*IZR sgn). split.
+   + intros M. apply Cmult_integral in M. destruct M as [M|M]; try easy.
+     rewrite M in Hq. apply Hq. apply C0_Peq_nil.
+   + replace [c * IZR sgn] with ([RtoC (IZR sgn)] *, [c]).
+     2:{ simpl. f_equal. lca. }
+     rewrite Pmult_assoc, <- E, <- Pmult_assoc.
+     replace ([_]*,[_]) with [1]. symmetry; apply Pmult_1_l.
+     simpl. f_equal. rewrite Cplus_0_r, <- RtoC_mult, <- mult_IZR.
+     f_equal. f_equal. unfold sgn in NZ|-*.
+     destruct (Z.sgn_spec (nth 0 coefs Z0)) as [(_,SG)|[(_,SG)|(_,SG)]];
+      now rewrite SG in *.
+Qed.
+
+Lemma PF_f_ez_roots_carac r : In r roots -> r = /root.
+Proof.
+ destruct PF_f_ez_p_eqn' as (c & Hc & E).
+ intros Hr. destruct Hroots as (H1 & _ & H2). rewrite Forall_forall in H2.
+ assert (Hr' : Root r p).
+ { unfold p. rewrite Hcoefs, <- linfactors_roots. now right. }
+ rewrite E in Hr'. red in Hr'.
+ rewrite Pmult_eval, Pconst_eval in Hr'. apply Cmult_integral in Hr'.
+ destruct Hr' as [Hr'|Hr']; try easy.
+ apply reciprocal_root in Hr'.
+ 2:{ apply Cmod_gt_0. now apply H2. }
+ unfold p in Hr'. rewrite Hcoefs in Hr'. apply linfactors_roots in Hr'.
+ destruct Hr' as [Hr'|Hr'].
+ - now rewrite Hr', Cinv_inv.
+ - apply H2 in Hr, Hr'. destruct Hr' as (H3,H4).
+   rewrite Cmod_inv in H4. rewrite <- Rinv_1 in H4.
+   apply Rcomplements.Rinv_lt_cancel in H4; lra.
+Qed.
+
+Lemma PF_f_ez_degree_0 : degree p = 0%nat -> False.
+Proof.
+ unfold p. now rewrite Hcoefs, linfactors_degree.
+Qed.
+
+Lemma PF_f_ez_degree_1 : degree p = 1%nat -> 2 <= root.
+Proof.
+ intros D.
+ unfold p in D. rewrite Hcoefs, linfactors_degree in D. simpl in D.
+ injection D as D. rewrite length_zero_iff_nil in D.
+ rewrite D  in Hcoefs. simpl in Hcoefs.
+ rewrite !Cmult_1_l, Cplus_0_r in Hcoefs.
+ assert (H : Integer root).
+ { rewrite Integer_alt. exists (Z.opp (nth 0 coefs Z0)).
+   rewrite opp_IZR. apply RtoC_inj. rewrite RtoC_opp.
+   change (RtoC (IZR (nth 0 coefs Z0))) with ((RtoC∘IZR) (nth 0 coefs Z0)).
+   rewrite <- map_nth. change (map _ coefs) with (Zpoly coefs).
+   change (nth _ _ _) with (coef 0 (Zpoly coefs)).
+   rewrite Hcoefs. unfold coef. simpl. now rewrite Copp_involutive. }
+ red in Hroots. rewrite Integer_alt in H. destruct H as (n & H).
+ rewrite H.
+ apply IZR_le. assert (1 < n)%Z; try lia. apply lt_IZR. now rewrite <- H.
+Qed.
+
+Lemma PF_f_ez_degree_2 : degree p = 2%nat -> 2 < root.
+Proof.
+ intros D.
+ assert (R : Root root p).
+ { unfold p. rewrite Hcoefs. apply linfactors_roots. now left. }
+ replace roots with [/root] in *.
+ 2:{ unfold p in D. rewrite Hcoefs, linfactors_degree in D. simpl in D.
+     injection D as D. assert (H := PF_f_ez_roots_carac).
+     destruct roots as [|x l] eqn:E; try easy.
+     simpl in D. injection D as D. rewrite length_zero_iff_nil in D.
+     subst l. f_equal. symmetry. apply H. now left. }
+ simpl in Hcoefs. rewrite !Cmult_1_l, Cmult_1_r, !Cplus_0_r in *.
+ assert (INT : Integer (root+/root)).
+ { rewrite Integer_alt. exists (Z.opp (nth 1 coefs Z0)).
+   rewrite opp_IZR. apply RtoC_inj. rewrite RtoC_opp.
+   change (RtoC (IZR (nth 1 coefs Z0))) with ((RtoC∘IZR) (nth 1 coefs Z0)).
+   rewrite <- map_nth. change (map _ coefs) with (Zpoly coefs).
+   change (nth _ _ _) with (coef 1 (Zpoly coefs)).
+   rewrite Hcoefs. unfold coef. simpl. rtoc. ring. }
+ assert (1 < root + /root).
+ { destruct Hroots as (LT & _). generalize (Rinv_0_lt_compat root). lra. }
+ assert (N : root + /root <> 2).
+ { intros E.
+   replace (-/root*-root) with 1 in Hcoefs.
+   2:{ field. destruct Hroots as (LT & _). intros [= H']. lra. }
+   rewrite <- Copp_plus_distr, Cplus_comm, E in Hcoefs.
+   assert (Hp : Peq p (linfactors [1;1])).
+   { unfold p. rewrite Hcoefs. simpl. apply eq_Peq.
+     f_equal. ring. f_equal. ring. f_equal. ring. }
+   rewrite Hp in R. apply linfactors_roots in R. simpl in R.
+   destruct Hroots as (LT & _). destruct R as [[= R]|[[= R]|[ ]]]; lra. }
+ assert (3 <= root + /root).
+ { rewrite Integer_alt in INT. destruct INT as (n & Hn).
+   rewrite Hn in H |- *. apply lt_IZR in H. apply IZR_le.
+   rewrite <- RtoC_inv, <- RtoC_plus, Hn in N.
+   assert (n <> 2%Z). { contradict N. now subst. }
+   lia. }
+ destruct (Rle_lt_dec root 2); try easy.
+ destruct Hroots as (LT & _).
+ assert (/root < 1). { rewrite <- Rinv_1. apply Rinv_lt_contravar; lra. }
+ lra.
+Qed.
+
+Lemma PF_f_ez_degree_3 : (3 <= degree p)%nat -> False.
+Proof.
+ intros D.
+ assert (E := Peval_0 p).
+ unfold p in E. rewrite Hcoefs in E at 1.
+ rewrite Peval_linfactors in E.
+ unfold coef, Zpoly in E.
+ change 0 with ((RtoC∘IZR) Z0) in E at 2.
+ rewrite map_nth in E.
+ assert (R : roots = repeat (/root) (degree p - 1)).
+ { replace (degree p - 1)%nat with (length roots).
+   2:{ unfold p. rewrite Hcoefs. rewrite linfactors_degree. simpl. lia. }
+   apply Forall_eq_repeat. apply Forall_forall.
+   intros r Hr. symmetry. now apply PF_f_ez_roots_carac. }
+ set (d := (degree p - 1)%nat) in *.
+ set (n := nth 0 coefs Z0) in *. unfold "∘" in E.
+ replace d with (S (d-1)) in R by lia.
+ rewrite R in E. simpl in E.
+ rewrite Cmult_assoc in E.
+ replace ((0-_)*(0-_)) with 1 in E.
+ 2:{ field. intros [=H]. destruct Hroots. lra. }
+ rewrite Cmult_1_l in E.
+ (* E donne (/root)^(d-1) entier et d-1>0, ce qui est impossible
+    vu que 1<root donc 0</root<1 *)
+Admitted.
+
+End PS_f_eventually_zero.
+
+Hypothesis PS_f_nez : ~ Hierarchy.eventually (fun n : nat => PS_f n = 0).
+
+End Siegel.
 
 (*
 Lemma SiegelTheorem x : Pisot x -> mu 5 <= x.
@@ -1795,3 +1993,5 @@ Proof.
  intros P. apply SiegelTheorem in P. lra.
 Qed.
 *)
+
+End SiegelProof.
