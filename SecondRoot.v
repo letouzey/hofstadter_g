@@ -853,7 +853,7 @@ Proof.
  intros Hk Hyp.
  apply is_series_unique.
  rewrite <- (re_RtoC (1+mu k^2)).
- apply CSeries_RtoC_impl.
+ apply is_CSeries_RtoC_impl.
  unfold compose. rtoc. rewrite <- One by trivial.
  apply is_lim_Cseq_ext with (sum_n (fun m => dg k m^2))%C.
  - intros n. apply sum_n_ext. intros m. now rtoc.
@@ -862,7 +862,7 @@ Proof.
    destruct (SortedRoots_exists k lia) as (roots, roots_ok).
    eapply ex_series_Rabs_dg; eauto using Hyp_alt.
    exists (RtoC l).
-   apply CSeries_RtoC in Hl.
+   apply is_CSeries_RtoC in Hl.
    revert Hl. apply is_lim_Cseq_ext. intros n. apply sum_n_ext.
    intros m. unfold compose. now ctor.
 Qed.
@@ -1677,7 +1677,7 @@ Lemma One_again' : Series (fun n => (dg k n)^2) = 1 + mu k^2.
 Proof.
  apply is_series_unique.
  rewrite <- (re_RtoC (1+mu k^2)).
- apply CSeries_RtoC_impl.
+ apply is_CSeries_RtoC_impl.
  unfold compose. rtoc. rewrite <- One_again.
  apply is_lim_Cseq_ext with (sum_n (fun k => dgbis k^2))%C.
  - intros n. apply sum_n_ext. intros m. now rewrite RtoC_pow, dgbis_dg.

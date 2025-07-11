@@ -290,6 +290,31 @@ Proof.
  rewrite Pscale_alt. unfold coef. apply map_nth'. lca.
 Qed.
 
+Lemma coef_P0 k : coef k [] = 0.
+Proof.
+ now destruct k.
+Qed.
+
+Lemma Pmult_coef p q n:
+ coef n (p*,q) = big_sum (fun k => coef k p * coef (n-k) q) (S n).
+Proof.
+ revert q n.
+ induction p; intros.
+ - simpl. rewrite coef_P0. rewrite big_sum_0. lca.
+   intros k. rewrite coef_P0. lca.
+ - simpl. rewrite <- Pscale_alt, Pplus_coef, Pscale_coef.
+   replace (n-n)%nat with O by lia.
+   destruct n as [|n]. unfold coef; simpl; lca.
+   change (coef (S n) (0 :: _)) with (coef n (p*,q)).
+   change (coef (S n) (a::p)) with (coef n p).
+   rewrite IHp.
+   symmetry. rewrite big_sum_shift. rewrite <- big_sum_extend_r.
+   change (coef 0 (a::p)) with a.
+   replace (n-n)%nat with O by lia.
+   change Gplus with Cplus. rewrite Nat.sub_0_r. ring_simplify.
+   rewrite <- !Cplus_assoc. f_equal. apply Cplus_comm.
+Qed.
+
 Lemma Popp_coef n p : coef n (-, p) = - coef n p.
 Proof.
  change (-, p) with (monom (- (1)) 0 *, p).
@@ -335,6 +360,32 @@ Qed.
 Global Instance : Proper (eq ==> Peq ==> iff) Root.
 Proof.
  intros c c' <- p p' Hp. unfold Root. now rewrite Hp.
+Qed.
+
+Lemma Peq_via_coef q r : Peq q r <-> forall n, coef n q = coef n r.
+Proof.
+ split.
+ - intros E n. now rewrite E.
+ - intros E. apply Peq_iff.
+   assert (E' : forall n, coef n (compactify q) = coef n (compactify r)).
+   { intros n. rewrite !compactify_coef. apply E. }
+   clear E.
+   apply nth_ext with (d:=0) (d':=0); [|intros; apply E'].
+   destruct (compactify_last q) as [Hq|Hq], (compactify_last r) as [Hr|Hr].
+   + now rewrite Hq, Hr.
+   + exfalso. rewrite Hq in E'. rewrite last_nth in Hr.
+     unfold coef in E'. rewrite <- E' in Hr.
+     now destruct (length _-1)%nat in Hr.
+   + exfalso. rewrite Hr in E'. rewrite last_nth in Hq.
+     unfold coef in E'. rewrite E' in Hq.
+     now destruct (length _-1)%nat in Hq.
+   + destruct (Nat.compare_spec (length (compactify q))
+                                (length (compactify r)));
+      trivial || exfalso.
+     * apply Hr. rewrite last_nth. unfold coef in E'.
+       rewrite <- E'. apply nth_overflow. lia.
+     * apply Hq. rewrite last_nth. unfold coef in E'.
+       rewrite E'. apply nth_overflow. lia.
 Qed.
 
 Lemma Pmult_Peq_reg_l (p q r : Polynomial) :
@@ -953,6 +1004,17 @@ Lemma reciprocal_coef_0 p i :
 Proof.
  intros H. unfold reciprocal, coef.
  apply nth_overflow. rewrite rev_length. unfold degree in *. lia.
+Qed.
+
+Lemma reciprocal_degree q :
+ coef 0 q <> 0 -> degree (reciprocal q) = degree q.
+Proof.
+ intros H.
+ unfold degree, reciprocal. unfold compactify at 1.
+ rewrite rev_involutive, rev_length.
+ rewrite <- compactify_coef in H.
+ destruct (compactify q) as [|x l]; simpl; try easy.
+ unfold coef in H; simpl in H. now destruct Ceq_dec.
 Qed.
 
 Lemma Peval_rev_aux l x : x<>0 ->

@@ -311,6 +311,26 @@ Proof.
  induction 1; simpl; ring || congruence.
 Qed.
 
+Lemma G_big_mult_mod l :
+  Cmod (G_big_mult l) = G_big_mult (map Cmod l).
+Proof.
+ induction l; simpl. apply Cmod_1. now rewrite Cmod_mult, IHl.
+Qed.
+
+Lemma G_big_mult_small (l:list R) :
+ (forall x, In x l -> 0 < x < 1) -> l<>[] -> 0 < G_big_mult l < 1.
+Proof.
+ induction l.
+ - easy.
+ - intros H _. simpl.
+   assert (0 < a < 1). { apply H. now left. }
+   destruct l as [|b l].
+   + simpl. now rewrite Rmult_1_r.
+   + assert (0 < G_big_mult (b::l) < 1).
+     { apply IHl; try discriminate. intros x Hx. apply H. now right. }
+     nra.
+Qed.
+
 (** More on Coquelicot [sum_n_m] and [sum_n] *)
 
 Lemma sum_n_Rplus (a b : nat -> R) n :

@@ -957,6 +957,19 @@ Proof.
  intros m. rewrite sum_Sn. unfold plus. simpl. generalize (Ha (S m)). lra.
 Qed.
 
+Lemma is_series_null (a : nat -> R) :
+ is_series a 0%R -> (forall n : nat, 0 <= a n) -> forall n : nat, a n = 0%R.
+Proof.
+ intros H1 H2.
+ assert (H3 := pos_series_pos_sum _ _ H1 H2).
+ assert (H4 : forall n, 0 <= sum_n a n).
+ { intros n. rewrite <- (sum_n_R0 n). now apply sum_n_le. }
+ intros [|n].
+ - rewrite <- sum_O. generalize (H3 O) (H4 O); lra.
+ - specialize (H3 (S n)). rewrite sum_Sn in H3. change plus with Rplus in H3.
+   generalize (H2 (S n)) (H4 n); lra.
+Qed.
+
 Lemma pos_series_pos_lim (a : nat -> R) l :
   is_series a l -> (forall n, 0 <= a n) -> 0 <= l.
 Proof.
@@ -1008,7 +1021,7 @@ Proof.
    symmetry. now apply (sum_n_m_sum_n (G:=Complex.C_AbelianGroup)).
 Qed.
 
-Lemma CSeries_RtoC_impl (a : nat -> R) (l:C) :
+Lemma is_CSeries_RtoC_impl (a : nat -> R) (l:C) :
   is_series (RtoC∘a) l -> is_series a (Re l) /\ Im l = 0%R.
 Proof.
  intros H.
@@ -1022,11 +1035,11 @@ Proof.
  rewrite Lim_seq_const in H2. now injection H2.
 Qed.
 
-Lemma CSeries_RtoC (a : nat -> R) (l:R) :
+Lemma is_CSeries_RtoC (a : nat -> R) (l:R) :
   is_series (RtoC∘a) (RtoC l) <-> is_series a l.
 Proof.
  split.
- - intros H. change l with (Re (RtoC l)). now apply CSeries_RtoC_impl.
+ - intros H. change l with (Re (RtoC l)). now apply is_CSeries_RtoC_impl.
  - intros H.
    change (is_lim_Cseq (sum_n (RtoC∘a)) l).
    rewrite is_lim_Cseq_proj; simpl. split.
@@ -1035,6 +1048,25 @@ Proof.
    + apply is_lim_seq_ext with (u:=fun _ => 0%R); try apply is_lim_seq_const.
      intros n. unfold compose. rewrite im_sum_n. symmetry.
      now apply sum_n_R0.
+Qed.
+
+Lemma ex_series_RtoC (a : nat -> R) :
+ ex_series (RtoC ∘ a) <-> ex_series a.
+Proof.
+ split; intros (l & H).
+ - rewrite is_Cseries_alt in H. rewrite is_lim_Cseq_proj in H.
+   destruct H as (H1 & H2).
+   eapply is_lim_seq_ext in H1.
+   2:{ intros n. unfold "∘". rewrite re_sum_n. unfold "∘".
+       apply sum_n_ext. intros m. now rewrite re_RtoC. }
+   rewrite ex_series_alt. now exists (Re l).
+ - exists (RtoC l). now rewrite is_CSeries_RtoC.
+Qed.
+
+Lemma CSeries_RtoC (a : nat -> R) :
+  ex_series a -> CSeries (RtoC ∘ a) = RtoC (Series a).
+Proof.
+ intros. now apply CSeries_unique, is_CSeries_RtoC, Series_correct.
 Qed.
 
 Lemma ex_series_lim_C0 (a : nat -> C) :
@@ -1050,30 +1082,71 @@ Proof.
  now rewrite sum_n_n, <- Cmod_norm in HN.
 Qed.
 
+Lemma is_series_shift (a : nat -> C) l :
+  is_series a l <-> is_series (a∘S) (l - a O).
+Proof.
+ split; intros H.
+ - rewrite is_Cseries_alt in *.
+   apply (is_lim_Cseq_incr_n _ 1) in H.
+   apply is_lim_Cseq_ext with (fun n => sum_n a (n+1) - a O).
+   { intros n. rewrite <- !big_sum_sum_n.
+     rewrite <- big_sum_extend_l, Nat.add_1_r. change Gplus with Cplus.
+     ring_simplify. easy. }
+   apply is_lim_Cseq_minus; trivial. apply is_lim_Cseq_const.
+ - rewrite is_Cseries_alt in *.
+   apply (is_lim_Cseq_incr_n _ 1).
+   apply is_lim_Cseq_ext with (fun n => sum_n (a∘S) n + a O).
+   { intros n. rewrite <- !big_sum_sum_n.
+     symmetry. rewrite <- big_sum_extend_l, Nat.add_1_r.
+     change Gplus with Cplus. apply Cplus_comm. }
+   replace l with (l - a O + a O) by ring.
+   apply is_lim_Cseq_plus; trivial. apply is_lim_Cseq_const.
+Qed.
+
+Lemma ex_series_shift (a : nat -> C) : ex_series a <-> ex_series (a∘S).
+Proof.
+ split.
+ - intros (l & H). exists (l - a O). now rewrite <- is_series_shift.
+ - intros (l & H). replace l with (l + a O - a O) in H by ring.
+   rewrite <- is_series_shift in H. eexists; eauto.
+Qed.
+
 Lemma CSeries_shift (a : nat -> C) :
  ex_series a -> CSeries a = a O + CSeries (a∘S).
 Proof.
- intros (l & Ha).
- unfold CSeries.
- assert (E : forall n, sum_n a (n + 1) = a O + sum_n (a ∘ S) n).
- { intros. simpl. rewrite <- !big_sum_sum_n.
-   rewrite <- (big_sum_extend_l (n+1)). change Gplus with Cplus. f_equal.
-   now rewrite Nat.add_1_r. }
- rewrite <- (Lim_Cseq_const (a O)), <- Lim_Cseq_plus.
- { apply is_lim_Cseq_unique.
-   apply (is_lim_Cseq_incr_n _ 1).
-   eapply is_lim_Cseq_ext; try apply Lim_Cseq_correct.
-   { intros. simpl. now rewrite <- E. }
-   exists l.
-   rewrite is_Cseries_alt in Ha.
-   apply (is_lim_Cseq_incr_n _ 1) in Ha.
-   eapply is_lim_Cseq_ext; [apply E|apply Ha]. }
- { eexists. apply is_lim_Cseq_const. }
- { exists (l - a O).
-   eapply is_lim_Cseq_ext with (fun n => sum_n a (n+1) - a O).
-   { intros. rewrite E. ring. }
-   apply is_lim_Cseq_minus. 2:apply is_lim_Cseq_const.
-   now rewrite <- (is_lim_Cseq_incr_n _ 1). }
+ intros. apply CSeries_unique. rewrite is_series_shift.
+ replace (_+_-_) with (CSeries (a∘S)) by ring.
+ apply CSeries_correct. now rewrite <- ex_series_shift.
+Qed.
+
+Lemma is_series_shiftn (a : nat -> C) l (N:nat) :
+  is_series a l <-> is_series (fun n => a (n+N)%nat) (l - big_sum a N).
+Proof.
+ revert a l. induction N.
+ - intros a l. simpl. replace (l-0) with l by lca.
+   split; apply is_series_ext; intros n; now rewrite Nat.add_0_r.
+ - intros a l. rewrite is_series_shift, IHN.
+   rewrite <- big_sum_extend_l. change Gplus with Cplus.
+   replace (l - (_+_)) with (l - a O - big_sum (fun n => a (S n)) N)
+    by ring.
+   split; apply is_series_ext; intros n; unfold "∘"; f_equal; lia.
+Qed.
+
+Lemma ex_series_shiftn (a : nat -> C) (N:nat) :
+  ex_series a <-> ex_series (fun n => a (n+N)%nat).
+Proof.
+ split.
+ - intros (l & H). exists (l - big_sum a N). now rewrite <- is_series_shiftn.
+ - intros (l & H). replace l with (l + big_sum a N - big_sum a N) in H by ring.
+   rewrite <- is_series_shiftn in H. eexists; eauto.
+Qed.
+
+Lemma CSeries_shiftn (a : nat -> C) (N:nat) :
+ ex_series a -> CSeries a = big_sum a N + CSeries (fun n => a (n+N)%nat).
+Proof.
+ intros. apply CSeries_unique. rewrite is_series_shiftn with (N:=N).
+ replace (_+_-_) with (CSeries (fun n => a (n+N)%nat)) by ring.
+ apply CSeries_correct. now rewrite <- ex_series_shiftn.
 Qed.
 
 Local Open Scope R.
@@ -1977,6 +2050,12 @@ Proof.
    + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
    + generalize (Rabs_pos (Rabs x + 1)); lra.
  - apply (H 0).
+Qed.
+
+Lemma CPS_mult_poly q r n :
+ CPS_mult (PS_poly q) (PS_poly r) n = PS_poly (Pmult q r) n.
+Proof.
+ unfold CPS_mult, PS_poly. now rewrite Pmult_coef, big_sum_sum_n.
 Qed.
 
 Definition PS_one n := match n with O => 1 | _ => 0 end.
