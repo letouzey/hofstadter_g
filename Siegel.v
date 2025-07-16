@@ -2279,6 +2279,23 @@ Proof.
    apply ln_lt_inv; lra.
 Qed.
 
+(* MOVE *)
+Lemma C_CV_radius_minorant (a : nat -> C) (r:R) :
+ (forall x, Cmod x < r -> ex_CPowerSeries a x) ->
+ Rbar.Rbar_le r (C_CV_radius a).
+Proof.
+ intros H.
+ apply Rbar_le_carac_via_lt.
+ intros x Hx. simpl in Hx.
+ destruct (Rle_lt_dec 0 x).
+ - rewrite C_CV_radius_radius'.
+   apply Lub_Rbar_ub. red. exists x; split.
+   + rewrite Cmod_R, Rabs_pos_eq; lra.
+   + apply H. rewrite Cmod_R, Rabs_pos_eq; lra.
+ - apply Rbar.Rbar_le_trans with 0%R. simpl; lra.
+   rewrite C_CV_radius_alt. apply CV_radius_ge_0.
+Qed.
+
 Lemma C_CV_radius_dilate a k r : k<>O ->
  Rbar.Rbar_lt (r^k)%R (C_CV_radius a) ->
  Rbar.Rbar_lt r (C_CV_radius (PS_dilate a k)).
@@ -2733,10 +2750,12 @@ Definition Case5 := take 6 fps' = [1;1;1;2;3;5]%Z /\ (5 <= fps' 6 <= 7)%Z.
 Definition Case6 := take 4 fps' = [1;1;2;3]%Z /\
                     In (fps' 4, fps' 5) [(3,3);(3,4);(3,5);(4,4);(4,5)]%Z.
 
-Definition A n := big_sum (fun m => (fps' (S m))^2)%Z n.
-Definition C n := A (S n).
-Definition B n := big_sum (fun m => fps' m * fps' (S m))%Z (S n).
-Definition phi n (x:R) := (IZR (A n) * x^2 - 2*IZR (B n) * x + IZR (C n))%R.
+Section Lemma3.
+
+Let A n := big_sum (fun m => (fps' (S m))^2)%Z n.
+Let C n := A (S n).
+Let B n := big_sum (fun m => fps' m * fps' (S m))%Z (S n).
+Let phi n (x:R) := (IZR (A n) * x^2 - 2*IZR (B n) * x + IZR (C n))%R.
 
 (* MOVE *)
 Lemma ex_series_incr_n {K} {V : NormedModule K} (a : nat -> V) (n:nat) :
@@ -2814,13 +2833,13 @@ Proof.
  destruct fps_0_1 as (H0,H1). intros H2 H3. split.
  { unfold take. simpl. now rewrite H0, H1, H2, H3. }
  assert (L4 : (3 <= fps' 4)%Z). { rewrite <- H3. apply (Two 4). }
- assert (L45 : (fps' 4 <= fps' 5)%Z). { apply (Two 5). }
+ assert (T5 : (fps' 4 <= fps' 5)%Z). { apply (Two 5). }
  assert (LE := Ineq8' 6 lia).
  cbn -[Z.pow] in LE. rewrite H0, H1, H2, H3 in LE.
  assert (LE' : (fps' 4 ^2 + fps' 5 ^2 <= 48)%Z) by lia. clear LE.
  assert (U4 : (fps' 4 <= 4)%Z).
- { assert (A : (fps' 4 <> 6)%Z). { intros A. rewrite A in LE', L45. lia. }
-   assert (B : (fps' 4 <> 5)%Z). { intros B. rewrite B in LE', L45. lia. }
+ { assert (U : (fps' 4 <> 6)%Z). { intros U. rewrite U in LE', T5. lia. }
+   assert (V : (fps' 4 <> 5)%Z). { intros V. rewrite V in LE', T5. lia. }
    lia. }
  assert (U5 : (fps' 5 <= 6)%Z) by lia.
  assert (U5b : (fps' 4 = 4 -> fps' 5 <= 5)%Z) by lia.
@@ -2965,6 +2984,355 @@ Proof.
     + do 3 right; left. unfold Case4, take. simpl. congruence.
     + do 5 right. now apply fps_1123.
 Qed.
+
+End Lemma3.
+
+Definition ZPS_mult (a b : nat -> Z) (n : nat) :=
+ big_sum (fun k : nat => (a k * b (n - k)%nat)%Z) (S n).
+
+Lemma ZPS_mult_IZR (a b : nat -> Z) n :
+ IZR (ZPS_mult a b n) = PS_mult (IZR∘a) (IZR∘b) n.
+Proof.
+ unfold ZPS_mult, PS_mult. rewrite <- sum_n_Reals, <- big_sum_sum_n_R.
+ rewrite big_sum_IZR. apply big_sum_eq_bounded. intros x Hx.
+ unfold "∘". now rewrite mult_IZR.
+Qed.
+
+Lemma PS_mult_RtoC (a b : nat -> R) n :
+ RtoC (PS_mult a b n) = CPS_mult (RtoC∘a) (RtoC∘b) n.
+Proof.
+ unfold PS_mult, CPS_mult. rewrite <- sum_n_Reals.
+ rewrite RtoC_sum_n. apply sum_n_ext. intros x.
+ unfold "∘". now rewrite RtoC_mult.
+Qed.
+
+Lemma ex_series_PS_poly p : ex_series (PS_poly p).
+Proof.
+ apply ex_series_shiftn with (N := length p).
+ apply ex_series_ext with (a := fun _ => 0).
+ { intros n. unfold PS_poly, coef. now rewrite nth_overflow by lia. }
+ apply ex_series_RtoC. exists 0%R. apply is_series_R0.
+Qed.
+
+Lemma Cmod_PS_poly p n :
+  RtoC (Cmod (PS_poly p n)) = PS_poly (map (RtoC∘Cmod) p) n.
+Proof.
+ unfold PS_poly. unfold coef.
+ replace 0 with ((RtoC∘Cmod) 0) at 2.
+ 2:{ unfold "∘". now rewrite Cmod_0. }
+ now rewrite map_nth.
+Qed.
+
+Lemma PS_poly_pow2 p n :
+  (PS_poly p n)^2 = PS_poly (map (fun x => x^2) p) n.
+Proof.
+ unfold PS_poly, coef.
+ rewrite <- (map_nth (fun x => x^2)). f_equal. ring.
+Qed.
+
+Section Lemma4.
+
+Variable A : list Z.
+Definition beta := ZPS_mult (fun n => nth n A Z0) fps'.
+Let B n (x:C) := sum_n (fun m => beta m * x^m) n.
+Let mu (l : list Z) := big_sum (fun m => (nth m l Z0)^2)%Z (length l).
+Variable k:nat.
+Let Bkpoly := take (S k) beta.
+Hypothesis Hyp1 : (mu A <= mu Bkpoly)%Z.
+Hypothesis Hyp2 : Cmod (B k root) < root^k / (root - /root + sqrt (root^2-1)).
+
+Lemma Bkpoly_ok x : Peval (Zpoly Bkpoly) x = B k x.
+Proof.
+ unfold Peval, Zpoly, Bkpoly, take, coef, B.
+ rewrite !map_length, seq_length, map_map.
+ rewrite big_sum_sum_n.
+ apply sum_n_ext_loc.
+ intros n Hn. f_equal.
+ rewrite nth_map_indep with (d' := O); try (rewrite ?seq_length; lia).
+ now rewrite seq_nth by lia.
+Qed.
+
+Lemma mu_poly l : RtoC (mu l) = SecondRoot.Mu (Peval (Zpoly l)).
+Proof.
+ rewrite (SecondRoot.Mu_series_square (PS_poly (Zpoly l))).
+ 2:{ unfold "∘". rewrite <- ex_series_RtoC.
+     eapply ex_series_ext. symmetry. apply Cmod_PS_poly.
+     apply ex_series_PS_poly. }
+ 2:{ intros z Hz. symmetry. apply CPowerSeries_unique, PS_poly_ok. }
+ rewrite CSeries_shiftn with (N := length l).
+ 2:{ eapply ex_series_ext. symmetry. apply PS_poly_pow2.
+     apply ex_series_PS_poly. }
+ rewrite CSeries_ext with (v := fun n => 0).
+ 2:{ intros n. unfold PS_poly, Zpoly, coef.
+     rewrite nth_overflow. ring. rewrite map_length; lia. }
+ rewrite CSeries_unique with (l := 0), Cplus_0_r.
+ 2:{ apply is_CSeries_RtoC, is_series_R0. }
+ unfold mu. rewrite big_sum_IZR, big_sum_RtoC.
+ apply big_sum_eq_bounded. intros m Hm.
+ unfold PS_poly, "∘". rewrite coef_Zpoly. ctor. now rewrite pow_IZR.
+Qed.
+
+Lemma continuous_poly p x : continuous (Peval p) x.
+Proof.
+ unfold Peval.
+ destruct (Nat.eq_dec (length p) 0) as [E|N].
+ - rewrite E. simpl. apply continuous_const.
+ - replace (length p) with (S (length p - 1)) by lia.
+   eapply continuous_ext. { intros y. symmetry. apply big_sum_sum_n. }
+   apply sum_n_continuous.
+   intros i Hi. apply continuous_Cmult. apply continuous_const.
+   apply continuous_Cpow.
+Qed.
+
+Lemma Mu_ext (f g : C -> C) :
+  (forall c, Cmod c = 1%R -> f c = g c) ->
+  SecondRoot.Mu f = SecondRoot.Mu g.
+Proof.
+ intros Eq. unfold SecondRoot.Mu. f_equal.
+ apply RInt_ext. intros x _. f_equal; apply Eq; now rewrite Cmod_Cexp.
+Qed.
+
+Lemma mu_A : RtoC (mu A) = SecondRoot.Mu (Peval (Zpoly A)).
+Proof.
+ apply mu_poly.
+Qed.
+
+Lemma mu_B : RtoC (mu Bkpoly) = SecondRoot.Mu (B k).
+Proof.
+ rewrite mu_poly. apply Mu_ext. intros c _. apply Bkpoly_ok.
+Qed.
+
+Definition vAf x := Peval (Zpoly A) x * gr 1 x.
+Definition vB x := vr 1 x * B k x.
+
+Lemma vAf_alt x : x<>/root -> vAf x = vr 1 x * Peval (Zpoly A) x * f x.
+Proof.
+ intros Hx. unfold vAf. rewrite gr_alt by trivial; ring.
+Qed.
+
+Definition mu_vAf : SecondRoot.Mu vAf = root^2 * mu A.
+Proof.
+ rewrite mu_A.
+ unfold SecondRoot.Mu.
+ rewrite Cmult_assoc, (Cmult_comm (root^2)), <- Cmult_assoc. f_equal.
+ rewrite <- CInt_scal.
+ 2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+     intros x _. apply continuous_Cmult.
+     - apply continuous_comp;
+         [apply continuous_Cexp|apply continuous_poly].
+     - apply continuous_comp; [|apply continuous_poly].
+       apply continuous_comp; [|apply continuous_Cexp].
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+ apply RInt_ext.
+ intros x _. unfold vAf.
+ change (root^2) with (root^(2*1)).
+ rewrite <- (gr_gr 1 (Cexp x));
+   try lia; try apply Cexp_nonzero; try (rewrite Cmod_Cexp; lra').
+ - rewrite Cexp_neg. fixeq C. ring.
+ - rewrite Hcoefs, <- linfactors_roots. intros [E|IN].
+   + apply (f_equal Cmod) in E.
+     rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
+   + red in Hroots. rewrite Forall_forall in Hroots; apply Hroots in IN.
+     rewrite Cmod_Cexp in IN; lra.
+ - rewrite <- Cexp_neg, Hcoefs, <- linfactors_roots. intros [E|IN].
+   + apply (f_equal Cmod) in E.
+     rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
+   + red in Hroots. rewrite Forall_forall in Hroots; apply Hroots in IN.
+     rewrite Cmod_Cexp in IN; lra.
+Qed.
+
+Lemma continuous_B x : continuous (B k) x.
+Proof.
+ eapply continuous_ext. apply Bkpoly_ok. apply continuous_poly.
+Qed.
+
+Lemma mu_vB : SecondRoot.Mu vB = root^2 * mu Bkpoly.
+Proof.
+ rewrite mu_B.
+ unfold SecondRoot.Mu.
+ rewrite Cmult_assoc, (Cmult_comm (root^2)), <- Cmult_assoc. f_equal.
+ rewrite <- CInt_scal.
+ 2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+     intros x _. apply continuous_Cmult.
+     - apply continuous_comp;
+         [apply continuous_Cexp|apply continuous_B].
+     - apply continuous_comp; [|apply continuous_B].
+       apply continuous_comp; [|apply continuous_Cexp].
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+ apply RInt_ext.
+ intros x _. unfold vB.
+ change (root^2) with (root^(2*1)).
+ rewrite <- (vr_vr 1 (Cexp x));
+   try lia; try apply Cexp_nonzero; try (rewrite Cmod_Cexp; lra').
+ rewrite Cexp_neg. fixeq C. ring.
+Qed.
+
+Definition alpha := CPS_mult (PS_poly (Zpoly A)) (grps 1).
+Definition vr1ps := CPS_mult (PS_poly [1;-root]) (PS_pow (/root)).
+Definition gamma := CPS_mult vr1ps (PS_poly (Zpoly Bkpoly)).
+
+Lemma beta_ok x : Cmod x < /root ->
+ is_CPowerSeries beta x (Peval (Zpoly A) x * f x).
+Proof.
+ intros Hx.
+ unfold beta.
+ apply is_CPowerSeries_alt.
+ apply is_pseries_ext with (CPS_mult (PS_poly (Zpoly A)) fps).
+ { intros n. rewrite ZPS_mult_IZR, PS_mult_RtoC.
+   unfold CPS_mult. unfold "∘". eapply sum_n_ext.
+   intros m. now rewrite <- fps_eqn', <- coef_Zpoly. }
+ rewrite <- is_CPowerSeries_alt.
+ apply is_CPS_mult.
+ - apply PS_poly_ok.
+ - now apply fps_ok.
+ - now rewrite PS_poly_radius.
+ - eapply Rbar.Rbar_lt_le_trans; [| apply fps_radius]. simpl. apply Hx.
+Qed.
+
+Lemma beta_radius : Rbar.Rbar_le (/root)%R (C_CV_radius beta).
+Proof.
+ apply C_CV_radius_minorant. intros. eexists. now apply beta_ok.
+Qed.
+
+Lemma alpha_ok x : Cmod x <= 1 -> is_CPowerSeries alpha x (vAf x).
+Proof.
+ intros Hx.
+ unfold alpha, vAf.
+ apply is_CPS_mult.
+ - apply PS_poly_ok.
+ - now apply grps_ok.
+ - now rewrite PS_poly_radius.
+ - eapply Rbar.Rbar_le_lt_trans; [| apply grps_radius; lia]. apply Hx.
+Qed.
+
+Lemma alpha_radius : Rbar.Rbar_lt 1%R (C_CV_radius alpha).
+Proof.
+ unfold alpha.
+ eapply Rbar.Rbar_lt_le_trans; [|apply C_CV_radius_mult].
+ rewrite PS_poly_radius.
+ apply Rbar.Rbar_min_case; [simpl; trivial|]. now apply grps_radius.
+Qed.
+
+Lemma vr1ps_ok x : Cmod x < root -> is_CPowerSeries vr1ps x (vr 1 x).
+Proof.
+ intros Hx.
+ unfold vr1ps, vr, Cdiv. rewrite !Cpow_1_r, (Cmult_comm x).
+ assert (/root <> 0). { ctor. intros [=H]. lra'. }
+ apply is_CPS_mult.
+ - replace (1-root*x) with (Peval [1;-root] x). apply PS_poly_ok.
+   rewrite cons_eval, Pconst_eval. ring.
+ - apply is_CPowerSeries_pow; trivial.
+   rewrite Cmod_mult, Cmod_inv, Cmod_R, Rabs_pos_eq by lra'.
+   apply Rmult_lt_reg_l with root. lra'. field_simplify; lra'.
+ - now rewrite PS_poly_radius.
+ - rewrite C_CV_radius_pow; trivial. simpl.
+   rewrite Cmod_inv, Rinv_inv, Cmod_R, Rabs_pos_eq; lra'.
+Qed.
+
+Lemma vr1ps_radius : Rbar.Rbar_le root (C_CV_radius vr1ps).
+Proof.
+ apply C_CV_radius_minorant. intros; eexists; now apply vr1ps_ok.
+Qed.
+
+Lemma gamma_ok x : Cmod x <= 1 -> is_CPowerSeries gamma x (vB x).
+Proof.
+ intros Hx.
+ unfold gamma, vB.
+ apply is_CPS_mult.
+ - apply vr1ps_ok; lra'.
+ - rewrite <- Bkpoly_ok. apply PS_poly_ok.
+ - eapply Rbar.Rbar_lt_le_trans; [|apply vr1ps_radius]. simpl; lra'.
+ - now rewrite PS_poly_radius.
+Qed.
+
+Lemma gamma_radius : Rbar.Rbar_lt 1%R (C_CV_radius gamma).
+Proof.
+ unfold gamma.
+ eapply Rbar.Rbar_lt_le_trans; [|apply C_CV_radius_mult].
+ rewrite PS_poly_radius.
+ apply Rbar.Rbar_min_case; [|simpl; trivial].
+ apply Rbar.Rbar_lt_le_trans with root. simpl; lra'. apply vr1ps_radius.
+Qed.
+
+Lemma alpha_alt n : alpha n = CPS_mult vr1ps beta n.
+Proof.
+ revert n. apply CPowerSeries_coef_ext.
+ - apply Rbar.Rbar_lt_trans with 1%R. simpl; lra. apply alpha_radius.
+ - eapply Rbar.Rbar_lt_le_trans; [|apply C_CV_radius_mult].
+   apply Rbar.Rbar_min_case.
+   + apply Rbar.Rbar_lt_le_trans with root. simpl; lra'.
+     apply vr1ps_radius.
+   + apply Rbar.Rbar_lt_le_trans with (/root)%R. simpl; lra'.
+     apply beta_radius.
+ - assert (LT : 0 < /root) by lra'.
+   exists (mkposreal _ LT).
+   intros y Hy. change (Rabs (y-0) < /root) in Hy.
+   rewrite Rminus_0_r in Hy.
+   rewrite CPowerSeries_mult; rewrite ?Cmod_R.
+   + assert (Hy1 : Cmod y <= 1). { rewrite Cmod_R. lra'. }
+     assert (Hy2 : Cmod y < /root). { rewrite Cmod_R. lra. }
+     assert (Hy3 : Cmod y < root). { rewrite Cmod_R. lra'. }
+     rewrite (CPowerSeries_unique _ _ _ (alpha_ok y Hy1)).
+     rewrite (CPowerSeries_unique _ _ _ (beta_ok y Hy2)).
+     rewrite (CPowerSeries_unique _ _ _ (vr1ps_ok y Hy3)).
+     rewrite vAf_alt. ring. ctor. intros [= H]. rewrite H in Hy.
+     rewrite Rabs_pos_eq in Hy; lra'.
+   + apply Rbar.Rbar_lt_le_trans with root. simpl; lra'.
+     apply vr1ps_radius.
+   + apply Rbar.Rbar_lt_le_trans with (/root)%R. simpl; lra'.
+     apply beta_radius.
+Qed.
+
+Lemma alpha_gamma_init n : (n <= k)%nat -> alpha n = gamma n.
+Proof.
+ intros Hn.
+ rewrite alpha_alt. unfold gamma.
+ unfold CPS_mult. apply sum_n_ext_loc.
+ intros m Hm. f_equal. unfold PS_poly. rewrite coef_Zpoly.
+ unfold Bkpoly. rewrite take_nth; trivial; lia.
+Qed.
+
+Lemma alpha_gamma_Sk : alpha (S k) = beta (S k) + gamma (S k).
+Proof.
+ rewrite alpha_alt. unfold gamma. unfold CPS_mult.
+ rewrite <- !big_sum_sum_n.
+ do 2 rewrite <- (big_sum_extend_l (S k)). change Gplus with Cplus.
+ rewrite Nat.sub_0_r.
+ replace (vr1ps 0) with 1.
+ 2:{ unfold vr1ps, CPS_mult. simpl. rewrite sum_O; lca. }
+ rewrite Cmult_1_l. f_equal.
+ unfold PS_poly. rewrite coef_Zpoly. rewrite nth_overflow.
+ 2:{ unfold Bkpoly. now rewrite take_length. }
+ rewrite Cmult_0_r, Cplus_0_l. apply big_sum_eq_bounded.
+ intros m Hm. f_equal. rewrite coef_Zpoly. unfold Bkpoly.
+ rewrite take_nth; trivial; lia.
+Qed.
+
+Lemma alpha_square : SecondRoot.Mu vAf = CSeries (fun n => alpha n^2).
+Proof.
+ apply SecondRoot.Mu_series_square.
+ - rewrite <- ex_pseries_1.
+   apply CV_radius_inside.
+   rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
+   apply alpha_radius.
+ - intros z Hz. symmetry. apply CPowerSeries_unique, alpha_ok; lra.
+Qed.
+
+Lemma gamma_square : SecondRoot.Mu vB = CSeries (fun n => gamma n^2).
+Proof.
+ apply SecondRoot.Mu_series_square.
+ - rewrite <- ex_pseries_1.
+   apply CV_radius_inside.
+   rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
+   apply gamma_radius.
+ - intros z Hz. symmetry. apply CPowerSeries_unique, gamma_ok; lra.
+Qed.
+
+(*
+Lemma Four : B k root = 0.
+Proof.
+Admitted.
+*)
 
 End Siegel.
 
