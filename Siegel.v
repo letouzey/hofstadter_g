@@ -2837,10 +2837,12 @@ Qed.
 Lemma fps_1112 : fps' 2 = 1%Z -> fps' 3 = 2%Z -> Case2 \/ Case3 \/ Case5.
 Proof.
  destruct fps_0_1 as (H0,H1). intros H2 H3.
- (* Not in the Siegel article, but necessary : $b_4 <= 4$.
-    Without that, the inequality $b_4^2+18-4(b_4+2)√2 >= 34 - 24√2$
-    cannot be established with just $b_4 >= 4$, it needs $b_4 = 4$.
-    (or maybe via a function study of $b_4^2+18-4(b_4+2)√2$ ?) *)
+ (* With just $b_4 >= 4$, the inequality
+    $b_4^2+18-4(b_4+2)\sqrt{2} >= 34 - 24\sqrt{2}$
+    requires a study of the function $x^2+18-4(x+2)\sqrt{2}$
+    (which is increasing for x>=2√2 and in particular x>=4).
+    Not in the article, but simpler here: use Inequality (8)
+    to obtain $b_4 <= 4$. *)
  assert (LE := Ineq8' 5 lia).
  cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3 in LE.
  assert (H4 : (fps' 4 <= 4)%Z) by lia. clear LE.
@@ -2873,6 +2875,8 @@ Proof.
    clear H4' H4. destruct H4b as [H4|H4].
    + left. unfold Case2, take. simpl. congruence.
    + right.
+     (* Same as before : Inequality (8) ensures $b_5 <= 6$ and that spares
+        us a function study *)
      assert (LE := Ineq8' 6 lia).
      cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4 in LE.
      assert (H5 : (fps' 5 <= 6)%Z) by lia. clear LE.
@@ -2906,6 +2910,7 @@ Proof.
        destruct H5b as [H5|H5].
        ** left. unfold Case3, take. split; try lia. simpl. congruence.
        ** right. unfold Case5, take. split. simpl; congruence.
+          (* Inequality (8) ensures $b_6 <= 9$ *)
           assert (LE := Ineq8' 7 lia).
           cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4, H5 in LE.
           assert (H6 : (fps' 6 <= 9)%Z) by lia. clear LE.
