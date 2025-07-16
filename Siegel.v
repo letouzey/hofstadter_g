@@ -2644,7 +2644,7 @@ Proof.
  - now rewrite sum_Sn, <- IHn, <- big_sum_extend_r.
 Qed.
 
-Lemma Eqn8 (r:nat) : IZR (big_sum (fun m => (fps' m)^2)%Z r) <= root^(2*r).
+Lemma Ineq8 (r:nat) : IZR (big_sum (fun m => (fps' m)^2)%Z r) <= root^(2*r).
 Proof.
  destruct (Nat.eq_dec r 0) as [->|N].
  - simpl. lra.
@@ -2671,10 +2671,10 @@ Proof.
      trivial.
 Qed.
 
-Lemma Eqn8' (r:nat) : r<>O ->
+Lemma Ineq8' (r:nat) : r<>O ->
   (big_sum (fun m => (fps' m)^2) r < 2^Z.of_nat r)%Z.
 Proof.
- intros Hr. apply lt_IZR. eapply Rle_lt_trans; [apply Eqn8|].
+ intros Hr. apply lt_IZR. eapply Rle_lt_trans; [apply Ineq8|].
  rewrite pow_mult, <- pow_IZR. apply Rpow_lt_compat_r; trivial. nra.
 Qed.
 
@@ -2688,27 +2688,27 @@ Proof.
       now rewrite Int_part_IZR. }}
  assert (H1 := Two 1).
  simpl in H1.
- assert (H2 := Eqn8' 2 lia). cbn -[Z.pow] in H2. lia.
+ assert (H2 := Ineq8' 2 lia). cbn -[Z.pow] in H2. lia.
 Qed.
 
 Lemma fps_2 : (1 <= fps' 2 <= 2)%Z.
 Proof.
  generalize (Two 2). simpl.
- generalize (Eqn8' 3 lia).
+ generalize (Ineq8' 3 lia).
  cbn -[Z.pow]. destruct fps_0_1 as (->,->). lia.
 Qed.
 
-Lemma fps_3 : (1 <= fps' 2 <= 3)%Z.
+Lemma fps_3 : (1 <= fps' 3 <= 3)%Z.
 Proof.
  generalize (Two 3). simpl.
- generalize (Eqn8' 4 lia).
+ generalize (Ineq8' 4 lia).
  cbn -[Z.pow]. destruct fps_0_1 as (->,->). generalize fps_2. lia.
 Qed.
 
 Lemma root_65 : 6/5 < root.
 Proof.
  assert (3 <= root^6).
- { eapply Rle_trans; [|apply (Eqn8 3)].
+ { eapply Rle_trans; [|apply (Ineq8 3)].
    cbn - [Z.pow]. destruct fps_0_1 as (->,->).
    apply IZR_le. generalize fps_2; lia. }
  assert (~ (5*root <= 6)); try lra.
@@ -2719,7 +2719,7 @@ Lemma root_43 : fps' 2 = 2%Z -> 4/3 < root.
 Proof.
  intros H.
  assert (6 <= root^6).
- { eapply Rle_trans; [|apply (Eqn8 3)].
+ { eapply Rle_trans; [|apply (Ineq8 3)].
    cbn - [Z.pow]. rewrite H. destruct fps_0_1 as (->,->). apply IZR_le. lia. }
  assert (~ (3*root <= 4)); try lra.
  intros LE. apply (Rpow_le_compat_r 6) in LE; lra'.
@@ -2738,6 +2738,7 @@ Definition C n := A (S n).
 Definition B n := big_sum (fun m => fps' m * fps' (S m))%Z (S n).
 Definition phi n (x:R) := (IZR (A n) * x^2 - 2*IZR (B n) * x + IZR (C n))%R.
 
+(* MOVE *)
 Lemma ex_series_incr_n {K} {V : NormedModule K} (a : nat -> V) (n:nat) :
   (0 < n)%nat -> ex_series a -> ex_series (fun k => a (n+k)%nat).
 Proof.
@@ -2782,8 +2783,7 @@ Proof.
  unfold phi. rewrite plus_IZR. lra.
 Qed.
 
-(*
-Lemma fps_no_1_3 : fps' 2 = 1%Z -> fps' 3 = 3%Z -> False.
+Lemma fps_no_1113 : fps' 2 = 1%Z -> fps' 3 = 3%Z -> False.
 Proof.
  intros H2 H3.
  generalize (Ineq9 2 lia). unfold phi, C, B, A.
@@ -2802,15 +2802,164 @@ Proof.
  assert (LT : df c < 0).
  { unfold df. lra. }
  assert (LT' : 0 < f (sqrt 2)).
- { unfold f.
+ { unfold f. rewrite <- Rsqr_pow2, Rsqr_sqrt by lra.
+   assert (sqrt 2 < 1.5); try lra.
+   apply Rsqr_incrst_0; try lra; try apply sqrt_pos.
+   rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+ nra.
+Qed.
 
- f(sqrt 2) - f root < 0
- f
-
-Lemma Three : Case1 \/ Case2 \/ Case2 \/ Case3 \/ Case4 \/ Case5 \/ Case6.
+Lemma fps_1123 : fps' 2 = 2%Z -> fps' 3 = 3%Z -> Case6.
 Proof.
-Admitted.
-*)
+ destruct fps_0_1 as (H0,H1). intros H2 H3. split.
+ { unfold take. simpl. now rewrite H0, H1, H2, H3. }
+ assert (L4 : (3 <= fps' 4)%Z). { rewrite <- H3. apply (Two 4). }
+ assert (L45 : (fps' 4 <= fps' 5)%Z). { apply (Two 5). }
+ assert (LE := Ineq8' 6 lia).
+ cbn -[Z.pow] in LE. rewrite H0, H1, H2, H3 in LE.
+ assert (LE' : (fps' 4 ^2 + fps' 5 ^2 <= 48)%Z) by lia. clear LE.
+ assert (U4 : (fps' 4 <= 4)%Z).
+ { assert (A : (fps' 4 <> 6)%Z). { intros A. rewrite A in LE', L45. lia. }
+   assert (B : (fps' 4 <> 5)%Z). { intros B. rewrite B in LE', L45. lia. }
+   lia. }
+ assert (U5 : (fps' 5 <= 6)%Z) by lia.
+ assert (U5b : (fps' 4 = 4 -> fps' 5 <= 5)%Z) by lia.
+ assert (U5c : (fps' 4 = 3 -> fps' 5 = 6 -> False)%Z).
+ { intros H4 H5.
+   generalize (Ineq9 4 lia). unfold phi, C, B, A.
+   cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4, H5.
+   cbn - [pow].
+   generalize (discriminant_neg 23 (-2*36) 59 ltac:(lra) ltac:(lra) root).
+   lra. }
+ simpl. rewrite !pair_equal_spec. lia.
+Qed.
+
+Lemma fps_1112 : fps' 2 = 1%Z -> fps' 3 = 2%Z -> Case2 \/ Case3 \/ Case5.
+Proof.
+ destruct fps_0_1 as (H0,H1). intros H2 H3.
+ (* Not in the Siegel article, but necessary : $b_4 <= 4$.
+    Without that, the inequality $b_4^2+18-4(b_4+2)√2 >= 34 - 24√2$
+    cannot be established with just $b_4 >= 4$, it needs $b_4 = 4$.
+    (or maybe via a function study of $b_4^2+18-4(b_4+2)√2$ ?) *)
+ assert (LE := Ineq8' 5 lia).
+ cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3 in LE.
+ assert (H4 : (fps' 4 <= 4)%Z) by lia. clear LE.
+ destruct (Z.eq_dec (fps' 4) 4) as [H4'|H4'].
+ - exfalso. clear H4.
+   generalize (Ineq9 3 lia). unfold phi, C, B, A.
+   cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4'. cbn -[pow].
+   replace (2*12)%R with 24%R by lra.
+   set (f := (fun x => 6*x^2-24*x+22)%R).
+   set (df := (fun x => 12*x - 24)%R).
+   change (f root <= 0 -> False).
+   destruct (MVT_weak f df root (sqrt 2)) as (c & Hc & E).
+   { intros x _. unfold f, df. auto_derive; trivial. ring. }
+   { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+     rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+   assert (sqrt 2 < 2).
+   { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+     rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+   assert (LT : df c < 0).
+   { unfold df. lra. }
+   assert (LT' : 0 < f (sqrt 2)).
+   { unfold f. rewrite <- Rsqr_pow2, Rsqr_sqrt by lra.
+     assert (24*sqrt 2 < 34); try lra.
+     apply Rsqr_incrst_0; try nra.
+     2:{ apply Rmult_le_pos. lra. apply sqrt_pos. }
+     rewrite Rsqr_mult, Rsqr_sqrt, !Rsqr_pow2; lra. }
+   nra.
+ - assert (H4b : (fps' 4 = 2 \/ fps' 4 = 3)%Z).
+   { generalize (Two 4). simpl. lia. }
+   clear H4' H4. destruct H4b as [H4|H4].
+   + left. unfold Case2, take. simpl. congruence.
+   + right.
+     assert (LE := Ineq8' 6 lia).
+     cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4 in LE.
+     assert (H5 : (fps' 5 <= 6)%Z) by lia. clear LE.
+     destruct (Z.eq_dec (fps' 5) 6) as [H5'|H5'].
+     * exfalso. clear H5.
+       generalize (Ineq9 4 lia). unfold phi, C, B, A.
+       cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4, H5'. cbn -[pow].
+       replace (2*28)%R with 56%R by lra.
+       set (f := (fun x => 15*x^2-56*x+51)%R).
+       set (df := (fun x => 30*x - 56)%R).
+       change (f root <= 0 -> False).
+       destruct (MVT_weak f df root (sqrt 2)) as (c & Hc & E).
+       { intros x _. unfold f, df. auto_derive; trivial. ring. }
+       { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+         rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+       assert (sqrt 2 < 1.5).
+       { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+         rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+       assert (LT : df c < 0).
+       { unfold df. lra. }
+       assert (LT' : 0 < f (sqrt 2)).
+       { unfold f. rewrite <- Rsqr_pow2, Rsqr_sqrt by lra.
+         assert (56*sqrt 2 < 81); try lra.
+         apply Rsqr_incrst_0; try nra.
+         2:{ apply Rmult_le_pos. lra. apply sqrt_pos. }
+         rewrite Rsqr_mult, Rsqr_sqrt, !Rsqr_pow2; lra. }
+       nra.
+     * assert (H5b : (fps' 5 = 3 \/ fps' 5 = 4 \/ fps' 5 = 5)%Z).
+       { generalize (Two 5). simpl. lia. }
+       clear H5' H5. rewrite <- or_assoc in H5b.
+       destruct H5b as [H5|H5].
+       ** left. unfold Case3, take. split; try lia. simpl. congruence.
+       ** right. unfold Case5, take. split. simpl; congruence.
+          assert (LE := Ineq8' 7 lia).
+          cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4, H5 in LE.
+          assert (H6 : (fps' 6 <= 9)%Z) by lia. clear LE.
+          destruct (Z.le_gt_cases 8 (fps' 6)) as [H6'|H6'].
+          2:{ generalize (Two 6). simpl. lia. }
+          exfalso.
+          generalize (Ineq9 5 lia). unfold phi, C, B, A.
+          cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4, H5.
+          change (_+5^2)%Z with 40%Z.
+          change (_+3*5)%Z with 25%Z.
+          rewrite !plus_IZR, mult_IZR.
+          change 2%Z with (Z.of_nat 2)%Z at 2. rewrite <- pow_IZR.
+          set (b6 := fps' 6) in *.
+          apply IZR_le in H6'.
+          set (f := (fun x => 40*x^2-2*(25+5*b6)*x+(40+b6^2))%R).
+          set (df := (fun x => 80*x - 2*(25+5*b6))%R).
+          change (f root <= 0 -> False).
+          destruct (MVT_weak f df root (sqrt 2)) as (c & Hc & E).
+          { intros x _. unfold f, df. auto_derive; trivial. ring. }
+          { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+            rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+          assert (sqrt 2 < 1.5).
+          { apply Rsqr_incrst_0; try lra'; try apply sqrt_pos.
+            rewrite Rsqr_sqrt, Rsqr_pow2; lra. }
+          assert (LT : df c < 0).
+          { unfold df. lra. }
+          assert (LT' : 0 < f (sqrt 2)).
+          { unfold f. rewrite <- Rsqr_pow2, Rsqr_sqrt by lra.
+            assert ((50+10*b6)*sqrt 2 < 120+b6^2); try lra.
+            apply Rsqr_incrst_0; try nra.
+            2:{ apply Rmult_le_pos. lra. apply sqrt_pos. }
+            rewrite Rsqr_mult, Rsqr_sqrt, !Rsqr_pow2 by lra.
+            apply le_IZR in H6'.
+            assert (B6 : (b6 = 8 \/ b6 = 9)%Z) by lia.
+            destruct B6 as [-> | ->]. lra. lra. }
+       nra.
+Qed.
+
+Lemma Three : Case1 \/ Case2 \/ Case3 \/ Case4 \/ Case5 \/ Case6.
+Proof.
+ destruct fps_0_1 as (H0,H1).
+ assert (H2 : (fps' 2 = 1 \/ fps' 2 = 2)%Z) by (generalize fps_2; lia).
+ destruct H2 as [H2|H2].
+ - assert (H3 : (fps' 3 = 1 \/ fps' 3 = 2)%Z).
+   { generalize fps_no_1113 fps_3; lia. }
+   destruct H3 as [H3|H3].
+   + left. unfold Case1, take. simpl. congruence.
+   + generalize (fps_1112 H2 H3). tauto.
+ - assert (H3 : (fps' 3 = 2 \/ fps' 3 = 3)%Z).
+    { generalize (Two 3) fps_3; simpl; lia. }
+    destruct H3 as [H3|H3].
+    + do 3 right; left. unfold Case4, take. simpl. congruence.
+    + do 5 right. now apply fps_1123.
+Qed.
 
 End Siegel.
 
