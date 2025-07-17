@@ -3038,8 +3038,6 @@ Let B n (x:C) := sum_n (fun m => beta m * x^m) n.
 Let mu (l : list Z) := big_sum (fun m => (nth m l Z0)^2)%Z (length l).
 Variable k:nat.
 Let Bkpoly := take (S k) beta.
-Hypothesis Hyp1 : (mu A <= mu Bkpoly)%Z.
-Hypothesis Hyp2 : Cmod (B k root) < root^k / (root - /root + sqrt (root^2-1)).
 
 Lemma Bkpoly_ok x : Peval (Zpoly Bkpoly) x = B k x.
 Proof.
@@ -3234,6 +3232,24 @@ Proof.
  apply C_CV_radius_minorant. intros; eexists; now apply vr1ps_ok.
 Qed.
 
+Lemma vr1ps_0 : vr1ps 0 = 1.
+Proof.
+ unfold vr1ps, CPS_mult. simpl. rewrite sum_O; lca.
+Qed.
+
+Lemma vr1ps_alt n : n<>O -> vr1ps n = (1-root^2)/root^n.
+Proof.
+ intros Hn.
+ unfold vr1ps, CPS_mult. rewrite <- big_sum_sum_n.
+ destruct n as [|n]; try easy.
+ rewrite <- !big_sum_extend_l. change Gplus with Cplus.
+ rewrite big_sum_0.
+ 2:{ intros x. unfold PS_poly, coef. rewrite nth_overflow. lca. simpl; lia. }
+ rewrite Cplus_0_r. unfold PS_poly, coef. simpl nth.
+ unfold PS_pow. simpl. rewrite Nat.sub_0_r, !Cpow_inv. field.
+ split; try apply Cpow_nz; intros [=H]; lra'.
+Qed.
+
 Lemma gamma_ok x : Cmod x <= 1 -> is_CPowerSeries gamma x (vB x).
 Proof.
  intros Hx.
@@ -3283,6 +3299,52 @@ Proof.
      apply beta_radius.
 Qed.
 
+Lemma big_sum_rev (a : nat -> C) n :
+ big_sum a n = big_sum (fun k => a (n-1-k)%nat) n.
+Proof.
+ induction n; try easy.
+ rewrite <- big_sum_extend_r, <- big_sum_extend_l. change Gplus with Cplus.
+ replace (S n - 1 -0)%nat with n by lia. rewrite Cplus_comm. f_equal.
+ rewrite IHn. apply big_sum_eq_bounded. intros x Hx. f_equal. lia.
+Qed.
+
+Lemma gamma_alt n : (n>k)%nat -> gamma n = (1-root^2)/root^n * B k root.
+Proof.
+ intros Hn.
+ unfold gamma. unfold CPS_mult.
+ rewrite <- big_sum_sum_n, <- big_sum_extend_l.
+ change Gplus with Cplus.
+ unfold PS_poly.
+ rewrite coef_Zpoly, Nat.sub_0_r, nth_overflow, Cmult_0_r, Cplus_0_l.
+ 2:{ unfold Bkpoly. now rewrite take_length. }
+ erewrite big_sum_eq_bounded.
+ 2:{ intros m Hm. rewrite vr1ps_alt by lia. unfold Cdiv.
+     rewrite <- Cmult_assoc. reflexivity. }
+ rewrite <- big_sum_Cmult_l.
+ unfold Cdiv. rewrite <- Cmult_assoc. f_equal.
+ apply Cmult_eq_reg_l with (root^n).
+ 2:{ apply Cpow_nz. intros [=H]; lra'. }
+ rewrite Cmult_assoc, Cinv_r, Cmult_1_l.
+ 2:{ apply Cpow_nz. intros [=H]; lra'. }
+ rewrite big_sum_Cmult_l. unfold B.
+ rewrite big_sum_rev.
+ erewrite big_sum_eq_bounded.
+ 2:{ intros x Hx.
+     rewrite Cmult_assoc.
+     replace (root^n * _) with (root^x).
+     2:{ replace (S _) with (n-x)%nat by lia.
+         replace n with (n-x+x)%nat at 1 by lia.
+         rewrite Cpow_add. field. apply Cpow_nz. intros [=H]; lra'. }
+     replace (n - S (_ - _))%nat with x by lia.
+     rewrite coef_Zpoly, Cmult_comm. reflexivity. }
+ replace n with (S k+(n-S k))%nat by lia.
+ rewrite big_sum_sum. rewrite big_sum_sum_n. rewrite big_sum_0.
+ 2:{ intros x. rewrite nth_overflow. apply Cmult_0_l. unfold Bkpoly.
+     rewrite take_length; lia. }
+ rewrite Cplus_0_r. apply sum_n_ext_loc.
+ intros m Hm. f_equal. unfold Bkpoly. now rewrite take_nth by lia.
+Qed.
+
 Lemma alpha_gamma_init n : (n <= k)%nat -> alpha n = gamma n.
 Proof.
  intros Hn.
@@ -3297,9 +3359,7 @@ Proof.
  rewrite alpha_alt. unfold gamma. unfold CPS_mult.
  rewrite <- !big_sum_sum_n.
  do 2 rewrite <- (big_sum_extend_l (S k)). change Gplus with Cplus.
- rewrite Nat.sub_0_r.
- replace (vr1ps 0) with 1.
- 2:{ unfold vr1ps, CPS_mult. simpl. rewrite sum_O; lca. }
+ rewrite Nat.sub_0_r, vr1ps_0.
  rewrite Cmult_1_l. f_equal.
  unfold PS_poly. rewrite coef_Zpoly. rewrite nth_overflow.
  2:{ unfold Bkpoly. now rewrite take_length. }
@@ -3327,6 +3387,62 @@ Proof.
    apply gamma_radius.
  - intros z Hz. symmetry. apply CPowerSeries_unique, gamma_ok; lra.
 Qed.
+
+Definition alpha' := Re∘alpha.
+Definition gamma' := Re∘gamma.
+
+Lemma alpha_real n : alpha n = alpha' n.
+Proof.
+ rewrite <- (re_im_id (alpha n)).
+ unfold alpha at 2.
+ rewrite CPS_mult_real. now rewrite Cmult_0_r, Cplus_0_r.
+ { intros m. unfold PS_poly. now rewrite coef_Zpoly. }
+ { intros m. now rewrite grps_real. }
+Qed.
+
+Lemma gamma_real n : gamma n = gamma' n.
+Proof.
+ rewrite <- (re_im_id (gamma n)).
+ unfold gamma at 2.
+ rewrite CPS_mult_real. now rewrite Cmult_0_r, Cplus_0_r.
+ { intros m. unfold vr1ps. apply CPS_mult_real.
+   - intros m'. unfold PS_poly, coef.
+     destruct m' as [|[|[|m']]]; simpl; try lra.
+   - intros m'. unfold PS_pow. now ctor. }
+ { intros m. unfold PS_poly. now rewrite coef_Zpoly. }
+Qed.
+
+Lemma alpha_square_real :
+ CSeries (fun n => (alpha n)^2) = Series (fun n => (alpha' n)^2)%R.
+Proof.
+ rewrite <- CSeries_RtoC.
+ - apply CSeries_ext. intros n. unfold "∘". rtoc. f_equal. apply alpha_real.
+ - apply ex_series_square.
+   apply ex_series_ext with (Cmod∘alpha).
+   { intros n. unfold "∘". now rewrite <- Cmod_R, <- alpha_real. }
+   rewrite <- ex_pseries_1.
+   apply CV_radius_inside.
+   rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
+   apply alpha_radius.
+Qed.
+
+Lemma gamma_square_real :
+ CSeries (fun n => (gamma n)^2) = Series (fun n => (gamma' n)^2)%R.
+Proof.
+ rewrite <- CSeries_RtoC.
+ - apply CSeries_ext. intros n. unfold "∘". rtoc. f_equal. apply gamma_real.
+ - apply ex_series_square.
+   apply ex_series_ext with (Cmod∘gamma).
+   { intros n. unfold "∘". now rewrite <- Cmod_R, <- gamma_real. }
+   rewrite <- ex_pseries_1.
+   apply CV_radius_inside.
+   rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
+   apply gamma_radius.
+Qed.
+
+Hypothesis Hyp1 : (mu A <= mu Bkpoly)%Z.
+Hypothesis Hyp2 :
+  Cmod (B k root) / root^k * (root - /root + sqrt (root^2-1)) < 1.
 
 (*
 Lemma Four : B k root = 0.
