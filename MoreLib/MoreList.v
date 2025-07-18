@@ -1593,3 +1593,12 @@ Proof.
  revert l2. induction l1; destruct l2; simpl; rewrite ?app_nil_r; try easy.
  apply perm_skip. rewrite IHl1. apply Permutation_middle.
 Qed.
+
+Local Open Scope program_scope. (* notation ∘ for Basics.compose *)
+
+Lemma existsb_negb_forallb {A} f (l:list A) :
+  existsb f l = negb (forallb (negb∘f) l).
+Proof.
+ induction l; simpl; trivial. rewrite IHl.
+ unfold "∘". now destruct (f a), forallb.
+Qed.

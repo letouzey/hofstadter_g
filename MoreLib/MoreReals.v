@@ -825,3 +825,9 @@ Lemma exp_1_lt_3 : exp 1 < 3.
 Proof.
  generalize exp_1_itvl. lra.
 Qed.
+
+Lemma sqrt2_approx : 1.414 < sqrt 2 < 1.415.
+Proof.
+ split; apply Rsqr_incrst_0; try lra; try apply sqrt_pos;
+  rewrite Rsqr_sqrt, Rsqr_pow2; lra.
+Qed.

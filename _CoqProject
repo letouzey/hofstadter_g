@@ -21,6 +21,7 @@ MoreLib/MoreSum.v
 MoreLib/MoreIntegral.v
 MoreLib/MoreLim.v
 MoreLib/MorePoly.v
+MoreLib/IntPoly.v
 MoreLib/FlexArray.v
 Fib.v
 FunG.v
@@ -51,3 +52,4 @@ Article1.v
 Article2.v
 Equidistrib.v
 F3bis.v
+Siegel.v

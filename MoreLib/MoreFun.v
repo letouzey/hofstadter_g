@@ -1,4 +1,4 @@
-From Coq Require Import Arith Lia.
+From Coq Require Import Basics Arith Lia.
 
 (** Notation for function iteration *)
 

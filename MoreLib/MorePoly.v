@@ -240,6 +240,12 @@ Proof.
  cbn. lca.
 Qed.
 
+Lemma Peval_0 p : Peval p 0 = coef 0 p.
+Proof.
+ destruct p; try easy.
+ rewrite cons_eval. rewrite Cmult_0_l, Cplus_0_r. now unfold coef.
+Qed.
+
 Lemma topcoef_monom c k : topcoef (monom c k) = c.
 Proof.
  destruct (Ceq_dec c 0); subst.
@@ -581,6 +587,11 @@ Proof.
    rewrite Peq0_cons; intuition.
 Qed.
 
+Lemma const_degree a : degree [a] = 0%nat.
+Proof.
+ rewrite degree_cons. destruct Peq_0_dec as [E|N]; trivial. now destruct N.
+Qed.
+
 Lemma topcoef_cons c p :
  topcoef (c::p) = if Peq_0_dec p then c else topcoef p.
 Proof.
@@ -672,6 +683,19 @@ Proof.
      now rewrite Cmult_1_r in M. }
    destruct (IHd q) as (l & Hl); try easy.
    exists (c::l). now rewrite Hq, Hl.
+Qed.
+
+Lemma All_roots' (p : Polynomial) :
+  exists l : list C, p ≅ [topcoef p] *, linfactors l.
+Proof.
+ destruct (Ceq_dec (topcoef p) 0) as [E|N].
+ - exists []. simpl. rewrite E. rewrite Cmult_0_l, Cplus_0_l.
+   rewrite C0_Peq_nil. now apply topcoef_0_iff.
+ - destruct (All_roots ([/topcoef p]*,p)) as (l & E).
+   { red. rewrite topcoef_mult, topcoef_singl. now field. }
+   exists l. rewrite <- E. rewrite <- Pmult_assoc.
+   replace ([_]*,[_]) with [1]. now rewrite ?Pmult_1_l.
+   simpl. f_equal. now field.
 Qed.
 
 Lemma linfactors_app l1 l2 :
@@ -1127,6 +1151,27 @@ Proof.
  unfold Cdiv. rewrite Cinv_inv. rewrite Cmult_assoc. f_equal.
  rewrite Cmult_assoc, (Cmult_comm (Peval _ 0)), revfactors_at_0; trivial.
  lca.
+Qed.
+
+Lemma reciprocal_linfactors_cons a l :
+ ~In 0 (a::l) ->
+ Peq (reciprocal (linfactors (a::l)))
+     ([1;-a] *, reciprocal (linfactors l)).
+Proof.
+ intros H.
+ rewrite !reciprocal_revfactors; trivial.
+ 2:{ simpl in H. tauto. }
+ unfold revfactors. simpl linfactors.
+ rewrite Pmult_eval. rewrite (Peval_0 [_;_]).
+ unfold coef. simpl nth.
+ replace [_*_] with ([Peval (linfactors l) 0]*,[-a]).
+ 2:{ simpl. f_equal. ring. }
+ rewrite <- (Pmult_assoc [1;-a]), (Pmult_comm [1;-a]), !Pmult_assoc.
+ apply Pmult_eq_compat; try easy.
+ rewrite <- (Pmult_assoc [-a]), (Pmult_comm [-a]), (Pmult_comm [1;-a]).
+ rewrite Pmult_assoc. apply Pmult_eq_compat; try easy.
+ simpl. apply eq_Peq. f_equal. field. simpl in H. tauto.
+ now rewrite Cmult_1_r.
 Qed.
 
 (** Partial fraction decomposition for 1/P when P has simple roots *)

@@ -505,7 +505,23 @@ Proof.
    now rewrite !sum_Sn.
 Qed.
 
-(** QuantumLib's big_sum *)
+(** QuantumLib's big_sum, for Z or R or C *)
+
+Global Program Instance Z_is_monoid : Monoid Z :=
+ { Gzero := Z0 ; Gplus := Z.add }.
+Solve All Obligations with lia.
+
+Lemma big_sum_IZR (f : nat -> Z) n :
+ IZR (big_sum f n) = big_sum (IZR∘f) n.
+Proof.
+ induction n; simpl; trivial. now rewrite plus_IZR, IHn.
+Qed.
+
+Lemma big_sum_RtoC (f : nat -> R) n :
+ RtoC (big_sum f n) = big_sum (RtoC∘f) n.
+Proof.
+ induction n; simpl; trivial. now rewrite RtoC_plus, IHn.
+Qed.
 
 Lemma big_sum_INR (f : nat -> nat) n :
   INR (big_sum f n) = big_sum (INR ∘ f) n.
