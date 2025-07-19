@@ -1082,7 +1082,7 @@ Proof.
  now rewrite sum_n_n, <- Cmod_norm in HN.
 Qed.
 
-Lemma is_series_shift (a : nat -> C) l :
+Lemma is_series_incr_1' (a : nat -> C) l :
   is_series a l <-> is_series (a∘S) (l - a O).
 Proof.
  split; intros H.
@@ -1103,50 +1103,31 @@ Proof.
    apply is_lim_Cseq_plus; trivial. apply is_lim_Cseq_const.
 Qed.
 
-Lemma ex_series_shift (a : nat -> C) : ex_series a <-> ex_series (a∘S).
-Proof.
- split.
- - intros (l & H). exists (l - a O). now rewrite <- is_series_shift.
- - intros (l & H). replace l with (l + a O - a O) in H by ring.
-   rewrite <- is_series_shift in H. eexists; eauto.
-Qed.
-
-Lemma CSeries_shift (a : nat -> C) :
+Lemma CSeries_incr_1 (a : nat -> C) :
  ex_series a -> CSeries a = a O + CSeries (a∘S).
 Proof.
- intros. apply CSeries_unique. rewrite is_series_shift.
+ intros. apply CSeries_unique. rewrite is_series_incr_1'.
  replace (_+_-_) with (CSeries (a∘S)) by ring.
- apply CSeries_correct. now rewrite <- ex_series_shift.
+ apply CSeries_correct. unfold "∘". now rewrite <- ex_series_incr_1.
 Qed.
 
-Lemma is_series_shiftn (a : nat -> C) l (N:nat) :
-  is_series a l <-> is_series (fun n => a (n+N)%nat) (l - big_sum a N).
+Lemma is_series_incr_n' (a : nat -> C) l (n:nat) :
+  is_series a l <-> is_series (fun k => a (n+k)%nat) (l - big_sum a n).
 Proof.
- revert a l. induction N.
- - intros a l. simpl. replace (l-0) with l by lca.
-   split; apply is_series_ext; intros n; now rewrite Nat.add_0_r.
- - intros a l. rewrite is_series_shift, IHN.
+ revert a l. induction n.
+ - intros a l. simpl. replace (l-0) with l by lca. easy.
+ - intros a l. rewrite is_series_incr_1', IHn.
    rewrite <- big_sum_extend_l. change Gplus with Cplus.
-   replace (l - (_+_)) with (l - a O - big_sum (fun n => a (S n)) N)
-    by ring.
-   split; apply is_series_ext; intros n; unfold "∘"; f_equal; lia.
+   replace (l - (_+_)) with (l - a O - big_sum (fun k => a (S k)) n) by ring.
+   easy.
 Qed.
 
-Lemma ex_series_shiftn (a : nat -> C) (N:nat) :
-  ex_series a <-> ex_series (fun n => a (n+N)%nat).
+Lemma CSeries_incr_n (a : nat -> C) (n:nat) :
+ ex_series a -> CSeries a = big_sum a n + CSeries (fun k => a (n+k)%nat).
 Proof.
- split.
- - intros (l & H). exists (l - big_sum a N). now rewrite <- is_series_shiftn.
- - intros (l & H). replace l with (l + big_sum a N - big_sum a N) in H by ring.
-   rewrite <- is_series_shiftn in H. eexists; eauto.
-Qed.
-
-Lemma CSeries_shiftn (a : nat -> C) (N:nat) :
- ex_series a -> CSeries a = big_sum a N + CSeries (fun n => a (n+N)%nat).
-Proof.
- intros. apply CSeries_unique. rewrite is_series_shiftn with (N:=N).
- replace (_+_-_) with (CSeries (fun n => a (n+N)%nat)) by ring.
- apply CSeries_correct. now rewrite <- ex_series_shiftn.
+ intros. apply CSeries_unique. rewrite is_series_incr_n' with (n:=n).
+ replace (_+_-_) with (CSeries (fun k => a (n+k)%nat)) by ring.
+ apply CSeries_correct. now rewrite <- ex_series_incr_n.
 Qed.
 
 Local Open Scope R.
@@ -1339,6 +1320,19 @@ Proof.
  split; apply is_series_ext. apply E. intros n; now rewrite E.
 Qed.
 
+Lemma is_CPowerSeries_ext a b z l :
+  (forall n, a n = b n) -> is_CPowerSeries a z l -> is_CPowerSeries b z l.
+Proof.
+ rewrite !is_CPowerSeries_alt. apply is_pseries_ext.
+Qed.
+
+Lemma is_pseries_1 (a : nat -> R) (l : R) :
+ is_pseries a 1%R l <-> is_series a l.
+Proof.
+ unfold is_pseries. change pow_n with pow. change scal with Rmult.
+ split; apply is_series_ext; intros n; rewrite pow1; lra.
+Qed.
+
 Lemma ex_CPowerSeries_alt a z : ex_CPowerSeries a z <-> ex_pseries a z.
 Proof.
  split; intros (l & L); exists l; revert L; apply (is_CPowerSeries_alt a z l).
@@ -1416,107 +1410,6 @@ Proof.
  apply sum_n_m_le. intros k. now apply Cmod_prod_aux.
 Qed.
 
-Definition PS_geom r := fun n => r^S n.
-
-Lemma is_powerseries_invlin r x : r<>0 -> Cmod (r*x) < 1 ->
- is_CPowerSeries (PS_geom r) x (/ (/r - x)).
-Proof.
- intros Hr Hx. unfold PS_geom.
- apply is_lim_Cseq_ext with (fun n => (1 - (r*x)^S n)/(/r-x)).
- { intros n. rewrite <- (Cmult_1_l (sum_n _ _)).
-   rewrite <- (Cinv_l (/r-x)) at 2.
-   2:{ intros E. apply Ceq_minus in E.
-       rewrite <- E, Cinv_r, Cmod_1 in Hx; trivial. lra. }
-   unfold Cdiv. rewrite Cmult_comm, <- Cmult_assoc. f_equal.
-   rewrite sum_n_ext with (b:=fun k => r * (r*x)^k).
-   2:{ intros k. now rewrite Cpow_S, Cpow_mult_l, Cmult_assoc. }
-   rewrite sum_n_Cmult_l, Cmult_assoc.
-   replace ((/r-x)*r) with (1-r*x) by now field.
-   symmetry. apply sum_n_Cpow. }
- unfold Cdiv. rewrite <- (Cmult_1_l (/(/r-x))) at 1.
- apply is_lim_Cseq_mult; [|apply is_lim_Cseq_const].
- replace 1 with (1-0) at 1 by lca.
- apply is_lim_Cseq_minus. apply is_lim_Cseq_const.
- apply is_lim_Cseq_0_Cmod.
- apply is_lim_seq_ext with (fun n => (Cmod (r*x))^S n)%R.
- - intros n. unfold compose. now rewrite Cmod_pow.
- - rewrite <- is_lim_seq_incr_1. apply is_lim_seq_geom.
-   now rewrite Rabs_right by apply Rle_ge, Cmod_ge_0.
-Qed.
-
-(** Delaying a sequence with extra initial zeros.
-    See also Coquelicot.PSeries.PS_incr_n someday. *)
-
-Definition delay {G:AbelianMonoid} (a:nat->G) p :=
-  fun n => if n <? p then zero else a (n-p)%nat.
-
-Lemma sum_n_delay {G:AbelianMonoid} (a:nat->G) p n :
-  sum_n (delay a p) (n+p) = sum_n a n.
-Proof.
- induction n.
- - rewrite Nat.add_0_l, sum_O.
-   destruct p.
-   + now rewrite sum_O.
-   + rewrite sum_Sn.
-     erewrite sum_n_ext_loc, sum_n_zero.
-     2:{ intros k K. unfold delay. case Nat.ltb_spec; easy || lia. }
-     unfold delay. simpl.
-     case Nat.ltb_spec; try lia. intros _.
-     replace (p-p)%nat with O by lia. apply plus_zero_l.
- - simpl. rewrite !sum_Sn, IHn. f_equal. unfold delay.
-   case Nat.ltb_spec; try lia. intros _. f_equal. lia.
-Qed.
-
-Lemma delay_comp {G G':AbelianMonoid} (h:G->G') p (a:nat->G) :
- h zero = zero -> forall n, delay (h∘a) p n = h (delay a p n).
-Proof.
- intros H n. unfold delay. now case Nat.ltb.
-Qed.
-
-Lemma delay_series_R p (a:nat->R) l :
-  is_series a l -> is_series (delay a p) l.
-Proof.
- intros H.
- change (is_lim_seq (sum_n (delay a p)) l).
- apply is_lim_seq_incr_n with (N:=p).
- eapply is_lim_seq_ext; [|apply H].
- intros n. symmetry. apply sum_n_delay.
-Qed.
-
-Lemma delay_powerseries_R p a x lim :
-  is_series (fun n => a n * x^n)%R lim ->
-  is_series (fun n => delay a p n * x^n)%R (x^p * lim)%R.
-Proof.
- intros H.
- rewrite is_series_alt.
- rewrite is_lim_seq_incr_n with (N:=p).
- apply is_lim_seq_ext with (fun n => x^p * sum_n (fun k => a k * x^k) n)%R.
- { intros n. rewrite <- (sum_n_mult_l (K:=R_AbsRing)).
-   rewrite <- sum_n_delay with (p:=p). apply sum_n_ext. clear n.
-   intros n. unfold delay. case Nat.ltb_spec; intros.
-   - change zero with R0. lra.
-   - change mult with Rmult.
-     rewrite !(Rmult_comm (a _)), <- Rmult_assoc, <- pow_add.
-     f_equal. f_equal. lia. }
- apply is_lim_seq_mult'; trivial using is_lim_seq_const.
-Qed.
-
-Lemma delay_powerseries p a z lim :
-  is_CPowerSeries a z lim ->
-  is_CPowerSeries (delay a p) z (z^p * lim).
-Proof.
- unfold is_CPowerSeries. intros H.
- rewrite is_lim_Cseq_incr_n with (N:=p).
- apply is_lim_Cseq_ext with (fun n => z^p * sum_n (fun k => a k * z^k) n).
- { intros n. rewrite <- sum_n_Cmult_l.
-   rewrite <- sum_n_delay with (p:=p). apply sum_n_ext. clear n.
-   intros n. unfold delay. case Nat.ltb_spec; intros.
-   - change zero with 0. lca.
-   - rewrite Cmult_assoc, (Cmult_comm (z^p)), <- Cmult_assoc. f_equal.
-     rewrite <- Cpow_add. f_equal. lia. }
- apply is_lim_Cseq_mult; trivial using is_lim_Cseq_const.
-Qed.
-
 (** Convergence disk and radius for C power series *)
 
 Definition C_CV_disk (a : nat -> C) (r : C) :=
@@ -1537,6 +1430,13 @@ Lemma C_CV_radius_alt a : C_CV_radius a = CV_radius (Cmod∘a).
 Proof.
  unfold C_CV_radius, CV_radius. apply Lub.Lub_Rbar_eqset.
  intros x. now rewrite C_CV_disk_alt, Cmod_R, <- CV_disk_rabs.
+Qed.
+
+Lemma C_CV_radius_ext a b :
+ (forall n, a n = b n) -> C_CV_radius a = C_CV_radius b.
+Proof.
+ rewrite !C_CV_radius_alt. intros E. apply CV_radius_ext.
+ intros. unfold "∘". f_equal. apply E.
 Qed.
 
 Lemma C_CV_disk_correct (a : nat -> C) (z : C) :
@@ -1710,34 +1610,84 @@ Proof.
    + destruct L as (eps & L). exists eps. apply L.
 Qed.
 
-(** Addition and multiplication of C power series *)
+(** Power series and polynomial *)
+
+Definition PS_poly (P:Polynomial) := fun n => coef n P.
+
+Lemma PS_poly_ok (P:Polynomial) z :
+  is_CPowerSeries (PS_poly P) z (Peval P z).
+Proof.
+ red. apply is_lim_Cseq_ext_loc with (fun _ => Peval P z).
+ 2:apply is_lim_Cseq_const.
+ exists (length P); intros n Hn. unfold PS_poly, coef.
+ unfold Peval.
+ rewrite <- big_sum_sum_n.
+ replace (S n) with (length P + (S n - length P))%nat by lia.
+ rewrite big_sum_sum.
+ rewrite <- (Cplus_0_r (big_sum _ _)) at 1.
+ change Gplus with Cplus. f_equal. symmetry.
+ apply (@big_sum_0 C). intros x.
+ change Gzero with 0.
+ rewrite nth_overflow; try lca. lia.
+Qed.
+
+Lemma PS_poly_radius p : C_CV_radius (PS_poly p) = Rbar.p_infty.
+Proof.
+ assert (H : forall x, Rbar.Rbar_le (Cmod x) (C_CV_radius (PS_poly p))).
+ { intros x. rewrite C_CV_radius_radius'. apply Lub_Rbar_ub.
+   exists x; split; trivial. eexists. apply PS_poly_ok. }
+ destruct (C_CV_radius (PS_poly p)) as [x | | ]; trivial; exfalso.
+ - specialize (H (Rabs x + 1)%R). simpl in H.
+   rewrite Cmod_R in H.
+   destruct (Rle_lt_dec 0 x).
+   + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
+   + generalize (Rabs_pos (Rabs x + 1)); lra.
+ - apply (H 0).
+Qed.
+
+(** Basic constants for C Power Series *)
+
+Definition PS_zero (n:nat) := 0.
+
+Definition PS_zero_alt n : PS_zero n = PS_poly [] n.
+Proof.
+ now destruct n.
+Qed.
+
+Lemma PS_zero_ok z : is_CPowerSeries PS_zero z 0.
+Proof.
+ apply is_CPowerSeries_ext with (PS_poly []).
+ { intros n. symmetry. apply PS_zero_alt. }
+ change 0 with (Peval [] z). apply PS_poly_ok.
+Qed.
+
+Lemma PS_zero_radius : C_CV_radius PS_zero = Rbar.p_infty.
+Proof.
+ erewrite C_CV_radius_ext; [|apply PS_zero_alt]. apply PS_poly_radius.
+Qed.
+
+Definition PS_one n := match n with O => 1 | _ => 0 end.
+
+Definition PS_one_alt n : PS_one n = PS_poly [1] n.
+Proof.
+ now destruct n as [|[|n]].
+Qed.
+
+Lemma PS_one_ok z : is_CPowerSeries PS_one z 1.
+Proof.
+ apply is_CPowerSeries_ext with (PS_poly [1]).
+ { intros n. symmetry. apply PS_one_alt. }
+ rewrite <- (Pconst_eval 1 z) at 2. apply PS_poly_ok.
+Qed.
+
+Lemma PS_one_radius : C_CV_radius PS_one = Rbar.p_infty.
+Proof.
+ erewrite C_CV_radius_ext; [|apply PS_one_alt]. apply PS_poly_radius.
+Qed.
+
+(** Addition of C power series *)
 
 Definition CPS_plus : (nat->C) -> (nat->C) -> (nat->C) := PS_plus (V:=C_NM).
-Definition CPS_mult (a b : nat->C) (n:nat) : C :=
-  sum_n (fun k => a k * b (n - k)%nat) n.
-
-Lemma CPS_mult_eqn a b n :
- CPS_mult a b n = (PS_mult (Re∘a) (Re∘b) n - PS_mult (Im∘a) (Im∘b) n,
-                   PS_mult (Re∘a) (Im∘b) n + PS_mult (Im∘a) (Re∘b) n)%R.
-Proof.
- unfold CPS_mult, PS_mult.
- rewrite <- !sum_n_Reals.
- rewrite sum_n_proj; f_equal.
- - unfold "∘". simpl. rewrite sum_n_Rminus. now apply sum_n_ext.
- - unfold "∘". simpl. rewrite sum_n_Rplus. now apply sum_n_ext.
-Qed.
-
-Lemma CPS_mult_scal (a b : nat -> C) (z : C) n :
-  CPS_mult (fun k : nat => scal (pow_n z k) (a k))
-           (fun k : nat => scal (pow_n z k) (b k)) n =
-  scal (pow_n z n) (CPS_mult a b n).
-Proof.
- unfold CPS_mult, PS_mult.
- change pow_n with Cpow. change scal with Cmult.
- rewrite <- sum_n_Cmult_l. apply sum_n_ext_loc.
- intros k Hk. replace n with (k+(n-k))%nat at 3 by lia.
- rewrite Cpow_add_r. fixeq C. ring.
-Qed.
 
 Lemma is_CPS_plus (a b : nat->C) (z la lb : C) :
   is_CPowerSeries a z la -> is_CPowerSeries b z lb
@@ -1805,11 +1755,38 @@ Proof.
    rewrite C_CV_radius_alt. apply CV_radius_ge_0.
 Qed.
 
-Lemma is_pseries_1 (a : nat -> R) (l : R) :
- is_pseries a 1%R l <-> is_series a l.
+Lemma C_CV_radius_opp (a : nat -> C) :
+  C_CV_radius (PS_opp a) = C_CV_radius a.
 Proof.
- unfold is_pseries. change pow_n with pow. change scal with Rmult.
- split; apply is_series_ext; intros n; rewrite pow1; lra.
+ rewrite !C_CV_radius_alt. apply CV_radius_ext. intros n. apply Cmod_opp.
+Qed.
+
+(** Multiplication of C power series *)
+
+Definition CPS_mult (a b : nat->C) (n:nat) : C :=
+  sum_n (fun k => a k * b (n - k)%nat) n.
+
+Lemma CPS_mult_eqn a b n :
+ CPS_mult a b n = (PS_mult (Re∘a) (Re∘b) n - PS_mult (Im∘a) (Im∘b) n,
+                   PS_mult (Re∘a) (Im∘b) n + PS_mult (Im∘a) (Re∘b) n)%R.
+Proof.
+ unfold CPS_mult, PS_mult.
+ rewrite <- !sum_n_Reals.
+ rewrite sum_n_proj; f_equal.
+ - unfold "∘". simpl. rewrite sum_n_Rminus. now apply sum_n_ext.
+ - unfold "∘". simpl. rewrite sum_n_Rplus. now apply sum_n_ext.
+Qed.
+
+Lemma CPS_mult_scal (a b : nat -> C) (z : C) n :
+  CPS_mult (fun k : nat => scal (pow_n z k) (a k))
+           (fun k : nat => scal (pow_n z k) (b k)) n =
+  scal (pow_n z n) (CPS_mult a b n).
+Proof.
+ unfold CPS_mult, PS_mult.
+ change pow_n with Cpow. change scal with Cmult.
+ rewrite <- sum_n_Cmult_l. apply sum_n_ext_loc.
+ intros k Hk. replace n with (k+(n-k))%nat at 3 by lia.
+ rewrite Cpow_add_r. fixeq C. ring.
 Qed.
 
 (** NB: is_series_mult coud have weaker preconditions, see Mertens thm. *)
@@ -1886,7 +1863,7 @@ Proof.
        apply re_sum_n. }
 Qed.
 
-Lemma CV_radius_scal (a : nat -> R) (r : R) :
+Lemma CV_radius_scalpow (a : nat -> R) (r : R) :
  0 < r ->
  CV_radius (fun n => scal (pow_n r n) (a n)) =
  Rbar.Rbar_mult (/r)%R (CV_radius a).
@@ -1917,13 +1894,13 @@ Proof.
    rewrite Rpow_mult_distr, pow_inv. field. apply pow_nonzero. lra.
 Qed.
 
-Lemma CV_radius_scal_lt (a : nat -> R) (r : R) :
+Lemma CV_radius_scalpow_lt (a : nat -> R) (r : R) :
  0 < r ->
  Rbar.Rbar_lt r (CV_radius a) ->
  Rbar.Rbar_lt 1%R (CV_radius (fun n => scal (pow_n r n) (a n))).
 Proof.
  intros Hr LT.
- rewrite CV_radius_scal; trivial.
+ rewrite CV_radius_scalpow; trivial.
  rewrite <- Rbar_lt_mult_div; trivial. simpl Rbar.Rbar_mult.
  rewrite Rmult_1_r; trivial.
 Qed.
@@ -1956,14 +1933,14 @@ Proof.
  apply is_series_mult; try now rewrite is_CPowerSeries_alt in *.
  - rewrite C_CV_radius_alt in *.
    erewrite CV_radius_ext.
-   apply (CV_radius_scal_lt (Cmod∘a)); eauto.
+   apply (CV_radius_scalpow_lt (Cmod∘a)); eauto.
    now apply Cmod_gt_0.
    intros k. unfold "∘".
    change (Cmod (z^k * a k) = Cmod z^k * Cmod (a k))%R.
    now rewrite <- Cmod_pow, <- Cmod_mult.
  - rewrite C_CV_radius_alt in *.
    erewrite CV_radius_ext.
-   apply (CV_radius_scal_lt (Cmod∘b)); eauto.
+   apply (CV_radius_scalpow_lt (Cmod∘b)); eauto.
    now apply Cmod_gt_0.
    intros k. unfold "∘".
    change (Cmod (z^k * b k) = Cmod z^k * Cmod (b k))%R.
@@ -2017,103 +1994,104 @@ Proof.
    rewrite C_CV_radius_alt. apply CV_radius_ge_0.
 Qed.
 
-(** Power series and polynomial *)
-
-Definition PS_poly (P:Polynomial) := fun n => coef n P.
-
-Lemma PS_poly_ok (P:Polynomial) z :
-  is_CPowerSeries (PS_poly P) z (Peval P z).
-Proof.
- red. apply is_lim_Cseq_ext_loc with (fun _ => Peval P z).
- 2:apply is_lim_Cseq_const.
- exists (length P); intros n Hn. unfold PS_poly, coef.
- unfold Peval.
- rewrite <- big_sum_sum_n.
- replace (S n) with (length P + (S n - length P))%nat by lia.
- rewrite big_sum_sum.
- rewrite <- (Cplus_0_r (big_sum _ _)) at 1.
- change Gplus with Cplus. f_equal. symmetry.
- apply (@big_sum_0 C). intros x.
- change Gzero with 0.
- rewrite nth_overflow; try lca. lia.
-Qed.
-
-Lemma PS_poly_radius p : C_CV_radius (PS_poly p) = Rbar.p_infty.
-Proof.
- assert (H : forall x, Rbar.Rbar_le (Cmod x) (C_CV_radius (PS_poly p))).
- { intros x. rewrite C_CV_radius_radius'. apply Lub_Rbar_ub.
-   exists x; split; trivial. eexists. apply PS_poly_ok. }
- destruct (C_CV_radius (PS_poly p)) as [x | | ]; trivial; exfalso.
- - specialize (H (Rabs x + 1)%R). simpl in H.
-   rewrite Cmod_R in H.
-   destruct (Rle_lt_dec 0 x).
-   + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
-   + generalize (Rabs_pos (Rabs x + 1)); lra.
- - apply (H 0).
-Qed.
-
 Lemma CPS_mult_poly q r n :
  CPS_mult (PS_poly q) (PS_poly r) n = PS_poly (Pmult q r) n.
 Proof.
  unfold CPS_mult, PS_poly. now rewrite Pmult_coef, big_sum_sum_n.
 Qed.
 
-Definition PS_one n := match n with O => 1 | _ => 0 end.
+(** Inverse function, obtained via successive powers as coefficients *)
 
-Lemma PS_one_ok z : is_CPowerSeries PS_one z 1.
+Definition PS_pow := Cpow.
+
+Lemma PS_pow_ok r x : Cmod (r*x) < 1 ->
+  is_CPowerSeries (PS_pow r) x (/(1-r*x)).
 Proof.
- red. apply is_lim_Cseq_ext_loc with (fun _ => 1).
- 2:apply is_lim_Cseq_const.
- exists 1%nat. intros [|n] Hn; try lia.
- rewrite <- big_sum_sum_n.
- replace (S (S n)) with (1+S n)%nat by lia.
- rewrite big_sum_sum. simpl. ring_simplify.
- rewrite (@big_sum_0 C); intros; lca.
+ destruct (Ceq_dec r 0) as [Hr|Hr].
+ { intros _.
+   rewrite is_CPowerSeries_alt. apply is_pseries_ext with PS_one.
+   { intros [|n]; simpl; trivial. subst; lca. }
+   rewrite <- is_CPowerSeries_alt. subst.
+   replace (/ (1 - _)) with 1 by field. apply PS_one_ok. }
+ intros Hx. unfold PS_pow.
+ apply is_lim_Cseq_ext with (fun n => (1 - (r*x)^S n)/(1-r*x)).
+ { intros n.
+   apply Cmult_eq_reg_r with (1-r*x).
+   2:{ intros E. apply Ceq_minus in E. rewrite <- E, Cmod_1 in Hx. lra. }
+   unfold Cdiv. rewrite <- Cmult_assoc, Cinv_l, Cmult_1_r.
+   2:{ intros E. apply Ceq_minus in E. rewrite <- E, Cmod_1 in Hx. lra. }
+   erewrite sum_n_ext.
+   2:{ intros m. symmetry. apply Cpow_mult_l. }
+   rewrite (Cmult_comm (sum_n _ _)). symmetry. apply sum_n_Cpow. }
+ unfold Cdiv. rewrite <- (Cmult_1_l (/(1-r*x))) at 1.
+ apply is_lim_Cseq_mult; [|apply is_lim_Cseq_const].
+ replace 1 with (1-0) at 1 by lca.
+ apply is_lim_Cseq_minus. apply is_lim_Cseq_const.
+ apply is_lim_Cseq_0_Cmod.
+ apply is_lim_seq_ext with (fun n => (Cmod (r*x))^S n)%R.
+ - intros n. unfold compose. now rewrite Cmod_pow.
+ - rewrite <- is_lim_seq_incr_1. apply is_lim_seq_geom.
+   now rewrite Rabs_right by apply Rle_ge, Cmod_ge_0.
 Qed.
 
-Lemma C_CV_radius_one : C_CV_radius PS_one = Rbar.p_infty.
-Proof.
- assert (H : forall x, Rbar.Rbar_le (Cmod x) (C_CV_radius PS_one)).
- { intros x. rewrite C_CV_radius_radius'. apply Lub_Rbar_ub.
-   exists x; split; trivial. exists 1. apply PS_one_ok. }
- destruct (C_CV_radius PS_one) as [x | | ]; trivial; exfalso.
- - specialize (H (Rabs x + 1)%R). simpl in H.
-   rewrite Cmod_R in H.
-   destruct (Rle_lt_dec 0 x).
-   + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
-   + generalize (Rabs_pos (Rabs x + 1)); lra.
- - apply (H 0).
-Qed.
-
-Definition PS_inv_linfactors (l:list C) :=
-  fold_right (fun r => CPS_mult (PS_opp (PS_geom (/r)))) PS_one l.
-
-Lemma C_CV_radius_opp (a : nat -> C) :
-  C_CV_radius (PS_opp a) = C_CV_radius a.
-Proof.
- rewrite !C_CV_radius_alt. apply CV_radius_ext.
- intros n. apply Cmod_opp.
-Qed.
-
-Lemma C_CV_radius_geom (r:C) : r<>0 ->
- C_CV_radius (PS_geom r) = (/Cmod r)%R.
+Lemma PS_pow_radius (r:C) : r<>0 -> C_CV_radius (PS_pow r) = (/Cmod r)%R.
 Proof.
  intros Hr.
  rewrite C_CV_radius_alt.
  apply CV_radius_finite_DAlembert.
- - intros n. unfold "∘", PS_geom.
+ - intros n. unfold "∘", PS_pow.
    rewrite Cmod_pow. apply pow_nonzero.
    rewrite (Cmod_gt_0 r) in Hr. lra.
  - now apply Cmod_gt_0.
- - unfold "∘", PS_geom.
+ - unfold "∘", PS_pow.
    eapply is_lim_seq_ext; try apply is_lim_seq_const.
    intros n; simpl. rewrite Cmod_mult.
    unfold Rdiv. rewrite Rmult_assoc, Rinv_r.
    + now rewrite Rmult_1_r, Rabs_pos_eq by apply Cmod_ge_0.
-   + change (Cmod (r^S n) <> 0)%R.
-     rewrite Cmod_pow. apply pow_nonzero.
+   + rewrite Cmod_pow. apply pow_nonzero.
      rewrite (Cmod_gt_0 r) in Hr. lra.
 Qed.
+
+Lemma PS_scal_radius (c:C)(a:nat->C) : c<>0 ->
+ C_CV_radius (PS_scal c a) = C_CV_radius a.
+Proof.
+ intros Hc.
+ rewrite !C_CV_radius_alt.
+ rewrite <- (CV_radius_scal (Cmod c) (Cmod∘a)).
+ 2:{ apply Cmod_gt_0 in Hc. lra. }
+ apply CV_radius_ext. intros n. unfold "∘".
+ unfold PS_scal. change scal with Cmult at 1. change scal with Rmult.
+ apply Cmod_mult.
+Qed.
+
+Definition PS_invlin (r:C) := PS_scal (-/r) (PS_pow (/r)).
+
+Lemma PS_invlin_ok r x : r<>0 -> Cmod x < Cmod r ->
+ is_CPowerSeries (PS_invlin r) x (/(x - r)).
+Proof.
+ intros Hr Hx. unfold PS_invlin.
+ replace (/(x-r)) with ((-/r)*(/(1-(/r)*x))).
+ 2:{ field. repeat split; try easy; rewrite <- Ceq_minus; intros ->; lra. }
+ rewrite is_CPowerSeries_alt.
+ apply (is_pseries_scal (V:=C_NormedModule)). apply Cmult_comm.
+ rewrite <- is_CPowerSeries_alt.
+ apply PS_pow_ok.
+ rewrite Cmod_mult, Cmod_inv. apply Rmult_lt_reg_l with (Cmod r).
+ now apply Cmod_gt_0.
+ rewrite <- Rmult_assoc, Rinv_r. lra. apply Cmod_gt_0 in Hr. lra.
+Qed.
+
+Lemma PS_invlin_radius (r:C) : r<>0 -> C_CV_radius (PS_invlin r) = Cmod r.
+Proof.
+ intros Hr. unfold PS_invlin. rewrite PS_scal_radius, PS_pow_radius.
+ - now rewrite Cmod_inv, Rinv_inv.
+ - now apply nonzero_div_nonzero.
+ - apply nonzero_div_nonzero in Hr. contradict Hr.
+   rewrite <- (Copp_involutive (/r)). rewrite Hr; lca.
+Qed.
+
+Definition PS_inv_linfactors (l:list C) :=
+  fold_right (fun r => CPS_mult (PS_invlin r)) PS_one l.
 
 Definition Rbar_minlist (l : list Rbar.Rbar) :=
   fold_right Rbar.Rbar_min Rbar.p_infty l.
@@ -2147,7 +2125,7 @@ Lemma PS_inv_linfactors_radius (l : list C) :
   Rbar.Rbar_le (min_Cmod_list l) (C_CV_radius (PS_inv_linfactors l)).
 Proof.
  induction l.
- - intros _; simpl; now rewrite C_CV_radius_one.
+ - intros _; simpl; now rewrite PS_one_radius.
  - rewrite min_Cmod_cons.
    cbn -[Rbar.Rbar_min]. intros H.
    eapply Rbar.Rbar_le_trans; [| apply C_CV_radius_mult].
@@ -2155,9 +2133,7 @@ Proof.
    apply Rbar.Rbar_min_case; subst x;
      [ eapply Rbar.Rbar_le_trans; try apply Rbar.Rbar_min_l
      | eapply Rbar.Rbar_le_trans; try apply Rbar.Rbar_min_r ].
-   + rewrite C_CV_radius_opp, C_CV_radius_geom.
-     * rewrite Cmod_inv, Rinv_inv. apply Rbar.Rbar_le_refl.
-     * apply nonzero_div_nonzero. tauto.
+   + rewrite PS_invlin_radius; simpl; try easy. tauto.
    + apply IHl; tauto.
 Qed.
 
@@ -2170,27 +2146,157 @@ Proof.
  - inversion_clear 1. simpl. rewrite Pmult_eval, Cinv_mult.
    assert (Ha : a <> 0).
    { apply Cmod_gt_0. generalize (Cmod_ge_0 z); lra. }
-   assert (Ha' : /a <> 0).
-   { now apply nonzero_div_nonzero. }
    replace (Peval [-a;1] z) with (z-a).
    2:{ unfold Peval. simpl. ring. }
    rewrite Cmult_comm.
    apply is_CPS_mult; auto.
-   + replace (/(z-a)) with (opp (/(a-z))).
-     2:{ change opp with Copp. fixeq C. rewrite <- Cinv_Copp. f_equal. ring. }
-     rewrite <- (Cinv_inv a) at 2.
-     rewrite is_CPowerSeries_alt.
-     apply (@is_pseries_opp C_AbsRing).
-     rewrite <- is_CPowerSeries_alt.
-     apply is_powerseries_invlin; trivial.
-     rewrite Cmod_mult, Cmod_inv. apply Cmod_gt_0 in Ha.
-     rewrite <- (Rinv_l (Cmod a)) by lra. apply Rmult_lt_compat_l; trivial.
-     now apply Rinv_0_lt_compat.
-   + rewrite C_CV_radius_opp, C_CV_radius_geom; trivial.
-     simpl. now rewrite Cmod_inv, Rinv_inv.
+   + now apply PS_invlin_ok.
+   + now rewrite PS_invlin_radius.
    + eapply Rbar.Rbar_lt_le_trans.
      2:{ apply PS_inv_linfactors_radius.
          intros IN. rewrite Forall_forall in H1. specialize (H1 0 IN).
          rewrite Cmod_0 in H1. generalize (Cmod_ge_0 z); lra. }
      now apply min_Cmod_list_spec.
+Qed.
+
+(** Changing x into x^k in a function is obtained by interleaving some 0
+    between the coefficients *)
+
+Definition PS_dilate (a:nat->C) (k:nat) :=
+ fun n => if (n mod k =? 0)%nat then a (n/k)%nat else 0.
+
+Lemma sum_PS_dilate (a:nat->C) (k:nat) x n :
+ k<>O ->
+ sum_n (fun m => PS_dilate a k m * x^m) n
+ = sum_n (fun m => a m * (x^k)^m) (n/k).
+Proof.
+ intros Hk.
+ induction n.
+ - replace (0/k)%nat with 0%nat. 2:{ symmetry. now apply Nat.div_0_l. }
+   rewrite !sum_O. unfold PS_dilate. simpl.
+   rewrite Nat.mod_0_l, Nat.div_0_l; trivial.
+ - rewrite sum_Sn. change plus with Cplus.
+   rewrite IHn. unfold PS_dilate.
+   case Nat.eqb_spec; intros H.
+   + assert (E := Nat.div_mod_eq (S n) k). rewrite H, Nat.add_0_r in E.
+     assert (E' := Nat.div_mod_eq n k).
+     assert (H' : (n mod k = k-1)%nat).
+     { apply Nat.le_antisymm.
+       - generalize (Nat.mod_upper_bound n k Hk); lia.
+       - apply Nat.le_ngt. intros LT.
+         assert (S (n mod k) = (S n) mod k); try lia.
+         { apply Nat.mod_unique with (q:=(n/k)%nat); lia. }}
+     rewrite H' in E'. apply (f_equal S) in E'.
+     replace (S (_+_)) with (k * (S (n/k)))%nat in E' by lia.
+     replace (S n / k)%nat with (S (n/k)).
+     2:{ apply Nat.div_unique_exact; try lia. }
+     rewrite sum_Sn. change plus with Cplus. f_equal. f_equal.
+     rewrite <- Cpow_mult_r. f_equal. apply E'.
+   + rewrite Cmult_0_l, Cplus_0_r.
+     assert (E := Nat.div_mod_eq (S n) k).
+     assert (E' := Nat.div_mod_eq n k).
+     apply (f_equal S) in E'. rewrite <- Nat.add_succ_r in E'.
+     assert (H' : (S (n mod k) = S n mod k)%nat).
+     { destruct (Nat.eqb_spec (n mod k) (k-1)) as [H'|H'].
+       - rewrite H' in E'.
+         replace (_+_)%nat with (k*(S (n/k)))%nat in E' by lia.
+         assert (S n mod k = 0)%nat; try lia.
+         symmetry. apply Nat.mod_unique with (q:=S (n/k)); lia.
+       - apply Nat.mod_unique with (q:=(n/k)%nat); try lia.
+         generalize (Nat.mod_upper_bound n k Hk); lia. }
+     rewrite H' in E'. f_equal.
+     eapply Nat.div_unique; eauto. now apply Nat.mod_upper_bound.
+Qed.
+
+Lemma is_CPowerSeries_dilate a k x l : k<>O ->
+  is_CPowerSeries a (x^k) l <-> is_CPowerSeries (PS_dilate a k) x l.
+Proof.
+ intros Hk. unfold is_CPowerSeries.
+ rewrite !is_lim_Cseq_alt. split.
+ - intros H eps. destruct (H eps) as (N & HN). exists (N*k)%nat.
+   intros n Hn. rewrite sum_PS_dilate by trivial. apply HN.
+   apply Nat.div_le_lower_bound; lia.
+ - intros H eps. destruct (H eps) as (N & HN). exists N.
+   intros n Hn.
+   assert (Hn' : (N <= n*k)%nat).
+   { replace k with (1+(k-1))%nat by lia.
+     rewrite Nat.mul_add_distr_l. (* ?! lia should work from here... *)
+     rewrite Nat.mul_1_r. apply Nat.le_trans with n; trivial.
+     apply Nat.le_add_r. }
+   specialize (HN (n*k)%nat Hn').
+   rewrite sum_PS_dilate in HN by trivial.
+   rewrite Nat.div_mul in HN by trivial. apply HN.
+Qed.
+
+(** Delaying a sequence with p extra initial zeros multiplies by [x^p].
+    See also Coquelicot.PSeries.PS_incr_n someday. *)
+
+Definition delay {G:AbelianMonoid} (a:nat->G) p :=
+  fun n => if n <? p then zero else a (n-p)%nat.
+
+Lemma sum_n_delay {G:AbelianMonoid} (a:nat->G) p n :
+  sum_n (delay a p) (n+p) = sum_n a n.
+Proof.
+ induction n.
+ - rewrite Nat.add_0_l, sum_O.
+   destruct p.
+   + now rewrite sum_O.
+   + rewrite sum_Sn.
+     erewrite sum_n_ext_loc, sum_n_zero.
+     2:{ intros k K. unfold delay. case Nat.ltb_spec; easy || lia. }
+     unfold delay. simpl.
+     case Nat.ltb_spec; try lia. intros _.
+     replace (p-p)%nat with O by lia. apply plus_zero_l.
+ - simpl. rewrite !sum_Sn, IHn. f_equal. unfold delay.
+   case Nat.ltb_spec; try lia. intros _. f_equal. lia.
+Qed.
+
+Lemma delay_comp {G G':AbelianMonoid} (h:G->G') p (a:nat->G) :
+ h zero = zero -> forall n, delay (h∘a) p n = h (delay a p n).
+Proof.
+ intros H n. unfold delay. now case Nat.ltb.
+Qed.
+
+Lemma delay_series_R p (a:nat->R) l :
+  is_series a l -> is_series (delay a p) l.
+Proof.
+ intros H.
+ change (is_lim_seq (sum_n (delay a p)) l).
+ apply is_lim_seq_incr_n with (N:=p).
+ eapply is_lim_seq_ext; [|apply H].
+ intros n. symmetry. apply sum_n_delay.
+Qed.
+
+Lemma delay_powerseries_R p a x lim :
+  is_series (fun n => a n * x^n)%R lim ->
+  is_series (fun n => delay a p n * x^n)%R (x^p * lim)%R.
+Proof.
+ intros H.
+ rewrite is_series_alt.
+ rewrite is_lim_seq_incr_n with (N:=p).
+ apply is_lim_seq_ext with (fun n => x^p * sum_n (fun k => a k * x^k) n)%R.
+ { intros n. rewrite <- (sum_n_mult_l (K:=R_AbsRing)).
+   rewrite <- sum_n_delay with (p:=p). apply sum_n_ext. clear n.
+   intros n. unfold delay. case Nat.ltb_spec; intros.
+   - change zero with R0. lra.
+   - change mult with Rmult.
+     rewrite !(Rmult_comm (a _)), <- Rmult_assoc, <- pow_add.
+     f_equal. f_equal. lia. }
+ apply is_lim_seq_mult'; trivial using is_lim_seq_const.
+Qed.
+
+Lemma delay_powerseries p a z lim :
+  is_CPowerSeries a z lim ->
+  is_CPowerSeries (delay a p) z (z^p * lim).
+Proof.
+ unfold is_CPowerSeries. intros H.
+ rewrite is_lim_Cseq_incr_n with (N:=p).
+ apply is_lim_Cseq_ext with (fun n => z^p * sum_n (fun k => a k * z^k) n).
+ { intros n. rewrite <- sum_n_Cmult_l.
+   rewrite <- sum_n_delay with (p:=p). apply sum_n_ext. clear n.
+   intros n. unfold delay. case Nat.ltb_spec; intros.
+   - change zero with 0. lca.
+   - rewrite Cmult_assoc, (Cmult_comm (z^p)), <- Cmult_assoc. f_equal.
+     rewrite <- Cpow_add. f_equal. lia. }
+ apply is_lim_Cseq_mult; trivial using is_lim_Cseq_const.
 Qed.

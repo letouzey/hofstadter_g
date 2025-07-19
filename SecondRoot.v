@@ -637,28 +637,26 @@ Proof.
  rewrite h_partfrac by trivial.
  apply is_lim_Cseq_ext with
      (f := fun n => Clistsum (map
-            (fun r => sum_n (fun k => - coef' r * (r^S k*x^k)) n) (tl roots))).
+            (fun r => sum_n (fun k => coef' r * ((-r)*r^k*x^k)) n) (tl roots))).
  - intros n. rewrite <- Clistsum_sum_n. apply sum_n_ext. clear n.
    intros n.
    rewrite dh_eqn.
-   rewrite map_ext with (g:=fun r => x^n * (- coef' r * r ^ S n))
-    by (intros; ring).
+   rewrite map_ext with (g:=fun r => x^n * (-coef' r * (r^S n)))
+    by (intros;simpl;ring).
    rewrite <- map_map.
    rewrite <- Clistsum_factor_l. apply Cmult_comm.
  - apply is_lim_Cseq_Clistsum.
    intros r Hr'.
-   replace (coef' r / (x - / r)) with (-coef' r * / (/r - x)).
-   2:{ field; simpl; repeat split.
-       - now apply tl_roots_nz.
-       - intros H. apply Ceq_minus in H. specialize (Hr _ Hr').
-         rewrite Cmult_comm, H, Cmod_1 in Hr. lra.
-       - intros H. apply Ceq_minus in H. specialize (Hr _ Hr').
-         rewrite Cmult_comm, <- H, Cmod_1 in Hr. lra. }
    apply is_lim_Cseq_ext with
-       (fun n => (-coef' r)*sum_n (fun k => r^S k*x^k) n).
-   { intros n. now rewrite sum_n_Cmult_l. }
+       (fun n => (coef' r)*sum_n (fun k => (-//r)*(//r)^k*x^k) n).
+   { intros n. erewrite sum_n_ext. 2:{ intros. now rewrite Cinv_inv. }
+     now rewrite sum_n_Cmult_l. }
    apply is_lim_Cseq_mult. apply is_lim_Cseq_const.
-   apply is_powerseries_invlin. now apply tl_roots_nz. now apply Hr.
+   apply PS_invlin_ok.
+   + now apply nonzero_div_nonzero, tl_roots_nz.
+   + assert (0 < Cmod r) by now apply Cmod_gt_0, tl_roots_nz.
+     rewrite Cmod_inv. apply Rmult_lt_reg_l with (Cmod r); trivial.
+     rewrite Rinv_r, <- Cmod_mult by lra. now apply Hr.
 Qed.
 
 Lemma dg_eqn n :
@@ -1557,28 +1555,34 @@ Proof.
      apply Cmod_gt_0 in Hy. lra. }
  rewrite L.
  apply is_lim_Cseq_bigsum. intros i Hi.
- rewrite <- Copp_minus_distr. unfold Cdiv. rewrite Cinv_Copp.
- rewrite <- Copp_mult_distr_r, Copp_mult_distr_l.
+ unfold Cdiv.
  eapply is_lim_Cseq_ext.
- { symmetry. erewrite sum_n_ext; [|intro k'; symmetry; apply Cmult_assoc].
+ { symmetry.
+   erewrite sum_n_ext.
+   2:{ intros m. rewrite <- Cmult_assoc.
+       rewrite <- Copp_mult_distr_l, Copp_mult_distr_r, Copp_mult_distr_l.
+       now rewrite Cpow_S, Copp_mult_distr_l. }
    apply sum_n_Cmult_l. }
  apply is_lim_Cseq_mult; [apply is_lim_Cseq_const| ].
  unfold Cnth.
- rewrite nth_map_indep with (d':=0), Cinv_inv by lia.
+ rewrite nth_map_indep with (d':=0) by lia.
  fold ((tl rootrest)@i).
  set (r := (tl rootrest)@i).
  assert (IN : In r (skipn 3 roots)).
  { unfold r. change (skipn 3 roots) with (tl rootrest).
    apply nth_In. lia. }
- apply is_powerseries_invlin.
- - intros E.
+ apply PS_invlin_ok.
+ - apply nonzero_div_nonzero.
+   intros E.
    apply (root_nz k). rewrite <- E.
    rewrite <- (SortedRoots_roots _ _ roots_ok).
    apply skipn_3_roots_spec in IN. apply IN.
- - rewrite Cmod_mult.
+ - rewrite Cmod_inv.
    apply skipn_3_roots_spec in IN.
-   apply Rle_lt_trans with (Cmod r * 1)%R; try lra.
-   apply Rmult_le_compat_l; try lra. apply Cmod_ge_0.
+   apply Rle_lt_trans with 1%R; try lra. rewrite <- Rinv_1.
+   apply Rinv_lt_contravar; try lra. rewrite Rmult_1_r.
+   apply Cmod_gt_0. intros E. apply (root_nz k). rewrite <- E.
+   now rewrite <- (SortedRoots_roots _ _ roots_ok).
 Qed.
 
 Lemma ex_series_Cmod_dgbis : ex_series (Cmod ∘ dgbis).
