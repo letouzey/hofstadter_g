@@ -594,6 +594,13 @@ Proof.
  - rewrite sum_Sn. change plus with Cplus. now rewrite <- IHn.
 Qed.
 
+Lemma big_sum_sum_n_R (f : nat -> R) n : big_sum f (S n) = sum_n f n.
+Proof.
+ induction n.
+ - simpl; rewrite sum_O; lra.
+ - now rewrite sum_Sn, <- IHn, <- big_sum_extend_r.
+Qed.
+
 Lemma sum_n_big_sum (f : nat -> nat -> C) (n m : nat) :
   sum_n (fun k => big_sum (f k) m) n =
   big_sum (fun i => sum_n (fun k => f k i) n) m.
@@ -611,6 +618,15 @@ Lemma sum_n_big_sum_adhoc (f : nat -> nat -> C) (g : nat -> C) n m :
 Proof.
  rewrite <- sum_n_big_sum. apply sum_n_ext. intros k.
  exact (big_sum_mult_r (g k) (f k) m).
+Qed.
+
+Lemma big_sum_rev (a : nat -> C) n :
+ big_sum a n = big_sum (fun k => a (n-1-k)%nat) n.
+Proof.
+ induction n; try easy.
+ rewrite <- big_sum_extend_r, <- big_sum_extend_l. change Gplus with Cplus.
+ replace (S n - 1 -0)%nat with n by lia. rewrite Cplus_comm. f_equal.
+ rewrite IHn. apply big_sum_eq_bounded. intros x Hx. f_equal. lia.
 Qed.
 
 Lemma Re_big_sum f n : Re (big_sum f n) = big_sum (fun i => Re (f i)) n.

@@ -1,7 +1,7 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 From Hofstadter.HalfQuantum Require FTA.
-Require Import MoreList DeltaList MoreSets MoreComplex MoreSum.
+Require Import MoreList DeltaList MoreSets MoreReals MoreComplex MoreSum.
 Local Open Scope R.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
@@ -782,6 +782,50 @@ Proof.
    apply IN in Hr. unfold Root, p' in *.
    now rewrite Pmult_eval, Hr, Cmult_0_r. }
  rewrite <- (linfactors_degree l'), <- E', D in H. lia.
+Qed.
+
+Lemma Poly_continuously_null p r :
+  0 < r -> (forall x:R, 0 <= x < r -> Peval p x = 0) -> Peq p [].
+Proof.
+ intros Hr Hx.
+ set (d := S (degree p)).
+ assert (RD : 0 < r/d).
+ { unfold Rdiv. apply Rmult_lt_0_compat; trivial.
+   apply Rinv_0_lt_compat. apply RSpos. }
+ apply (extra_roots_implies_null p (map (fun k:nat => k*r/d) (seq 0 d))).
+ - apply FinFun.Injective_map_NoDup; try apply seq_NoDup.
+   intros k k'. intros E. unfold Cdiv in E. rewrite <- !Cmult_assoc in E.
+   apply Cmult_eq_reg_r in E. now apply RtoC_inj, INR_eq in E.
+   ctor. unfold Rdiv in RD. intros E'. apply RtoC_inj in E'. lra.
+ - intros x. rewrite in_map_iff. intros (x' & <- & IN).
+   rewrite in_seq in IN. destruct IN as (LE,LT). apply le_INR in LE.
+   apply lt_INR in LT. rewrite Nat.add_0_l in LT.
+   ctor. apply Hx. split.
+   + unfold Rdiv. rewrite Rmult_assoc.
+     apply Rmult_le_pos; trivial. apply Rlt_le, RD.
+   + apply Rmult_lt_compat_r with (r := (r/d)%R) in LT; trivial.
+     unfold Rdiv in *. rewrite Rmult_assoc.
+     rewrite (Rmult_comm r (/d)) in LT at 2.
+     rewrite <- (Rmult_assoc d), Rinv_r, Rmult_1_l in LT. trivial.
+     generalize (RSpos (degree p)). unfold d. lra.
+ - rewrite map_length, seq_length. lia.
+Qed.
+
+Lemma Popp_eval p x : Peval (-, p) x = - Peval p x.
+Proof.
+ unfold Popp. rewrite Pmult_eval, Pconst_eval. lca.
+Qed.
+
+Lemma Poly_continuously_eq p q r :
+  0 < r -> (forall x:R, 0 <= x < r -> Peval p x = Peval q x) -> Peq p q.
+Proof.
+ intros Hr E.
+ assert (E' : Peq (p +, -, q) []).
+ { apply Poly_continuously_null with r; trivial.
+   intros x Hx. rewrite Pplus_eval, Popp_eval.
+   rewrite E; trivial. ring. }
+ apply (Pplus_eq_compat _ _ q q) in E'; try easy.
+ simpl in E'. now rewrite Pplus_assoc, Pplus_opp_l, Pplus_0_r in E'.
 Qed.
 
 (** derivative of a polynomial *)

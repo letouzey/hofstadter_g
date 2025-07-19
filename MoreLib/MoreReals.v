@@ -2,6 +2,7 @@ From Coq Require Import List Lia Znat Reals Ranalysis5 Lra.
 From Coq Require Import QArith Qreals Qminmax Qabs Qcanon.
 Close Scope Q. Close Scope Qc. (* Issue with QArith *)
 From Coquelicot Require Rcomplements.
+From Hofstadter.HalfQuantum Require Import RealAux.
 Require Import MoreList DeltaList.
 Import ListNotations.
 
@@ -117,6 +118,16 @@ Proof.
  destruct (Nat.eq_dec n O) as [->|N]; try lra.
  intros Hxy _. simpl. apply Rmult_lt_compat; trivial.
  split; auto. now apply pow_le.
+Qed.
+
+Lemma pow_inj_l n x y : n<>O -> 0 <= x -> 0 <= y -> x ^ n = y ^ n -> x = y.
+Proof.
+ intros Hn Hx Hy H.
+ apply Rle_antisym.
+ - apply Rnot_lt_le. intros LT.
+   apply (Rpow_lt_compat_r n) in LT; trivial. lra.
+ - apply Rnot_lt_le. intros LT.
+   apply (Rpow_lt_compat_r n) in LT; trivial. lra.
 Qed.
 
 Lemma Rle_pow_low r n m : 0<=r<1 -> (n<=m)%nat -> r^m <= r^n.
@@ -824,6 +835,88 @@ Qed.
 Lemma exp_1_lt_3 : exp 1 < 3.
 Proof.
  generalize exp_1_itvl. lra.
+Qed.
+
+Lemma pow_via_exp x n : 0<x -> x^n = exp (n * ln x).
+Proof.
+ intros Hx.
+ induction n.
+ - simpl. now rewrite Rmult_0_l, exp_0.
+ - rewrite <- Nat.add_1_r at 2. rewrite plus_INR. simpl.
+   rewrite IHn. rewrite <- (exp_ln x) at 1 by trivial.
+   rewrite <- exp_plus. f_equal. lra.
+Qed.
+
+Lemma exp_pow x n : exp x ^ n = exp (x*n).
+Proof.
+ rewrite pow_via_exp, ln_exp by apply exp_pos. f_equal. ring.
+Qed.
+
+Lemma Rpow_lt_reg_r n x y : 0 <= x -> 0 <= y -> x ^ n < y ^ n -> x < y.
+Proof.
+ intros Hx Hy.
+ destruct n as [|n].
+ { simpl. lra. }
+ destruct (Req_dec x 0) as [Hx'|Hx'], (Req_dec y 0) as [Hy'|Hy'].
+ - subst. simpl. lra.
+ - lra.
+ - subst. apply (pow_le x (S n)) in Hx. rewrite Rpow_0_l by easy. lra.
+ - rewrite !pow_via_exp by lra.
+   intros H. apply exp_lt_inv in H.
+   apply Rmult_lt_reg_l in H; try apply RSpos.
+   apply ln_lt_inv; lra.
+Qed.
+
+(** Generalized n-th root *)
+
+Definition nthroot (x:R) (n:nat) :=
+  if Rle_lt_dec x 0 then 0 else exp (ln x / n).
+
+Lemma nthroot_alt x n : 0 < x -> nthroot x n = exp (ln x / n).
+Proof.
+ intros. unfold nthroot. destruct Rle_lt_dec; lra.
+Qed.
+
+Lemma nthroot_nonpos x n : x <= 0 -> nthroot x n = 0.
+Proof.
+ intros. unfold nthroot. destruct Rle_lt_dec; lra.
+Qed.
+
+Lemma nthroot_pos x n : 0 <= nthroot x n.
+Proof.
+ unfold nthroot. destruct Rle_lt_dec; try lra. apply Rlt_le, exp_pos.
+Qed.
+
+Lemma nthroot_gt_0 x n : 0 < x -> 0 < nthroot x n.
+Proof.
+ intros Hx.
+ unfold nthroot. destruct Rle_lt_dec; try lra. apply exp_pos.
+Qed.
+
+(** Beware of the non-conventional nthroot 0 0 = 0 *)
+
+Lemma nthroot_1_r x : 0 < x -> nthroot x 0 = 1.
+Proof.
+ intros Hx. rewrite nthroot_alt by trivial. simpl.
+ unfold Rdiv. now rewrite Rinv_0, Rmult_0_r, exp_0.
+Qed.
+
+Lemma nthroot_pow x n : n<>O -> 0 <= x -> (nthroot x n)^n = x.
+Proof.
+ intros Hn Hx.
+ destruct (Req_dec x 0) as [Hx'|Hx'].
+ - rewrite Hx', nthroot_nonpos by lra. apply Rpow_0_l. lia.
+ - rewrite nthroot_alt, exp_pow by lra.
+   rewrite <- (exp_ln x) at 2 by lra. f_equal. field.
+   contradict Hn. now apply INR_eq.
+Qed.
+
+Lemma nthroot_sqrt x : nthroot x 2 = sqrt x.
+Proof.
+ destruct (Rle_lt_dec x 0).
+ - rewrite nthroot_nonpos by trivial. symmetry. now apply sqrt_neg_0.
+ - apply (pow_inj_l 2); try lia; try apply nthroot_pos; try apply sqrt_pos.
+   rewrite nthroot_pow by (lia||lra). rewrite pow2_sqrt; lra.
 Qed.
 
 Lemma sqrt2_approx : 1.414 < sqrt 2 < 1.415.

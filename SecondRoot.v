@@ -2,8 +2,8 @@ From Coq Require Import Lia Reals Lra.
 From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
-Require Import MoreTac MoreList MoreReals MoreLim MoreSum MoreComplex.
-Require Import MorePoly MoreIntegral ThePoly GenFib Mu.
+Require Import MoreTac MoreList MoreReals MoreSum MoreComplex.
+Require Import MoreLim MorePSeries MorePoly MoreIntegral ThePoly GenFib Mu.
 Local Open Scope R.
 Local Open Scope C.
 Local Open Scope poly_scope.

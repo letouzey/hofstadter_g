@@ -20,6 +20,7 @@ MoreLib/Approx.v
 MoreLib/MoreSum.v
 MoreLib/MoreIntegral.v
 MoreLib/MoreLim.v
+MoreLib/MorePSeries.v
 MoreLib/MorePoly.v
 MoreLib/IntPoly.v
 MoreLib/FlexArray.v
