@@ -75,13 +75,14 @@ Summary of files:
 5. Hoftadter G-like functions and real numbers
   - [ThePoly.v](ThePoly.v): start studying polynomial `X^k-X^(k-1)-1`
   - [Mu.v](Mu.v): real roots of this polynomial
-  - [SecondRoot.v](SecondRoot.v): a second root of this polynomial has modulus>1 for k>=6
-  - [RootEquiv.v](RootEquiv.v): the positive root `μ_k` behaves as`1+ln(k)/k` when `k` grows
   - [Freq.v](Freq.v): frequencies of letters in `kseq k`, limit of `(f k n)/n`.
   - [Discrepancy.v](Discrepancy.v): general study of discrepancy `f n - n * τ_n`
   - [F3.v](F3.v): Hofstadter H (i.e. `f 3`) at dist <1 of `n*τ_3`
   - [F4.v](F4.v): `f 4` at dist <2 of `n*τ_4`
   - [F5.v](F5.v): `f 5` at unbounded dist of `n*τ_5`
+  - [Siegel.v](Siegel.v): Siegel theorem, i.e. the least Pisot number is the Plastic Ratio
+  - [SecondRoot.v](SecondRoot.v): a secondary root of `X^k-X^(k-1)-1` has modulus>1 for k>=6
+  - [RootEquiv.v](RootEquiv.v): the positive root `μ_k` behaves as`1+ln(k)/k` when `k` grows
   - [Equidistrib.v](Equidistrib.v): equidistribution theorem (irrational multiples mod 1)
   - [F3bis.v](F3bis.v): mean discrepancy for Hofstadter H (i.e `f 3`)
 6. Two companion Coq files for two forthcoming articles
