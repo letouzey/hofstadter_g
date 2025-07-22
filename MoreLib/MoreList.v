@@ -1602,3 +1602,10 @@ Proof.
  induction l; simpl; trivial. rewrite IHl.
  unfold "∘". now destruct (f a), forallb.
 Qed.
+
+Lemma forallb_negb_existsb {A} f (l:list A) :
+  forallb f l = negb (existsb (negb∘f) l).
+Proof.
+ induction l; simpl; trivial. rewrite IHl.
+ unfold "∘". now destruct (f a), forallb.
+Qed.

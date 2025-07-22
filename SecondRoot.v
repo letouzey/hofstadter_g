@@ -199,8 +199,9 @@ Proof.
  rewrite Hl in Hp.
  rewrite linfactors_perm in Hp; [|symmetry; apply Permutation_middle].
  clear l Hl. set (l := l1++l2) in *. clearbody l. clear l1 l2.
- destruct (Classical_Prop.classic (forall r, In r l -> Cmod r <= 1)).
+ destruct (forallb (fun r => Rleb (Cmod r) 1) l) eqn:H.
  { exfalso.
+   rewrite forallb_forall in H.
    assert (N : ~(forall r, In r l -> 0 < Cmod r < 1)).
    { assert (N0 := Siegel.mu_non_Pisot_above_6 k K). contradict N0.
      split.
@@ -218,7 +219,7 @@ Proof.
      assert (IN : In r ((RtoC (mu k)) :: l)) by now right.
      apply linfactors_roots in IN. rewrite <- Hp in IN.
      rewrite IN; lca. }
-   assert (Hr2 : Cmod r = 1%R). { specialize (H _ Hr). lra. }
+   assert (Hr2 : Cmod r = 1%R). { generalize (H _ Hr); case Rleb_spec; lra. }
    assert (S : SalemPoly (mu k) p).
    { red. exists l; split; trivial.
      red; repeat split.
@@ -227,7 +228,7 @@ Proof.
      - rewrite <- Hp. apply MinPolyQ_Qirred in P. contradict P.
        now apply Zred_Qred.
      - now exists r.
-     - apply H. }
+     - intros y Hy. generalize (H _ Hy); case Rleb_spec; lra. }
    apply SalemPoly_monicify_reciprocal in S.
    assert (R : Root (/mu k) (ThePoly k)).
    { destruct D as (q & _ & ->). red. rewrite Pmult_eval.
@@ -242,9 +243,11 @@ Proof.
    { split. apply Rlt_le, Rinv_0_lt_compat; lra.
      rewrite <- Rinv_1. apply Rinv_lt_contravar; lra. }
    apply mu_unique in R; lra. }
- { apply Classical_Pred_Type.not_all_ex_not in H.
-   destruct H as (r & Hr).
-   apply Classical_Prop.imply_to_and in Hr. destruct Hr as (Hr,Hr').
+ { rewrite <- negb_true_iff, forallb_negb_existsb in H.
+   rewrite negb_involutive, existsb_exists in H.
+   destruct H as (r & Hr & Hr').
+   unfold "∘" in Hr'. rewrite negb_true_iff in Hr'.
+   revert Hr'. case Rleb_spec; try easy. intros Hr' _.
    assert (E' : roots = RtoC (mu k) :: tl roots).
    { generalize (SortedRoots_length _ _ roots_ok).
      rewrite <- M. destruct roots; simpl; easy || lia. }
@@ -297,7 +300,7 @@ Lemma dA_sup_k6 k : (6<=k)%nat ->
 Proof.
  intros K M. simpl.
  destruct (SortedRoots_exists k lia) as (roots & roots_ok).
- assert (LT := SecondRoot.large_second_best_root k roots K roots_ok).
+ assert (LT := large_second_best_root k roots K roots_ok).
  destruct (dA_expo k roots lia roots_ok) as (c & Hc).
  set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
@@ -319,7 +322,7 @@ Lemma dA_inf_k6 k : (6<=k)%nat ->
 Proof.
  intros K M. simpl.
  destruct (SortedRoots_exists k lia) as (roots & roots_ok).
- assert (LT := SecondRoot.large_second_best_root k roots K roots_ok).
+ assert (LT := large_second_best_root k roots K roots_ok).
  destruct (dA_expo' k roots lia roots_ok) as (c & Hc).
  set (r := Complex.Cmod _) in *.
  destruct (large_enough_exponent r (-M/c)) as (N, HN); trivial.

@@ -10,19 +10,6 @@ Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
 
 (* https://link.springer.com/article/10.1007/s00283-014-9505-x *)
 
-Definition Rleb (a b : R) := if Rle_lt_dec a b then true else false.
-Definition Rltb (a b : R) := negb (Rleb b a).
-
-Lemma Rleb_spec a b : BoolSpec (a <= b) (b < a) (Rleb a b).
-Proof.
- unfold Rleb. destruct Rle_lt_dec; now constructor.
-Qed.
-
-Lemma Rltb_spec a b : BoolSpec (a < b) (b <= a) (Rltb a b).
-Proof.
- unfold Rltb. case Rleb_spec; intros; now constructor.
-Qed.
-
 Definition RIn a b r := Rleb a r && Rltb r b.
 
 Lemma RIn_spec a b r : RIn a b r = true <-> a <= r < b.

@@ -217,6 +217,21 @@ Proof.
  generalize (pow_incr (-y) (-x) n). lra.
 Qed.
 
+(** Boolean tests *)
+
+Definition Rleb (a b : R) := if Rle_lt_dec a b then true else false.
+Definition Rltb (a b : R) := negb (Rleb b a).
+
+Lemma Rleb_spec a b : BoolSpec (a <= b) (b < a) (Rleb a b).
+Proof.
+ unfold Rleb. destruct Rle_lt_dec; now constructor.
+Qed.
+
+Lemma Rltb_spec a b : BoolSpec (a < b) (b <= a) (Rltb a b).
+Proof.
+ unfold Rltb. case Rleb_spec; intros; now constructor.
+Qed.
+
 (** Link between Q and R *)
 
 Lemma Q2R_pow q n : Q2R (q^Z.of_nat n) = (Q2R q)^n.

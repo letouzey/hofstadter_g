@@ -442,12 +442,11 @@ Qed.
 (** Any monic nonzero polynomial in Z[X] has a root whose module is 0 or
     at least 1. *)
 
-Definition Rlt01 r :=
-  if Rle_lt_dec r 0 then false else if Rle_lt_dec 1 r then false else true.
+Definition Rlt01 r := Rltb 0 r && Rltb r 1.
 
 Lemma Rlt01_spec r : Rlt01 r = true <-> 0 < r < 1.
 Proof.
- unfold Rlt01. repeat destruct Rle_lt_dec; split; lra || easy.
+ unfold Rlt01. do 2 case Rltb_spec; simpl; intros; split; try easy; try lra.
 Qed.
 
 Lemma Rlt01_Cmod c : negb (Rlt01 (Cmod c)) = true <-> c = 0 \/ 1 <= Cmod c.
