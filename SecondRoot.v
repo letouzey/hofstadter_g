@@ -180,11 +180,10 @@ Proof.
  assert (INT : IntPoly (ThePoly k)).
  { repeat apply IntPoly_plus; try apply IntPoly_monom; try apply CInteger_Z.
    apply IntPoly_alt. now exists [-1]%Z. }
- destruct (RootQ_has_MinPolyQ (mu k)) as (p & P).
- { exists (ThePoly k); repeat split.
-   - rewrite <- topcoef_0_iff, ThePoly_monic. intros [=H]; lra. lia.
-   - now apply IntRatPoly.
-   - apply mu_is_root; lia. }
+ destruct (MinPolyQ_exists (mu k) (ThePoly k)) as (p & P).
+ { rewrite <- topcoef_0_iff, ThePoly_monic. intros [=H]; lra. lia. }
+ { now apply IntRatPoly. }
+ { apply mu_is_root; lia. }
  assert (D : exists q, RatPoly q /\ Peq (ThePoly k) (p*,q)).
  { apply (MinPolyQ_divide (mu k)); trivial.
    - now apply IntRatPoly.

@@ -690,15 +690,18 @@ Proof.
  intros. cbn. destruct Ceq_dec; easy.
 Qed.
 
+Lemma degree_0_const p : degree p = O -> exists c, Peq p [c].
+Proof.
+ destruct p as [|a p].
+ - exists 0. symmetry. apply C0_Peq_nil.
+ - rewrite degree_cons.
+   destruct Peq_0_dec as [E|N]; try easy. exists a. now rewrite E.
+Qed.
+
 Lemma deg0_monic_carac p : degree p = O -> monic p -> p ≅ [1].
 Proof.
- intros D M.
- apply Peq_iff.
- change [1] with (monom 1 0). rewrite compactify_monom by apply C1_nz.
-  unfold monom; simpl.
- unfold monic, topcoef, degree in *.
- destruct (compactify p) as [|a [|b q] ]; simpl in *; subst; try easy.
- now destruct C1_nz.
+ intros D. unfold monic. destruct (degree_0_const p D) as (c,->).
+ rewrite topcoef_singl. now intros ->.
 Qed.
 
 Lemma All_roots p : monic p -> exists l, p ≅ linfactors l.

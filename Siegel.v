@@ -211,44 +211,6 @@ Proof.
    rewrite <- Cmod_eq_0_iff in Hr'. generalize (Hl1 _ IN) (Cmod_ge_0 r); lra.
 Qed.
 
-Lemma MinPolyQ_Qirred x p : MinPolyQ x p -> ~Qreducible p.
-Proof.
- intros (MO & RP & Hx & MIN) (p1 & p2 & E & H1 & H2 & D).
- assert (E' : Peval (p1 *, p2) x = 0) by now rewrite <- E, Hx.
- assert (N1 : ~ Peq p1 []).
- { intros E1. rewrite E1 in D. unfold degree in D; simpl in D. lia. }
- assert (N2 : ~ Peq p2 []).
- { intros E2. rewrite E2, Pmult_0_r in E. rewrite E in D.
-   unfold degree in D; simpl in D. lia. }
- rewrite Pmult_eval in E'. apply Cmult_integral in E'. destruct E' as [E'|E'].
- - generalize (MIN p1 N1 H1 E'). lia.
- - generalize (MIN p2 N2 H2 E').
-   rewrite E, Pmult_degree in D |- *; try apply N1; try apply N2. lia.
-Qed.
-
-Lemma MinPolyQ_alt x p :
-  MinPolyQ x p <-> monic p /\ RatPoly p /\ Root x p /\ ~Qreducible p.
-Proof.
- split.
- - intros Hp. repeat split; try apply Hp. now apply (MinPolyQ_Qirred x p).
- - intros (MO & RP & Hx & IR).
-   assert (NZ : ~Peq p []).
-   { rewrite <- topcoef_0_iff. rewrite MO. injection;lra. }
-   destruct (RootQ_has_MinPolyQ x (ex_intro _ p (conj NZ (conj RP Hx))))
-     as (q & Hq).
-   destruct (MinPolyQ_divide x q p Hq RP Hx) as (u & RPu & E).
-   assert (D : ~(0 < degree q < degree p)%nat).
-   { contradict IR. exists q, u. repeat (split; try assumption). apply Hq. }
-   destruct (Nat.eq_dec (degree q) 0) as [D'|D'].
-   + destruct Hq as (MO' & RP' & Hx' & _).
-     rewrite (deg0_monic_carac q) in Hx'; trivial.
-     red in Hx'. rewrite Pconst_eval in Hx'. injection Hx'; lra.
-   + assert (degree p <= degree q)%nat by lia.
-     repeat split; trivial.
-     intros r Hr1 Hr2 Hr3. apply Nat.le_trans with (degree q); trivial.
-     now apply Hq.
-Qed.
-
 Lemma PisotPoly_minimal x p : PisotPoly x p -> MinPolyQ x p.
 Proof.
  intros Hp.

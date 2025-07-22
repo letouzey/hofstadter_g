@@ -981,28 +981,6 @@ Definition MinPolyQ x p :=
   monic p /\ RatPoly p /\ Root x p /\
   forall q, ~Peq q [] -> RatPoly q -> Root x q -> (degree p <= degree q)%nat.
 
-(* NB: RootQ_has_MinPolyQ proved here via excluded middle *)
-
-Lemma RootQ_has_MinPolyQ x :
-  (exists p, ~Peq p [] /\ RatPoly p /\ Root x p) ->
-  (exists p, MinPolyQ x p).
-Proof.
- intros (p & NZ & ER & Hx).
- remember (degree p) as d. revert p Heqd NZ ER Hx.
- induction d as [d IH] using lt_wf_ind.
- intros p E NZ ER Hx.
- destruct (Classical_Prop.classic
-           (exists q, ~Peq q [] /\ RatPoly q /\ Root x q /\
-                      (degree q < d)%nat)) as [(q & NZ' & ER' & Hx' & D)|N].
- - apply (IH (degree q) D q eq_refl NZ' ER' Hx').
- - exists (monicify p); repeat split.
-   + now apply monicify_ok.
-   + now apply RatPoly_monicify.
-   + now rewrite monicify_root.
-   + intros q NZ' RP' Hx'. rewrite monicify_degree; trivial. rewrite <- E.
-     apply Nat.le_ngt. contradict N. now exists q.
-Qed.
-
 Lemma MinPolyQ_divide x p q :
   MinPolyQ x p -> RatPoly q -> Root x q ->
   exists u, RatPoly u /\ Peq q (p *, u).
@@ -1022,6 +1000,91 @@ Proof.
      { rewrite Huv1 in Hx'. red in Hx'. rewrite Pplus_eval, Pmult_eval in Hx'.
        rewrite Hx, Cmult_0_r, Cplus_0_l in Hx'. apply Hx'. }
      specialize (MIN v NE (proj2 Huv3) Rv). lia. }}
+Qed.
+
+Lemma MinPolyQ_Qirred x p : MinPolyQ x p -> ~Qreducible p.
+Proof.
+ intros (MO & RP & Hx & MIN) (p1 & p2 & E & H1 & H2 & D).
+ assert (E' : Peval (p1 *, p2) x = 0) by now rewrite <- E, Hx.
+ assert (N1 : ~ Peq p1 []).
+ { intros E1. rewrite E1 in D. unfold degree in D; simpl in D. lia. }
+ assert (N2 : ~ Peq p2 []).
+ { intros E2. rewrite E2, Pmult_0_r in E. rewrite E in D.
+   unfold degree in D; simpl in D. lia. }
+ rewrite Pmult_eval in E'. apply Cmult_integral in E'. destruct E' as [E'|E'].
+ - generalize (MIN p1 N1 H1 E'). lia.
+ - generalize (MIN p2 N2 H2 E').
+   rewrite E, Pmult_degree in D |- *; try apply N1; try apply N2. lia.
+Qed.
+
+Lemma MinPolyQ_alt x p :
+  MinPolyQ x p <-> monic p /\ RatPoly p /\ Root x p /\ ~Qreducible p.
+Proof.
+ split.
+ - intros Hp. repeat split; try apply Hp. now apply (MinPolyQ_Qirred x p).
+ - intros (MO & Rp & Hx & IR).
+   assert (NZ : ~Peq p []).
+   { rewrite <- topcoef_0_iff. rewrite MO. injection; lra. }
+   repeat split; trivial.
+   assert (forall n q, degree q = n -> RatPoly q -> Root x q ->
+                       (n < degree p)%nat -> Peq q []).
+   { induction n as [n IH] using lt_wf_ind.
+     intros q Hn Rq Hx' D.
+     destruct (Nat.eq_dec (degree q) 0) as [D'|D'].
+     - destruct (degree_0_const _ D') as (c & E). rewrite E in Hx'.
+       red in Hx'. rewrite Pconst_eval in Hx'.
+       now rewrite Hx', C0_Peq_nil in E.
+     - exfalso.
+       assert (E := Pdiv_eqn p q).
+       assert (D2 := Pdiv_degree p q lia).
+       assert (R := RatPoly_div p q Rp Rq).
+       destruct (Pdiv p q) as (u,v). simpl in *.
+       destruct R as (R1,R2). rewrite Hn in D2.
+       rewrite (IH (degree v) D2 v eq_refl) in E; trivial; try lia.
+       2:{ clear IH. unfold Root in *.
+           rewrite <- Hx, E, Pplus_eval, Pmult_eval, Hx'. ring. }
+       rewrite Pplus_0_r, Pmult_comm in E.
+       apply IR. exists q, u; repeat split; trivial; try lia. }
+   intros q Hq Rq Hx'. apply Nat.nlt_ge. contradict Hq.
+   apply (H (degree q)); trivial.
+Qed.
+
+(* NB: MinPolyQ_exists proved here via excluded middle *)
+
+Lemma MinPolyQ_exists x p :
+  ~Peq p [] -> RatPoly p -> Root x p -> exists q, MinPolyQ x q.
+Proof.
+ intros NZ ER Hx.
+ remember (degree p) as d. revert p Heqd NZ ER Hx.
+ induction d as [d IH] using lt_wf_ind.
+ intros p E NZ ER Hx.
+ destruct (Classical_Prop.classic (Qreducible p)) as [H|H].
+ { destruct H as (q & r & E' & Hq & Hr & D).
+   unfold Root in Hx. rewrite E', Pmult_eval in Hx.
+   assert (~Peq q []).
+   { intros Hq'. rewrite Hq' in D.
+     change (degree []) with O in D. lia. }
+   assert (~Peq r []).
+   { intros Hr'. rewrite Pmult_comm, Hr' in E'. simpl in E'.
+     rewrite E' in D. change (degree []) with O in D. lia. }
+   apply Cmult_integral in Hx. destruct Hx as [Hx|Hx].
+   - apply (IH (degree q) lia q eq_refl); trivial.
+   - rewrite E', Pmult_degree in E; trivial.
+     apply (IH (degree r) lia r eq_refl); trivial. }
+ { exists (monicify p). rewrite MinPolyQ_alt; repeat split.
+   + now apply monicify_ok.
+   + now apply RatPoly_monicify.
+   + now rewrite monicify_root.
+   + contradict H. destruct H as (u & v & E' & Hu & Hv & D).
+     unfold monicify in E'.
+     exists u, ([topcoef p]*, v); repeat split; try easy.
+     * rewrite <- Pmult_assoc, (Pmult_comm u), Pmult_assoc, <- E'.
+       rewrite <- Pmult_assoc, Pmult_const, Cinv_r, Pmult_1_l. easy.
+       now rewrite topcoef_0_iff.
+     * apply RatPoly_mult; trivial.
+       apply RatPoly_topcoef in ER. destruct ER as (q & ->).
+       rewrite RatPoly_alt. now exists [q].
+     * rewrite monicify_degree in D; trivial. apply D. }
 Qed.
 
 Lemma MinPolyQ_unique x p q : MinPolyQ x p -> MinPolyQ x q -> Peq p q.
