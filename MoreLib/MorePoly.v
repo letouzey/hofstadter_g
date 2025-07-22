@@ -156,18 +156,36 @@ Proof.
    symmetry. apply nth_repeat.
 Qed.
 
+Lemma compactify_nzlast p : last p 0 <> 0 -> compactify p = p.
+Proof.
+ intros H.
+ assert (H' : p <> []) by now intros ->.
+ unfold compactify. rewrite (app_removelast_last 0 H'), rev_app_distr. simpl.
+ destruct Ceq_dec; try easy. simpl. now rewrite rev_involutive.
+Qed.
+
+Lemma degree_nzlast p : last p 0 <> 0 -> (degree p = length p - 1)%nat.
+Proof.
+ unfold degree. intros H. now rewrite compactify_nzlast.
+Qed.
+
+Lemma X_degree : degree _X_ = 1%nat.
+Proof.
+ rewrite degree_nzlast; try easy. intros [=H]; lra.
+Qed.
+
 Lemma coef_compat n (p q : Polynomial) : p ≅ q -> coef n p = coef n q.
 Proof.
  intros E. apply Peq_compactify_eq in E.
  rewrite <- (compactify_coef n p), <- (compactify_coef n q). now f_equal.
 Qed.
 
-Global Instance : Proper (eq ==> Peq ==> eq) coef.
+Global Instance Peq_coef : Proper (eq ==> Peq ==> eq) coef.
 Proof.
  intros n n' <-. exact (coef_compat n).
 Qed.
 
-Global Instance : Proper (Peq ==> eq) topcoef.
+Global Instance Peq_topcoef : Proper (Peq ==> eq) topcoef.
 Proof.
  intros p q E. unfold topcoef. now rewrite E.
 Qed.
@@ -270,6 +288,11 @@ Proof.
  f_equal. lca.
 Qed.
 
+Lemma Pmult_const c d : [c]*,[d] = [c*d].
+Proof.
+ simpl. f_equal. ring.
+Qed.
+
 Lemma Pmult_X (p:Polynomial) : _X_ *, p ≅ 0::p.
 Proof.
  simpl.
@@ -356,16 +379,32 @@ Proof.
  cbn. ring.
 Qed.
 
-Global Instance : Proper (Peq ==> eq ==> eq) Peval.
+Global Instance Peq_eval : Proper (Peq ==> eq ==> eq) Peval.
 Proof.
  intros p p' Hp c c' <-.
  rewrite <- (Peval_compactify p c), <- (Peval_compactify p' c).
  now rewrite Hp.
 Qed.
 
-Global Instance : Proper (eq ==> Peq ==> iff) Root.
+Global Instance Peq_Root : Proper (eq ==> Peq ==> iff) Root.
 Proof.
  intros c c' <- p p' Hp. unfold Root. now rewrite Hp.
+Qed.
+
+Lemma Peval_conj p x : Peval (map Cconj p) (Cconj x) = Cconj (Peval p x).
+Proof.
+ induction p; simpl; try lca. rewrite !cons_eval, IHp. now conj_in.
+Qed.
+
+Lemma Root_conj p x : Root (Cconj x) (map Cconj p) <-> Root x p.
+Proof.
+ unfold Root. rewrite Peval_conj.
+ split; [rewrite <- (Cconj_conj (Peval p x)) at 2|]; intros ->; lca.
+Qed.
+
+Lemma Peval_1_alt p : Peval p 1 = Clistsum p.
+Proof.
+ induction p; try easy. rewrite cons_eval, Cmult_1_l. simpl. now f_equal.
 Qed.
 
 Lemma Peq_via_coef q r : Peq q r <-> forall n, coef n q = coef n r.
@@ -848,7 +887,7 @@ Proof.
      now rewrite compactify_Peq at 1.
 Qed.
 
-Global Instance : Proper (Peq ==> Peq) Pdiff.
+Global Instance Peq_Pdiff : Proper (Peq ==> Peq) Pdiff.
 Proof.
  intros p p' H. apply Peq_compactify_eq in H.
  now rewrite <- (Pdiff_compactify p), <- (Pdiff_compactify p'), H.
@@ -1047,7 +1086,7 @@ Qed.
 
 Definition reciprocal p := rev (compactify p).
 
-Global Instance : Proper (Peq ==> eq) reciprocal.
+Global Instance Peq_reciprocal : Proper (Peq ==> eq) reciprocal.
 Proof.
  intros p q E. unfold reciprocal. apply Peq_iff in E. now f_equal.
 Qed.
@@ -1139,6 +1178,12 @@ Proof.
    + intros H. apply Cmult_integral in H. destruct H; trivial.
      now apply (Cpow_nz x (degree p)) in Hx.
    + intros ->. lca.
+Qed.
+
+Lemma Peval_1_reciprocal p : Peval (reciprocal p) 1 = Peval p 1.
+Proof.
+ unfold reciprocal. rewrite <- (compactify_Peq p) at 2.
+ now rewrite !Peval_1_alt, Clistsum_rev.
 Qed.
 
 Definition revfactors l := linfactors (map Cinv l).

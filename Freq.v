@@ -1,7 +1,6 @@
 From Coq Require Import List Arith Lia Reals Lra.
 Require Import MoreTac MoreFun MoreList MoreReals MoreSum MoreLim.
 Require Import GenFib GenG Words Mu ThePoly.
-Require SecondRoot.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -356,68 +355,3 @@ Proof.
  apply Rmult_lt_reg_r with (/n); try lra.
  apply Rinv_0_lt_compat. apply (lt_INR 0). lia.
 Qed.
-
-(** When parameter k is at least 6,
-     [sup (f k n - tau k *n) = +infinity]
-    and
-     [inf (f k n - tau k *n) = -infinity].
-    It is sufficient to consider some numbers [n] of the form [A k m].
-
-    The two following proofs used to rely on an axiom stating that
-    the largest secondary root has modulus > 1 when k>=6. This axiom
-    has been replaced by a full proof, see SecondRoot.v.
-    So these proofs now depend only on the 4 usual logical axioms
-    just as the whole Coq theory of classical real numbers.
-
-    Note that [f 5 n - tau 5 * n] is also unbounded.
-    The proof is quite different, since the largest secondary root
-    has modulus just 1. See F5.v.
-*)
-
-Lemma dA_sup_k6 k : (6<=k)%nat ->
- is_sup_seq (fun n => A k (n-1) - tau k * A k n) Rbar.p_infty.
-Proof.
- intros K M. simpl.
- destruct (SortedRoots_exists k lia) as (roots & roots_ok).
- assert (LT := SecondRoot.large_second_best_root k roots K roots_ok).
- destruct (dA_expo k roots lia roots_ok) as (c & Hc).
- set (r := Complex.Cmod _) in *.
- destruct (large_enough_exponent r (M/c)) as (N, HN); trivial.
- destruct (Hc N) as (n & Hn & Hn').
- exists n. rewrite <- Hn'.
- rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
- eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.
-Qed.
-
-Lemma delta_sup_k6 k : (6<=k)%nat ->
- is_sup_seq (fun n => f k n - tau k * n) Rbar.p_infty.
-Proof.
- intros K M. destruct (dA_sup_k6 k K M) as (n & Hn). simpl in *.
- exists (A k n). rewrite f_A; easy || lia.
-Qed.
-
-Lemma dA_inf_k6 k : (6<=k)%nat ->
- is_inf_seq (fun n => A k (n-1) - tau k * A k n) Rbar.m_infty.
-Proof.
- intros K M. simpl.
- destruct (SortedRoots_exists k lia) as (roots & roots_ok).
- assert (LT := SecondRoot.large_second_best_root k roots K roots_ok).
- destruct (dA_expo' k roots lia roots_ok) as (c & Hc).
- set (r := Complex.Cmod _) in *.
- destruct (large_enough_exponent r (-M/c)) as (N, HN); trivial.
- destruct (Hc N) as (n & Hn & Hn').
- exists n. rewrite Hn'.
- apply Ropp_lt_cancel. rewrite Ropp_mult_distr_l, Ropp_involutive.
- rewrite Rmult_comm, <- Rcomplements.Rlt_div_l; try apply c.
- eapply Rlt_le_trans; [apply HN|]. apply Rle_pow; lia || lra.
-Qed.
-
-Lemma delta_inf_k6 k : (6<=k)%nat ->
- is_inf_seq (fun n => f k n - tau k * n) Rbar.m_infty.
-Proof.
- intros K M. destruct (dA_inf_k6 k K M) as (n & Hn). simpl in *.
- exists (A k n). rewrite f_A; easy || lia.
-Qed.
-
-(* Print Assumptions delta_sup_k6. *)
-(* Print Assumptions delta_inf_k6. *)

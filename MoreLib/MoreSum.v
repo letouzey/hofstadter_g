@@ -257,6 +257,12 @@ Proof.
  - eapply Rle_trans; [apply Cmod_triangle|]. lra.
 Qed.
 
+Lemma Clistsum_rev l : Clistsum (List.rev l) = Clistsum l.
+Proof.
+ induction l; simpl; auto.
+ rewrite Clistsum_app, IHl. simpl; lca.
+Qed.
+
 Definition Cpoly x l := Clistsum (List.map (Cpow x) l).
 
 Lemma Cpoly_cons x n l : Cpoly x (n::l) = x^n + Cpoly x l.

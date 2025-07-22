@@ -4,7 +4,7 @@ From Coquelicot Require Import Hierarchy Continuity Derive AutoDerive
  RInt RInt_analysis Series PSeries.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 Require Import MoreTac MoreList MoreReals MoreLim MoreSum MoreComplex.
-Require Import MorePSeries MorePoly IntPoly MoreIntegral ThePoly GenFib Mu.
+Require Import MorePSeries MorePoly IntPoly MoreIntegral Mu ThePoly.
 Require Phi F3 F4 F5.
 Local Open Scope R.
 Local Open Scope C.
@@ -21,12 +21,12 @@ Definition Pisot (x:R) :=
   1<x /\
   exists l : list C,
     IntPoly (linfactors (RtoC x :: l)) /\
-    Forall (fun r => 0 < Cmod r < 1) l.
+    forall r, In r l -> 0 < Cmod r < 1.
 
 Definition PisotConjugates (x:R)(l : list C) :=
   1<x /\
   IntPoly (linfactors (RtoC x :: l)) /\
-  Forall (fun r => 0 < Cmod r < 1) l.
+  forall r, In r l -> 0 < Cmod r < 1.
 
 Lemma Pisot_alt x : Pisot x <-> exists l, PisotConjugates x l.
 Proof.
@@ -41,7 +41,7 @@ Lemma Pisot_nat_ge_2 (n:nat) : (2<=n)%nat -> Pisot n.
 Proof.
  split.
  - apply le_INR in H. simpl in H. lra.
- - exists []; simpl; split; [|constructor].
+ - exists []; simpl; split; try easy.
    apply IntPoly_alt. exists [-Z.of_nat n;1]%Z.
    simpl. unfold "∘"; repeat f_equal; try ring.
    rewrite opp_IZR, <- INR_IZR_INZ, RtoC_opp. ring.
@@ -60,8 +60,8 @@ Proof.
      rewrite <- RtoC_plus. replace (tau 2 + - mu 2)%R with (-1)%R.
      2:{ rewrite tau_2, mu_2. field. }
      apply IntPoly_alt. now exists [-1;-1;1]%Z.
-   + repeat constructor; rewrite Cmod_opp, Cmod_R, Rabs_pos_eq;
-      generalize (tau_itvl 2); lra.
+   + intros r [<-|[ ]].
+     rewrite Cmod_opp, Cmod_R, Rabs_pos_eq; generalize (tau_itvl 2); lra.
 Qed.
 
 Lemma Pisot_mu3 : Pisot (mu 3). (* 1.465571... *)
@@ -73,8 +73,7 @@ Proof.
      rewrite F3.linfactors_roots.
      unfold ThePoly. simpl. rewrite !Cplus_0_l.
      apply IntPoly_alt. now exists [-1;0;-1;1]%Z.
-   + unfold F3.roots. simpl.
-     repeat constructor;
+   + unfold F3.roots. intros r [<-|[<-|[ ]]];
      change F3.αbar with (Cconj F3.α); rewrite ?Cmod_conj;
      generalize F3.αmod_approx; unfold Approx.Approx; lra.
 Qed.
@@ -88,8 +87,7 @@ Proof.
      destruct F4.roots_sorted as (<-,_).
      unfold ThePoly. simpl. rewrite !Cplus_0_l.
      apply IntPoly_alt. now exists [-1;0;0;-1;1]%Z.
-   + unfold F4.roots. simpl.
-     repeat constructor;
+   + unfold F4.roots. intros r [<-|[<-|[<-|[ ]]]];
      change F4.αbar with (Cconj F4.α);
      rewrite ?Cmod_conj, ?Cmod_R, ?Rabs_left;
      generalize F4.αmod_approx, F4.ν_approx; unfold Approx.Approx; lra.
@@ -110,7 +108,7 @@ Proof.
      { split; apply Rsqr_incrst_0; try lra; try apply Cmod_ge_0;
        rewrite ?Rsqr_1, ?Rsqr_0, Rsqr_pow2, F5.αmod2;
        change F5.τ with (tau 5); generalize (tau_itvl 5); lra. }
-     repeat constructor; trivial;
+     intros r [<-|[<-|[ ]]];
      change F5.αbar with (Cconj F5.α); now rewrite ?Cmod_conj.
 Qed.
 
@@ -165,7 +163,7 @@ Proof.
      rewrite Cmult_0_r, Cplus_0_l, Cmult_1_r.
      change (~Root x (linfactors l)). rewrite <- linfactors_roots.
      destruct Hl as (Hx1 & Hl1 & Hl2). intros IN.
-     rewrite Forall_forall in Hl2. specialize (Hl2 x IN).
+     specialize (Hl2 x IN).
      rewrite Cmod_R, Rabs_pos_eq in Hl2; lra. }
    set (p2' := [topcoef p1] *, p2).
    destruct (IntPoly_null_or_large_root p2') as (r & Hr & Hr').
@@ -190,9 +188,7 @@ Proof.
    { apply linfactors_roots. rewrite <- Hl2, E. red.
      rewrite Pmult_eval. rewrite Hr2. lca. }
    simpl in IN. destruct IN as [IN | IN]; [ now rewrite IN in Hx'|].
-   assert (Hr3 : 0 < Cmod r < 1).
-   { rewrite Forall_forall in Hl1. now apply Hl1. }
-   rewrite <- Cmod_eq_0_iff in Hr'. generalize (Cmod_ge_0 r); lra.
+   rewrite <- Cmod_eq_0_iff in Hr'. generalize (Hl1 _ IN) (Cmod_ge_0 r); lra.
  - set (p1' := [topcoef p1] *, p1).
    destruct (IntPoly_null_or_large_root p1') as (r & Hr & Hr').
    { apply IntPoly_mult; trivial. constructor; [|constructor].
@@ -212,77 +208,7 @@ Proof.
    { apply linfactors_roots. rewrite <- Hl2, E. red.
      rewrite Pmult_eval. rewrite Hr2. lca. }
    simpl in IN. destruct IN as [IN | IN]; [ now rewrite IN in Hx|].
-   assert (Hr3 : 0 < Cmod r < 1).
-   { rewrite Forall_forall in Hl1. now apply Hl1. }
-   rewrite <- Cmod_eq_0_iff in Hr'. generalize (Cmod_ge_0 r); lra.
-Qed.
-
-Definition MinPolyQ x p :=
-  monic p /\ RatPoly p /\ Root x p /\
-  forall q, ~Peq q [] -> RatPoly q -> Root x q -> (degree p <= degree q)%nat.
-
-(* NB: RootQ_has_MinPolyQ proved here via excluded middle *)
-
-Lemma RootQ_has_MinPolyQ x :
-  (exists p, ~Peq p [] /\ RatPoly p /\ Root x p) ->
-  (exists p, MinPolyQ x p).
-Proof.
- intros (p & NZ & ER & Hx).
- remember (degree p) as d. revert p Heqd NZ ER Hx.
- induction d as [d IH] using lt_wf_ind.
- intros p E NZ ER Hx.
- destruct (Classical_Prop.classic
-           (exists q, ~Peq q [] /\ RatPoly q /\ Root x q /\
-                      (degree q < d)%nat)) as [(q & NZ' & ER' & Hx' & D)|N].
- - apply (IH (degree q) D q eq_refl NZ' ER' Hx').
- - exists (monicify p); repeat split.
-   + now apply monicify_ok.
-   + now apply RatPoly_monicify.
-   + now rewrite monicify_root.
-   + intros q NZ' RP' Hx'. rewrite monicify_degree; trivial. rewrite <- E.
-     apply Nat.le_ngt. contradict N. now exists q.
-Qed.
-
-Lemma MinPolyQ_unique_aux x p q :
-  MinPolyQ x p -> RatPoly q -> Root x q ->
-  exists u, RatPoly u /\ Peq q (p *, u).
-Proof.
- intros (MO & RP & Hx & MIN) RP' Hx'.
- destruct (Nat.eq_dec (degree p) 0) as [D0|D0].
- { exists q. split; trivial. now rewrite (deg0_monic_carac p), Pmult_1_l. }
- { destruct (Pdiv q p) as (u & v) eqn:E.
-   assert (Huv1 := Pdiv_eqn q p).
-   assert (Huv2 := Pdiv_degree q p).
-   assert (Huv3 := RatPoly_div q p RP' RP).
-   rewrite E in *; simpl in *. specialize (Huv2 ltac:(lia)).
-   destruct (Peq_0_dec v) as [EQ|NE].
-   { exists u. split; try easy. rewrite EQ, Pplus_0_r in Huv1.
-     now rewrite Pmult_comm. }
-   { assert (Rv : Root x v).
-     { rewrite Huv1 in Hx'. red in Hx'. rewrite Pplus_eval, Pmult_eval in Hx'.
-       rewrite Hx, Cmult_0_r, Cplus_0_l in Hx'. apply Hx'. }
-     specialize (MIN v NE (proj2 Huv3) Rv). lia. }}
-Qed.
-
-Lemma MinPolyQ_unique x p q : MinPolyQ x p -> MinPolyQ x q -> Peq p q.
-Proof.
- intros Hp Hq.
- destruct (MinPolyQ_unique_aux x p q Hp) as (u & Hu & E); try apply Hq.
- assert (D : degree p = degree q).
- { apply Nat.le_antisymm.
-   - apply Hp; try apply Hq. rewrite <- topcoef_0_iff.
-     replace (topcoef q) with 1. injection; lra. symmetry; apply Hq.
-   - apply Hq; try apply Hp. rewrite <- topcoef_0_iff.
-     replace (topcoef p) with 1. injection; lra. symmetry; apply Hp. }
- assert (Tp : topcoef p = 1) by apply Hp.
- assert (Tq : topcoef q = 1) by apply Hq.
- assert (Hu' : monic u).
- { assert (E' : topcoef q = topcoef (p*,u)) by now rewrite E.
-   rewrite topcoef_mult, Tp, Tq, Cmult_1_l in E'. now symmetry in E'. }
- rewrite E in D. rewrite Pmult_degree in D.
- 2:{ change (~Peq p []). rewrite <- topcoef_0_iff, Tp. injection; lra. }
- 2:{ change (~Peq u []). rewrite <- topcoef_0_iff, Hu'. injection; lra. }
- rewrite (deg0_monic_carac u), Pmult_1_r in E; lia || easy.
+   rewrite <- Cmod_eq_0_iff in Hr'. generalize (Hl1 _ IN) (Cmod_ge_0 r); lra.
 Qed.
 
 Lemma MinPolyQ_Qirred x p : MinPolyQ x p -> ~Qreducible p.
@@ -310,7 +236,7 @@ Proof.
    { rewrite <- topcoef_0_iff. rewrite MO. injection;lra. }
    destruct (RootQ_has_MinPolyQ x (ex_intro _ p (conj NZ (conj RP Hx))))
      as (q & Hq).
-   destruct (MinPolyQ_unique_aux x q p Hq RP Hx) as (u & RPu & E).
+   destruct (MinPolyQ_divide x q p Hq RP Hx) as (u & RPu & E).
    assert (D : ~(0 < degree q < degree p)%nat).
    { contradict IR. exists q, u. repeat (split; try assumption). apply Hq. }
    destruct (Nat.eq_dec (degree q) 0) as [D'|D'].
@@ -330,30 +256,215 @@ Proof.
  { destruct Hp as (l & Hl & Hl'). red. rewrite Hl'.
    apply linfactors_monic. }
  rewrite MinPolyQ_alt; repeat split; trivial.
- - apply PisotIntPoly in Hp. rewrite IntPoly_alt in Hp.
-   destruct Hp as (p' & ->).
-   rewrite RatPoly_alt. exists (map inject_Z p').
-   unfold Zpoly, Qpoly. rewrite map_map. unfold "∘". apply map_ext.
-   intros z. now rewrite Q2R_IZR.
+ - now apply IntRatPoly, (PisotIntPoly x).
  - now apply PisotPolyRoot.
  - intros Hp'. apply (PisotPolyIrred x p); trivial.
    apply GaussLemma; trivial. eapply PisotIntPoly; eauto.
 Qed.
 
-Lemma PisotPolyUnique x p q : PisotPoly x p -> PisotPoly x q -> Peq p q.
+Lemma PisotPoly_unique x p q : PisotPoly x p -> PisotPoly x q -> Peq p q.
 Proof.
  intros. apply (MinPolyQ_unique x); now apply PisotPoly_minimal.
 Qed.
-
-(** TODO: move here the begin of SecondRoot
-    + cleanup of SecondRoot
-    AND finish other moves
-*)
 
 (** Siegel Theorem : the smallest Pisot number is the Plastic Ratio.
     (Ref: Algbraic numbers whose conjugates lie in the unit circle, 1944) *)
 
 Module SiegelProof.
+
+(** The core idea in Siegel's 1944 article :
+    if a function g has no poles inside the unit circle,
+    the integral of g(z)*g(/z)/z on the unit circle is
+    the series of the squares of the coefficients of g as power series. *)
+
+Definition Mu (g : C -> C) :=
+ /(2*PI) * CInt (fun t => g (Cexp t) * g (Cexp (-t))) 0 (2*PI).
+
+Lemma Mu_aux (a : nat -> C) n :
+  let h := fun t : R => sum_n (fun k : nat => a k * Cexp (k * t)) n in
+  CInt (fun x => h x * h (-x)%R) 0 (2 * PI)
+  = 2 * PI * sum_n (fun k => a k ^2) n.
+Proof.
+ induction n.
+ - intros h. unfold h. rewrite !sum_O.
+   rewrite (RInt_ext (V:=C_CNM)) with (g:=fun x => (a O)^2).
+   2:{ intros x _. rewrite !sum_O. simpl. rewrite !Rmult_0_l.
+       rewrite Cexp_0. fixeq C. ring. }
+   rewrite RInt_const, scal_R_Cmult, Rminus_0_r. now rtoc.
+ - intros h. rewrite !sum_Sn.
+   set (h1 := fun t => sum_n (fun k : nat => a k * Cexp (k * t)) n) in *.
+   assert (Hh : forall x, continuous h x).
+   { intros x. apply sum_n_continuous. intros m _. simpl.
+     apply (continuous_scal_r (V:=C_NormedModule)).
+     apply continuous_Cexpn. }
+   assert (Hh1 : forall x, continuous h1 x).
+   { intro x. apply sum_n_continuous. intros m _. simpl.
+     apply (continuous_scal_r (V:=C_NormedModule)).
+     apply continuous_Cexpn. }
+   simpl in *.
+   set (h2 := fun t => a (S n) * Cexp (S n * t)).
+   assert (Hh2 : forall x, continuous h2 x).
+   { intros x. apply (continuous_scal_r (V:=C_NormedModule)).
+     apply continuous_Cexpn. }
+   assert (E : forall t, h t = h1 t + h2 t).
+   { intros t. unfold h. now rewrite sum_Sn. }
+   rewrite (RInt_ext (V:=C_CNM))
+    with (g:=fun x => h1(x)*h1(-x)%R + h1(x)*h2(-x)%R +
+                      h2(x)*h1(-x)%R + h2(x)*h2(-x)%R).
+   2:{ intros x _. rewrite !E. fixeq C. ring. }
+   rewrite !(RInt_plus (V:=C_CNM));
+    try apply (ex_RInt_continuous (V:=C_CNM));
+    try intros x _.
+   2:{ apply continuous_Cmult; trivial. apply continuous_comp; trivial.
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+   2:{ apply continuous_Cmult; trivial. apply continuous_comp; trivial.
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+   2:{ apply (continuous_plus (V:=C_NM));
+        apply continuous_Cmult; trivial; apply continuous_comp; trivial;
+        apply (continuous_opp (V:=R_NM)), continuous_id. }
+   2:{ apply continuous_Cmult; trivial. apply continuous_comp; trivial.
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+   2:{ apply (continuous_plus (V:=C_NM));
+       [apply (continuous_plus (V:=C_NM))|];
+       apply continuous_Cmult; trivial; apply continuous_comp; trivial;
+        apply (continuous_opp (V:=R_NM)), continuous_id. }
+   2:{ apply continuous_Cmult; trivial. apply continuous_comp; trivial.
+       apply (continuous_opp (V:=R_NM)), continuous_id. }
+   rewrite IHn.
+   rewrite (RInt_ext (V:=C_CNM))
+     with (g:=fun x => a (S n) * sum_n (fun k => a k * Cexp ((S n-k)%nat*-x)) n).
+   rewrite CInt_scal, CInt_sum_n_opp; try lia. rewrite Cmult_0_r.
+   2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+       intros x _. apply sum_n_continuous. intros i _.
+       apply continuous_Cmult. apply continuous_const.
+       apply (continuous_comp Ropp (fun x => Cexp ((S n-i)%nat * x))).
+       apply (continuous_opp (V:=R_NM)), continuous_id.
+       apply continuous_Cexpn. }
+   2:{ intros x _. unfold h1, h2.
+       rewrite Cmult_assoc, (Cmult_comm _ (a (S n))), <- !Cmult_assoc.
+       f_equal.
+       rewrite <- sum_n_Cmult_r. apply sum_n_ext_loc. intros m Hm.
+       rewrite <- Cmult_assoc. f_equal. rewrite <- Cexp_add. f_equal.
+       rewrite minus_INR by lia. lra. }
+   rewrite (RInt_ext (V:=C_CNM))
+     with (g:=fun x => a (S n) * sum_n (fun k => a k * Cexp ((S n-k)%nat*x)) n).
+   rewrite CInt_scal, CInt_sum_n; try lia. rewrite Cmult_0_r.
+   2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+       intros x _. apply sum_n_continuous. intros.
+       apply continuous_Cmult. apply continuous_const.
+       apply continuous_Cexpn. }
+   2:{ intros x _. unfold h1, h2.
+       rewrite <- !Cmult_assoc. f_equal. rewrite Cmult_comm.
+       rewrite <- sum_n_Cmult_r. apply sum_n_ext_loc. intros m Hm.
+       rewrite <- Cmult_assoc. f_equal. rewrite <- Cexp_add. f_equal.
+       rewrite minus_INR by lia. lra. }
+   rewrite (RInt_ext (V:=C_CNM))
+     with (g:=fun x => a (S n)^2).
+   2:{ intros x _. unfold h2. ring_simplify.
+       rewrite <- Cmult_assoc, <- Cexp_add.
+       replace (Rplus _ _) with 0%R by lra. rewrite Cexp_0. apply Cmult_1_r. }
+   rewrite CInt_const, RtoC_mult. change plus with Cplus. fixeq C. ring.
+Qed.
+
+Lemma Mu_series_square (a : nat -> C) (g : C -> C) :
+ ex_series (Cmod ∘ a) ->
+ (forall z, Cmod z = 1%R -> g z = CPowerSeries a z) ->
+ Mu g = CSeries (fun n => (a n)^2).
+Proof.
+ intros (l & Hl) Hg. simpl in l.
+ assert (Hg' : forall x, continuous (g∘Cexp) x).
+ { intros x. apply continuous_ext with (f := CPowerSeries a∘Cexp).
+   - intros y. symmetry. apply Hg, Cmod_Cexp.
+   - apply CPowerSeries_Cexp_continuous; now exists l. }
+ symmetry. apply CSeries_unique.
+ intros P (eps,HP). simpl in P, HP.
+ assert (LT : 0 < eps / Rmax 1 (4*l)).
+ { apply Rmult_lt_0_compat. apply eps.
+   apply Rinv_0_lt_compat. generalize (Rmax_l 1 (4*l)); lra. }
+ set (eps' := mkposreal _ LT).
+ destruct (Hl (ball l eps')) as (N & HN); try (now exists eps').
+ exists N. intros n Hn. apply HP, C_ball. clear HP.
+ specialize (HN n Hn).
+ change (ball _ _ _) with (Rabs ((sum_n (Cmod ∘ a) n)-l) < eps') in HN.
+ set (h := fun t => sum_n (fun k => a k * Cexp (k*t)) n). simpl in h.
+ assert (Hh : forall x, continuous h x).
+ { intros. apply sum_n_continuous. intros. apply continuous_Cmult.
+   apply continuous_const. apply continuous_Cexpn. }
+ assert (LE : forall t:R,
+              Cmod (g(Cexp t)*g(Cexp (-t)) - h t * h(-t)%R) <= eps/2).
+ { intros t.
+   replace (_ - _) with
+       (g (Cexp t) * (g (Cexp (- t)) - h (-t)%R)
+        + (g (Cexp t) - h t)*h(-t)%R) by ring.
+   rewrite Cmod_triangle.
+   rewrite !Cmod_mult.
+   rewrite !Hg by (rewrite Cmod_Cexp; lra).
+   assert (Cmod (CPowerSeries a (Cexp t)) <= l).
+   { apply CPowerSeries_bound2; trivial. rewrite Cmod_Cexp; lra. }
+   assert (D : forall t', Cmod (CPowerSeries a (Cexp t') - h t') <= eps').
+   { intros t'. unfold h.
+     rewrite sum_n_ext with (b := fun k => a k * Cexp t'^k).
+     2:{ intros m. rewrite Cexp_pow. f_equal. f_equal. lra. }
+     rewrite CPowerSeries_bound3; eauto.
+     apply Rabs_def2 in HN. lra.
+     rewrite Cmod_Cexp; lra. }
+   apply Rle_trans with (l*eps' + eps'*l)%R.
+   - apply Rplus_le_compat.
+     + apply Rmult_le_compat; try apply Cmod_ge_0; easy.
+     + apply Rmult_le_compat; try apply Cmod_ge_0; try easy.
+       { unfold h. rewrite sum_n_ext with (b := fun k => a k * Cexp (-t)^k).
+         2:{ intros m. rewrite Cexp_pow. f_equal. f_equal. lra. }
+         apply CPowerSeries_bound1; trivial. rewrite Cmod_Cexp; lra. }
+   - apply -> Rcomplements.Rle_div_r; try lra. ring_simplify.
+     unfold eps'. simpl. unfold Rdiv. rewrite <- Rmult_assoc.
+     apply <- Rcomplements.Rle_div_l.
+     2:{ apply Rlt_gt. apply Rlt_le_trans with 1%R. lra. apply Rmax_l. }
+     rewrite (Rmult_comm eps). apply Rmult_le_compat_r; try apply Rmax_r.
+     generalize (cond_pos eps); lra. }
+ assert (LE' : Cmod (CInt (fun t => g (Cexp t) * g (Cexp (- t))
+                                   - h t * h (- t)%R) 0 (2*PI))
+               <= 2*PI * (eps/2)).
+ { replace (2*PI)%R with (2*PI - 0)%R at 2 by lra.
+   apply CInt_Cmod.
+   - generalize Rgt_2PI_0; lra.
+   - apply (ex_RInt_continuous (V:=C_CNM)).
+     intros x _.
+     apply (continuous_minus (V:=C_CNM));
+      apply continuous_Cmult; trivial.
+     apply (continuous_comp Ropp (g∘Cexp)); trivial.
+     apply (continuous_opp (V:=R_CNM)), continuous_id.
+     apply (continuous_comp Ropp h); trivial.
+     apply (continuous_opp (V:=R_CNM)), continuous_id.
+   - intros x _. apply (LE x). }
+ clear LE HN eps' LT.
+ rewrite CInt_minus in LE'.
+ 2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+     intros x _. apply continuous_Cmult; trivial.
+     apply (continuous_comp Ropp (g∘Cexp)); trivial.
+     apply (continuous_opp (V:=R_CNM)), continuous_id. }
+ 2:{ apply (ex_RInt_continuous (V:=C_CNM)).
+     intros x _. apply continuous_Cmult; trivial.
+     apply continuous_comp; trivial.
+     apply (continuous_opp (V:=R_NM)), continuous_id. }
+ apply Rmult_le_compat_r with (r:=(/(2*PI))%R) in LE'.
+ 2:{ apply Rlt_le. apply Rinv_0_lt_compat, Rgt_2PI_0. }
+ replace (2 * PI * (eps / 2) * / (2 * PI))%R with (eps/2)%R in LE'.
+ 2:{ field. apply PI_neq0. }
+ rewrite <- (Rabs_right (/(2*PI))%R) in LE'.
+ 2:{ apply Rle_ge, Rlt_le. apply Rinv_0_lt_compat, Rgt_2PI_0. }
+ rewrite <- Cmod_R, <- Cmod_mult in LE'.
+ rewrite RtoC_inv, RtoC_mult in LE'.
+ unfold Cminus in LE'. rewrite Cmult_plus_distr_r in LE'.
+ rewrite Cmult_comm in LE'. fold (Mu g) in LE'.
+ rewrite <- Copp_mult_distr_l in LE'.
+ assert (E := Mu_aux a n). fold h in E. rewrite E in LE'. clear E.
+ set (p := 2*PI) in LE'.
+ rewrite (Cmult_comm p), <- Cmult_assoc, Cinv_r, Cmult_1_r in LE'.
+ 2:{ unfold p. ctor. apply RtoC_inj_neq. generalize Rgt_2PI_0; lra. }
+ unfold Cminus. eapply Rle_lt_trans; [apply LE'| ].
+ generalize (cond_pos eps). lra.
+Qed.
+
 Section Siegel.
 Variable root : R.
 Hypothesis Hroot : root < sqrt 2.
@@ -380,9 +491,7 @@ Qed.
 
 Lemma roots_nz : ~In 0 roots.
 Proof.
- intros IN. destruct Hroots as (_ & _ & H).
- rewrite Forall_forall in H. specialize (H _ IN).
- rewrite Cmod_0 in H. lra.
+ intros IN. apply Hroots in IN. rewrite Cmod_0 in IN. lra.
 Qed.
 
 Lemma roots_nz' : ~In 0 (RtoC root :: roots).
@@ -430,9 +539,8 @@ Proof.
  - change (Rbar.Rbar_le (/root)%R (min_Cmod_list (map Cinv roots))).
    apply Rbar.Rbar_lt_le. apply min_Cmod_list_spec, Forall_forall.
    intros y. rewrite in_map_iff. intros (z & <- & IN).
-   red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-   rewrite Cmod_inv.
-   apply Rinv_lt_contravar. apply Rmult_lt_0_compat; lra. lra.
+   apply Hroots in IN. rewrite Cmod_inv.
+   apply Rinv_lt_contravar. apply Rmult_lt_0_compat; lra'. lra'.
 Qed.
 
 Lemma fps_radius : Rbar.Rbar_le (/root)%R (C_CV_radius fps).
@@ -456,9 +564,8 @@ Proof.
    2:{ now rewrite H, Cinv_inv. }
    rewrite <- RtoC_inv, Cmod_R in H1.
    generalize (Rle_abs (/root)%R); lra.
- - red in Hroots. rewrite Forall_forall in Hroots.
-   apply Hroots in H. rewrite Cmod_inv in H.
-   apply Rinv_lt_contravar in H1. rewrite Rinv_inv in H1. lra.
+ - apply Hroots in H. rewrite Cmod_inv in H.
+   apply Rinv_lt_contravar in H1. rewrite Rinv_inv in H1. lra'.
    apply Rmult_lt_0_compat; apply Cmod_gt_0 in H2; lra.
 Qed.
 
@@ -586,9 +693,8 @@ Proof.
  apply Rbar.Rbar_min_case; [simpl; trivial|].
  eapply Rbar.Rbar_lt_le_trans; [|apply PS_inv_linfactors_radius].
  - apply min_Cmod_list_spec, Forall_forall.
-   intros x. rewrite in_map_iff. intros (y & <- & IN).
-   red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-   rewrite Cmod_inv, <- Rinv_1. apply Rinv_lt_contravar; lra.
+   intros x. rewrite in_map_iff. intros (y & <- & IN). apply Hroots in IN.
+   rewrite Cmod_inv, <- Rinv_1. apply Rinv_lt_contravar; lra'.
  - rewrite in_map_iff. intros (r & Hr & IN).
    rewrite Cinv_eq_0_iff in Hr. subst r. now apply roots_nz.
 Qed.
@@ -596,11 +702,9 @@ Qed.
 Lemma below_1 x : Cmod x <= 1 -> x <> 0 -> ~Root (/ x) (linfactors roots).
 Proof.
  intros H1 H2.
- intros H. apply linfactors_roots in H.
- red in Hroots. rewrite Forall_forall in Hroots.
- apply Hroots in H. rewrite Cmod_inv in H.
- apply Rinv_le_contravar in H1. rewrite Rinv_1 in H1; lra.
- apply Cmod_gt_0 in H2; lra.
+ intros H. apply linfactors_roots in H. apply Hroots in H.
+ rewrite Cmod_inv in H. apply Rinv_le_contravar in H1.
+ rewrite Rinv_1 in H1; lra'. apply Cmod_gt_0 in H2; lra.
 Qed.
 
 Lemma gps_ok x :
@@ -633,16 +737,14 @@ Proof.
    unfold revfactors.
    apply PS_inv_linfactors_ok.
    apply Forall_forall. intros y. rewrite in_map_iff. intros (z & <- & IN).
-   red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-   rewrite Cmod_inv. eapply Rle_lt_trans; eauto. rewrite <- Rinv_1.
-   apply Rinv_lt_contravar; lra.
+   apply Hroots in IN. rewrite Cmod_inv. eapply Rle_lt_trans; eauto.
+   rewrite <- Rinv_1. apply Rinv_lt_contravar; lra.
  - now rewrite PS_poly_radius.
  - eapply Rbar.Rbar_lt_le_trans; [|apply PS_inv_linfactors_radius].
    2:{ rewrite in_map_iff. intros (y & Hy & IN).
        rewrite Cinv_eq_0_iff in Hy. rewrite Hy in IN. now apply roots_nz. }
    apply min_Cmod_list_spec, Forall_forall.
-   intros y. rewrite in_map_iff. intros (z & <- & IN).
-   red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
+   intros y. rewrite in_map_iff. intros (z & <- & IN). apply Hroots in IN.
    rewrite Cmod_inv. eapply Rle_lt_trans; eauto. rewrite <- Rinv_1.
    apply Rinv_lt_contravar; lra.
 Qed.
@@ -689,12 +791,12 @@ Qed.
 
 Lemma One_aux : 1 + root^2 = CSeries (fun n => (gps n)^2).
 Proof.
- rewrite <- SecondRoot.Mu_series_square with (g:=g).
+ rewrite <- Mu_series_square with (g:=g).
  2:{ rewrite <- ex_pseries_1. apply CV_radius_inside.
      rewrite <- C_CV_radius_alt. rewrite Rabs_pos_eq by lra.
      apply gps_radius. }
  2:{ intros z Hz. symmetry. apply CPowerSeries_unique, gps_ok. lra. }
- symmetry. unfold SecondRoot.Mu.
+ symmetry. unfold Mu.
  rewrite (RInt_ext (V:=C_CNM))
   with (g := fun t => (1 - root * Cexp t)*(1 - root * Cexp (-t))).
  2:{ intros t _. rewrite !g_f.
@@ -712,14 +814,12 @@ Proof.
        intros [E|IN].
        - apply (f_equal Cmod) in E. rewrite Cmod_Cexp in E.
          rewrite Cmod_R, Rabs_pos_eq in E; lra'.
-       - red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-         rewrite Cmod_Cexp in IN; lra. }
+       - apply Hroots in IN. rewrite Cmod_Cexp in IN; lra. }
      { rewrite Hcoefs. rewrite <- linfactors_roots, <- Cexp_neg.
        intros [E|IN].
        - apply (f_equal Cmod) in E. rewrite Cmod_Cexp in E.
          rewrite Cmod_R, Rabs_pos_eq in E; lra'.
-       - red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-         rewrite Cmod_Cexp in IN; lra. }
+       - apply Hroots in IN. rewrite Cmod_Cexp in IN; lra. }
      { apply Cexp_nonzero. }}
  rewrite (RInt_ext (V:=C_CNM))
   with (g := fun t => (1 + root ^2) - root * (Cexp t - - Cexp (-t))).
@@ -891,8 +991,7 @@ Proof.
  { apply G_big_mult_small.
    - intros x Hx.
      rewrite in_map_iff in Hx. destruct Hx as (x' & <- & Hx').
-     red in Hroots. rewrite Forall_forall in Hroots. apply Hroots.
-     rewrite L. rewrite in_app_iff in *. simpl; tauto.
+     apply Hroots. rewrite L. rewrite in_app_iff in *. simpl; tauto.
    - rewrite <- length_zero_iff_nil.
      rewrite map_length. rewrite Hcoefs, linfactors_degree in D.
      rewrite L in D. simpl in D. rewrite app_length in *. simpl in D.
@@ -959,7 +1058,7 @@ Hypothesis Eq : Peq Pcoef ([c] *, reciprocal Pcoef).
 
 Lemma ReciprocalScal_roots_carac r : In r roots -> r = /root.
 Proof.
- intros Hr. destruct Hroots as (H1 & _ & H2). rewrite Forall_forall in H2.
+ intros Hr. destruct Hroots as (H1 & _ & H2).
  assert (Hr' : Root r Pcoef).
  { rewrite Hcoefs, <- linfactors_roots. now right. }
  rewrite Eq in Hr'. red in Hr'.
@@ -1440,13 +1539,13 @@ Qed.
 Lemma grps_square r : r<>O -> root^(2*r) = CSeries (fun n => (grps r n)^2).
 Proof.
  intros Hr.
- rewrite <- (SecondRoot.Mu_series_square (grps r) (gr r)).
+ rewrite <- (Mu_series_square (grps r) (gr r)).
  2:{ rewrite <- ex_pseries_1. apply CV_radius_inside.
      rewrite <- C_CV_radius_alt. rewrite Rabs_pos_eq by lra.
      now apply grps_radius. }
  2:{ intros z Hz. symmetry. apply CPowerSeries_unique, grps_ok; trivial.
      lra. }
- symmetry. unfold SecondRoot.Mu.
+ symmetry. unfold Mu.
  rewrite (RInt_ext (V:=C_CNM)) with (g := fun t => root^(2*r)).
  2:{ intros x _. rewrite Cexp_neg. apply gr_gr; trivial.
      - apply Cexp_nonzero.
@@ -1457,15 +1556,13 @@ Proof.
        intros [E|IN].
        + apply (f_equal Cmod) in E.
          rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
-       + red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-         rewrite Cmod_Cexp in IN; lra.
+       + apply Hroots in IN. rewrite Cmod_Cexp in IN; lra.
      - rewrite <- Cexp_neg.
        rewrite Hcoefs. rewrite <- linfactors_roots.
        intros [E|IN].
        + apply (f_equal Cmod) in E.
          rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
-       + red in Hroots. rewrite Forall_forall in Hroots. apply Hroots in IN.
-         rewrite Cmod_Cexp in IN; lra. }
+       + apply Hroots in IN. rewrite Cmod_Cexp in IN; lra. }
  rewrite CInt_const. rtoc. field. intros [=H]. now apply PI_neq0.
 Qed.
 
@@ -1803,9 +1900,9 @@ Proof.
  now rewrite seq_nth by lia.
 Qed.
 
-Lemma mu_poly l : RtoC (μ l) = SecondRoot.Mu (Peval (Zpoly l)).
+Lemma mu_poly l : RtoC (μ l) = Mu (Peval (Zpoly l)).
 Proof.
- rewrite (SecondRoot.Mu_series_square (PS_poly (Zpoly l))).
+ rewrite (Mu_series_square (PS_poly (Zpoly l))).
  2:{ unfold "∘". rewrite <- ex_series_RtoC.
      eapply ex_series_ext. symmetry. apply Cmod_PS_poly. apply PS_poly_ex. }
  2:{ intros z Hz. symmetry. apply CPowerSeries_unique, PS_poly_ok. }
@@ -1834,19 +1931,18 @@ Proof.
 Qed.
 
 Lemma Mu_ext (f g : C -> C) :
-  (forall c, Cmod c = 1%R -> f c = g c) ->
-  SecondRoot.Mu f = SecondRoot.Mu g.
+  (forall c, Cmod c = 1%R -> f c = g c) -> Mu f = Mu g.
 Proof.
- intros Eq. unfold SecondRoot.Mu. f_equal.
+ intros Eq. unfold Mu. f_equal.
  apply RInt_ext. intros x _. f_equal; apply Eq; now rewrite Cmod_Cexp.
 Qed.
 
-Lemma μA : RtoC (μ A) = SecondRoot.Mu (Peval (Zpoly A)).
+Lemma μA : RtoC (μ A) = Mu (Peval (Zpoly A)).
 Proof.
  apply mu_poly.
 Qed.
 
-Lemma μB : RtoC (μ Bkpoly) = SecondRoot.Mu (B k).
+Lemma μB : RtoC (μ Bkpoly) = Mu (B k).
 Proof.
  rewrite mu_poly. apply Mu_ext. intros c _. apply Bkpoly_ok.
 Qed.
@@ -1859,10 +1955,10 @@ Proof.
  intros Hx. unfold vAf. rewrite gr_alt by trivial; ring.
 Qed.
 
-Definition Mu_vAf : SecondRoot.Mu vAf = root^2 * μ A.
+Definition Mu_vAf : Mu vAf = root^2 * μ A.
 Proof.
  rewrite μA.
- unfold SecondRoot.Mu.
+ unfold Mu.
  rewrite Cmult_assoc, (Cmult_comm (root^2)), <- Cmult_assoc. f_equal.
  rewrite <- CInt_scal.
  2:{ apply (ex_RInt_continuous (V:=C_CNM)).
@@ -1881,13 +1977,11 @@ Proof.
  - rewrite Hcoefs, <- linfactors_roots. intros [E|IN].
    + apply (f_equal Cmod) in E.
      rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
-   + red in Hroots. rewrite Forall_forall in Hroots; apply Hroots in IN.
-     rewrite Cmod_Cexp in IN; lra.
+   + apply Hroots in IN. rewrite Cmod_Cexp in IN; lra.
  - rewrite <- Cexp_neg, Hcoefs, <- linfactors_roots. intros [E|IN].
    + apply (f_equal Cmod) in E.
      rewrite Cmod_Cexp, Cmod_R, Rabs_pos_eq in E; lra'.
-   + red in Hroots. rewrite Forall_forall in Hroots; apply Hroots in IN.
-     rewrite Cmod_Cexp in IN; lra.
+   + apply Hroots in IN. rewrite Cmod_Cexp in IN; lra.
 Qed.
 
 Lemma continuous_B x : continuous (B k) x.
@@ -1895,10 +1989,10 @@ Proof.
  eapply continuous_ext. apply Bkpoly_ok. apply continuous_poly.
 Qed.
 
-Lemma Mu_vB : SecondRoot.Mu vB = root^2 * μ Bkpoly.
+Lemma Mu_vB : Mu vB = root^2 * μ Bkpoly.
 Proof.
  rewrite μB.
- unfold SecondRoot.Mu.
+ unfold Mu.
  rewrite Cmult_assoc, (Cmult_comm (root^2)), <- Cmult_assoc. f_equal.
  rewrite <- CInt_scal.
  2:{ apply (ex_RInt_continuous (V:=C_CNM)).
@@ -2108,9 +2202,9 @@ Proof.
  rewrite take_nth; trivial; lia.
 Qed.
 
-Lemma α_square : SecondRoot.Mu vAf = CSeries (fun n => α n^2).
+Lemma α_square : Mu vAf = CSeries (fun n => α n^2).
 Proof.
- apply SecondRoot.Mu_series_square.
+ apply Mu_series_square.
  - rewrite <- ex_pseries_1.
    apply CV_radius_inside.
    rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
@@ -2118,9 +2212,9 @@ Proof.
  - intros z Hz. symmetry. apply CPowerSeries_unique, α_ok; lra.
 Qed.
 
-Lemma γ_square : SecondRoot.Mu vB = CSeries (fun n => γ n^2).
+Lemma γ_square : Mu vB = CSeries (fun n => γ n^2).
 Proof.
- apply SecondRoot.Mu_series_square.
+ apply Mu_series_square.
  - rewrite <- ex_pseries_1.
    apply CV_radius_inside.
    rewrite <- C_CV_radius_alt, Rabs_pos_eq by lra.
@@ -2786,7 +2880,7 @@ Proof.
    generalize mu_4 mu_5; lra.
 Qed.
 
-Lemma mu_non_Pisot_above_6 n : (6 <= n)%nat -> ~Pisot (mu n).
+Lemma mu_non_Pisot_above_6 n : (6 <= n)%nat -> ~Pisot (Mu.mu n).
 Proof.
  intros Hn.
  assert (mu n < mu 5).

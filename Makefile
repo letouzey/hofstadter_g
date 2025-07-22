@@ -109,9 +109,9 @@ COQMKFILE ?= "$(COQBIN)coq_makefile"
 OCAMLLIBDEP ?= "$(COQBIN)ocamllibdep"
 
 # Timing scripts
-COQMAKE_ONE_TIME_FILE ?= "$(COQCORELIB)/tools/make-one-time-file.py"
-COQMAKE_BOTH_TIME_FILES ?= "$(COQCORELIB)/tools/make-both-time-files.py"
-COQMAKE_BOTH_SINGLE_TIMING_FILES ?= "$(COQCORELIB)/tools/make-both-single-timing-files.py"
+COQMAKE_ONE_TIME_FILE ?= "$(COQBIN)/coq-makefile-make-one-time-file"
+COQMAKE_BOTH_TIME_FILES ?= "$(COQBIN)/coq-makefile-make-both-time-files"
+COQMAKE_BOTH_SINGLE_TIMING_FILES ?= "$(COQBIN)/coq-makefile-make-both-single-timing-files"
 BEFORE ?=
 AFTER ?=
 

@@ -3,7 +3,7 @@ From Coq Require Epsilon.
 From Hofstadter.HalfQuantum Require Import Complex.
 Require Import DeltaList MoreTac MoreFun MoreList MoreReals MoreComplex.
 Require Import MoreSum MoreLim.
-Require GenFib GenG Words WordGrowth Mu Freq RootEquiv F3 F4 F5.
+Require GenFib GenG Words WordGrowth Mu Freq SecondRoot RootEquiv F3 F4 F5.
 Require Import Article1.
 Local Coercion INR : nat >-> R.
 Local Coercion Rbar.Finite : R >-> Rbar.Rbar.
@@ -1262,13 +1262,13 @@ Qed.
 Lemma dA_sup_gen k : (6<=k)%nat ->
  is_sup_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.p_infty.
 Proof.
- intros. apply Freq.dA_sup_k6. lia.
+ intros. apply SecondRoot.dA_sup_k6. lia.
 Qed.
 
 Lemma dA_inf_gen k : (6<=k)%nat ->
  is_inf_seq (fun n => A k (n-1) - α k * A k n)%R Rbar.m_infty.
 Proof.
- intros. apply Freq.dA_inf_k6. lia.
+ intros. apply SecondRoot.dA_inf_k6. lia.
 Qed.
 
 
@@ -1332,7 +1332,7 @@ Proof.
  - intros n. unfold δ. rewrite F_alt; lia || easy.
  - destruct (Nat.eq_dec k 5) as [->|K'].
    + apply F5.delta_sup_k5.
-   + apply Freq.delta_sup_k6; lia.
+   + apply SecondRoot.delta_sup_k6; lia.
 Qed.
 
 Lemma infdelta_gen k : (5<=k)%nat -> infδ k = Rbar.m_infty.
@@ -1343,7 +1343,7 @@ Proof.
  - intros n. unfold δ. rewrite F_alt; lia || easy.
  - destruct (Nat.eq_dec k 5) as [->|K'].
    + apply F5.delta_inf_k5.
-   + apply Freq.delta_inf_k6; lia.
+   + apply SecondRoot.delta_inf_k6; lia.
 Qed.
 
 Lemma sup_abs (u:nat -> R) :
