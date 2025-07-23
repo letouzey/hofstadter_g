@@ -235,7 +235,7 @@ Proof.
      rewrite Cmult_integral. left. rewrite S.
      apply reciprocal_root.
      - apply nonzero_div_nonzero.
-       intros [=?]. generalize (mu_itvl k); lra.
+       intros [= ?]. generalize (mu_itvl k); lra.
      - rewrite Cinv_inv. rewrite Hp, <- linfactors_roots; now left. }
    revert R. rewrite ThePoly_root_carac. ctor. intros [=R].
    assert (Mu := mu_itvl k).

@@ -895,7 +895,7 @@ Proof.
    - rewrite H' in *. simpl in Mq.
      replace (nth _ r2 _) with (-1)%Z in Mr by lia.
      replace 1 with ((-1)*(-1)) in Mq,Mr by lca.
-     apply Cmult_eq_reg_r in Mq,Mr; try (intros [=?]; lra).
+     apply Cmult_eq_reg_r in Mq,Mr; try (intros [= ?]; lra).
      rewrite Mq, Mr.
      split; apply IntPoly_mult; rewrite IntPoly_alt;
       (now exists [-1]%Z) || (now eexists). }
@@ -910,14 +910,14 @@ Proof.
    destruct (Z.eq_mul_1 _ _ H) as [H'|H'].
    - rewrite H' in *. rewrite Z.mul_1_l, Z.eq_opp_l in H. rewrite H in *.
      simpl in Mr. replace 1 with ((-1)*(-1)) in Mr by lca.
-     apply Cmult_eq_reg_r in Mr; try (intros [=?]; lra).
+     apply Cmult_eq_reg_r in Mr; try (intros [= ?]; lra).
      rewrite Cmult_1_r in *. rewrite Mq, Mr, !Pmult_1_l.
      split; try apply IntPoly_mult; rewrite IntPoly_alt;
       (now eexists) || (now exists [-1]%Z).
    - rewrite H' in *. simpl in Mq.
      replace (nth _ r2 _) with 1%Z in Mr by lia.
      replace 1 with ((-1)*(-1)) in Mq by lca.
-     apply Cmult_eq_reg_r in Mq; try (intros [=?]; lra).
+     apply Cmult_eq_reg_r in Mq; try (intros [= ?]; lra).
      rewrite Cmult_1_r in *. rewrite Mq, Mr, !Pmult_1_l.
      split; try apply IntPoly_mult; rewrite IntPoly_alt;
       (now exists [-1]%Z) || (now eexists). }
