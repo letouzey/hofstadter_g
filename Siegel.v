@@ -1183,7 +1183,7 @@ Proof.
      - rewrite <- (Rmult_1_l (root^2)) at 1.
        apply Rmult_le_compat_r. nra'.
        rewrite <- Rsqr_pow2, <- Rsqr_1. apply Rsqr_incr_1; try lra.
-       + apply Zlt_le_succ, IZR_le in LT. rewrite succ_IZR in LT. lra.
+       + apply Z.le_succ_l, IZR_le in LT. rewrite succ_IZR in LT. lra.
        + apply IZR_lt in LT. lra.
      - unfold d. rewrite <- !Rsqr_pow2, <- Rsqr_mult.
        rewrite (Rsqr_neg (_-_)), Ropp_minus_distr, Rmult_comm.

@@ -712,7 +712,7 @@ Lemma prime_divisor (n : Z) :
   (1 < n)%Z -> exists p, Znumtheory.prime p /\ Z.divide p n.
 Proof.
  intros Hn. generalize Hn.
- pattern n. apply Z_lt_induction; try lia. clear n Hn.
+ pattern n. apply Wf_Z.Z_lt_induction; try lia. clear n Hn.
  intros n IH Hn.
  destruct (Znumtheory.prime_dec n) as [P|NP].
  - now exists n.
