@@ -864,7 +864,7 @@ Proof.
  rewrite Pplus_map. simpl.
  replace (k-1)%nat with (S (k-2)) by lia. simpl.
  rewrite Pplus_0_r, <- seq_shift, map_map.
- apply eq_Peq. f_equal. lca. f_equal. apply map_ext; intros; lca. f_equal; lca.
+ apply eq_Peq. f_equal. lca. setoid_rewrite Cplus_0_r. do 2 f_equal. lca.
 Qed.
 
 Lemma Interpol_coef n : (1<k)%nat ->
@@ -1050,7 +1050,7 @@ Proof.
  destruct (Nat.eq_dec n 0) as [->|N].
  - simpl. rewrite Rmult_1_r, RtoC_minus, <- coefdA_sum; trivial.
    rewrite E at 1. simpl. rewrite coefdA_mu, Cplus_0_l.
-   f_equal. apply map_ext. intros. lca.
+   now setoid_rewrite Cmult_1_r.
  - rtoc. rewrite !Equation_A.
    rewrite Clistsum_factor_l, map_map, Clistsum_minus.
    rewrite E at 1. simpl.
@@ -1085,8 +1085,8 @@ Proof.
  set (l := decomp k n).
  rtoc. rewrite !sumA_Rlistsum, !RtoC_Rlistsum, !map_map.
  rewrite Clistsum_factor_l, map_map, Clistsum_minus.
- f_equal. apply map_ext. intros m. replace (pred m) with (m-1)%nat by lia.
- rewrite <- Equation_dA; trivial. now rtoc.
+ f_equal. apply map_ext.
+ intros m. rewrite <- Nat.sub_1_r, <- Equation_dA; trivial. now rtoc.
 Qed.
 
 Lemma Equation_delta' n :
@@ -1097,8 +1097,8 @@ Lemma Equation_delta' n :
 Proof.
  intros K'.
  rewrite Equation_delta; trivial.
- rewrite Clistsum_Clistsum. f_equal. apply map_ext.
- intros a. now rewrite Clistsum_factor_l, map_map.
+ rewrite Clistsum_Clistsum. setoid_rewrite Clistsum_factor_l.
+ now setoid_rewrite map_map.
 Qed.
 
 End Roots.
@@ -1525,8 +1525,8 @@ Proof.
    simpl. ring.
    intros ->. now apply (SortedRoots_roots _ _ roots_ok), root_nz in Hr.
  - rewrite <- (B_ok k roots); trivial; try lia.
-   unfold B. f_equal. apply map_ext. intros r.
-   rewrite <- Cpow_CpowZ. ring.
+   unfold B. setoid_rewrite Cpow_CpowZ.
+   now setoid_rewrite Cmult_comm at 1.
 Qed.
 
 (** Conjecture (TODO?) : A former approach was to consider the

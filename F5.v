@@ -224,16 +224,15 @@ Proof.
  set (dα := coefdA 5 α).
  replace (Clistsum (map (Cpow (Cconj γ)) l))
   with (Cconj (Clistsum (map (Cpow γ) l))).
- 2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
-     intros a. apply Cpow_conj. }
+ 2:{ rewrite Clistsum_conj, map_map. now setoid_rewrite Cpow_conj. }
  set (sum := Clistsum (map (Cpow α) l)).
  replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
- 2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
-     intros a. apply Cpow_conj. }
+ 2:{ unfold sum. rewrite Clistsum_conj, map_map.
+     now setoid_rewrite Cpow_conj. }
  replace (Clistsum (map (Cpow γ) l)) with (RtoC n).
  2:{ clear. unfold l, decomp_u. rewrite map_map.
-     rewrite map_ext with (g := fun _ => 1%C), Clistsum_const, seq_length.
-     lca. intros a. now rewrite Cpow_mult_r, γ6, Cpow_1_l. }
+     srewrite Cpow_mult_r γ6 Cpow_1_l.
+     rewrite Clistsum_const, seq_length; lca. }
  rewrite Cconj_R. conj_out. simpl Clistsum.
  rewrite (Rmult_comm 2), Rmult_assoc.
  rtoc. rewrite <- !re_alt'. ring.
@@ -293,9 +292,8 @@ Proof.
  unfold Rdiv. apply Rmult_lt_compat_l.
  { apply Cmod_gt_0. unfold c' in *. intros E. rewrite E, Cmod_0 in Hc'. lra. }
  eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map.
- rewrite map_ext with (g:=pow (Cmod α)).
- 2:{ intros. now rewrite Cmod_pow. }
- apply sum_pow; try apply decomp_u_delta. lia. approx.
+ setoid_rewrite Cmod_pow. apply sum_pow; try apply decomp_u_delta.
+ lia. approx.
 Qed.
 
 Lemma delta_sup_k5 :
@@ -343,14 +341,13 @@ Proof.
    set (dγ := coefdA 5 γ).
    replace (Clistsum (map (Cpow (Cconj γ)) l))
      with (Cconj (Clistsum (map (Cpow γ) l))).
-   2:{ rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
-       intros a. apply Cpow_conj. }
+   2:{ rewrite Clistsum_conj, map_map. now setoid_rewrite Cpow_conj. }
    set (sum := Clistsum (map (Cpow α) l)).
    conj_out. rewrite re_alt'.
    replace (Clistsum (map (Cpow γ) l)) with (RtoC (-n)).
    2:{ clear. unfold l, decomp_u. rewrite !map_map.
-       rewrite map_ext with (g := fun _ => (-1)%C), Clistsum_const, seq_length.
-       lca. intros a. rewrite Cpow_add, Cpow_mult_r, γ6, γ3, Cpow_1_l. lca. }
+       srewrite Cpow_add Cpow_mult_r γ3 γ6 Cpow_1_l.
+       rewrite Clistsum_const, seq_length; lca. }
    rewrite re_scal_r. lca.
  - rewrite Cplus_0_r. unfold f. clear f.
    rewrite <- α_conj. rewrite !coefdA_conj.
@@ -358,11 +355,11 @@ Proof.
    set (dα := coefdA 5 α).
    set (sum := Clistsum (map (Cpow α) l)).
    replace (Clistsum (map (Cpow (Cconj α)) l)) with (Cconj sum).
-   2:{ unfold sum. rewrite Clistsum_conj, map_map. f_equal. apply map_ext.
-       intros a. apply Cpow_conj. }
+   2:{ unfold sum. rewrite Clistsum_conj, map_map.
+       now setoid_rewrite Cpow_conj. }
    conj_out. rewrite re_alt'. rtoc. rewrite <- Cmult_assoc. do 4 f_equal.
-   rewrite Clistsum_factor_l. unfold sum, l. clear. f_equal.
-   rewrite !map_map. apply map_ext. intros a. apply Cpow_add.
+   rewrite Clistsum_factor_l. unfold sum, l. clear.
+   rewrite !map_map. now setoid_rewrite Cpow_add.
 Qed.
 
 Lemma delta_seq_u'_bound :
@@ -393,9 +390,8 @@ Proof.
  unfold Rdiv. apply Rmult_lt_compat_l.
  { apply Cmod_gt_0. unfold c' in *. intros E. rewrite E, Cmod_0 in Hc'. lra. }
  eapply Rle_lt_trans; [apply Clistsum_mod|]. rewrite map_map.
- rewrite map_ext with (g:=pow (Cmod α)).
- 2:{ intros. now rewrite Cmod_pow. }
- apply sum_pow; try apply decomp_u_delta. lia. approx.
+ setoid_rewrite Cmod_pow. apply sum_pow; try apply decomp_u_delta.
+ lia. approx.
 Qed.
 
 Lemma delta_inf_k5 :

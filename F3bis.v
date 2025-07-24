@@ -928,8 +928,7 @@ Lemma sumintdiff_sumdiff n :
   sumdiff n + big_sum (fun m => frac_part (τ*m)) n.
 Proof.
  rewrite big_sum_INR. unfold sumdiff.
- erewrite big_sum_eq_bounded. 2:{ intros x Hx. apply intdiff_eqn. }
- apply big_sum_Rplus.
+ unfold "∘". setoid_rewrite intdiff_eqn. apply big_sum_Rplus.
 Qed.
 
 Lemma meanintdiff_meandiff n :

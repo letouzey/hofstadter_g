@@ -1,4 +1,4 @@
-From Coq Require Export Arith Lia List Bool Permutation.
+From Coq Require Export Arith Lia List Bool Permutation Morphisms.
 Require Import MoreTac MoreFun.
 Import Basics ListNotations.
 
@@ -82,6 +82,13 @@ Lemma map_nth' {A B} (f:A->B)(l:list A)(d:B)(d':A) n :
  d = f d' -> nth n (map f l) d = f (nth n l d').
 Proof.
  intros ->. apply map_nth.
+Qed.
+
+(* For setoid_rewrite inside the function of a map : *)
+Global Instance map_proper {A B} :
+  Proper (pointwise_relation _ eq ==> eq ==> eq) (@map A B).
+Proof.
+ intros f f' Hf l l' <-. apply map_ext. apply Hf.
 Qed.
 
 Lemma nth_map_indep {A B}(f : A -> B) l n d d' :
@@ -1416,8 +1423,7 @@ Definition map_appr {A} l (v:list A) := map (appr v) l.
 
 Lemma map_appr_nil {A} (l:list (list A)) : map_appr l [] = l.
 Proof.
- unfold map_appr. rewrite map_ext with (g:=id). apply map_id.
- intro. apply app_nil_r.
+ unfold map_appr, appr. setoid_rewrite app_nil_r. apply map_id.
 Qed.
 
 Lemma map_appr_in {A} l (v u:list A) :

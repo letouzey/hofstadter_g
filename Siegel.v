@@ -930,23 +930,21 @@ Lemma invroot_roots_then_degree_2 :
   In (/root) roots -> (degree Pcoef <= 2)%nat.
 Proof.
  intros IN. rewrite <- Nat.nlt_ge. unfold lt. intros D.
- assert (E := Peval_0 Pcoef).
- rewrite Hcoefs in E at 1.
- rewrite Peval_linfactors in E.
- rewrite coef_Zpoly in E.
- destruct (in_split _ _ IN) as (l1 & l2 & L).
- rewrite L in E.
- set (opp := fun y => 0-y) in E.
- rewrite Gbigmult_perm with (l' := map opp (RtoC root::/root::l1++l2)) in E.
+ generalize (Peval_0 Pcoef).
+ rewrite Hcoefs at 1.
+ rewrite Peval_linfactors.
+ rewrite coef_Zpoly.
+ destruct (in_split _ _ IN) as (l1 & l2 & L). rewrite L.
+ set (opp := fun y => 0-y).
+ rewrite Gbigmult_perm with (l' := map opp (RtoC root::/root::l1++l2)).
  2:{ symmetry. apply Permutation_map, perm_skip, Permutation_middle. }
- simpl in E. rewrite Cmult_assoc in E.
- replace (opp root * opp (/root)) with 1 in E.
+ simpl. rewrite Cmult_assoc.
+ replace (opp root * opp (/root)) with 1.
  2:{ unfold opp. field. intros [=]; lra'. }
- rewrite Cmult_1_l in E.
- apply (f_equal Cmod) in E.
- rewrite G_big_mult_mod, map_map in E.
- rewrite map_ext with (g:=Cmod) in E.
- 2:{ intros. unfold opp. rewrite <- (Cmod_opp a). f_equal. lca. }
+ rewrite Cmult_1_l.
+ intros E. apply (f_equal Cmod) in E. revert E.
+ unfold opp, Cminus. setoid_rewrite Cplus_0_l.
+ rewrite G_big_mult_mod, map_map. setoid_rewrite Cmod_opp.
  clear opp.
  set (g := G_big_mult _) in *.
  assert (LT : 0 < g < 1).
@@ -958,7 +956,7 @@ Proof.
      rewrite map_length. rewrite Hcoefs, linfactors_degree in D.
      rewrite L in D. simpl in D. rewrite app_length in *. simpl in D.
      lia. }
- rewrite E in LT. rewrite Cmod_R, <- abs_IZR in LT.
+ intros ->. rewrite Cmod_R, <- abs_IZR in LT.
  destruct LT as (LT1,LT2). apply lt_IZR in LT1, LT2. lia.
 Qed.
 
@@ -1109,7 +1107,7 @@ Proof.
  change (coef n ([1] *, reciprocal Pcoef))
    with (PS_poly ([1] *, reciprocal Pcoef) n).
  rewrite <- CPS_mult_poly.
- unfold CPS_mult. apply sum_n_ext. intros m. now rewrite fps1z_const.
+ unfold CPS_mult. now setoid_rewrite fps1z_const.
 Qed.
 
 Lemma fps1nz : False.
@@ -1983,8 +1981,8 @@ Proof.
  unfold β.
  apply is_CPowerSeries_ext with (CPS_mult (PS_poly (Zpoly A)) fps).
  { intros n. rewrite ZPS_mult_IZR, PS_mult_RtoC.
-   unfold CPS_mult. unfold "∘". eapply sum_n_ext.
-   intros m. now rewrite <- fps_eqn', <- coef_Zpoly. }
+   unfold CPS_mult. unfold "∘".
+   setoid_rewrite <- fps_eqn'. now setoid_rewrite <- coef_Zpoly. }
  apply is_CPS_mult.
  - apply PS_poly_ok.
  - now apply fps_ok.

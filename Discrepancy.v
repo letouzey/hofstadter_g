@@ -457,7 +457,7 @@ Proof.
  rewrite Cmod_mult. unfold Rdiv. rewrite Rmult_assoc.
  apply Rmult_lt_compat_l. now apply coefdA_pos.
  eapply Rle_lt_trans; [apply Clistsum_mod|rewrite map_map].
- erewrite map_ext by apply Cmod_pow.
+ setoid_rewrite Cmod_pow.
  unfold rank in Hr.
  assert (D := decomp_delta k n).
  destruct (decomp k n) as [|r' l]; try easy. injection Hr as ->.

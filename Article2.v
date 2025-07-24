@@ -1142,8 +1142,7 @@ Proof.
  intros K. unfold A. rewrite (ThePoly.Equation_A k (TheRoots k)).
  2:{ apply SortedRoots_alt, TheRoots_ok; trivial. }
  rewrite Clistsum_map with (d:=0). rewrite TheRoots_length.
- rewrite Sigma_0. apply big_sum_eq_bounded.
- intros x Hx. now rewrite coef_c_alt.
+ rewrite Sigma_0. now setoid_rewrite coef_c_alt.
 Qed.
 
 Lemma coef_c_nonzero k i : (i<k)%nat -> coef_c k i <> 0.
@@ -1218,8 +1217,7 @@ Proof.
  replace (length (tl (TheRoots k))) with (k-1)%nat.
  2:{ generalize (TheRoots_length k).
      destruct (TheRoots k); simpl; try lia. }
- apply big_sum_eq_bounded.
- intros x Hx. rewrite coef_d_alt by lia.
+ setoid_rewrite coef_d_alt; try lia.
  unfold root_r, Cnth.
  generalize (TheRoots_length k).
  destruct (TheRoots k); simpl; easy || lia.
@@ -1312,8 +1310,7 @@ Proof.
  2:{ generalize (TheRoots_length k).
      destruct (TheRoots k); simpl; try lia. }
  rewrite Sigma_alt by lia.
- apply big_sum_eq_bounded.
- intros x Hx. rewrite coef_d_alt by lia.
+ setoid_rewrite coef_d_alt; try lia.
  unfold root_r, Cnth.
  generalize (TheRoots_length k).
  destruct (TheRoots k); simpl; easy || lia.

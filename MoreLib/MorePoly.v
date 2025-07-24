@@ -796,7 +796,7 @@ Proof.
    apply Permutation_cons_app. apply IHl.
    rewrite linfactors_app in *. simpl in E. rewrite <- Pmult_assoc in E.
    apply Pmult_Peq_reg_r in E; trivial.
-   rewrite <- topcoef_0_iff, topcoef_lin; intros [= ?]; lra.
+   rewrite <- topcoef_0_iff, topcoef_lin; intros [=]; lra.
 Qed.
 
 Lemma extra_roots_implies_null p l :
@@ -1410,9 +1410,8 @@ Proof.
    + simpl; rewrite !sigma_0. ring.
    + rewrite sigma_rec.
      rewrite big_sum_shift. rewrite sigma_0, Nat.sub_0_r.
-     erewrite big_sum_eq_bounded.
-     2:{ intros x Hx.
-         now rewrite sigma_rec, Cmult_plus_distr_r, <- Cmult_assoc. }
+     setoid_rewrite sigma_rec. setoid_rewrite Cmult_plus_distr_r.
+     setoid_rewrite <- Cmult_assoc.
      rewrite big_sum_Cplus, <- big_sum_Cmult_l.
      simpl Nat.sub. rewrite <- IHl1.
      rewrite (IHl1 (S k)).
@@ -1459,8 +1458,7 @@ Proof.
    rewrite seq_S at 2. rewrite map_app. simpl.
    apply eq_Peq. f_equal; [|f_equal].
    + rewrite sigma_null. lca. lia.
-   + rewrite <- seq_shift, map_map, E. simpl. apply map_ext.
-     intros k. now rewrite Cmult_1_l.
+   + rewrite <- seq_shift, map_map, E. now setoid_rewrite Cmult_1_l.
    + rewrite Nat.sub_diag, sigma_0. simpl. f_equal. lca.
 Qed.
 
@@ -1486,8 +1484,7 @@ Qed.
 
 Lemma newton_sum_1 l : newton_sum 1 l = Clistsum l.
 Proof.
- unfold newton_sum. f_equal. simpl.
- erewrite map_ext. 2:{ intros. apply Cmult_1_r. }
+ unfold newton_sum. f_equal. simpl. setoid_rewrite Cmult_1_r.
  apply map_id.
 Qed.
 

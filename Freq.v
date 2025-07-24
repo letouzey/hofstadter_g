@@ -202,9 +202,7 @@ Proof.
    + rewrite <- Hw, E, app_length, plus_INR, Rmult_plus_distr_r.
      rewrite flat_map_concat_map, length_concat, map_map.
      rewrite listsum_INR, Rlistsum_distr, !map_map.
-     rewrite (map_ext (fun x => length _ * (eps/2))
-                      (fun x => A k x * (eps/2))).
-     2:{ intros a. now rewrite kword_len. }
+     setoid_rewrite kword_len.
      assert (0 <= length z * (eps/2)); try lra.
      apply Rmult_le_pos. apply pos_INR. lra.
    + intros a Ha.

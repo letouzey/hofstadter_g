@@ -307,8 +307,8 @@ Lemma IntRatPoly p : IntPoly p -> RatPoly p.
 Proof.
  rewrite IntPoly_alt. intros (p' & ->).
  rewrite RatPoly_alt. exists (map inject_Z p').
- unfold Zpoly, Qpoly. rewrite map_map. unfold "∘". apply map_ext.
- intros z. now rewrite Q2R_IZR.
+ unfold Zpoly, Qpoly. rewrite map_map. unfold "∘".
+ now setoid_rewrite Q2R_IZR.
 Qed.
 
 Lemma RatPoly_coef p n : RatPoly p -> CRational (coef n p).
@@ -693,9 +693,8 @@ Lemma Pmult_Zpoly_coef (p q : list Z) n:
  coef n (Zpoly p *, Zpoly q) =
  big_sum (fun k => nth k p Z0 * nth (n-k) q Z0)%Z (S n).
 Proof.
- rewrite Pmult_coef, big_sum_IZR, big_sum_RtoC.
- apply big_sum_eq_bounded. intros x Hx.
- rewrite !coef_Zpoly. unfold "∘". now rewrite mult_IZR, RtoC_mult.
+ rewrite Pmult_coef, big_sum_IZR, big_sum_RtoC. unfold "∘".
+ now srewrite coef_Zpoly mult_IZR RtoC_mult.
 Qed.
 
 Lemma divide_big_sum (f : nat -> Z) n x :
@@ -895,7 +894,7 @@ Proof.
    - rewrite H' in *. simpl in Mq.
      replace (nth _ r2 _) with (-1)%Z in Mr by lia.
      replace 1 with ((-1)*(-1)) in Mq,Mr by lca.
-     apply Cmult_eq_reg_r in Mq,Mr; try (intros [= ?]; lra).
+     apply Cmult_eq_reg_r in Mq,Mr; try (intros [=]; lra).
      rewrite Mq, Mr.
      split; apply IntPoly_mult; rewrite IntPoly_alt;
       (now exists [-1]%Z) || (now eexists). }
@@ -910,14 +909,14 @@ Proof.
    destruct (Z.eq_mul_1 _ _ H) as [H'|H'].
    - rewrite H' in *. rewrite Z.mul_1_l, Z.eq_opp_l in H. rewrite H in *.
      simpl in Mr. replace 1 with ((-1)*(-1)) in Mr by lca.
-     apply Cmult_eq_reg_r in Mr; try (intros [= ?]; lra).
+     apply Cmult_eq_reg_r in Mr; try (intros [=]; lra).
      rewrite Cmult_1_r in *. rewrite Mq, Mr, !Pmult_1_l.
      split; try apply IntPoly_mult; rewrite IntPoly_alt;
       (now eexists) || (now exists [-1]%Z).
    - rewrite H' in *. simpl in Mq.
      replace (nth _ r2 _) with 1%Z in Mr by lia.
      replace 1 with ((-1)*(-1)) in Mq by lca.
-     apply Cmult_eq_reg_r in Mq; try (intros [= ?]; lra).
+     apply Cmult_eq_reg_r in Mq; try (intros [=]; lra).
      rewrite Cmult_1_r in *. rewrite Mq, Mr, !Pmult_1_l.
      split; try apply IntPoly_mult; rewrite IntPoly_alt;
       (now exists [-1]%Z) || (now eexists). }

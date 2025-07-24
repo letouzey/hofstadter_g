@@ -1,4 +1,4 @@
-From Coq Require Import Lia Reals Lra.
+From Coq Require Import Lia Reals Lra Morphisms.
 From Coquelicot Require Complex.
 From Coquelicot Require Import Hierarchy.
 Close Scope R. (* Issue with Coquelicot *)
@@ -339,6 +339,14 @@ Qed.
 
 (** More on Coquelicot [sum_n_m] and [sum_n] *)
 
+Global Instance sum_n_proper {G : AbelianMonoid} :
+ Proper (pointwise_relation _ eq ==> eq ==> eq) (@sum_n G).
+Proof.
+ intros f g E n m ->. apply sum_n_ext. apply E.
+Qed.
+
+Global Hint Opaque sum_n : rewrite.
+
 Lemma sum_n_Rplus (a b : nat -> R) n :
  (sum_n a n + sum_n b n = sum_n (fun k => a k + b k) n)%R.
 Proof.
@@ -505,13 +513,18 @@ Lemma Clistsum_sum_n (f : nat -> C -> C) l n :
  Clistsum (map (fun x => sum_n (fun k => f k x) n) l).
 Proof.
  induction n.
- - rewrite sum_O. f_equal. apply map_ext. intros x. now rewrite sum_O.
+ - rewrite sum_O. now setoid_rewrite sum_O.
  - rewrite !sum_Sn, IHn. change plus with Cplus.
-   rewrite Clistsum_plus. f_equal. apply map_ext. intros x.
-   now rewrite !sum_Sn.
+   rewrite Clistsum_plus. now setoid_rewrite sum_Sn.
 Qed.
 
 (** QuantumLib's big_sum, for Z or R or C *)
+
+Global Instance big_sum_proper {G} {H : Monoid G} :
+ Proper (pointwise_relation _ eq ==> eq ==> eq) (@big_sum G H).
+Proof.
+ intros f g E n m ->. apply big_sum_eq_bounded. intros x _. apply E.
+Qed.
 
 Global Program Instance Z_is_monoid : Monoid Z :=
  { Gzero := Z0 ; Gplus := Z.add }.
@@ -612,10 +625,9 @@ Lemma sum_n_big_sum (f : nat -> nat -> C) (n m : nat) :
   big_sum (fun i => sum_n (fun k => f k i) n) m.
 Proof.
  induction n; simpl.
- - rewrite sum_O. apply big_sum_eq_bounded.
-   intros i _. now rewrite sum_O.
+ - rewrite sum_O. now setoid_rewrite sum_O.
  - rewrite sum_Sn, IHn. rewrite <- big_sum_Cplus.
-   apply big_sum_eq_bounded. intros i _. now rewrite sum_Sn.
+   now setoid_rewrite sum_Sn.
 Qed.
 
 Lemma sum_n_big_sum_adhoc (f : nat -> nat -> C) (g : nat -> C) n m :

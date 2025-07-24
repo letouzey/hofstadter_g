@@ -78,7 +78,7 @@ Lemma mean_frac_reduce u n a :
   mean_frac (fun n => u n + a) n = mean_frac (fun n => u n + frac_part a) n.
 Proof.
  unfold mean_frac, mean. unfold compose. f_equal.
- apply big_sum_eq_bounded. intros x Hx.
+ apply big_sum_eq_bounded. intros x _.
  rewrite (int_frac a) at 1.
  rewrite (Rplus_comm (IZR _)), <- Rplus_assoc.
  apply frac_part_addZ.
@@ -89,7 +89,7 @@ Lemma mean_frac_reduce' u n a :
   mean_frac (fun n => u n - frac_part (-a)) n.
 Proof.
  unfold mean_frac, mean. unfold compose. f_equal.
- apply big_sum_eq_bounded. intros x Hx.
+ apply big_sum_eq_bounded. intros x _.
  rewrite <- (Ropp_involutive a) at 1.
  rewrite (int_frac (-a)) at 1.
  rewrite Ropp_plus_distr, <- opp_IZR, (Rplus_comm (IZR _)).
@@ -200,8 +200,7 @@ Proof.
    destruct (Req_dec (frac_part a) 0) as [->|Ha].
    { apply is_lim_seq_ext with (u:=fun _ => 0). 2:apply is_lim_seq_const.
      intros n. unfold mean_frac, mean. unfold compose.
-     symmetry. apply Rminus_diag_eq. f_equal. apply big_sum_eq_bounded.
-     intros x _. now rewrite Rplus_0_r. }
+     symmetry. apply Rminus_diag_eq. now setoid_rewrite Rplus_0_r. }
    apply H. generalize (base_fp a); lra.
 Qed.
 
@@ -418,13 +417,7 @@ Lemma sum_rcountin_bounds (u:nat->R) (p:nat) :
 Proof.
  intros Hp Hu.
  induction n.
- - simpl (big_sum u 0).
-   rewrite big_sum_eq_bounded with (g := fun _ => 0)
-     by (intros; simpl; lra).
-   rewrite big_sum_Rconst.
-   rewrite big_sum_eq_bounded with (g := fun _ => 0)
-     by (intros; simpl; lra).
-   rewrite big_sum_Rconst. lra.
+ - simpl. setoid_rewrite Rmult_0_r. rewrite big_sum_Rconst. lra.
  - simpl (big_sum u (S n)).
    set (q0 := nat_part (p * u n)).
    assert (Hq0 : (q0 < p)%nat).
@@ -455,14 +448,14 @@ Proof.
      lia. }
    split.
    + erewrite big_sum_eq_bounded.
-     2:{ intros q Hq. now rewrite Rcountin_S, plus_INR, Rmult_plus_distr_l. }
+     2:{ intros q _. now rewrite Rcountin_S, plus_INR, Rmult_plus_distr_l. }
      rewrite big_sum_Rplus.
      apply Rplus_le_compat. apply IHn.
      rewrite big_sum_kronecker_R with (m:=q0); trivial.
      * rewrite H1. simpl. apply RIn_spec in H1. lra.
      * intros q Hq Hq'. rewrite H2; trivial. simpl. lra.
    + erewrite big_sum_eq_bounded with (n:=p).
-     2:{ intros q Hq. now rewrite Rcountin_S, plus_INR, Rmult_plus_distr_l. }
+     2:{ intros q _. now rewrite Rcountin_S, plus_INR, Rmult_plus_distr_l. }
      rewrite big_sum_Rplus.
      apply Rplus_le_compat. apply IHn.
      rewrite big_sum_kronecker_R with (m:=q0); trivial.

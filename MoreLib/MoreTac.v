@@ -31,3 +31,40 @@ Ltac withoutloss2 a b P :=
    intros a b
  end
  end.
+
+(** Pseudo variadic setoid_rewrite *)
+
+Tactic Notation "srewrite" constr(x1) :=
+  setoid_rewrite x1.
+Tactic Notation "srewrite" constr(x1) constr(x2) :=
+  setoid_rewrite x1; srewrite x2.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) :=
+  setoid_rewrite x1; srewrite x2 x3.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) constr(x4) :=
+  setoid_rewrite x1; srewrite x2 x3 x4.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) :=
+  setoid_rewrite x1; srewrite x2 x3 x4 x5.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) :=
+  setoid_rewrite x1; srewrite x2 x3 x4 x5 x6.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) constr(x7) :=
+  setoid_rewrite x1; srewrite x2 x3 x4 x5 x6 x7.
+Tactic Notation "srewrite" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) constr(x7) constr(x8) :=
+  setoid_rewrite x1; srewrite x2 x3 x4 x5 x6 x7 x8.
+
+Tactic Notation "srewrite" "<-" constr(x1) :=
+  setoid_rewrite <- x1.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) :=
+  setoid_rewrite <- x1; srewrite <- x2.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3 x4.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3 x4 x5.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3 x4 x5 x6.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) constr(x7) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3 x4 x5 x6 x7.
+Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) constr(x7) constr(x8) :=
+  setoid_rewrite <- x1; srewrite <- x2 x3 x4 x5 x6 x7 x8.
+

@@ -17,6 +17,26 @@ Notation C_CNM := Coquelicot.Complex.C_R_CompleteNormedModule.
 
 (** Complements to Coquelicot.Lim_seq *)
 
+Global Instance is_lim_seq_proper :
+  Proper (pointwise_relation _ eq ==> eq ==> iff) is_lim_seq.
+Proof.
+ intros f f' Hf l l' <-. split; apply is_lim_seq_ext.
+ now apply Hf. intro. symmetry. apply Hf.
+Qed.
+
+Global Instance ex_lim_seq_proper :
+  Proper (pointwise_relation _ eq ==> iff) ex_lim_seq.
+Proof.
+ intros f f' Hf. split; apply ex_lim_seq_ext.
+ now apply Hf. intro. symmetry. apply Hf.
+Qed.
+
+Global Instance Lim_seq_proper :
+  Proper (pointwise_relation _ eq ==> eq) Lim_seq.
+Proof.
+ intros f f' Hf. apply Lim_seq_ext. now apply Hf.
+Qed.
+
 Lemma is_lim_seq_opp' u (l:R) :
  is_lim_seq u l -> is_lim_seq (fun n => -u n) (-l).
 Proof.
@@ -108,8 +128,7 @@ Proof.
    replace (CV_radius a) with (Rbar.p_infty); try easy.
    { symmetry. apply CV_radius_infinite_DAlembert.
      - apply exp_cof_no_R0.
-     - eapply is_lim_seq_ext.
-       { intros n. symmetry. unfold a. unfold Rdiv. now rewrite simpl_fact. }
+     - unfold a. setoid_rewrite simpl_fact.
        rewrite <- is_lim_seq_abs_0.
        rewrite <- (is_lim_seq_incr_1 Rinv).
        apply is_lim_seq_invn. }
@@ -484,6 +503,26 @@ Qed.
 
 (** More on R series *)
 
+Global Instance is_series_proper {K} {V : NormedModule K} :
+  Proper (pointwise_relation _ eq ==> eq ==> iff) (@is_series K V).
+Proof.
+ intros f f' Hf l l' <-. split; apply is_series_ext.
+ apply Hf. intros n. symmetry. apply Hf.
+Qed.
+
+Global Instance ex_series_proper {K} {V : NormedModule K} :
+  Proper (pointwise_relation _ eq ==> iff) (@ex_series K V).
+Proof.
+ intros f f' Hf. split; apply ex_series_ext.
+ apply Hf. intros n. symmetry. apply Hf.
+Qed.
+
+Global Instance Series_proper :
+  Proper (pointwise_relation _ eq ==> eq) Series.
+Proof.
+ intros f f' Hf. apply Series_ext. apply Hf.
+Qed.
+
 Lemma is_series_alt (a:nat->R) (l:R) :
  is_series a l <-> is_lim_seq (sum_n a) l.
 Proof.
@@ -508,10 +547,7 @@ Lemma ex_series_Rlistsum {A} (f : nat -> A -> R) (l : list A) :
  ex_series (fun n => Rlistsum (map (f n) l)).
 Proof.
  induction l.
- - intros. simpl. exists 0%R.
-   change (is_lim_seq (sum_n (fun _ => R0)) R0).
-   apply is_lim_seq_ext with (u:=fun _ => R0); try apply is_lim_seq_const.
-   intros n. symmetry. apply sum_n_R0; trivial.
+ - intros. simpl. exists 0%R. apply is_series_R0.
  - intros Hf. simpl.
    apply (ex_series_plus (V:=R_NM)).
    + apply Hf. now left.
@@ -701,11 +737,8 @@ Qed.
 Lemma is_lim_Cseq_ext (f g : nat -> C)(l : C) :
  (forall n, f n = g n) -> is_lim_Cseq f l -> is_lim_Cseq g l.
 Proof.
- intros E. rewrite !is_lim_Cseq_proj. intros (Hf,Hg). split.
- - apply is_lim_seq_ext with (u:=Re∘f); trivial.
-   intros n. unfold compose. now rewrite E.
- - apply is_lim_seq_ext with (u:=Im∘f); trivial.
-   intros n. unfold compose. now rewrite E.
+ intros E. rewrite !is_lim_Cseq_proj. intros (Hf,Hg).
+ split; unfold "∘"; now setoid_rewrite <- E.
 Qed.
 
 Lemma is_lim_Cseq_ext_loc (f g : nat -> C)(l : C) :
@@ -763,6 +796,26 @@ Proof.
  - destruct H as (N & HN). exists N. intros n Hn. unfold "∘". now rewrite HN.
 Qed.
 
+Global Instance is_lim_Cseq_proper :
+  Proper (pointwise_relation _ eq ==> eq ==> iff) is_lim_Cseq.
+Proof.
+ intros f f' Hf l l' <-. split; apply is_lim_Cseq_ext.
+ now apply Hf. intro. symmetry. apply Hf.
+Qed.
+
+Global Instance ex_lim_Cseq_proper :
+  Proper (pointwise_relation _ eq ==> iff) ex_lim_Cseq.
+Proof.
+ intros f f' Hf. split; apply ex_lim_Cseq_ext.
+ now apply Hf. intro. symmetry. apply Hf.
+Qed.
+
+Global Instance Lim_Cseq_proper :
+  Proper (pointwise_relation _ eq ==> eq) Lim_Cseq.
+Proof.
+ intros f f' Hf. apply Lim_CSeq_ext. exists O. intros n _. now apply Hf.
+Qed.
+
 Lemma is_lim_Cseq_Cmod' (a : nat -> C) (b : nat -> R) (la : C) (lb : R) :
   (forall n, Cmod (a n) <= b n) ->
   is_lim_Cseq a la -> is_lim_seq b lb -> Cmod la <= lb.
@@ -774,9 +827,7 @@ Qed.
 
 Lemma is_lim_Cseq_const (c:C) : is_lim_Cseq (fun _ => c) c.
 Proof.
- rewrite is_lim_Cseq_proj. split.
- apply is_lim_seq_ext with (u:= fun _ => Re c). easy. apply is_lim_seq_const.
- apply is_lim_seq_ext with (u:= fun _ => Im c). easy. apply is_lim_seq_const.
+ rewrite is_lim_Cseq_proj. split; apply is_lim_seq_const.
 Qed.
 
 Lemma Lim_Cseq_const (c:C) : Lim_Cseq (fun _ => c) = c.
@@ -789,12 +840,8 @@ Lemma is_lim_Cseq_plus (a b : nat -> C) (la lb : C) :
  is_lim_Cseq (fun n => a n + b n) (la + lb).
 Proof.
  rewrite !is_lim_Cseq_proj. intros (Ha1,Ha2) (Hb1,Hb2). split.
- - apply is_lim_seq_ext with (fun n => (Re ∘ a) n + (Re ∘ b) n)%R.
-   + intros n. apply re_plus.
-   + now apply is_lim_seq_plus'.
- - apply is_lim_seq_ext with (fun n => (Im ∘ a) n + (Im ∘ b) n)%R.
-   + intros n. apply im_plus.
-   + now apply is_lim_seq_plus'.
+ - unfold "∘". setoid_rewrite re_plus. now apply is_lim_seq_plus'.
+ - unfold "∘". setoid_rewrite im_plus. now apply is_lim_seq_plus'.
 Qed.
 
 Lemma Lim_Cseq_plus (a b : nat -> C) :
@@ -811,29 +858,22 @@ Lemma is_lim_Cseq_minus (a b : nat -> C) (la lb : C) :
  is_lim_Cseq a la -> is_lim_Cseq b lb ->
  is_lim_Cseq (fun n => a n - b n) (la - lb).
 Proof.
- rewrite !is_lim_Cseq_proj. intros (Ha1,Ha2) (Hb1,Hb2). split.
- - apply is_lim_seq_ext with (fun n => (Re ∘ a) n - (Re ∘ b) n)%R.
-   + intros n. unfold compose, Rminus. rewrite <- re_opp. apply re_plus.
-   + now apply is_lim_seq_minus'.
- - apply is_lim_seq_ext with (fun n => (Im ∘ a) n - (Im ∘ b) n)%R.
-   + intros n. unfold compose, Rminus. rewrite <- im_opp. apply im_plus.
-   + now apply is_lim_seq_minus'.
+ rewrite !is_lim_Cseq_proj. intros (Ha1,Ha2) (Hb1,Hb2).
+ split; unfold "∘", Cminus.
+ - srewrite re_plus re_opp. now apply is_lim_seq_minus'.
+ - srewrite im_plus im_opp. now apply is_lim_seq_minus'.
 Qed.
 
 Lemma is_lim_Cseq_mult (a b : nat -> C) (la lb : C) :
  is_lim_Cseq a la -> is_lim_Cseq b lb ->
  is_lim_Cseq (fun n => a n * b n) (la * lb).
 Proof.
- rewrite !is_lim_Cseq_proj. intros (Ha1,Ha2) (Hb1,Hb2). split.
- - apply is_lim_seq_ext with (fun n => (Re ∘ a) n * (Re ∘ b) n
-                                     - (Im ∘ a) n * (Im ∘ b) n)%R.
-   + intros n. apply re_mult.
-   + apply is_lim_seq_plus'. now apply is_lim_seq_mult'.
-     apply is_lim_seq_opp'. now apply is_lim_seq_mult'.
- - apply is_lim_seq_ext with (fun n => (Re ∘ a) n * (Im ∘ b) n
-                                     + (Im ∘ a) n * (Re ∘ b) n)%R.
-   + intros n. apply im_mult.
-   + apply is_lim_seq_plus'; now apply is_lim_seq_mult'.
+ rewrite !is_lim_Cseq_proj. intros (Ha1,Ha2) (Hb1,Hb2).
+ split; unfold "∘".
+ - setoid_rewrite re_mult.
+   apply is_lim_seq_minus'; now apply is_lim_seq_mult'.
+ - setoid_rewrite im_mult.
+   apply is_lim_seq_plus'; now apply is_lim_seq_mult'.
 Qed.
 
 Lemma is_lim_Cseq_incr_n (u : nat -> C) (N : nat) l :
@@ -947,6 +987,12 @@ Proof.
  intros n _. apply sum_n_ext; trivial.
 Qed.
 
+Global Instance CSeries_proper :
+  Proper (pointwise_relation _ eq ==> eq) CSeries.
+Proof.
+ intros f f' Hf. apply CSeries_ext. now apply Hf.
+Qed.
+
 Lemma pos_series_pos_sum (a : nat -> R) l :
   is_series a l ->
   (forall n, 0 <= a n) ->
@@ -1027,12 +1073,13 @@ Proof.
  intros H.
  change (is_lim_Cseq (sum_n (RtoC∘a)) l) in H.
  rewrite is_lim_Cseq_proj in H. destruct H as (H1,H2).
- apply is_lim_seq_ext with (v:=sum_n a) in H1.
- 2:{ intros n. unfold compose. rewrite re_sum_n. now apply sum_n_ext. }
- apply is_lim_seq_ext with (v:=fun _ => 0%R) in H2.
- 2:{ intros n. unfold compose. rewrite im_sum_n. apply sum_n_R0. }
- split. apply H1. apply is_lim_seq_unique in H2.
- rewrite Lim_seq_const in H2. now injection H2.
+ unfold "∘" in *.
+ setoid_rewrite re_sum_n in H1. setoid_rewrite im_sum_n in H2.
+ unfold "∘" in *. simpl in H2.
+ setoid_rewrite sum_n_R0 in H2.
+ split. apply H1.
+ apply is_lim_seq_unique in H2. rewrite Lim_seq_const in H2.
+ now injection H2.
 Qed.
 
 Lemma is_CSeries_RtoC (a : nat -> R) (l:R) :
@@ -1042,12 +1089,10 @@ Proof.
  - intros H. change l with (Re (RtoC l)). now apply is_CSeries_RtoC_impl.
  - intros H.
    change (is_lim_Cseq (sum_n (RtoC∘a)) l).
-   rewrite is_lim_Cseq_proj; simpl. split.
-   + apply is_lim_seq_ext with (u:=sum_n a); try easy.
-     intros n. unfold compose. rewrite re_sum_n. now apply sum_n_ext.
-   + apply is_lim_seq_ext with (u:=fun _ => 0%R); try apply is_lim_seq_const.
-     intros n. unfold compose. rewrite im_sum_n. symmetry.
-     now apply sum_n_R0.
+   rewrite is_lim_Cseq_proj; simpl. split; unfold "∘".
+   + now setoid_rewrite re_sum_n.
+   + setoid_rewrite im_sum_n. unfold "∘". simpl.
+     setoid_rewrite sum_n_R0. apply is_lim_seq_const.
 Qed.
 
 Lemma ex_series_RtoC (a : nat -> R) :
@@ -1056,9 +1101,7 @@ Proof.
  split; intros (l & H).
  - rewrite is_Cseries_alt in H. rewrite is_lim_Cseq_proj in H.
    destruct H as (H1 & H2).
-   eapply is_lim_seq_ext in H1.
-   2:{ intros n. unfold "∘". rewrite re_sum_n. unfold "∘".
-       apply sum_n_ext. intros m. now rewrite re_RtoC. }
+   unfold "∘" in *. setoid_rewrite re_sum_n in H1.
    rewrite ex_series_alt. now exists (Re l).
  - exists (RtoC l). now rewrite is_CSeries_RtoC.
 Qed.
