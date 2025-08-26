@@ -111,24 +111,6 @@ Proof.
  unfold Mcube. now rewrite !Mapply_scal.
 Qed.
 
-Lemma Mapply_lim M u l :
- is_lim_Cseq u l -> is_lim_Cseq (fun n => Mapply M (u n)) (Mapply M l).
-Proof.
- intros Hl. destruct M as ((a,b),(c,d)), l as (lx,ly).
- rewrite is_lim_Cseq_proj in Hl. simpl in Hl.
- rewrite is_lim_Cseq_proj. simpl. split.
- - eapply is_lim_seq_ext.
-   + intros n. unfold compose. rewrite (surjective_pairing (u n)).
-     simpl. reflexivity.
-   + apply is_lim_seq_plus';
-      apply is_lim_seq_mult'; apply Hl || apply is_lim_seq_const.
- - eapply is_lim_seq_ext.
-   + intros n. unfold compose. rewrite (surjective_pairing (u n)).
-     simpl. reflexivity.
-   + apply is_lim_seq_plus';
-      apply is_lim_seq_mult'; apply Hl || apply is_lim_seq_const.
-Qed.
-
 (** The matrix and initial vector corresponding to vdiff *)
 
 Definition Mat := ((0,-τ),(1,-τ^2))%R.
