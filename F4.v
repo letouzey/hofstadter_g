@@ -40,10 +40,10 @@ Proof.
  ring [τ4].
 Qed.
 
-#[local] Instance : Approx 0.7244919590005 τ 0.7244919590006.
+#[local] Instance τ_approx : Approx 0.7244919590005 τ 0.7244919590006.
 Proof. red. unfold τ. generalize tau_4. lra. Qed.
 
-#[local] Instance : Approx 1.380277569097 μ 1.380277569098.
+#[local] Instance μ_approx : Approx 1.380277569097 μ 1.380277569098.
 Proof. red. unfold μ. generalize mu_4. lra. Qed.
 
 #[local] Instance ν_approx : Approx (-0.819172513397) ν (-0.819172513396).
