@@ -939,3 +939,17 @@ Proof.
  split; apply Rsqr_incrst_0; try lra; try apply sqrt_pos;
   rewrite Rsqr_sqrt, Rsqr_pow2; lra.
 Qed.
+
+Lemma sqrt_subadd x y : sqrt (x+y) <= sqrt x + sqrt y.
+Proof.
+ destruct (Rle_lt_dec x 0).
+ { rewrite (sqrt_neg_0 x), Rplus_0_l by lra. apply sqrt_le_1_alt. lra. }
+ destruct (Rle_lt_dec y 0).
+ { rewrite (sqrt_neg_0 y), Rplus_0_r by lra. apply sqrt_le_1_alt. lra. }
+ apply Rsqr_incr_0.
+ 2: apply sqrt_pos.
+ 2: apply Rplus_le_le_0_compat; apply sqrt_pos.
+ rewrite Rsqr_plus.
+ rewrite !Rsqr_sqrt by lra.
+ generalize (sqrt_pos x) (sqrt_pos y); nra.
+Qed.

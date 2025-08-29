@@ -256,6 +256,29 @@ Proof.
    generalize (exp_ineq1_le n); lra.
 Qed.
 
+Lemma Rpower_lim_infinity a :
+  0 < a -> is_lim_seq (fun n => Rpower n a) Rbar.p_infty.
+Proof.
+ intros Ha.
+ unfold Rpower.
+ apply Continuity.is_lim_comp_seq with Rbar.p_infty.
+ - apply ElemFct.is_lim_exp_p.
+ - now exists O.
+ - replace Rbar.p_infty with (Rbar.Rbar_mult a Rbar.p_infty).
+   + apply is_lim_seq_scal_l. apply lim_ln.
+   + simpl. destruct Rle_dec; try lra. destruct Rle_lt_or_eq_dec. easy. lra.
+Qed.
+
+Lemma Rpower_lim_zero a :
+  a < 0 -> is_lim_seq (fun n => Rpower n a) 0.
+Proof.
+ intros Ha.
+ change (Rbar.Finite 0) with (Rbar.Rbar_inv Rbar.p_infty).
+ rewrite <- (Ropp_involutive a).
+ setoid_rewrite Rpower_Ropp.
+ apply is_lim_seq_inv; try easy. apply Rpower_lim_infinity. lra.
+Qed.
+
 (** sup and limsup *)
 
 Lemma is_sup_seq_const (c : Rbar.Rbar) : is_sup_seq (fun _ => c) c.
