@@ -40,7 +40,7 @@ Qed.
 Lemma Pisot_nat_ge_2 (n:nat) : (2<=n)%nat -> Pisot n.
 Proof.
  split.
- - apply le_INR in H. simpl in H. lra.
+ - inr.
  - exists []; simpl; split; try easy.
    apply IntPoly_alt. exists [-Z.of_nat n;1]%Z.
    simpl. unfold "∘"; repeat f_equal; try ring.
@@ -307,7 +307,7 @@ Proof.
        f_equal.
        rewrite <- sum_n_Cmult_r. apply sum_n_ext_loc. intros m Hm.
        rewrite <- Cmult_assoc. f_equal. rewrite <- Cexp_add. f_equal.
-       rewrite minus_INR by lia. lra. }
+       inr. }
    rewrite (RInt_ext (V:=C_CNM))
      with (g:=fun x => a (S n) * sum_n (fun k => a k * Cexp ((S n-k)%nat*x)) n).
    rewrite CInt_scal, CInt_sum_n; try lia. rewrite Cmult_0_r.
@@ -319,7 +319,7 @@ Proof.
        rewrite <- !Cmult_assoc. f_equal. rewrite Cmult_comm.
        rewrite <- sum_n_Cmult_r. apply sum_n_ext_loc. intros m Hm.
        rewrite <- Cmult_assoc. f_equal. rewrite <- Cexp_add. f_equal.
-       rewrite minus_INR by lia. lra. }
+       inr. }
    rewrite (RInt_ext (V:=C_CNM))
      with (g:=fun x => a (S n)^2).
    2:{ intros x _. unfold h2. ring_simplify.

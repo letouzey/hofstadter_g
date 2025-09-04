@@ -119,8 +119,7 @@ Proof.
    rewrite Rlistsum_const, Rmult_0_l.
    rewrite filter_all.
    2:{ intros x Hx. apply RIn_spec. generalize (base_fp x); lra. }
-   unfold l; rewrite map_length, seq_length. field.
-   contradict Hn. now apply (INR_eq n 0) in Hn.
+   unfold l; rewrite map_length, seq_length. field. inr.
  - assert (Hb' : frac_part b = b).
    { rewrite (int_frac b) at 2.
      replace (Int_part b) with 0%Z. lra.
@@ -145,8 +144,7 @@ Proof.
    unfold Rminus.
    rewrite Rmult_plus_distr_r, Rplus_assoc, <- Rmult_plus_distr_l.
    rewrite <- plus_INR, filter_partition_length.
-   unfold l at 2. rewrite map_length, seq_length. field.
-   contradict Hn. now apply (INR_eq n 0) in Hn.
+   unfold l at 2. rewrite map_length, seq_length. field. inr.
 Qed.
 
 Lemma EquiDistr01_alt2 u :
@@ -259,9 +257,9 @@ Proof.
  apply Rcomplements.Rabs_lt_between, and_comm; split.
  - assert (Q : q1<>O).
    { intros ->. simpl in H1'. rewrite Rmult_0_r, fp_R0 in H1'. lra. }
-   apply Rcomplements.Rlt_div_l. apply lt_0_INR; lia.
+   apply Rcomplements.Rlt_div_l. inr.
    assert (Hn1' : q1 < n * eps').
-   { eapply Rle_lt_trans; [|apply Hn']. apply le_INR; lia. }
+   { eapply Rle_lt_trans; [|apply Hn']. inr. }
    clear Hn'.
    assert (E : frac_part (t*(-q1)) = 1 - frac_part (t*q1)).
    { rewrite <- Ropp_mult_distr_r, frac_part_opp. lra.
@@ -269,7 +267,7 @@ Proof.
      apply (Ht (Qmake (Int_part (t*q1)) (Pos.of_nat q1))).
      unfold Q2R. simpl. rewrite E.
      replace (Z.pos (Pos.of_nat q1)) with (Z.of_nat q1).
-     rewrite <-INR_IZR_INZ. field. apply not_0_INR; lia.
+     rewrite <-INR_IZR_INZ. field. inr.
      destruct q1; try lia. }
    assert (LT : forall m, frac_part (t*m) < frac_part (t*(m-q1)+a)+eps').
    { intros m.
@@ -310,22 +308,22 @@ Proof.
    apply Rle_lt_trans with (q1 + n *eps').
    2:{ apply Rlt_le_trans with (n*eps' + n*eps'); try lra.
        rewrite (Rmult_comm eps). rewrite <- Rmult_plus_distr_l.
-       apply Rmult_le_compat_l. apply (le_INR 0); lia. lra. }
+       apply Rmult_le_compat_l. inr. lra. }
    apply Rplus_le_compat.
    + rewrite <- (Rmult_1_l q1), <- big_sum_Rconst.
      apply RealAux.Rsum_le. intros i _.
      generalize (base_fp (t*i)); lra.
    + apply Rle_trans with ((n-q1)%nat*eps').
-     2:{ apply Rmult_le_compat_r. lra. apply le_INR; lia. }
+     2:{ apply Rmult_le_compat_r. lra. inr. }
      rewrite Rmult_comm, <- big_sum_Rconst.
      apply RealAux.Rsum_le. intros i _.
      specialize (LT (q1+i)%nat). rewrite plus_INR in LT at 2.
      replace (q1+i-q1) with (INR i) in LT; lra.
  - assert (Q : q2<>O).
    { intros ->. simpl in H2'. rewrite Rmult_0_r, fp_R0 in H2'. lra. }
-   apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia.
+   apply Rcomplements.Rlt_div_r. inr.
    assert (Hn2' : q2 < n * eps').
-   { eapply Rle_lt_trans; [|apply Hn']. apply le_INR; lia. }
+   { eapply Rle_lt_trans; [|apply Hn']. inr. }
    clear Hn'.
    assert (E : frac_part (t*(-q2)) = 1 - frac_part (t*q2)).
    { rewrite <- Ropp_mult_distr_r, frac_part_opp. lra.
@@ -333,7 +331,7 @@ Proof.
      apply (Ht (Qmake (Int_part (t*q2)) (Pos.of_nat q2))).
      unfold Q2R. simpl. rewrite E.
      replace (Z.pos (Pos.of_nat q2)) with (Z.of_nat q2).
-     rewrite <-INR_IZR_INZ. field. apply not_0_INR; lia.
+     rewrite <-INR_IZR_INZ. field. inr.
      destruct q2; try lia. }
    assert (LT : forall m, frac_part (t*m) > frac_part (t*(m-q2)+a)-eps').
    { intros m.
@@ -374,12 +372,11 @@ Proof.
    { apply Rle_lt_trans with (-n*eps' + -n*eps'); try lra.
      rewrite (Rmult_comm (-eps)). rewrite <- Rmult_plus_distr_l.
      rewrite <- Ropp_mult_distr_l, Ropp_mult_distr_r.
-     apply Rmult_le_compat_l. apply (le_INR 0); lia. lra. }
+     apply Rmult_le_compat_l. inr. lra. }
    apply Rplus_le_compat.
    + apply Rle_trans with ((n-q2)%nat*(-eps')).
      { rewrite <- Ropp_mult_distr_r, Ropp_mult_distr_l.
-       apply Rmult_le_compat_r. lra. apply Ropp_le_contravar.
-       apply le_INR; lia. }
+       apply Rmult_le_compat_r. lra. inr. }
      rewrite Rmult_comm, <- big_sum_Rconst.
      apply RealAux.Rsum_le. intros i _.
      specialize (LT (q2+i)%nat). rewrite plus_INR in LT at 2.
@@ -422,29 +419,27 @@ Proof.
    set (q0 := nat_part (p * u n)).
    assert (Hq0 : (q0 < p)%nat).
    { apply nat_part_lt. split.
-     - apply Rmult_le_pos. apply pos_INR. apply Hu.
+     - apply Rmult_le_pos. inr. apply Hu.
      - rewrite <- (Rmult_1_r p) at 2. apply Rmult_lt_compat_l.
-       + apply (lt_INR 0). lia.
-       + apply Hu. }
+       inr. apply Hu. }
    assert (H1 : RIn (q0/p) (S q0/p) (u n) = true).
    { rewrite RIn_spec. split.
-     - apply Rmult_le_reg_l with p. apply (lt_INR 0); lia.
-       field_simplify. 2:{ apply (not_INR p 0); lia. }
+     - apply Rmult_le_reg_l with p. inr.
+       field_simplify. 2:inr.
        apply nat_part_le; try easy.
-       apply Rmult_le_pos. apply pos_INR. apply Hu.
-     - apply Rmult_lt_reg_l with p. apply (lt_INR 0); lia.
-       field_simplify. 2:{ apply (not_INR p 0); lia. }
-       rewrite S_INR. apply nat_part_INR.
-       apply Rmult_le_pos. apply pos_INR. apply Hu. }
+       apply Rmult_le_pos. inr. apply Hu.
+     - apply Rmult_lt_reg_l with p. inr.
+       field_simplify. 2:inr. rewrite S_INR. apply nat_part_INR.
+       apply Rmult_le_pos. inr. apply Hu. }
    assert (H2 : forall q, q<>q0 -> RIn (q/p) (S q/p) (u n) = false).
    { intros q. rewrite <- not_true_iff_false.
      intros Hq. contradict Hq. rewrite RIn_spec in H1, Hq.
      assert ((q < S q0)%nat).
      { apply INR_lt. apply Rmult_lt_reg_r with (/p); try lra.
-       apply Rinv_0_lt_compat, (lt_INR 0); lia. }
+       apply Rinv_0_lt_compat. inr. }
      assert ((q0 < S q)%nat).
      { apply INR_lt. apply Rmult_lt_reg_r with (/p); try lra.
-       apply Rinv_0_lt_compat, (lt_INR 0); lia. }
+       apply Rinv_0_lt_compat. inr. }
      lia. }
    split.
    + erewrite big_sum_eq_bounded.
@@ -475,7 +470,7 @@ Proof.
  apply is_lim_seq_incr_1.
  apply is_lim_seq_spec. intros eps.
  set (p := S (nat_part (/eps))).
- assert (Hp : 0 < p). { apply lt_0_INR. lia. }
+ assert (Hp : 0 < p) by (unfold p; inr).
  assert (Hp' : 0 < /p). { now apply Rinv_0_lt_compat. }
  assert (Hp_eps : /p < eps).
  { rewrite <- (Rinv_inv eps).
@@ -498,25 +493,22 @@ Proof.
    rewrite <- is_lim_seq_incr_1
    with (u := fun n => Rcountin f (q / p) (S q / p) n / n).
    apply (MultIrrat_EquiDistrMod1 t Ht (q/p) (S q/p)).
-   { unfold Rdiv. apply Rmult_le_pos. apply pos_INR. lra. }
+   { unfold Rdiv. apply Rmult_le_pos. inr. lra. }
    { rewrite S_INR. unfold Rdiv. rewrite Rmult_plus_distr_r. lra. }
-   { apply Rmult_le_reg_r with (r:=p). trivial. field_simplify; try lra.
-     apply le_INR. lia. }}
+   { apply Rmult_le_reg_r with (r:=p). inr. field_simplify. inr. lra. }}
  exists N. intros n Hn. specialize (HN n Hn).
  assert (Hf : forall n, 0 <= f n < 1).
  { intros m. generalize (base_fp (t*m)); unfold f; lra. }
  destruct (sum_rcountin_bounds f p lia Hf (S n)) as (LE,GE).
  unfold mean. apply Rcomplements.Rabs_lt_between. split.
  - apply RealAux.Rlt_minus_r. rewrite Rplus_comm.
-   apply Rmult_lt_reg_r with (S n). apply (lt_INR 0); lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l.
-   2:{ apply (not_INR (S n) 0); lia. }
+   apply Rmult_lt_reg_r with (S n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l by inr.
    rewrite Rmult_1_r.
    eapply Rlt_le_trans; [|apply LE]. clear LE GE.
    apply Rmult_lt_reg_r with (/S n).
-   { apply Rinv_0_lt_compat, (lt_INR 0); lia. }
-   rewrite Rmult_assoc, Rinv_r.
-   2:{ apply (not_INR (S n) 0); lia. }
+   { apply Rinv_0_lt_compat. inr. }
+   rewrite Rmult_assoc, Rinv_r by inr.
    rewrite Rmult_1_r.
    unfold Rdiv. rewrite big_sum_Rmult_r.
    eapply Rlt_le_trans;
@@ -525,7 +517,7 @@ Proof.
        unfold Rdiv. rewrite Rinv_mult, <- Rmult_assoc.
        rewrite (Rmult_assoc _ _ (/S n)).
        apply Rmult_le_compat_l.
-       { apply Rmult_le_pos. apply pos_INR.
+       { apply Rmult_le_pos. inr.
          apply Rlt_le, Rinv_0_lt_compat; trivial. }
        specialize (HN q Hq).
        apply Rcomplements.Rabs_lt_between in HN. destruct HN as (HN,_).
@@ -541,15 +533,13 @@ Proof.
    apply RealAux.Rminus_le_0. field_simplify.
    replace (2/_) with (/(p*(p+1))). apply Rlt_le, LT. field. nra. nra.
  - apply RealAux.Rlt_minus_l.
-   apply Rmult_lt_reg_r with (S n). apply (lt_INR 0); lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l.
-   2:{ apply (not_INR (S n) 0); lia. }
+   apply Rmult_lt_reg_r with (S n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l by inr.
    rewrite Rmult_1_r.
    eapply Rle_lt_trans; [apply GE|]. clear LE GE.
    apply Rmult_lt_reg_r with (/S n).
-   { apply Rinv_0_lt_compat, (lt_INR 0); lia. }
-   rewrite Rmult_assoc, Rinv_r.
-   2:{ apply (not_INR (S n) 0); lia. }
+   { apply Rinv_0_lt_compat. inr. }
+   rewrite Rmult_assoc, Rinv_r by inr.
    rewrite Rmult_1_r.
    unfold Rdiv. rewrite big_sum_Rmult_r.
    eapply Rle_lt_trans;
@@ -558,7 +548,7 @@ Proof.
      unfold Rdiv.
      rewrite (Rmult_assoc _ _ (/S n)), (Rmult_assoc _ _ (/(p * (p+1)))).
      apply Rmult_le_compat_l.
-     { apply Rmult_le_pos. apply pos_INR.
+     { apply Rmult_le_pos. inr.
        apply Rlt_le, Rinv_0_lt_compat; trivial. }
      specialize (HN q Hq).
      apply Rcomplements.Rabs_lt_between in HN. destruct HN as (_,HN).
@@ -713,7 +703,7 @@ Proof.
    simpl in *.
    assert (Hn : 0 <= /n).
    { destruct n. simpl. rewrite Rinv_0; lra.
-     apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+     apply Rlt_le, Rinv_0_lt_compat. inr. }
    apply Rmult_le_compat_r with (r:=/n) in H1,H2,H3,H4; trivial.
    unfold Rdiv. lra.
  - eapply is_lim_seq_le_le
@@ -733,7 +723,7 @@ Proof.
    simpl in *.
    assert (Hn : 0 <= /n).
    { destruct n. simpl. rewrite Rinv_0; lra.
-     apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+     apply Rlt_le, Rinv_0_lt_compat. inr. }
    apply Rmult_le_compat_r with (r:=/n) in H1,H2,H3,H4; trivial.
    unfold Rdiv. lra.
 Qed.

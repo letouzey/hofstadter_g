@@ -59,8 +59,7 @@ Proof.
    2:{ assert (0 < m-n)%nat by lia.
        destruct (m-n)%nat; try easy. now rewrite <- Pos.of_nat_succ. }
    rewrite <- INR_IZR_INZ, minus_INR by lia.
-   rewrite <- E. field.
-   rewrite <- minus_INR by lia. apply (not_INR _ 0); lia.
+   rewrite <- E. field. inr.
  - set (q := Qmake (Z.of_nat (f k n) - Z.of_nat (f k m) - z) (Pos.of_nat (n-m))).
    apply (tau_irrat k Hk q).
    unfold q, Q2R. simpl. rewrite !minus_IZR, <- !INR_IZR_INZ.
@@ -68,8 +67,7 @@ Proof.
    2:{ assert (0 < n-m)%nat by lia.
        destruct (n-m)%nat; try easy. now rewrite <- Pos.of_nat_succ. }
    rewrite <- INR_IZR_INZ, minus_INR by lia.
-   rewrite <- E. field.
-   rewrite <- minus_INR by lia. apply (not_INR _ 0); lia.
+   rewrite <- E. field. inr.
 Qed.
 
 Lemma diff_inj k n m : (1<k)%nat -> diff k n = diff k m -> n = m.
@@ -83,7 +81,7 @@ Proof.
  intros K D.
  assert (D' := D). apply Delta_app_inv in D'. destruct D' as (D1 & D2 & _).
  unfold diff. rewrite !f_sumA by trivial.
- rewrite map_app, !sumA_app, !plus_INR. lra.
+ rewrite map_app, !sumA_app. inr.
 Qed.
 
 Lemma diff_app_singl k l p : k<>O -> Delta k (l++[p]) ->

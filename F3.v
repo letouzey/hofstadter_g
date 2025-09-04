@@ -688,20 +688,18 @@ Proof.
   - case (Nat.eq_dec n 0); intros Hn.
     + subst n. change (h 0) with 0%nat. rewrite !Nat.add_0_r. lia.
     + split; apply Nat.lt_succ_r; apply INR_lt.
-      * rewrite minus_INR, plus_INR. rewrite !S_INR, !h_alt.
+      * rewrite minus_INR, plus_INR. inr_const. rewrite S_INR, !h_alt.
         2:{ generalize (@f_nonzero 3 p) (@f_nonzero 3 n). fold h. lia. }
         rewrite plus_INR.
         assert (Dp := diff_lt_1 p).
         assert (Dn := diff_lt_1 n).
         assert (Dpn := diff_lt_1 (p+n)).
-        rewrite Rcomplements.Rabs_lt_between in *.
-        simpl. lra.
-      * rewrite !S_INR, !plus_INR. rewrite !h_alt, plus_INR.
+        rewrite Rcomplements.Rabs_lt_between in *. lra.
+      * rewrite S_INR, !plus_INR. inr_const. rewrite !h_alt, plus_INR.
         assert (Dp := diff_lt_1 p).
         assert (Dn := diff_lt_1 n).
         assert (Dpn := diff_lt_1 (p+n)).
-        rewrite Rcomplements.Rabs_lt_between in *.
-        simpl. lra.
+        rewrite Rcomplements.Rabs_lt_between in *; lra.
 Qed.
 
 (* Print Assumptions h_quasiadd. *)
@@ -718,8 +716,8 @@ Proof.
  unfold diff. fold τ. rewrite S_INR.
  destruct (rank 3 n) as [[|r]|].
  - rewrite E by easy. lra.
- - rewrite E' by easy. rewrite S_INR. lra.
- - rewrite E' by easy. rewrite S_INR. lra.
+ - rewrite E' by easy. inr.
+ - rewrite E' by easy. inr.
 Qed.
 
 Lemma diff_bound_rank0 n : rank 3 n = Some O ->
@@ -792,22 +790,17 @@ Proof.
  split.
  - assert (nat_part (τ^2 * n) < 1 + (h^^2) n)%nat; try lia.
    { apply nat_part_lt. split.
-     - apply Rmult_le_pos. approx. apply pos_INR.
-     - rewrite plus_INR. replace (INR 2) with 2 by auto.
+     - apply Rmult_le_pos. approx. inr.
+     - rewrite plus_INR.
        generalize (diffh2_bounds n). unfold diffh2. simpl. lra. }
  - assert ((h^^2) n - 2 <= nat_part (τ^2 * n))%nat; try lia.
    { apply nat_part_le.
-     - apply Rmult_le_pos. approx. apply pos_INR.
+     - apply Rmult_le_pos. approx. inr.
      - destruct (Nat.le_gt_cases 4 n) as [LE|LT].
        + assert (LE' := fs_mono 3 2 LE).
-         rewrite minus_INR by trivial.
-         replace (INR 2) with 2 by auto.
+         rewrite minus_INR by trivial. inr_const.
          generalize (diffh2_bounds n). unfold diffh2. simpl. lra.
-       + destruct n. simpl; lra.
-         destruct n. simpl. approx.
-         destruct n. simpl. approx.
-         destruct n. simpl. approx.
-         lia. }
+       + destruct n as [|[|[|[|]]]]; simpl; lia || lra || approx. }
 Qed.
 
 
@@ -862,7 +855,7 @@ Proof.
  unfold diff0, Diff0. rewrite take_length.
  rewrite <- count_nbocc.
  rewrite τ3. rewrite Rmult_minus_distr_r.
- rewrite <- (f_count_0 3 n) at 1 by lia. fold h. rewrite plus_INR. lra.
+ rewrite <- (f_count_0 3 n) at 1 by lia. fold h. inr.
 Qed.
 
 Lemma diff0_alt' n : diff0 n = diff 3 n.
@@ -905,7 +898,7 @@ Proof.
  destruct (nbocc_ksubst3 w) as (_ & _ & ->).
  rewrite !plus_INR.
  replace (nbocc 1 w + nbocc 2 w) with (length w - nbocc 0 w).
- 2:{ apply len_nbocc_012 in H. rewrite H. rewrite !plus_INR. lra. }
+ 2:{ apply len_nbocc_012 in H. rewrite H. inr. }
  ring_simplify.
  replace (τ^4) with (1-τ^2-τ^3) by (generalize τ234; lra).
  simpl. lra.
@@ -1012,7 +1005,7 @@ Proof.
  apply is_lim_seq_ext_loc with (fun n => τ^2 - diff2 n / n).
  - exists 1%nat. intros n Hn.
    unfold diff2, Diff2. rewrite take_length.
-   rewrite <- count_nbocc. field. apply not_0_INR; lia.
+   rewrite <- count_nbocc. field. inr.
  - replace (τ^2) with (τ^2 + -0) at 1 by lra.
    apply is_lim_seq_plus'. apply is_lim_seq_const.
    apply is_lim_seq_opp'. apply lim_diff2_div_n.
@@ -1022,7 +1015,7 @@ Lemma frequency_1 : is_lim_seq (fun n => count (kseq 3) 1 n / n) (τ^4).
 Proof.
  apply is_lim_seq_ext_loc with (fun n => τ^4 + diff0 n / n + diff2 n / n).
  - exists 1%nat. intros n Hn.
-   field_simplify; try (apply not_0_INR; lia). f_equal.
+   field_simplify; try inr. f_equal.
    rewrite Rplus_assoc.
    replace (diff0 n + diff2 n) with (-diff1 n)
      by (generalize (diff012 n); lra).
@@ -1186,7 +1179,7 @@ Lemma coef_prod : coef_μ * coef_α * coef_αbar = 1/31.
 Proof.
  unfold coef_μ, coef_α, coef_αbar. rewrite coef_mu_ok. fold μ.
  unfold coefA.
- replace (3%nat-1) with 2 by lca. rewrite INR_IZR_INZ. simpl IZR.
+ replace (3%nat-1) with 2 by lca. inr_const.
  apply Cmult_eq_reg_r with (-31). 2:{ intros [= E]. lra. }
  rewrite <- det2 at 1. replace (-31) with (-(31)) by lca.
  replace (det^2) with

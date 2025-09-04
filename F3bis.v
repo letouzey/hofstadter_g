@@ -234,13 +234,10 @@ Proof.
    contradict Hn. apply (INR_eq _ 0) in Hn.
    generalize (@f_nonzero 3%nat n). unfold h in *; lia.
  - rewrite Cmult_assoc. f_equal. ctor. f_equal.
-   rewrite minus_INR by apply f_le. field.
-   now apply (not_INR n 0).
+   rewrite minus_INR by apply f_le. field. inr.
  - rewrite Cmult_assoc. f_equal. ctor. f_equal.
-   rewrite minus_INR by apply f_le. field.
-   split.
-   + assert (LT := @f_lt 3 n lia). apply lt_INR in LT. unfold h. lra.
-   + now apply (not_INR n 0).
+   rewrite minus_INR by apply f_le. field. split; try inr.
+   assert (LT := @f_lt 3 n lia). unfold h. inr.
 Qed.
 
 Lemma vmeandiff_A_eqn p :
@@ -455,12 +452,10 @@ Proof.
  intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
 Qed.
 
 Lemma meandiffh2_bounded n : -0.787 <= meandiffh2 n <= 1.039.
@@ -474,12 +469,10 @@ Proof.
  intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
 Qed.
 
 Lemma Rnorm_vmeandiff_bound n : Rnorm (vmeandiff n) < 2.
@@ -526,11 +519,11 @@ Lemma ratio_bound p :
   Rabs (A3 (p-1) / A3 p - τ) <= 2 * Cmod (coefdA 3 α) * (τ * Cmod α)^p.
 Proof.
  apply Rmult_le_reg_r with (r:=A3 p).
- { apply lt_0_INR. generalize (A_nz 3 p); lia. }
- rewrite <- (Rabs_right' (A3 p)) at 2 by apply pos_INR.
+ { assert (H := A_nz 3 p); inr. }
+ rewrite <- (Rabs_right' (A3 p)) at 2 by inr.
  rewrite <- Rabs_mult.
  replace (_ * A3 p) with (A3 (p-1) - τ * A3 p).
- 2:{ field. apply not_0_INR. generalize (A_nz 3 p); lia. }
+ 2:{ field. assert (H := A_nz 3 p). inr. }
  rewrite <- Cmod_R. change τ with (tau 3) at 1.
  rewrite (Equation_dA 3 _ roots_sorted p lia).
  unfold roots. simpl. rewrite Cplus_0_r.
@@ -622,7 +615,7 @@ Proof.
  rewrite !IH by lia.
  ring_simplify.
  destruct p; try easy.
- rewrite A_S. simpl. rewrite Nat.sub_0_r. rewrite plus_INR. lra.
+ rewrite A_S. simpl. rewrite Nat.sub_0_r. inr.
 Qed.
 
 Lemma U_scal_A p : U p <= K2 * A3 p.
@@ -693,14 +686,13 @@ Proof.
   unfold vsumdiff'.
   assert (H := Rnorm_vmeandiff'_A_bound' p).
   unfold vmeandiff' in H. rewrite vmeandiff_alt in H.
-  unfold Vscale in H. apply Rmult_le_compat_r with (r:=A3 p) in H.
-  2:{ apply pos_INR. }
+  unfold Vscale in H. apply Rmult_le_compat_r with (r:=A3 p) in H. 2:inr.
   etransitivity; [|etransitivity; [apply H|]].
   - rewrite Rmult_comm.
-    rewrite <- (Rabs_right' (A3 p)) at 2 by apply pos_INR.
+    rewrite <- (Rabs_right' (A3 p)) at 2 by inr.
     rewrite <- Rnorm_scal.
-    apply Req_le. f_equal. rtoc. field. intros [= E]. revert E.
-    apply not_0_INR. generalize (A_nz 3 p). lia.
+    apply Req_le. f_equal. rtoc. field. intros [= E].
+    assert (H' := A_nz 3 p). inr.
   - unfold K5. rewrite !Rmult_assoc.
     apply Rmult_le_compat_l. apply K4_pos.
     rewrite <- αmod_μ.
@@ -776,7 +768,7 @@ Proof.
      rewrite 2 Rnorm_triangle, Rnorm_scal, Rnorm_vdiff_A.
      rewrite Rnorm_vsumdiff'_A.
      rewrite (IH (p-2)%nat) by (simpl in Hn; lia).
-     rewrite Rabs_right' by apply pos_INR.
+     rewrite Rabs_right' by inr.
      assert (LT : (n-A3 p <= A3 p)%nat).
      { simpl in Hn. generalize (@A_mono 3 (p-2) p lia). lia. }
      apply le_INR in LT.
@@ -814,15 +806,14 @@ Proof.
    rewrite (vsumdiff'_ineq (S p) n) by lia. simpl.
    rewrite <- !Rmult_assoc. apply Rmult_le_compat_l. apply K7_pos.
    rewrite <- sqrt_pow. 2:approx. apply sqrt_le_1.
-   apply pow_le; approx. apply pos_INR. rewrite (A_ge_mu_pow 3).
-   now apply le_INR.
+   apply pow_le; approx. inr. rewrite (A_ge_mu_pow 3). now apply le_INR.
 Qed.
 
 Lemma vmeandiff'_ineq n : n<>O ->
   Rnorm (vmeandiff' n) <= K7 / sqrt n.
 Proof.
  intros Hn.
- assert (0 < n). { apply (lt_INR 0); lia. }
+ assert (0 < n) by inr.
  unfold vmeandiff'. rewrite vmeandiff_alt. unfold Vscale.
  replace limit with ((/n)%R * (n*limit))%C.
  2:{ rtoc. field. intros [= E]. lra. }
@@ -878,7 +869,7 @@ Proof.
  unfold diff, intdiff. change (tau 3) with τ. change (f 3) with h.
  rewrite minus_INR by (generalize (@h_natpart_bound n); lia).
  rewrite (nat_frac (τ * n)) at 1. lra.
- apply Rmult_le_pos. approx. apply pos_INR.
+ apply Rmult_le_pos. approx. inr.
 Qed.
 
 Lemma intdiff_eqn n : INR (intdiff n) = diff 3 n + frac_part (τ*n).
@@ -954,7 +945,7 @@ Lemma meanintdiff_CV_really :
 Proof.
  apply is_lim_seq_ext with (u:=fun n => big_sum intdiff (S n) / (S n) * (S n/n)).
  { intros n. unfold Rdiv. rewrite <- Rmult_assoc. f_equal.
-   field_simplify; try (apply not_0_INR; lia).
+   field_simplify; try inr.
    now rewrite <- big_sum_extend_l. }
  replace lim_meanintdiff with (lim_meanintdiff*(1+0)) by lra.
  apply is_lim_seq_mult'.
@@ -962,7 +953,7 @@ Proof.
    apply meanintdiff_CV.
  - apply is_lim_seq_incr_1.
    eapply is_lim_seq_ext with (u:=fun n => 1+/S n).
-   { intros n. rewrite (S_INR (S n)). field. apply not_0_INR; lia. }
+   { intros n. rewrite (S_INR (S n)). field. inr. }
    apply is_lim_seq_plus'. apply is_lim_seq_const.
    rewrite <- is_lim_seq_incr_1 with (u:=fun n => /n). apply is_lim_seq_invn.
 Qed.
@@ -989,8 +980,8 @@ Proof.
    2:{ destruct (m-n)%nat eqn:E'; simpl; try lia.
        now rewrite Pos.of_nat_succ. }
    rewrite <- INR_IZR_INZ.
-   apply Rmult_eq_reg_r with (r:=(m-n)%nat). 2:{ apply (not_INR _ 0); lia. }
-   field_simplify. 2:{ apply (not_INR _ 0); lia. }
+   apply Rmult_eq_reg_r with (r:=(m-n)%nat). 2:inr.
+   field_simplify. 2:inr.
    rewrite minus_INR by lia.
    apply Rminus_diag_eq in E.
    apply Rminus_diag_uniq. replace 0 with (-0) by lra. rewrite <- E. ring. }
@@ -1156,7 +1147,7 @@ Proof.
  intros n.
  assert (Hn : 0 <= /n).
  { destruct n. simpl. rewrite Rinv_0; lra.
-   apply Rlt_le, Rinv_0_lt_compat. apply (lt_INR 0); lia. }
+   apply Rlt_le, Rinv_0_lt_compat. inr. }
  unfold Rdiv. change 2 with (INR 2).
  rewrite <- !Rmult_plus_distr_r, <- !plus_INR.
  split.

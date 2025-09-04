@@ -70,11 +70,32 @@ Proof.
  intros LE. rewrite <- Rabs_Ropp, Rabs_right; lra.
 Qed.
 
-Lemma max_INR a b : INR (Nat.max a b) = Rmax a b.
+Lemma max_INR (a b : nat) : INR (Nat.max a b) = Rmax a b.
 Proof.
  apply Nat.max_case_strong; intros; symmetry.
  - apply Rmax_left. now apply le_INR.
  - apply Rmax_right. now apply le_INR.
+Qed.
+
+Lemma min_INR (a b : nat) : INR (Nat.min a b) = Rmin a b.
+Proof.
+ apply Nat.min_case_strong; intros; symmetry.
+ - apply Rmin_left. now apply le_INR.
+ - apply Rmin_right. now apply le_INR.
+Qed.
+
+Lemma max_IZR (a b : Z) : IZR (Z.max a b) = Rmax (IZR a) (IZR b).
+Proof.
+ apply Z.max_case_strong; intros; symmetry.
+ - apply Rmax_left. now apply IZR_le.
+ - apply Rmax_right. now apply IZR_le.
+Qed.
+
+Lemma min_IZR (a b : Z) : IZR (Z.min a b) = Rmin (IZR a) (IZR b).
+Proof.
+ apply Z.min_case_strong; intros; symmetry.
+ - apply Rmin_left. now apply IZR_le.
+ - apply Rmin_right. now apply IZR_le.
 Qed.
 
 Lemma Rmult_lt_compat a b c d :
@@ -157,6 +178,15 @@ Proof.
  generalize (RSpos n). lra.
 Qed.
 
+Lemma minus_INR_max (n m : nat) : INR (n-m) = Rmax 0 (n - m).
+Proof.
+ destruct (Nat.le_ge_cases n m) as [H|H].
+ - replace (n-m)%nat with 0%nat by lia.
+   rewrite Rmax_left; trivial. apply le_INR in H. lra.
+ - rewrite Rmax_right by (apply le_INR in H; lra).
+   apply minus_INR; trivial.
+Qed.
+
 Lemma Rplus_reorder a b c d : (a+b)+(c+d) = (a+c)+(b+d).
 Proof. lra. Qed.
 
@@ -216,6 +246,65 @@ Proof.
  rewrite minusone_pow_even by trivial.
  generalize (pow_incr (-y) (-x) n). lra.
 Qed.
+
+(* Helper tactics about INR and IZR : r-ification *)
+
+Ltac break_max := repeat apply Rmax_case_strong.
+
+#[global] Hint Rewrite
+ S_INR plus_INR mult_INR minus_INR_max max_INR min_INR
+ succ_IZR plus_IZR mult_IZR minus_IZR max_IZR min_IZR
+ : NtoR.
+Ltac ntor_ops := autorewrite with NtoR.
+
+Ltac inr_atoms_are_pos :=
+ match goal with
+ | |- context [INR ?u] =>
+   let x := fresh "x" in
+   let Hx := fresh "Hx" in
+   assert (Hx := pos_INR u); set (x := INR u) in *; inr_atoms_are_pos
+ | _ => idtac
+ end.
+
+Ltac inr_const :=
+ change (INR 0) with 0 in *;
+ change (INR 1) with 1 in *;
+ (replace (INR 2) with 2 in * by now rewrite INR_IZR_INZ);
+ (replace (INR 3) with 3 in * by now rewrite INR_IZR_INZ);
+ (replace (INR 4) with 4 in * by now rewrite INR_IZR_INZ);
+ (replace (INR 5) with 5 in * by now rewrite INR_IZR_INZ);
+ repeat rewrite (INR_IZR_INZ (S (S (S (S (S (S _))))))) in *;
+ simpl (Z.of_nat (S (S (S (S (S (S _))))))) in *.
+
+Ltac ntor :=
+ match goal with
+ (* nat goal to R *)
+ | |- eq nat _ _ => apply INR_eq; ntor
+ | |- le _ _ => apply INR_le; ntor
+ | |- lt _ _ => apply INR_le; ntor
+ | |- ~(@eq nat _ _) => intro; ntor
+ (* Z goal to R *)
+ | |- eq Z _ _ => apply eq_IZR; ntor
+ | |- Z.le _ _ => apply le_IZR; ntor
+ | |- Z.lt _ _ => apply Z.le_succ_l; apply le_IZR; ntor
+ | |- ~(@eq Z _ _) => intro; ntor
+ (* nat hyps to R, placed in goal *)
+ | H : eq nat _ _ |- _ => generalize (f_equal INR H); clear H; ntor
+ | H : le _ _ |- _ => generalize (le_INR _ _ H); clear H; ntor
+ | H : lt _ _ |- _ => generalize (le_INR _ _ H); clear H; ntor
+ | H : ~(@eq nat _ _) |- _ => generalize (not_INR _ _ H); clear H; ntor
+ (* Z hyps to R, placed in goal *)
+ | H : eq Z _ _ |- _ => generalize (f_equal IZR H); clear H; ntor
+ | H : Z.le _ _ |- _ => generalize (IZR_le _ _ H); clear H; ntor
+ | H : Z.lt _ _ |- _ => rewrite <- Z.le_succ_l;
+                        generalize (IZR_le _ _ H); clear H; ntor
+ | H : ~(@eq Z _ _) |- _ => generalize (IZR_neq _ _ H); clear H; ntor
+ (* simplification of goal + positivity of inr atoms *)
+ | _ => change (INR 0) with 0; change (INR 1) with 1;
+        ntor_ops; inr_atoms_are_pos
+ end.
+
+Ltac inr := ntor; break_max; lra.
 
 (** Boolean tests *)
 
@@ -505,7 +594,7 @@ Proof.
  assert (B : Below l N).
  { unfold l. intros x. rewrite in_map_iff. intros (k & <- & K).
    rewrite in_seq in K. apply nat_part_lt.
-   generalize (base_fp (k*a)) (lt_0_INR N ltac:(lia)). nra. }
+   generalize (base_fp (k*a)). ntor; nra. }
  assert (L : length l = S N).
  { unfold l. now rewrite map_length, seq_length. }
  destruct (pigeonhole_split N l B ltac:(lia)) as (m & l1 & l2 & l3 & E).
@@ -535,8 +624,8 @@ Proof.
  set (v := N * _) in E2.
  assert (-1 < u-v < 1).
  { rewrite (nat_frac u), (nat_frac v).
-   2:{ unfold v. generalize (base_fp (k*a)) (lt_0_INR N ltac:(lia)). nra. }
-   2:{ unfold u. generalize (base_fp (k1*a)) (lt_0_INR N ltac:(lia)). nra. }
+   2:{ unfold v. generalize (base_fp (k*a)). ntor; nra. }
+   2:{ unfold u. generalize (base_fp (k1*a)). ntor; nra. }
    rewrite E1,E2.
    generalize (base_fp u) (base_fp v). lra. }
  unfold u, v in *; clearbody k1 k2; clear l B L u v E1 E2 l1 l2 l3.
@@ -544,9 +633,9 @@ Proof.
  rewrite minus_INR, Rmult_minus_distr_r by lia.
  rewrite (int_frac (k*a)) at 1. rewrite (int_frac (k1*a)) at 1.
  rewrite minus_IZR. apply Rabs_def1; ring_simplify.
- - apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia. lra.
+ - apply Rcomplements.Rlt_div_r. inr. lra.
  - apply Ropp_lt_cancel. rewrite Ropp_involutive.
-   apply Rcomplements.Rlt_div_r. apply lt_0_INR; lia. lra.
+   apply Rcomplements.Rlt_div_r. inr. lra.
 Qed.
 
 (** Specialized version of [euclidean_division] on positive reals,
@@ -608,7 +697,7 @@ Proof.
    { apply Rabs_def2 in LT.
      assert (1/N <= 1).
      { unfold Rdiv. rewrite Rmult_1_l, <- Rinv_1.
-       apply Rinv_le_contravar. lra. apply (le_INR 1). unfold N; lia. }
+       apply Rinv_le_contravar. lra. unfold N; inr. }
      assert (Int_part (q*a) - p < 1)%Z.
      { apply lt_IZR. rewrite minus_IZR. generalize (base_fp (q*a)). lra. }
      assert (-2 < Int_part (q*a) - p)%Z.
@@ -922,8 +1011,7 @@ Proof.
  destruct (Req_dec x 0) as [Hx'|Hx'].
  - rewrite Hx', nthroot_nonpos by lra. apply Rpow_0_l. lia.
  - rewrite nthroot_alt, exp_pow by lra.
-   rewrite <- (exp_ln x) at 2 by lra. f_equal. field.
-   contradict Hn. now apply INR_eq.
+   rewrite <- (exp_ln x) at 2 by lra. f_equal. field. inr.
 Qed.
 
 Lemma nthroot_sqrt x : nthroot x 2 = sqrt x.

@@ -1400,7 +1400,7 @@ Proof.
  destruct (F3.h_natpart_or n) as [E|E]; unfold GenAdd.h in *;
   rewrite E; unfold F3.τ, α; simpl Nat.sub.
  - left. ring.
- - right. rewrite S_INR. ring.
+ - right. inr.
 Qed.
 
 Lemma F4_natpart n :
@@ -1411,8 +1411,7 @@ Proof.
  assert (U := F4.f4_natpart_lower n).
  assert (V := F4.f4_natpart_higher n).
  apply le_INR in U, V.
- rewrite plus_INR in U, V.
- rewrite (INR_IZR_INZ 1) in U. rewrite (INR_IZR_INZ 2) in V. simpl in U,V.
+ rewrite plus_INR in U, V. inr_const.
  change F4.τ with (α 4) in U,V.
  remember (Rminus _ _) as d eqn:E.
  assert (-1 <= d <= 2) by (rewrite E; lra). clear U V.
@@ -1431,15 +1430,12 @@ Proof.
  rewrite !F_alt by lia. simpl. apply Rabs_le.
  generalize (F3.h_quasiadd p n). unfold GenAdd.h.
  intros (U,V). apply le_INR in U, V.
- rewrite !plus_INR in V.
- rewrite (INR_IZR_INZ 2) in V. simpl in V.
+ rewrite !plus_INR in V. inr_const.
  split. 2:lra.
  destruct (Nat.le_gt_cases 2 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
- - rewrite minus_INR in U by lia.
-   rewrite (INR_IZR_INZ 2), plus_INR in U. simpl in U. lra.
- - apply lt_INR in H. rewrite plus_INR in H.
-   rewrite (INR_IZR_INZ 2) in H. simpl in H.
-   generalize (pos_INR (GenG.f 3 (p+n))). lra.
+ - rewrite minus_INR in U by lia. inr_const.
+   rewrite plus_INR in U. lra.
+ - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 4.
@@ -1447,15 +1443,12 @@ Proof.
  rewrite !F_alt by lia. simpl. apply Rabs_le.
  generalize (F4.f4_quasiadd p n).
  intros (U,V). apply le_INR in U,V.
- rewrite !plus_INR in V.
- rewrite (INR_IZR_INZ 4) in V. simpl in V.
+ rewrite !plus_INR in V. inr_const.
  split. 2:lra.
  destruct (Nat.le_gt_cases 4 (GenG.f 4 p + GenG.f 4 n)) as [H|H].
- - rewrite minus_INR in U by lia.
-   rewrite (INR_IZR_INZ 4), plus_INR in U. simpl in U. lra.
- - apply lt_INR in H. rewrite plus_INR in H.
-   rewrite (INR_IZR_INZ 4) in H. simpl in H.
-   generalize (pos_INR (GenG.f 4 (p+n))). lra.
+ - rewrite minus_INR in U by lia. inr_const.
+   rewrite plus_INR in U. simpl in U. lra.
+ - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 (** Proposition 8.11 *)
@@ -1469,8 +1462,7 @@ Proof.
    { generalize (QA O O). simpl. now rewrite Rmult_0_r, !Rminus_0_r. }
    apply Rcomplements.Rabs_le_between. split.
    - apply Rcomplements.Rle_minus_r. rewrite Rplus_comm.
-     apply Rcomplements.Rle_minus_l. apply Rcomplements.Rle_div_r.
-     destruct n; try lia. generalize (RSpos n); lra.
+     apply Rcomplements.Rle_minus_l. apply Rcomplements.Rle_div_r. inr.
      set (u := fun n => F k n + M).
      change (α k <= u n / n).
      destruct n; try lia.
@@ -1482,8 +1474,7 @@ Proof.
      assert (Lu := Fekete_subadditive_lemma u Hu). cbn -[INR] in Lu.
      assert (Lu' : is_lim_seq (fun n => u n / n) (α k)).
      { apply (is_lim_seq_ext_loc (fun n => F k n/n + M/n)).
-       exists 1%nat. intros p Hp. unfold u. field. destruct p; try lia.
-       generalize (RSpos p); lra.
+       exists 1%nat. intros p Hp. unfold u. field. destruct p; try inr.
        replace (α k) with ((α k)^1+0) by ring.
        apply is_lim_seq_plus'.
        apply (Fkj_limit k 1); lia.
@@ -1492,7 +1483,7 @@ Proof.
      apply Inf_seq_correct.
    - apply Rcomplements.Rle_minus_l. rewrite Rplus_comm.
      rewrite <- Rcomplements.Rle_minus_l. apply Rcomplements.Rle_div_l.
-     destruct n; try lia. generalize (RSpos n); lra.
+     inr.
      set (u := fun n => F k n - M).
      change (u n / n <= α k).
      destruct n; try lia.
@@ -1504,8 +1495,7 @@ Proof.
      assert (Lu := Fekete_superadditive_lemma u Hu). cbn -[INR] in Lu.
      assert (Lu' : is_lim_seq (fun n => u n / n) (α k)).
      { apply (is_lim_seq_ext_loc (fun n => F k n/n - M/n)).
-       exists 1%nat. intros p Hp. unfold u. field. destruct p; try lia.
-       generalize (RSpos p); lra.
+       exists 1%nat. intros p Hp. unfold u. field. inr.
        replace (α k) with ((α k)^1-0) by ring.
        apply is_lim_seq_minus'.
        apply (Fkj_limit k 1); lia.
@@ -1530,15 +1520,15 @@ Proof.
                                (w := fun n => a + b/S n).
    - intro n. split.
      + replace (a+(b-1)/S n) with ((a*S n+b-1)/S n).
-       2:field; generalize (RSpos n); lra.
+       2:field; inr.
        unfold Rdiv. apply Rmult_le_compat_r.
-       generalize (Rinv_0_lt_compat (S n)) (RSpos n). lra.
+       generalize (Rinv_0_lt_compat (S n)); inr.
        rewrite (int_frac (a*S n + b)) at 1.
        generalize (base_fp (a*S n + b)); lra.
      + replace (a+b/S n) with ((a*S n+b)/S n).
-       2:field; generalize (RSpos n); lra.
+       2:field; inr.
        unfold Rdiv. apply Rmult_le_compat_r.
-       generalize (Rinv_0_lt_compat (S n)) (RSpos n). lra.
+       generalize (Rinv_0_lt_compat (S n)); inr.
        rewrite (int_frac (a*S n + b)) at 2.
        generalize (base_fp (a*S n + b)); lra.
    - rewrite <- (Rplus_0_r a) at 1.
@@ -1569,8 +1559,7 @@ Proof.
    specialize (B n). simpl in *. lra. }
  destruct (Nat.eq_dec k 4) as [->|K4].
  { clear K K' B.
-   assert (E2 := E 2%nat). assert (E6 := E 6%nat).
-   rewrite (INR_IZR_INZ 2), (INR_IZR_INZ 6) in *.
+   assert (E2 := E 2%nat). assert (E6 := E 6%nat). inr_const.
    change (F 4 2) with 1%nat in E2.
    change (F 4 6) with 5%nat in E6.
    symmetry in E2; symmetry in E6. rewrite <- int_part_iff in *.
@@ -1578,8 +1567,7 @@ Proof.
    unfold α in *. simpl in *. generalize Mu.tau_4. lra. }
  replace k with 3%nat in * by lia.
  { clear K K' K4 B.
-   assert (E5 := E 5%nat). assert (E8 := E 8%nat).
-   rewrite (INR_IZR_INZ 5), (INR_IZR_INZ 8) in *.
+   assert (E5 := E 5%nat). assert (E8 := E 8%nat). inr_const.
    change (F 3 5) with 4%nat in E5.
    change (F 3 8) with 5%nat in E8.
    symmetry in E5; symmetry in E8. rewrite <- int_part_iff in *.
@@ -1597,14 +1585,14 @@ Proof.
                                (w := fun n => a + (b+1)/S n).
    - intro n. split.
      + replace (a+b/S n) with ((a*S n+b)/S n).
-       2:field; generalize (RSpos n); lra.
+       2:field; inr.
        unfold Rdiv. apply Rmult_le_compat_r.
-       generalize (Rinv_0_lt_compat (S n)) (RSpos n). lra.
+       generalize (Rinv_0_lt_compat (S n)); inr.
        apply ceil_bound.
      + replace (a+(b+1)/S n) with ((a*S n+b+1)/S n).
-       2:field; generalize (RSpos n); lra.
+       2:field; inr.
        unfold Rdiv. apply Rmult_le_compat_r.
-       generalize (Rinv_0_lt_compat (S n)) (RSpos n). lra.
+       generalize (Rinv_0_lt_compat (S n)); inr.
        apply Rlt_le. apply ceil_bound.
    - rewrite <- (Rplus_0_r a) at 1.
      apply is_lim_seq_plus'; try apply is_lim_seq_const.
@@ -1634,8 +1622,7 @@ Proof.
    specialize (B n). simpl in *. lra. }
  destruct (Nat.eq_dec k 4) as [->|K4].
  { clear K K' B.
-   assert (E2 := E 2%nat). assert (E6 := E 6%nat).
-   rewrite (INR_IZR_INZ 2), (INR_IZR_INZ 6) in *.
+   assert (E2 := E 2%nat). assert (E6 := E 6%nat). inr_const.
    change (F 4 2) with 1%nat in E2.
    change (F 4 6) with 5%nat in E6.
    symmetry in E2; symmetry in E6. rewrite <- ceil_iff in *.
@@ -1643,8 +1630,7 @@ Proof.
    unfold α in *. simpl in *. generalize Mu.tau_4. lra. }
  replace k with 3%nat in * by lia.
  { clear K K' K4 B.
-   assert (E5 := E 5%nat). assert (E8 := E 8%nat).
-   rewrite (INR_IZR_INZ 5), (INR_IZR_INZ 8) in *.
+   assert (E5 := E 5%nat). assert (E8 := E 8%nat). inr_const.
    change (F 3 5) with 4%nat in E5.
    change (F 3 8) with 5%nat in E8.
    symmetry in E5; symmetry in E8. rewrite <- ceil_iff in *.

@@ -666,7 +666,7 @@ Proof.
  unfold diff0, Diff0. rewrite take_length.
  rewrite <- count_nbocc.
  rewrite τ4. rewrite Rmult_minus_distr_r.
- rewrite <- (f_count_0 4 n) at 1 by lia. rewrite plus_INR. lra.
+ rewrite <- (f_count_0 4 n) at 1 by lia. inr.
 Qed.
 
 Lemma diff0_alt' n : diff0 n = diff 4 n.
@@ -687,8 +687,7 @@ Proof.
  change (f 4 n) with (fs 4 1 n).
  rewrite (fs_count_above 4 1) by lia.
  rewrite count_above_S.
- rewrite (fs_count_above 4 2) by lia.
- rewrite plus_INR. lra.
+ rewrite (fs_count_above 4 2) by lia. inr.
 Qed.
 
 Lemma diff2_alt n : diff2 n = τ^6 * n + fs 4 3 n - fs 4 2 n.
@@ -697,8 +696,7 @@ Proof.
  rewrite <- count_nbocc.
  rewrite (fs_count_above 4 2) by lia.
  rewrite (fs_count_above 4 3) by lia.
- rewrite (count_above_S (kseq 4) 2).
- rewrite plus_INR. lra.
+ rewrite (count_above_S (kseq 4) 2). inr.
 Qed.
 
 (** Equations giving Diff0 and co after a substitution [ksubst 4].
@@ -779,7 +777,7 @@ Lemma f4_natpart_lower (n:nat) :
 Proof.
 assert (LT := f4_close_τn n).
 assert (LE : 0 <= τ*n).
-{ apply Rmult_le_pos. approx. apply pos_INR. }
+{ apply Rmult_le_pos. approx. inr. }
 assert (H : 0 <= τ*n < INR(2 + f 4 n)).
 { rewrite plus_INR. simpl. lra. }
 apply nat_part_lt in H. lia.
@@ -790,7 +788,7 @@ Lemma f4_natpart_higher (n:nat) :
 Proof.
 assert (LT := f4_close_τn n).
 assert (LE : 0 <= τ*n).
-{ apply Rmult_le_pos. approx. apply pos_INR. }
+{ apply Rmult_le_pos. approx. inr. }
 assert (INR(f 4 n - 2) <= τ*n).
 { destruct (Nat.le_gt_cases (f 4 n) 2).
   - replace (f 4 n - 2)%nat with O by lia. simpl. lra.
@@ -817,13 +815,13 @@ Proof.
 split.
  - destruct (Nat.le_gt_cases (f 4 p + f 4 n) 4); try lia.
    assert (f 4 p + f 4 n < f 4 (p+n) +5)%nat; try lia.
-   apply INR_lt. rewrite !plus_INR. rewrite (INR_IZR_INZ 5). simpl.
+   apply INR_lt. rewrite !plus_INR. inr_const.
    generalize (diff_bound p) (diff_bound n) (diff_bound (p+n)).
-   unfold diff in *. rewrite plus_INR. lra.
+   unfold diff in *. inr.
  - rewrite <- Nat.lt_succ_r.
-   apply INR_lt. rewrite S_INR, !plus_INR. rewrite (INR_IZR_INZ 4). simpl.
+   apply INR_lt. rewrite S_INR, !plus_INR. inr_const. simpl.
    generalize (diff_bound p) (diff_bound n) (diff_bound (p+n)).
-   unfold diff in *. rewrite plus_INR. lra.
+   unfold diff in *. inr.
 Qed.
 
 (* Print Assumptions f4_quasiadd. *)

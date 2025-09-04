@@ -60,9 +60,9 @@ Proof.
  apply is_lim_seq_0_abs with (fun n => K / n).
  - exists 1%nat. intros n Hn. specialize (H n). unfold Rdiv.
    rewrite Rabs_mult, Rabs_inv.
-   rewrite (Rabs_right n). 2:{ apply Rle_ge, pos_INR. }
+   rewrite (Rabs_right n) by inr.
    apply Rmult_le_compat_r; trivial.
-   apply Rlt_le, Rinv_0_lt_compat, lt_0_INR; lia.
+   apply Rlt_le, Rinv_0_lt_compat. inr.
  - apply (is_lim_seq_div _ _ K Rbar.p_infty); try easy.
    + apply is_lim_seq_const.
    + apply is_lim_seq_INR.
@@ -81,8 +81,7 @@ Lemma is_lim_seq_ndivSn :
 Proof.
  replace 1 with (1-0) by lra.
  apply is_lim_seq_ext with (fun n => 1-/(S n)).
- - intros n. rewrite S_INR. field. rewrite <- S_INR.
-   generalize (lt_0_INR (S n) lia). lra.
+ - intros n. rewrite S_INR. field. inr.
  - apply is_lim_seq_minus'; try apply is_lim_seq_const.
    assert (H := is_lim_seq_invn).
    now apply is_lim_seq_incr_1 in H.
@@ -189,8 +188,7 @@ Lemma lim_lnln_div_n : is_lim_seq (fun n => ln (ln n) / n) 0.
 Proof.
  apply is_lim_seq_le_le_loc with (fun _ => 0) (fun n => ln n/n);
  trivial using is_lim_seq_const, lim_ln_div_n.
- exists 3%nat. intros n Hn. apply le_INR in Hn.
- replace (INR 3) with 3 in Hn by (simpl; lra).
+ exists 3%nat. intros n Hn. apply le_INR in Hn. inr_const.
  split.
  - apply Rdiv_le_0_compat; try lra.
    rewrite <- ln_1. apply ln_le; try lra.
@@ -231,9 +229,8 @@ Lemma lim_ln_div_sqrt : is_lim_seq (fun n => ln n / sqrt n) 0.
 Proof.
  apply is_lim_seq_ext_loc with (fun n => sqrt (ln n ^2 / n)).
  { exists 1%nat. intros n Hn.
-   rewrite sqrt_div_alt by (apply lt_0_INR; lia).
-   rewrite sqrt_pow2; trivial. rewrite <- ln_1. apply ln_le; try lra.
-   now apply (le_INR 1). }
+   rewrite sqrt_div_alt by inr.
+   rewrite sqrt_pow2; trivial. rewrite <- ln_1. apply ln_le; inr. }
  rewrite <- sqrt_0. apply is_lim_seq_continuous. apply continuous_alt.
  - apply continuous_sqrt.
  - apply lim_ln2_div_n.
@@ -243,8 +240,7 @@ Lemma lim_lnln_div_sqrt : is_lim_seq (fun n => ln (ln n) / sqrt n) 0.
 Proof.
  apply is_lim_seq_le_le_loc with (fun _ => 0) (fun n => ln n/sqrt n);
  trivial using is_lim_seq_const, lim_ln_div_sqrt.
- exists 3%nat. intros n Hn. apply le_INR in Hn.
- replace (INR 3) with 3 in Hn by (simpl; lra).
+ exists 3%nat. intros n Hn. apply le_INR in Hn. inr_const.
  split.
  - apply Rdiv_le_0_compat. 2:{ apply sqrt_lt_R0; lra. }
    rewrite <- ln_1. apply ln_le; try lra.
@@ -450,8 +446,7 @@ Proof.
  replace (Rbar.Finite (u q/q)) with
      (LimSup_seq (fun n => (n- n mod q)/n * (u q / q) + M / n)).
  { apply LimSup_le. exists 1%nat. intros n Hn.
-   assert (Hn' : 0 < /n).
-   { apply Rinv_0_lt_compat. destruct n; try lia. apply RSpos. }
+   assert (Hn' : 0 < /n) by (apply Rinv_0_lt_compat; inr).
    rewrite (Nat.div_mod_eq n q) at 1. rewrite (Nat.mul_comm q).
    eapply Rle_trans;
      [eapply Rmult_le_compat_r;[now apply Rlt_le|apply U']| ].
@@ -460,7 +455,7 @@ Proof.
      rewrite <- minus_INR by (apply Nat.mod_le; lia).
      replace (n-n mod q)%nat with (((n/q)*q)%nat).
      2:{ rewrite (Nat.div_mod_eq n q) at 2. lia. }
-     rewrite mult_INR. field. split; apply not_0_INR; lia.
+     rewrite mult_INR. field. split; inr.
    - apply Rmult_le_compat_r;[now apply Rlt_le| ].
      apply HM. generalize (Nat.mod_upper_bound n q); lia. }
  { apply is_LimSup_seq_unique, is_lim_LimSup_seq.
@@ -470,11 +465,11 @@ Proof.
    rewrite <- (Rmult_1_l (u q / q)) at 1.
    apply is_lim_seq_mult'; try apply is_lim_seq_const.
    apply is_lim_seq_ext_loc with (u := fun n => 1 - (n mod q)/n).
-   { exists 1%nat. intros n Hn. field. apply not_0_INR; lia. }
+   { exists 1%nat. intros n Hn. field. inr. }
    replace 1 with (1-0) at 1 by lra.
    apply is_lim_seq_minus'; try apply is_lim_seq_const.
    apply is_lim_seq_bound with q; intros.
-   rewrite Rabs_right by (apply Rle_ge; apply pos_INR).
+   rewrite Rabs_right by inr.
    apply le_INR. generalize (Nat.mod_upper_bound n q); lia. }
 Qed.
 
@@ -516,11 +511,10 @@ Proof.
  intros U. cbn -[INR].
  rewrite is_lim_seq_opp.
  rewrite Sup_seq_ext with (v:=fun n => Rbar.Rbar_opp (- u(S n)/S n)).
- 2:{ intros n. cbn -[INR]. f_equal. field. generalize (RSpos n); lra. }
+ 2:{ intros n. cbn -[INR]. f_equal. field. inr. }
  rewrite <- Inf_opp_sup.
  apply is_lim_seq_ext_loc with (u:=fun n => - u n/n).
- { exists 1%nat. intros n Hn. field. destruct n; try lia.
-   generalize (RSpos n); lra. }
+ { exists 1%nat. intros n Hn. field. inr. }
  apply Fekete_subadditive_lemma. intros n m. specialize (U n m). lra.
 Qed.
 

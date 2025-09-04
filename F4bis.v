@@ -335,12 +335,12 @@ Proof.
  rewrite !vmeandiff_alt, vsumdiff_eqn.
  rewrite Mapply4_Vscal, Mapply_Vscal, !Vscal_Vadd_r, !Vscal_Vscal.
  f_equal; [|f_equal]; f_equal.
- - field. split. 2:now apply (not_INR n 0).
+ - field. split. 2:inr.
    contradict Hn. apply (INR_eq _ 0) in Hn.
    generalize (@f_nonzero 4%nat n). lia.
- - rewrite minus_INR by apply f_le. field. now apply (not_INR n 0).
- - rewrite minus_INR by apply f_le. field. split. 2: now apply (not_INR n 0).
-   assert (LT := @f_lt 4 n lia). apply lt_INR in LT. lra.
+ - rewrite minus_INR by apply f_le. field. inr.
+ - rewrite minus_INR by apply f_le. field. split. 2:inr.
+   assert (LT := @f_lt 4 n lia). inr.
 Qed.
 
 Lemma vmeandiff_A_eqn p :
@@ -790,12 +790,10 @@ Proof.
  intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
 Qed.
 
 Lemma diff_4_2_alt n : diff_4_2 n = diff 4 (f 4 n) + τ * diff 4 n.
@@ -836,12 +834,10 @@ Proof.
  intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
 Qed.
 
 Lemma meandiff_4_3_bounded n : Rabs (meandiff_4_3 n) <= 4.
@@ -856,12 +852,10 @@ Proof.
  intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
- - apply (Rmult_le_reg_r n). apply (lt_INR 0). lia.
-   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra.
-   contradict Hn. now apply INR_eq.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
+ - apply (Rmult_le_reg_r n). inr.
+   unfold Rdiv. rewrite Rmult_assoc, Rinv_l. lra. inr.
 Qed.
 
 Lemma Rnorm_vmeandiff_bound n : Rnorm (vmeandiff n) < 16.
@@ -919,10 +913,10 @@ Lemma ratio_bound p :
 Proof.
  apply Rmult_le_reg_r with (r:=A 4 p).
  { apply lt_0_INR. generalize (A_nz 4 p); lia. }
- rewrite <- (Rabs_right' (A 4 p)) at 2 by apply pos_INR.
+ rewrite <- (Rabs_right' (A 4 p)) at 2 by inr.
  rewrite <- Rabs_mult.
  replace (_ * A 4 p) with (A 4 (p-1) - τ * A 4 p).
- 2:{ field. apply not_0_INR. generalize (A_nz 4 p); lia. }
+ 2:{ field. assert (H := A_nz 4 p); inr. }
  rewrite <- Cmod_R. change τ with (tau 4) at 1.
  rewrite (Equation_dA 4 _ roots_sorted p lia).
  unfold roots. simpl. rewrite Cplus_0_r.
@@ -1027,7 +1021,7 @@ Proof.
  rewrite !IH by lia.
  ring_simplify.
  destruct p; try easy.
- rewrite A_S. simpl. rewrite Nat.sub_0_r. rewrite plus_INR. lra.
+ rewrite A_S. simpl. rewrite Nat.sub_0_r. inr.
 Qed.
 
 Lemma U_scal_A p : U p <= K2 * A 4 p.
@@ -1094,16 +1088,15 @@ Proof.
  unfold vsumdiff'.
  assert (H := Rnorm_vmeandiff'_A_bound' p).
  unfold vmeandiff' in H. rewrite vmeandiff_alt in H.
- unfold Vscale in H. apply Rmult_le_compat_r with (r:=A 4 p) in H.
- 2:{ apply pos_INR. }
+ unfold Vscale in H. apply Rmult_le_compat_r with (r:=A 4 p) in H. 2:inr.
  etransitivity; [|etransitivity; [apply H|]].
  - rewrite Rmult_comm.
-   rewrite <- (Rabs_right' (A 4 p)) at 2 by apply pos_INR.
+   rewrite <- (Rabs_right' (A 4 p)) at 2 by inr.
    rewrite <- Rnorm_scal.
    apply Req_le. f_equal.
    rewrite Vscal_Vadd_r, !Vscal_Vscal. f_equal; [|f_equal; ring].
    rewrite Rinv_r, Vscal_1; trivial.
-   apply not_0_INR. generalize (A_nz 4 p). lia.
+   assert (H' := A_nz 4 p); inr.
  - unfold K5. rewrite !Rmult_assoc.
    apply Rmult_le_compat_l. apply K4_pos.
    unfold rate.
@@ -1191,7 +1184,7 @@ Proof.
      rewrite LE. clear LE.
      rewrite Rnorm_vsumdiff'_A.
      rewrite (IH (p-3)%nat) by (simpl in Hn; lia).
-     rewrite Rabs_right' by apply pos_INR.
+     rewrite Rabs_right' by inr.
      assert (LT : (n-A 4 p <= A 4 p)%nat).
      { simpl in Hn. generalize (@A_mono 4 (p-3) p lia). lia. }
      apply le_INR in LT.
@@ -1240,20 +1233,20 @@ Proof.
    apply ln_increasing in LE; [|approx].
    rewrite !ln_pow in LE by approx.
    transitivity (p * (0.9 * ln μ)).
-   + apply Rmult_le_compat_l. apply pos_INR. simpl in LE; lra.
+   + apply Rmult_le_compat_l. inr. simpl in LE; lra.
    + replace (p * (0.9 * ln μ)) with (0.9 * (p * ln μ)) by ring.
      apply Rmult_le_compat_l. lra.
      rewrite <- ln_pow by approx.
      apply ln_nondecreasing.
      * apply pow_lt. approx.
-     * destruct H as (H,_). apply le_INR in H. lra.
+     * destruct H as (H,_). inr.
 Qed.
 
 Lemma vmeandiff'_ineq n : n<>O ->
   Rnorm (vmeandiff' n) <= K7 * Rpower n (-0.1).
 Proof.
  intros Hn.
- assert (0 < n). { apply (lt_INR 0); lia. }
+ assert (0 < n) by inr.
  unfold vmeandiff'. rewrite vmeandiff_alt.
  replace (-1) with (/n * (-n)). 2:{ field. intros [=E]; lra. }
  rewrite <- Vscal_Vscal, <- Vscal_Vadd_r, Rnorm_scal. fold (vsumdiff' n).
