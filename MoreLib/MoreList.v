@@ -1529,6 +1529,7 @@ Lemma nth_error_map {A B} (f:A -> B) (l:list A) n :
 Proof.
  revert n. induction l; destruct n; simpl; easy.
 Qed.
+
 Lemma nth_error_seq (a b n : nat) : (n < b)%nat ->
   nth_error (seq a b) n = Some (a+n).
 Proof.
