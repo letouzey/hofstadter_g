@@ -284,7 +284,7 @@ End K.
 Lemma root_tau_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   forall k, (1 < k)%nat -> tau k = 1 - ln k / k * (1 - ϵ k).
+   forall k, (1 < k)%nat -> tau k = 1 - ln k / k + ln k / k * ϵ k.
 Proof.
  set (ϵ := fun k => 1 - (1 - tau k) * k / ln k).
  exists ϵ. split.
@@ -352,7 +352,7 @@ Qed.
 Lemma root_mu_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   eventually (fun k => mu k = 1 + ln k / k * (1 + ϵ k)).
+   eventually (fun k => mu k = 1 + ln k / k + ln k / k * ϵ k).
 Proof.
  destruct root_tau_equiv as (ϵ & Hϵ & E).
  set (u := fun n:nat => ln n/n * (1 - ϵ n)).
@@ -384,6 +384,85 @@ Proof.
 Qed.
 
 (* Print Assumptions root_mu_equiv. *)
+
+(** An encoding of Landau's little o *)
+
+Definition Little_o (f g : nat -> R) :=
+ forall eps:posreal, eventually (fun n => Rabs (f n) <= eps * Rabs (g n)).
+
+Record little_o (g : nat -> R) := {
+ o_fun :> nat -> R;
+ o_prf : Little_o o_fun g
+}.
+
+Lemma Little_o_alt f g :
+ (exists ϵ, is_lim_seq ϵ 0 /\ eventually (fun n => f n = ϵ n * g n))
+ -> Little_o f g.
+Proof.
+ intros (ϵ & H1 & N & HN).
+ intros eps. rewrite <- is_lim_seq_spec in H1.
+ destruct (H1 eps) as (N' & HN').
+ exists (Nat.max N N'). intros n Hn.
+ rewrite HN by lia. rewrite Rabs_mult.
+ apply Rmult_le_compat_r. apply Rabs_pos.
+ specialize (HN' n lia). rewrite Rminus_0_r in HN'. lra.
+Qed.
+
+Lemma Little_o_alt' f g :
+ eventually (fun n => g n <> 0) ->
+ Little_o f g ->
+ exists ϵ, is_lim_seq ϵ 0 /\ eventually (fun n => f n = ϵ n * g n).
+Proof.
+ intros H0 H. exists (fun n => f n / g n).
+ split.
+ - apply is_lim_seq_spec. intros eps.
+   destruct (H (pos_div_2 eps)) as (N & HN).
+   exists N. intros n Hn. specialize (HN n Hn).
+   unfold pos_div_2 in HN. simpl in HN.
+   destruct (Req_dec (g n) 0) as [Z|NZ].
+   + rewrite Z in *. unfold Rdiv.
+     rewrite Rinv_0, Rmult_0_r, Rminus_0_r, Rabs_R0. apply eps.
+   + rewrite Rminus_0_r, Rabs_div by lra.
+     apply <- Rle_div_l in HN; try now apply Rabs_pos_lt.
+     destruct eps. simpl in *. lra.
+ - destruct H0 as (N,HN). exists N. intros n Hn. specialize (HN n Hn).
+   now field.
+Qed.
+
+(** The previous results, expressed this time via our little_o type *)
+
+Lemma root_tau_equiv' :
+ exists o : little_o (fun k => ln k / k),
+  forall k, tau k = 1 - ln k / k + o k.
+Proof.
+ destruct root_tau_equiv as (ϵ & H & H').
+ set (o := fun k => if 1 <? k then ϵ k * (ln k / k) else tau k - 1).
+ assert (o_prf : Little_o o (fun k => ln k / k)).
+ { apply Little_o_alt. exists ϵ. split. apply H.
+   exists 2%nat. intros n Hn. unfold o.
+   case Nat.ltb_spec; intros; try lia. easy. }
+ exists (Build_little_o _ _ o_prf). simpl. intros k.
+ unfold o. case Nat.ltb_spec; intros.
+ - rewrite H' by lia. lra.
+ - destruct (Nat.eq_dec k 0).
+   + subst. simpl. unfold Rdiv. rewrite Rinv_0, tau_0. lra.
+   + replace k with 1%nat by lia. simpl. rewrite ln_1. lra.
+Qed.
+
+Lemma root_mu_equiv' :
+ exists o : little_o (fun k => ln k / k),
+  forall k, mu k = 1 + ln k / k + o k.
+Proof.
+ destruct root_mu_equiv as (ϵ & H & N & HN).
+ set (o := fun k => if N <=? k then ϵ k * (ln k / k) else mu k - 1 - ln k / k).
+ assert (o_prf : Little_o o (fun k => ln k / k)).
+ { apply Little_o_alt. exists ϵ. split. apply H.
+   exists N. intros n Hn. unfold o.
+   case Nat.leb_spec; intros; try lia. easy. }
+ exists (Build_little_o _ _ o_prf). simpl. intros k.
+ unfold o. case Nat.leb_spec; intros; try lra.
+ rewrite HN by lia. lra.
+Qed.
 
 (** Bonus : The sequence u_(n+1) = (1-u_n)^(1/k) converges to the
     positive root of X^k+X-1.

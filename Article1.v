@@ -2,7 +2,7 @@ From Coq Require Import List Arith Lia Reals Lra.
 Import ListNotations.
 Require Import MoreTac MoreFun MoreList.
 Require GenFib GenG Fast Words WordGrowth MoreLim.
-Require Mu Freq.
+Require Mu Freq RootEquiv.
 
 (** * Article1.v *)
 
@@ -786,6 +786,25 @@ Lemma α_limit : is_lim_seq α 1.
 Proof.
  apply Mu.tau_limit.
 Qed.
+
+Section AsymptoticEquiv.
+Import RootEquiv.
+
+Lemma α_equiv :
+ exists o : little_o (fun k => ln k / k),
+  forall k, α k = 1 - ln k / k + o k.
+Proof.
+ exact root_tau_equiv'.
+Qed.
+
+Lemma β_equiv :
+ exists o : little_o (fun k => ln k / k),
+  forall k, β k = 1 + ln k / k + o k.
+Proof.
+ exact root_mu_equiv'.
+Qed.
+
+End AsymptoticEquiv.
 
 (** Section 6 *)
 

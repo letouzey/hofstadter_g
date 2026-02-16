@@ -787,7 +787,7 @@ Local Open Scope R_scope.
 Lemma α_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   forall k, (1 < k)%nat -> α k = 1 - ln k / k * (1 - ϵ k).
+   forall k, (1 < k)%nat -> α k = 1 - ln k / k + ln k / k * ϵ k.
 Proof.
  apply RootEquiv.root_tau_equiv.
 Qed.
@@ -795,7 +795,7 @@ Qed.
 Lemma β_equiv :
  exists ϵ : nat -> R,
    is_lim_seq ϵ 0 /\
-   Hierarchy.eventually (fun k => β k = 1 + ln k / k * (1 + ϵ k)).
+   Hierarchy.eventually (fun k => β k = 1 + ln k / k + ln k / k * ϵ k).
 Proof.
  apply RootEquiv.root_mu_equiv.
 Qed.
