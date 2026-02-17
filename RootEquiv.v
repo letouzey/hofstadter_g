@@ -385,7 +385,9 @@ Qed.
 
 (* Print Assumptions root_mu_equiv. *)
 
-(** An encoding of Landau's little o *)
+(** An encoding of Landau's little o for functions (nat -> R)
+    at infinity. First as a predicate (Little_o f g) for f=o(g),
+    and then as a type such that (f : little_o g) when f=o(g). *)
 
 Definition Little_o (f g : nat -> R) :=
  forall eps:posreal, eventually (fun n => Rabs (f n) <= eps * Rabs (g n)).
