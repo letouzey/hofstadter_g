@@ -30,14 +30,23 @@ Documentation:
 Usage
 -----
 
-- Use `make` to compile the Coq files.
+- Use `make` to compile the Coq/Rocq files.
 
-This development depends on Coq >= 8.16 and <= 9.0 as well as the external library
-Coquelicot >= 3.4.0. I advise to fetch them via opam. For instance:
+This development depends on Coq >= 8.16 and <= 9.1 as well as the external library
+Coquelicot >= 3.4.0. It is advised to fetch them via opam. For instance:
 
 ```
 opam pin add coq 8.19.2
 opam repo add coq-released https://coq.inria.fr/opam/released
+opam install coq-coquelicot
+```
+
+Or for the newest versions named Rocq:
+
+```
+opam pin add rocq-runtime 9.1.0
+opam repo add rocq-released https://rocq-prover.org/opam/released
+opam install rocq-prover
 opam install coq-coquelicot
 ```
 
