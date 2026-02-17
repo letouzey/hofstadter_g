@@ -33,7 +33,9 @@ Usage
 - Use `make` to compile the Coq/Rocq files.
 
 This development depends on Coq >= 8.16 and <= 9.1 as well as the external library
-Coquelicot >= 3.4.0. It is advised to fetch them via opam. For instance:
+Coquelicot >= 3.4.0. On a recent Debian or Ubuntu system (i.e. Debian Trixie),
+perform `apt install coq libcoq-coquelicot`. Otherwise you can fetch them via opam.
+For instance:
 
 ```
 opam pin add coq 8.19.2
