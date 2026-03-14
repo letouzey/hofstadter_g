@@ -113,7 +113,7 @@ License
 The documents in the subdirectories poster/ reports/ talks/ are released under the CC-BY 4.0 license,
 see http://creativecommons.org/licenses/by/4.0/.
 
-The Coq files of this development are released in the Public Domain,
+The Coq/Rocq files of this development are released in the Public Domain,
 see the LICENSE file in the current directory, with the exception of
 the files of the subdirectory HalfQuantum which have a MIT license,
 see HalfQuantum/LICENSE.
