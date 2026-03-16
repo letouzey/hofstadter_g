@@ -6,8 +6,8 @@ Set Implicit Arguments.
 
 (** Study of the functional equation:
      - [Fk 0 = 0]
-     - [Fk (S n) + Fk^k (n) = S n]
-    where [Fq^k (n)] is [k] repeated applications of [Fk] at [n].
+     - [Fk n = n - Fk^k (n-1)] for n>0
+    where [Fk^k (n-1)] is [k] repeated applications of [Fk] at [n-1].
 
     With this setting:
     - [F 0] is [fun n => match n with 0 => 0 | _ => 1 end].
@@ -19,11 +19,166 @@ Set Implicit Arguments.
     - [F 5] is http://oeis.org/A5376
 *)
 
-(** Coq representation of [F] as an inductive relation. This way,
-    no need to convince Coq yet that [F] is indeed a function.
+(** [Fk] does have an implementation : there exists a function [f]
+    satisfying these equations. One possible trick to define [f]
+    via Coq structural recursion is to add an extra parameter [p]:
+    [recf k p] is [f k] until [p] and arbitrary above.
+*)
+
+Fixpoint recf k p n :=
+ match p with
+ | 0 => 0
+ | S p => n - ((recf k p)^^k) (n-1)
+ end.
+Definition f k n := recf k n n.
+Notation fs k p := (f k ^^p).
+
+(** A few examples *)
+
+(*
+Compute take 26 (f 1).
+Compute take 26 (f 2).
+Compute take 26 (f 3).
+Compute take 26 (f 4).
+*)
+(*
+f 1 : [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
+f 2 : [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
+f 3 : [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
+f 4 : [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
+*)
+
+(** sub-linearity *)
+
+Lemma recf_le k p n : recf k p n <= n.
+Proof.
+ induction p; simpl; lia.
+Qed.
+
+Lemma recfs_le a k p n : ((recf k p)^^a) n <= n.
+Proof.
+ induction a; simpl; auto. etransitivity. apply recf_le. apply IHa.
+Qed.
+
+Lemma f_le k n : f k n <= n.
+Proof.
+ apply recf_le.
+Qed.
+
+Lemma fs_le k p n : fs k p n <= n.
+Proof.
+ induction p; simpl; auto. now rewrite f_le.
+Qed.
+
+(** Key property between [recf] and [f] *)
+
+Lemma f_recf k p n : n <= p -> f k n = recf k p n.
+Proof.
+ revert p n.
+ assert (H : forall p q n, n <= p -> n <= q -> recf k p n = recf k q n).
+ { induction p, q; try (now inversion 1); try (now inversion 2).
+   destruct n; trivial. intros. cbn - ["-"]. f_equal.
+   apply iter_ext_bounded. apply recf_le. intros. apply IHp; lia. }
+ intros. now apply H.
+Qed.
+
+(** [f] satisfies the desired equations for n=0 and n<>0.
+    Note: thanks to the bounded subtraction on nat,
+    the recursive equation [f_rec] also holds at n=0. *)
+
+Lemma f_k_0 k : f k 0 = 0.
+Proof.
+ reflexivity.
+Qed.
+
+Lemma f_eqn k n : f k n = n - ((f k)^^k) (n-1).
+Proof.
+ destruct n; try easy.
+ unfold f at 1. cbn - ["-"]. f_equal. symmetry.
+ apply iter_ext_bounded. apply recf_le. intros. apply f_recf; lia.
+Qed.
+
+(** Variants of the recursive equation. *)
+
+Lemma f_eqn_pred k n : f k n + fs k k (pred n) = n.
+Proof.
+ rewrite f_eqn. replace (pred n) with (n-1) by lia.
+ generalize (fs_le k k (n-1)). lia.
+Qed.
+
+Lemma f_eqn_S k n : f k (S n) + fs k k n = S n.
+Proof.
+ rewrite f_eqn. replace (S n - 1) with n by lia.
+ generalize (fs_le k k n). lia.
+Qed.
+
+Lemma f_S k n : f k (S n) = S n - fs k k n.
+Proof.
+ rewrite f_eqn. f_equal. f_equal. lia.
+Qed.
+
+Lemma f_pred k n : f k n = n - fs k k (pred n).
+Proof.
+ generalize (f_eqn_pred k n). lia.
+Qed.
+
+Lemma f_unique k h :
+  (forall n, n = h n + (h^^k) (n-1)) ->
+  forall n, h n = f k n.
+Proof.
+intros h_rec.
+induction n as [[|n] IH] using lt_wf_ind.
+- specialize (h_rec 0). rewrite f_k_0. lia.
+- assert (forall p m, m <= n -> (h^^p) m = fs k p m).
+  { intros. apply iter_ext_bounded. apply f_le.
+    intros. apply IH. lia. }
+  rewrite f_S, <- H; auto. specialize (h_rec (S n)).
+  replace (S n - 1) with n in h_rec; lia.
+Qed.
+
+(** The first values of [f] when [n<=2] do not depend on [k].
+    Moreover [f k 3 = 2] as soon as [k<>0]. *)
+
+Lemma fs_k_0 p k : fs k p 0 = 0.
+Proof.
+ induction p; simpl; auto.
+ rewrite IHp. apply f_k_0.
+Qed.
+
+Lemma f_k_1 k : f k 1 = 1.
+Proof.
+ rewrite f_eqn. simpl. now rewrite fs_k_0.
+Qed.
+
+Lemma fs_k_1 p k : fs k p 1 = 1.
+Proof.
+ induction p; simpl; auto. rewrite IHp. apply f_k_1.
+Qed.
+
+Lemma f_k_2 k : f k 2 = 1.
+Proof.
+ rewrite f_eqn. simpl. now rewrite fs_k_1.
+Qed.
+
+Lemma fs_k_2 k p : 0<p -> fs k p 2 = 1.
+Proof.
+ destruct p. easy. intros _. now rewrite iter_S, f_k_2, fs_k_1.
+Qed.
+
+Lemma f_k_3 k : k<>0 -> f k 3 = 2.
+Proof.
+ intros. rewrite f_eqn. simpl. rewrite fs_k_2. easy. lia.
+Qed.
+
+
+(** Older representation of [F] as an inductive relation. This way,
+    we can delay the proof that [F] is indeed a function.
+    Drawback : not computable.
     - [F k n a] means that [Fk(n) = a].
     - [Fs k p n a] means that [Fk^p (n) = a].
 *)
+
+Module F_as_inductive_relation.
 
 Inductive F (k:nat) : nat -> nat -> Prop :=
 | F0 : F k 0 0
@@ -34,70 +189,6 @@ with Fs (k:nat) : nat -> nat -> nat -> Prop :=
 | FsS p a b c : Fs k p a b -> F k b c -> Fs k (S p) a c.
 
 #[global] Hint Constructors F Fs : hof.
-
-(** The early behavior of [F] and [Fs] when [n<=2] does not depend on k.
-    Moreover [F] at 3 is always 2 as soon as [k<>0]. *)
-
-Lemma Fs_0 k p : Fs k p 0 0.
-Proof.
- induction p; eautoh.
-Qed.
-#[global] Hint Resolve Fs_0 : hof.
-
-Lemma F_1 k : F k 1 1.
-Proof.
- induction k; eautoh.
-Qed.
-#[global] Hint Resolve F_1 : hof.
-
-Lemma Fs_1 k p : Fs k p 1 1.
-Proof.
- induction p; eautoh.
-Qed.
-#[global] Hint Resolve Fs_1 : hof.
-
-Lemma F_2 k : F k 2 1.
-Proof.
- induction k; eautoh.
-Qed.
-#[global] Hint Resolve F_2 : hof.
-
-Lemma Fs_2 k p : Fs k p 2 (1+(1-p)).
-Proof.
- induction p; eautoh.
- simpl.
- eapply FsS. apply IHp. destruct p; simpl; autoh.
-Qed.
-#[global] Hint Resolve Fs_2 : hof.
-
-Lemma F_3 k : k<>0 -> F k 3 2.
-Proof.
- induction k; eautoh.
-Qed.
-#[global] Hint Resolve F_3 : hof.
-
-Lemma Fs_3 k p : k<>0 -> Fs k p 3 (1+(2-p)).
-Proof.
- intros Hk.
- induction p; eautoh.
- eapply FsS; eauto. destruct p as [|[|p]]; simpl; autoh.
-Qed.
-#[global] Hint Resolve Fs_3 : hof.
-
-(** [F] and [Fs] aren't above the identity line *)
-
-Lemma F_le k n a : F k n a -> a <= n.
-Proof.
- induction 1; lia.
-Qed.
-#[global] Hint Resolve F_le : hof.
-
-Lemma Fs_le k p n a : Fs k p n a -> a <= n.
-Proof.
- induction 1; trivial.
- transitivity b; eautoh.
-Qed.
-#[global] Hint Resolve Fs_le : hof.
 
 (** [F] and [Fs] are functional relations : unique output *)
 
@@ -131,30 +222,19 @@ Proof.
  intro. now apply F_Fs_fun.
 Qed.
 
-(** [F] does have an implementation : there exists a function [f]
-    satisfying these equations. One possible trick to define [f]
-    via Coq structural recursion is to add an extra parameter [p]:
-    [recf k p] is [f k] below [p] and arbitrary above.
-*)
+(** [F] and [Fs] aren't above the identity line *)
 
-Fixpoint recf k p n :=
- match p, n with
- | S p, S n => S n - ((recf k p)^^k) n
- | _, _ => 0
- end.
-
-Definition f k n := recf k n n.
-Notation fs k p := (f k ^^p).
-
-Lemma recf_le k p n : recf k p n <= n.
+Lemma F_le k n a : F k n a -> a <= n.
 Proof.
- induction p; cbn - ["-" "^^"]. lia. destruct n; lia.
+ induction 1; lia.
 Qed.
 
-Lemma recfs_le a k p n : ((recf k p)^^a) n <= n.
+Lemma Fs_le k p n a : Fs k p n a -> a <= n.
 Proof.
- induction a; simpl; auto. etransitivity. apply recf_le. apply IHa.
+ induction 1; trivial. apply F_le in H0. lia.
 Qed.
+
+(** Link between [F] and [f] *)
 
 Lemma recf_sound k p n : n <= p -> F k n (recf k p n).
 Proof.
@@ -163,10 +243,11 @@ induction p.
 - inversion 1. simpl. constructor.
 - destruct n.
   + simpl. constructor.
-  + cbn - ["-" "^^"].
+  + cbn - ["-"].
+    replace (S n - 1) with n by lia.
     assert (IHa : forall a m, m <= p -> Fs k a m ((recf k p ^^ a) m)).
     { induction a; intros; simpl; econstructor; eauto.
-      apply IHp. transitivity m; auto using recfs_le. }
+      apply IHp. now rewrite recfs_le. }
     econstructor. apply IHa. lia.
     generalize (recfs_le k k p n). lia.
 Qed.
@@ -175,107 +256,31 @@ Lemma f_sound k n : F k n (f k n).
 Proof.
  now apply recf_sound.
 Qed.
-#[global] Hint Resolve f_sound : hof.
 
 Lemma f_complete k n a : F k n a <-> f k n = a.
 Proof.
 split; intros H.
 - apply (F_fun (f_sound k n) H).
-- subst; autoh.
+- subst. apply f_sound.
 Qed.
 
-(** A few examples *)
-
-(*
-Compute take 26 (f 1).
-Compute take 26 (f 2).
-Compute take 26 (f 3).
-Compute take 26 (f 4).
-*)
-(*
-f 1 : [0; 1; 1; 2; 2; 3; 3; 4; 4; 5; 5; 6; 6; 7; 7]
-f 2 : [0; 1; 1; 2; 3; 3; 4; 4; 5; 6; 6; 7; 8; 8; 9]
-f 3 : [0; 1; 1; 2; 3; 4; 4; 5; 5; 6; 7; 7; 8; 9; 10]
-f 4 : [0; 1; 1; 2; 3; 4; 5; 5; 6; 6; 7; 8; 8; 9; 10]
-*)
-
-(* The first values of [f] when [n<=2] do not depend on [q].
-   Moreover [f k 3 = 2] as soon as [k<>0]. *)
-
-Lemma f_k_0 k : f k 0 = 0.
-Proof.
- reflexivity.
-Qed.
-
-Lemma f_k_1 k : f k 1 = 1.
-Proof.
- apply f_complete; autoh.
-Qed.
-
-Lemma f_k_2 k : f k 2 = 1.
-Proof.
- apply f_complete; autoh.
-Qed.
-
-Lemma f_k_3 k : k<>0 -> f k 3 = 2.
-Proof.
- intros. apply f_complete; autoh.
-Qed.
-
-(** Basic equations over [f] : the same as [F] *)
-
-Lemma Fs_iter_f p k n : Fs k p n (fs k p n).
+Lemma fs_sound p k n : Fs k p n (fs k p n).
 Proof.
 induction p.
 - simpl. autoh.
-- eapply FsS; eauto. simpl.
-  rewrite f_complete; autoh.
+- eapply FsS; eauto. simpl. now rewrite f_complete.
 Qed.
 
-Lemma fs_k_0 p k : fs k p 0 = 0.
+Lemma fs_complete p k n a : Fs k p n a <-> fs k p n = a.
 Proof.
- induction p; simpl; auto.
- rewrite IHp. apply f_k_0.
+split; intros H.
+- apply (Fs_fun (fs_sound p k n) H).
+- subst. apply fs_sound.
 Qed.
 
-Lemma fs_k_1 p k : fs k p 1 = 1.
-Proof.
- induction p; simpl; auto.
- rewrite IHp. apply f_k_1.
-Qed.
+End F_as_inductive_relation.
 
-Lemma fs_k_2 k p : 0<p -> fs k p 2 = 1.
-Proof.
- destruct p. easy. intros _. now rewrite iter_S, f_k_2, fs_k_1.
-Qed.
-
-Lemma f_eqn k n : f k (S n) + fs k k n = S n.
-Proof.
- assert (H := f_sound k (S n)).
- inversion_clear H.
- assert (fs k k n = a).
- { revert H0. apply Fs_fun. apply Fs_iter_f. }
- lia.
-Qed.
-
-Lemma f_eqn_pred k n : f k n + fs k k (pred n) = n.
-Proof.
-destruct n.
-- now rewrite fs_k_0.
-- apply f_eqn.
-Qed.
-
-Lemma f_S k n : f k (S n) = S n - fs k k n.
-Proof.
- generalize (f_eqn k n). lia.
-Qed.
-
-Lemma f_pred k n : f k n = n - fs k k (pred n).
-Proof.
- generalize (f_eqn_pred k n). lia.
-Qed.
-
-(** Particular case *)
+(** Particular cases of [k] *)
 
 Lemma f_0 n : f 0 n = min 1 n.
 Proof.
@@ -287,7 +292,7 @@ Proof.
 revert n.
 apply FunG.g_unique.
 - reflexivity.
-- intros n. symmetry. now apply f_eqn.
+- intros n. symmetry. now apply f_eqn_S.
 Qed.
 
 Lemma f_1_half n : f 1 (2*n) = n /\ f 1 (S (2*n)) = S n.
@@ -316,24 +321,6 @@ destruct (Nat.Even_or_Odd n) as [(m,->)|(m,->)].
   symmetry. apply (Nat.div2_double m).
 Qed.
 
-Lemma f_unique k h :
-  h 0 = 0  ->
-  (forall n, S n = h (S n)+ (h^^k) n) ->
-  forall n, h n = f k n.
-Proof.
-intros h_0 h_S.
-induction n as [[|n] IH] using lt_wf_ind.
-- now rewrite h_0.
-- assert (forall p m, m <= n -> (h^^p) m = fs k p m).
-  { induction p.
-    - now simpl.
-    - intros. simpl.
-      rewrite IHp; auto. apply IH.
-      rewrite Nat.lt_succ_r. apply Nat.le_trans with m; auto.
-      eapply Fs_le. eapply Fs_iter_f. }
-  rewrite f_S, <- H; auto. specialize (h_S n). lia.
-Qed.
-
 Lemma f_step k n : f k (S n) = f k n \/ f k (S n) = S (f k n).
 Proof.
  induction n as [n IH] using lt_wf_ind.
@@ -348,9 +335,7 @@ Proof.
      - intros; simpl.
        destruct (IHp m H) as [-> | ->].
        + now left.
-       + apply IH.
-         rewrite Nat.lt_succ_r. apply Nat.le_trans with m; auto.
-         eapply Fs_le. eapply Fs_iter_f. }
+       + apply IH. now rewrite Nat.lt_succ_r, fs_le. }
    specialize (H k n). lia.
 Qed.
 
@@ -436,7 +421,7 @@ Lemma f_fix k n : f k n = n <-> n <= 1.
 Proof.
 split.
 - destruct n; auto.
-  assert (H := f_eqn k n).
+  assert (H := f_eqn_S k n).
   intros.
   assert (H' : fs k k n = 0) by lia.
   apply fs_0_inv in H'.
@@ -445,15 +430,6 @@ split.
   inversion_clear H0. apply f_k_0.
 Qed.
 
-Lemma f_le k n : f k n <= n.
-Proof.
- eapply F_le; eautoh.
-Qed.
-
-Lemma fs_le k p n : fs k p n <= n.
-Proof.
- eapply Fs_le, Fs_iter_f.
-Qed.
 
 Lemma f_lt k n : 1<n -> f k n < n.
 Proof.
@@ -491,7 +467,7 @@ Qed.
 Lemma f_nonflat k n : k<>0 -> f k (1+n) = f k n -> f k (2+n) = S (f k n).
 Proof.
  intros Hk.
- generalize (f_eqn k (1+n)) (f_eqn k n).
+ generalize (f_eqn_S k (1+n)) (f_eqn_S k n).
  replace (fs k k) with (fs k (S (k-1))) in * by (f_equal; lia).
  rewrite !iter_S. intros E1 E2 E3. rewrite E3 in *. simpl in *. lia.
 Qed.
@@ -620,7 +596,7 @@ Proof.
  intros K.
  destruct (f_onto a K) as (n,Hn).
  unfold rchild. rewrite <- Hn, <- iter_S.
- assert (E := f_eqn k n). fixpred.
+ assert (E := f_eqn_S k n). fixpred.
  destruct (f_step k n) as [<-|H]; f_equal; lia.
 Qed.
 
@@ -628,7 +604,7 @@ Lemma rightmost_child_carac k a n : k<>0 -> f k n = a ->
  (f k (S n) = S a <-> n = rchild k a).
 Proof.
  intros K Hn.
- assert (H' := f_eqn k n).
+ assert (H' := f_eqn_S k n).
  replace (fs k k n) with (fs k (S (k-1)) n) in H' by (f_equal; lia).
  rewrite iter_S in H'.
  rewrite Hn in H'.
@@ -721,9 +697,11 @@ Qed.
 
 Lemma fbis_is_f k n : k<>0 -> fbis k n = f k n.
 Proof.
- intros K. apply f_unique.
- - reflexivity.
- - clear n. intros n.
+ intros K. apply f_unique. clear n.
+ intros [|n].
+ - simpl. rewrite fsbis by lia.
+   rewrite (@decomp_carac k 0 []); simpl; try easy. constructor.
+ - replace (S n - 1) with n by lia.
    rewrite fsbis; auto.
    assert (Hn := decomp_sum k n).
    assert (D := decomp_delta k n).
@@ -1894,13 +1872,13 @@ Proof.
    case (f_step k n) as [H|H].
    + (* n left child of a binary node *)
      rewrite H.
-     generalize (f_eqn k (n-1)).
+     generalize (f_eqn_S k (n-1)).
      case (f_step k (n - 1)); fixpred.
      * generalize (@f_max_two_antecedents k (n-1) (S n)). lia.
      * intros. replace (f k n - 1) with (f k (n-1)) by lia.
        rewrite <- iter_S. fixpred. lia.
    + (* n is rightmost child *)
-     generalize (f_eqn k n). rewrite H, pred_succ, <- iter_S. fixpred; lia.
+     generalize (f_eqn_S k n). rewrite H, pred_succ, <- iter_S. fixpred; lia.
 Qed.
 
 

@@ -21,6 +21,18 @@ Proof.
  intros E. induction n; intros; trivial. simpl. now rewrite IHn, E.
 Qed.
 
+Lemma iter_ext_bounded (f g:nat->nat) n :
+  (forall m, g m <= m) ->
+  (forall m, m <= n -> f m = g m) ->
+  forall a, (f ^^ a) n = (g ^^ a) n.
+Proof.
+ intros LE EQ.
+ intros a. revert n EQ.
+ induction a; trivial.
+ intros n EQ. rewrite !iter_S. rewrite EQ; trivial.
+ apply IHa. intros m Hm. rewrite LE in Hm. now apply EQ.
+Qed.
+
 (** A few properties of strictly increasing [nat->nat] functions *)
 
 Definition IncrFun f := forall p, f p < f (S p).
