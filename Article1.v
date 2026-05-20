@@ -10,7 +10,8 @@ Require Mu Freq RootEquiv.
     for regrouping in one place all the results presented in the article:
 
       Pointwise order of generalized Hofstadter functions G, H and beyond.
-      Pierre Letouzey, Shuo Li, Wolfgang Steiner. Preprint, 2024.
+      Pierre Letouzey, Shuo Li, Wolfgang Steiner. J. Integer Sequences 29 (2026).
+      https://cs.uwaterloo.ca/journals/JIS/VOL29/Letouzey/letouzey3.html
 
     Nota Bene : the current idea is to machine-check the statements
     presented in the article. The original proofs made in Coq are normally
