@@ -199,7 +199,7 @@ Proof.
  apply knsub_prefixseq.
 Qed.
 
-(** Steiner's Theorem : direct linq between f and kseq *)
+(** Steiner's Theorem : direct link between f and kseq *)
 
 Definition LBound k j n m := L k j (m-1) < n <= L k j m.
 
