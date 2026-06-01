@@ -1673,16 +1673,17 @@ Proof.
    rewrite steps_triangle_minus; lia.
 Qed.
 
-(* Experimentally, this border of the triangle zone [n = triangle(k+3)-3]
-   seems to be the last point where [f k n = f (S k) n].
-   Conjecture : [forall m, triangle(k+3)-3 < m -> f k m < f (S k) m].
-   Proof: ?! (TODO) *)
+(* This border of the triangle zone [n = triangle(k+3)-3]
+   is the last point where [f k n = f (S k) n].
+   The strict inequality after this point is now proved in DirectGrowth. *)
 
 Lemma fk_fSk_last_equality k n :
  k<>0 -> n = quad k -> f k n = f (S k) n.
 Proof.
   intros K EQ. now rewrite f_last_triangle_1, f_last_triangle_2.
 Qed.
+
+(* We prepare an immediate consequence of this strict inequality. *)
 
 Lemma fk_fSk_conjectures k : k<>0 ->
  (forall m, quad k < m -> f k m < f (S k) m) ->
@@ -1694,8 +1695,9 @@ Proof.
  - rewrite f_triangle_diag_incr; auto.
 Qed.
 
-(* [quad q] also appears to be the last point of equality between
-   [rchild (k+1)] and [rchild (k+2)]. *)
+(* [quad q] is also the last point of equality between
+   [rchild (k+1)] and [rchild (k+2)]. We prove here the equality
+   at this point. The strict inequality afterwards is in DirectGrowth. *)
 
 Lemma quad_decomp_Sk k : decomp (S k) (quad k) = [k; 2*k+1].
 Proof.

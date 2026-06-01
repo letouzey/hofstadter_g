@@ -1110,13 +1110,15 @@ destruct (Nat.lt_ge_cases n 843).
   apply (f8_add_843 (n-843)).
 Qed.
 
-(** General proof : cf WordGrowth.f_grows *)
+(** General proof : cf DirectGrowth.f_grows *)
 
 (** * Strict order between [f k] and [f (S k)].
 
     We know that [f k (quad k) = f (S k) (quad k)] thanks to
     GenG.fk_fSk_last_equality. Now for small specific values of k,
     we can show there is no more equality for [n > quad k].
+
+    General proof : cf DirectGrowth.f_grows_strict
 *)
 
 Lemma f1_add_2 n : f 1 (2+n) = 1 + f 1 n.
@@ -1152,110 +1154,4 @@ destruct (Nat.le_gt_cases n 20) as [LE|LT].
   apply Nat.le_lt_trans with (5 + g (n - 8)). apply g_add_8.
   apply Nat.lt_le_trans with (5 + h (n - 8)). 2:apply h_add_8.
   specialize (IH (n-8)). lia.
-Qed.
-
-Lemma h_lt_f4 n : quad 3 < n -> h n < f 4 n.
-Proof.
-unfold quad, triangle; simpl.
-induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (18+33)) as [LE|LT].
-- red in Hn. rewrite <- Nat.lt_succ_r in LE.
-  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
-- clear Hn. replace n with (33+(n-33)) by lia.
-  apply Nat.le_lt_trans with (23 + h (n - 33)). apply h_add_33.
-  apply Nat.lt_le_trans with (23 + f 4 (n - 33)).
-  specialize (IH (n-33)). lia.
-  apply (f4_add_33 (n-33)).
-Qed.
-
-Lemma f4_lt_f5 n : quad 4 < n -> f 4 n < f 5 n.
-Proof.
-unfold quad, triangle; simpl.
-induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (25+73)) as [LE|LT].
-- red in Hn. rewrite <- Nat.lt_succ_r in LE.
-  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
-- clear Hn. replace n with (73+(n-73)) by lia.
-  apply Nat.le_lt_trans with (54 + f 4 (n - 73)). apply (f4_add_73 (n-73)).
-  apply Nat.lt_le_trans with (54 + f 5 (n - 73)).
-  specialize (IH (n-73)). lia.
-  apply (f5_add_73 (n-73)).
-Qed.
-
-Lemma f5_lt_f6 n : quad 5 < n -> f 5 n < f 6 n.
-Proof.
-unfold quad, triangle; simpl.
-induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (33+169)) as [LE|LT].
-- red in Hn. rewrite <- Nat.lt_succ_r in LE.
-  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
-- clear Hn. replace n with (169+(n-169)) by lia.
-  apply Nat.le_lt_trans with (129 + f 5 (n - 169)). apply (f5_add_169 (n-169)).
-  apply Nat.lt_le_trans with (129 + f 6 (n - 169)).
-  specialize (IH (n-169)). lia.
-  apply (f6_add_169 (n-169)).
-Qed.
-
-Lemma f6_lt_f7 n : quad 6 < n -> f 6 n < f 7 n.
-Proof.
-unfold quad, triangle; simpl.
-induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (42+424)) as [LE|LT].
-- red in Hn. rewrite <- Nat.lt_succ_r in LE.
-  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
-- clear Hn. replace n with (424+(n-424)) by lia.
-  apply Nat.le_lt_trans with (333 + f 6 (n - 424)). apply (f6_add_424 (n-424)).
-  apply Nat.lt_le_trans with (333 + f 7 (n - 424)).
-  specialize (IH (n-424)). lia.
-  apply (f7_add_424 (n-424)).
-Qed.
-
-Lemma f7_lt_f8 n : quad 7 < n -> f 7 n < f 8 n.
-Proof.
-unfold quad, triangle; simpl.
-induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n (52+843)) as [LE|LT].
-- red in Hn. rewrite <- Nat.lt_succ_r in LE.
-  generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
-- clear Hn. replace n with (843+(n-843)) by lia.
-  apply Nat.le_lt_trans with (677 + f 7 (n - 843)). apply (f7_add_843 (n-843)).
-  apply Nat.lt_le_trans with (677 + f 8 (n - 843)).
-  specialize (IH (n-843)). lia.
-  apply (f8_add_843 (n-843)).
-Qed.
-
-
-(** Consequence : GenG.fk_fSk_conjectures and the future
-    WordGrowth.f_L_conjectures can be applied for these small k.
-    For instance : *)
-
-Lemma g_lt_h' n : n<>1 -> g n < h (S n).
-Proof.
- rewrite <- f_2_g. apply fk_fSk_conjectures. lia.
- intros m Hm. rewrite f_2_g. now apply g_lt_h.
-Qed.
-
-Lemma h_lt_f4' n : n<>1 -> h n < f 4 (S n).
-Proof.
- now apply fk_fSk_conjectures, h_lt_f4.
-Qed.
-
-Lemma f4_lt_f5' n : n<>1 -> f 4 n < f 5 (S n).
-Proof.
- now apply fk_fSk_conjectures, f4_lt_f5.
-Qed.
-
-Lemma f5_lt_f6' n : n<>1 -> f 5 n < f 6 (S n).
-Proof.
- now apply fk_fSk_conjectures, f5_lt_f6.
-Qed.
-
-Lemma f6_lt_f7' n : n<>1 -> f 6 n < f 7 (S n).
-Proof.
- now apply fk_fSk_conjectures, f6_lt_f7.
-Qed.
-
-Lemma f7_lt_f8' n : n<>1 -> f 7 n < f 8 (S n).
-Proof.
- now apply fk_fSk_conjectures, f7_lt_f8.
 Qed.

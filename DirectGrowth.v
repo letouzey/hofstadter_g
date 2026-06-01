@@ -624,7 +624,7 @@ Proof.
  apply IHl. firstorder.
 Qed.
 
-Lemma strictmono_step k N :
+Lemma f_grows_strict_then_fsinv_overlap k N :
   (forall n, quad k < n <= N -> f k n < f (S k) n) ->
   (forall n, k+3 <= n <= N -> fsinv k k (n+1) <= fsinv (S k) (S k) n).
 Proof.
@@ -663,7 +663,8 @@ Proof.
    destruct p; try lia. apply Gen.
 Qed.
 
-Lemma f_strgrows_init1 k n : k<>0 -> n = S (quad k) -> f k n < f (S k) n.
+Lemma f_grows_strict_init1 k n : k<>0 ->
+  n = S (quad k) -> f k n < f (S k) n.
 Proof.
  intros Hk Hn.
  rewrite f_after_triangle_1, f_after_triangle_3 by trivial.
@@ -671,7 +672,8 @@ Proof.
  rewrite quad_S in Hn. lia.
 Qed.
 
-Lemma f_strgrows_init2 k n : k<>0 -> n = S (S (quad k)) -> f k n < f (S k) n.
+Lemma f_grows_strict_init2 k n : k<>0 ->
+  n = S (S (quad k)) -> f k n < f (S k) n.
 Proof.
  intros Hk ->.
  rewrite f_after_triangle_4 by trivial.
@@ -680,7 +682,7 @@ Proof.
  rewrite quad_S. lia.
 Qed.
 
-Lemma fsinv_overlap_then_f_strgrows k N :
+Lemma fsinv_overlap_then_f_grows_strict k N :
  (forall n, k+3 <= n <= N -> fsinv k k (n+1) <= fsinv (S k) (S k) n) ->
  (forall n, quad k < n <= fsinv (S k) (S k) (N+1) -> f k n < f (S k) n).
 Proof.
@@ -690,9 +692,9 @@ Proof.
    destruct n. lia. simpl. red. rewrite <- (@f_k_3 1 lia).
    apply f_mono; lia. }
  destruct (Nat.eq_dec n (S (quad k))) as [E1|N1].
- { now apply f_strgrows_init1. }
+ { now apply f_grows_strict_init1. }
  destruct (Nat.eq_dec n (S (S (quad k)))) as [E2|N2].
- { now apply f_strgrows_init2. }
+ { now apply f_grows_strict_init2. }
  destruct (fs_itvl_exists (S k) (S k) (n-1) lia) as (r & H1 & H2).
  apply Nat.lt_le_trans with (n-r).
  2:{ apply f_high; lia. }
@@ -724,16 +726,19 @@ Proof.
  assert (H1 : forall n, quad k < n <= fsinv (S k) (S k) r ->
                f k n < f (S k) n).
  { replace r with ((r-1)+1) by lia.
-   apply fsinv_overlap_then_f_strgrows.
+   apply fsinv_overlap_then_f_grows_strict.
    intros. apply IH; lia. }
- apply (strictmono_step k _ H1).
+ apply (f_grows_strict_then_fsinv_overlap k _ H1).
  split; trivial. apply fsinv_above_id.
 Qed.
 
-Theorem f_strgrows k n : quad k < n -> f k n < f (S k) n.
+(* And finally the strict monotonicity.
+   NB: see fk_fSk_last_equality for the equality at quad k. *)
+
+Theorem f_grows_strict k n : quad k < n -> f k n < f (S k) n.
 Proof.
  intros Hn.
- apply (fsinv_overlap_then_f_strgrows k n).
+ apply (fsinv_overlap_then_f_grows_strict k n).
  - intros r (Hr,_). now apply fsinv_overlap.
  - split. trivial. rewrite <- fsinv_above_id. lia.
 Qed.
@@ -790,17 +795,90 @@ Proof.
 Qed.
 
 
-(** Consequences of the strict monotonicity *)
+(** Immediate consequences of the strict monotonicity *)
 
-Lemma fk_fSk_conjectured_now_proved k n : k<>0 -> n<>1 ->
- f k n < f (S k) (S n).
+Lemma fkn_le_fSkPn k n : quad k < n -> f k n <= f (S k) (n-1).
 Proof.
- intros Hk.
- apply (@fk_fSk_conjectures k Hk).
- apply f_strgrows.
+ intros Hn.
+ assert (H := f_grows_strict k n Hn).
+ destruct (f_step (S k) (n-1)) as [E|E];
+  replace (S (n-1)) with n in E; rewrite <- ?E; lia.
+Qed.
+
+Lemma fkn_lt_fSkSn k n : n<>1 -> f k n < f (S k) (S n).
+Proof.
+ intros Hn.
+ destruct (Nat.eq_dec k 0) as [->|Hk].
+ { rewrite f_0. destruct n.
+   + rewrite f_k_1. simpl; lia.
+   + simpl. rewrite f_1_div2. red. change 2 with (4/2).
+     apply Nat.div_le_mono; simpl; lia. }
+ apply (@fk_fSk_conjectures k Hk); trivial.
+ apply f_grows_strict.
 Qed.
 
 
+(* Already known galois connection between f and rchild,
+   but without detour via words. Cf WordGrowth.L_f_galois *)
+
+Lemma rchild_mono k n m : n <= m -> rchild k n <= rchild k m.
+Proof.
+ unfold rchild. intros. apply Nat.add_le_mono; trivial. now apply fs_mono.
+Qed.
+
+Lemma f_galois k n m : k<>0 -> f k n <= m <-> n <= rchild k m.
+Proof.
+ intros Hk. split; intros LE.
+ - apply (rchild_mono k) in LE. rewrite <- LE.
+   generalize (@f_children k _ n Hk eq_refl). unfold lchild, rchild; lia.
+ - apply (f_mono k) in LE. rewrite f_onto_eqn in LE; trivial.
+Qed.
+
+Lemma f_galois_lt k n m : k<>0 -> m < f k n <-> rchild k m < n.
+Proof.
+ intros. rewrite !Nat.lt_nge. now rewrite f_galois.
+Qed.
+
+Lemma fs_galois k p n m : k<>0 -> fs k p n <= m <-> n <= (rchild k^^p) m.
+Proof.
+ intros Hk. revert n m.
+ induction p; intros n m; try rewrite iter_S, IHp, f_galois; simpl; lia.
+Qed.
+
+Lemma fs_galois_lt k p n m : k<>0 -> m < fs k p n <-> (rchild k^^p) m < n.
+Proof.
+ intros. rewrite !Nat.lt_nge. now rewrite fs_galois.
+Qed.
+
+(* We can now prove that (quad k) is indeed the last point of equality
+   between (rchild (S k)) and (rchild (S (S k))).
+   Cf. rchild_k_Sk_last_equality *)
+
+Lemma rchild_SSk_lt_rchild_Sk k m :
+ quad k < m -> rchild (S (S k)) m < rchild (S k) m.
+Proof.
+ intros Hm.
+ red in Hm.
+ apply Nat.le_lteq in Hm. destruct Hm as [Hm|<-].
+ - apply (incr_strmono (rchild (S k))) in Hm.
+   2:{ red. intros p. unfold rchild.
+       apply Nat.add_lt_le_mono. lia. apply fs_mono. lia. }
+   rewrite rchild_Sk_Squad in Hm by lia.
+   rewrite <-f_galois_lt by lia.
+   rewrite <- (@f_onto_eqn (S k) m lia) at 1.
+   apply f_grows_strict. lia.
+ - rewrite rchild_SSk_Squad, rchild_Sk_Squad; lia.
+Qed.
+
+(* Same for finv *)
+
+Lemma finv_SSk_lt_finv_Sk k m :
+ S (quad k) < m -> finv (S (S k)) m < finv (S k) m.
+Proof.
+ intros Hm.
+ rewrite !finv_as_rchild by lia. rewrite <-Nat.succ_lt_mono.
+ apply rchild_SSk_lt_rchild_Sk. lia.
+Qed.
 
 
 Module UnusedStuff.
@@ -834,21 +912,7 @@ Proof.
  unfold rchild. intros. apply Nat.add_le_mono; trivial. now apply fs_mono.
 Qed.
 
-(* cf L_f_galois et Lkj1_A, mais sans dependence envers les mots *)
-
-Lemma f_galois k n m : k<>0 -> f k n <= m <-> n <= rchild k m.
-Proof.
- intros Hk. split; intros LE.
- - apply (rchild_mono k) in LE. rewrite <- LE.
-   generalize (@f_children k _ n Hk eq_refl). unfold lchild, rchild; lia.
- - apply (f_mono k) in LE. rewrite f_onto_eqn in LE; trivial.
-Qed.
-
-Lemma fs_galois k p n m : k<>0 -> fs k p n <= m <-> n <= (rchild k^^p) m.
-Proof.
- intros Hk. revert n m.
- induction p; intros n m; try rewrite iter_S, IHp, f_galois; simpl; lia.
-Qed.
+(* Cf Lkj1_A *)
 
 Lemma rchilds_1 k p : k<>0 -> (rchild k^^p) 1 = A k p.
 Proof.

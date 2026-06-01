@@ -8,7 +8,8 @@ Import ListNotations.
     Applications :
     - the count of letter (k-1) decreases with k
     - the count of letter 0 decreases with k
-    - for all point n, [f k n <= f (S k) n]. *)
+    - for all point n, [f k n <= f (S k) n].
+      (see also a direct proof now in DirectGrowth.f_grows) *)
 
 (** [knsub] : a shortcut for repeated application of [ksubst] *)
 
@@ -678,7 +679,8 @@ Proof.
  rewrite !f_S. generalize (fs_decreases k k n lia). lia.
 Qed.
 
-(* TODO: show this inequality is actually strict except for a few low n *)
+(* This inequality is actually strict except for a few low n,
+   see now DirectGrowth.f_grows_strict *)
 
 Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
 Proof.

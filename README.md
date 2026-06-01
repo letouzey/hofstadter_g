@@ -78,6 +78,7 @@ Summary of files:
   - [GenFlip.v](GenFlip.v): Mirror of the G-like trees
   - [GenAdd.v](GenAdd.v): Study of the quasi-additivity of G-like functions
   - [Shift.v](Shift.v): quasi-reciprocal of the G-like functions
+  - [DirectGrowth.v](DirectGrowth.v): direct proof that `f k <= f (k+1)`, strict monotonicity
 4. Some infinite morphic words related to functions `f k`
   - [Words.v](Words.v): morphic words `kseq k`, first properties, link with `f k`.
   - [WordGrowth.v](WordGrowth.v): compare some letter frequencies, `f k <= f (k+1)`
