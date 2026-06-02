@@ -1820,7 +1820,10 @@ Proof.
 Qed.
 
 (** Another observation : [quad (S k)] is where [f k] and [f (S k)]
-    differ by 2 for the first time *)
+    differ by 2 for the first time. We prove here in f_quad_diff_2
+    that this difference is 2 at that point. We prove in
+    DirectGrowth.fk_fSk_diff_le_1 that this difference is 0 or 1 before
+    that point. *)
 
 Lemma quadS_decomp k : k<>0 -> decomp k (quad (S k)) = [k+1;2*k+1].
 Proof.
@@ -1855,12 +1858,6 @@ Proof.
  generalize (quad_min k). lia.
 Qed.
 
-(* TODO:
-Lemma f_quad_first_diff_2 k n :
- n < quad (S k) -> f (S k) n <= 1 + f k n.
-Proof.
-Admitted.
-*)
 
 (** * Another equation about [f]
 
