@@ -895,7 +895,7 @@ Qed.
 
 (* Proof that fs k (k+1) n >= fs (k+1) (k+2) n
    (in the first JIS article, this is the conjecture after figure 7.1)
-   Not that we do have equality for some points n,
+   Note that we do have equality for some points n,
    see Article1.Equality_LkSkSk_LSkSSkSk *)
 
 Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
