@@ -893,6 +893,96 @@ Proof.
  apply rchild_SSk_lt_rchild_Sk. lia.
 Qed.
 
+(* Proof that fs k (k+1) n >= fs (k+1) (k+2) n
+   (in the first JIS article, this is the conjecture after figure 7.1)
+   Not that we do have equality for some points n,
+   see Article1.Equality_LkSkSk_LSkSSkSk *)
+
+Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
+Proof.
+ intros K N. transitivity (f k' n); [ | now apply f_mono]. clear n' N.
+ induction K; trivial. generalize (f_grows m n); lia.
+Qed.
+
+Lemma fs_grows k p n : fs k p n <= fs (S k) p n.
+Proof.
+ revert n.
+ induction p as [|p IH]; intros n; try easy.
+ rewrite !iter_S. etransitivity; [apply IH|]. apply fs_mono, f_grows.
+Qed.
+
+Lemma rchild_1 n : rchild 1 n = 2*n.
+Proof.
+ unfold rchild. simpl. lia.
+Qed.
+
+Lemma rchild_f_above k n : k<>0 -> n <= rchild k (f k n).
+Proof.
+ intros Hk. apply f_galois; lia.
+Qed.
+
+Lemma fkp_2fSkSp k p n : k<>0 -> fs k p n <= 2 * fs (S k) (S p) n.
+Proof.
+ intros Hk.
+ rewrite <- rchild_1. simpl.
+ transitivity (rchild 1 (f 1 (fs (S k) p n))).
+ 2:{ apply rchild_mono. apply f_grows_gen; lia. }
+ rewrite <- rchild_f_above by lia.
+ apply fs_grows.
+Qed.
+
+Lemma list_sum_eq {A} (f g : A -> nat) (l : list A) :
+  (forall x : A, In x l -> f x = g x) ->
+  list_sum (map f l) = list_sum (map g l).
+Proof.
+ induction l; simpl; try lia.
+ intros H. f_equal. apply H. now left. apply IHl. firstorder.
+Qed.
+
+Lemma fsinv_k_Sk_eqn k n : k<>0 ->
+ fsinv k (S k) n
+ = 2*n-1 + 2*fs k (k-1) (n-1)
+   + list_sum (map (fun i => fs k i (n-1)) (seq 0 (k-1))).
+Proof.
+ intros Hk.
+ rewrite iter_S, fsinv_eqn by lia.
+ rewrite Nat.sub_diag.
+ replace (seq 0 k) with (seq 0 (S (k-1))) by (f_equal; lia).
+ simpl seq. rewrite <- seq_shift. simpl.
+ rewrite map_map.
+ rewrite !Nat.add_assoc. f_equal.
+ 2:{ apply list_sum_eq.
+     intros x _. rewrite iter_S. rewrite finv_is_leftmost; lia. }
+ unfold finv. rewrite !Nat.add_0_r.
+ destruct n; try lia. simpl. now rewrite fs_k_0.
+Qed.
+
+Lemma fsinv_kSk_SkSSk k n : k<>0 ->
+ fsinv k (S k) n <= fsinv (S k) (S (S k)) n.
+Proof.
+ intros Hk.
+ rewrite !fsinv_k_Sk_eqn by lia.
+ rewrite <- !Nat.add_assoc. apply Nat.add_le_mono_l.
+ replace (S k-1) with (S (k-1)) by lia.
+ rewrite seq_S, map_app, list_sum_app. simpl list_sum.
+ replace (S (k-1)) with k by lia.
+ rewrite (Nat.add_comm (list_sum _)), !Nat.add_assoc.
+ apply Nat.add_le_mono.
+ 2:{ apply list_sum_le. intros x Hx. apply fs_grows. }
+ replace (2*_) with (fs k (k - 1) (n - 1) + fs k (k - 1) (n - 1)) by lia.
+ rewrite Nat.add_0_r.
+ apply Nat.add_le_mono. 2:apply fs_grows.
+ rewrite fkp_2fSkSp; trivial. replace (S (k-1)) with k; lia.
+Qed.
+
+Lemma fs_kSk_SkSSk k n : k<>0 -> fs (S k) (S (S k)) n <= fs k (S k) n.
+Proof.
+ intros Hk.
+ rewrite <- galois_again by trivial.
+ rewrite fsinv_kSk_SkSSk by trivial.
+ now rewrite galois_again by lia.
+Qed.
+
 
 (* Another observation : we prove in fk_fSk_diff_le_1 below that
    f (S k) n - f k n is in {0,1} as long as n < quad (S k).
