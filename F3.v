@@ -273,7 +273,7 @@ Qed.
     We show that these differences are always in -0.7085..0.8542.
     Differences are all of the form [a-b*τ], let's encode them
     via pairs of N numbers. The key operation is then to compare
-    to compare [a1-b1*τ] and [a2-b2*τ]. *)
+    [a1-b1*τ] and [a2-b2*τ]. *)
 
 Module NN.
 Local Open Scope N.
