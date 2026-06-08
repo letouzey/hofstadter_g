@@ -222,23 +222,22 @@ Proof.
  - apply f_high; try lia.
 Qed.
 
-Lemma fsinv_grows k r : fsinv k k r <= fsinv (S k) (S k) r.
+Lemma f_grows_then_fsinv_grows k r :
+ (forall m, m < r -> f k m <= f (S k) m) ->
+ (forall m, m <= r -> fsinv k k m <= fsinv (S k) (S k) m).
 Proof.
- induction r as [r IH] using lt_wf_ind.
- destruct (Nat.eq_dec r 0) as [->|Hr].
- { now rewrite !fsinv_0. }
- assert (Hf : forall m, m <= r -> f k m <= f (S k) m).
- { intros m Hm. apply (fsinv_grows_then_f_grows k (r-1)).
-   - intros; apply IH; lia.
-   - rewrite Hm. replace (r-1+1) with r by lia. apply fsinv_above_id. }
- assert (Hfs : forall p m, m <= r -> fs k p m <= fs (S k) p m).
+ intros Hf.
+ assert (Hfs : forall p m, m < r -> fs k p m <= fs (S k) p m).
  { induction p; trivial.
-   intros m Hm. rewrite !iter_S. rewrite IHp.
-   2:{ now rewrite f_le. }
-   apply fs_mono. now apply Hf. }
+   intros m Hm. rewrite !iter_S, IHp.
+   - now apply fs_mono, Hf.
+   - apply Nat.le_lt_trans with m; trivial. apply f_le. }
  destruct (Nat.eq_dec k 0) as [->|Hk].
- { simpl. apply finv_above_id. }
- rewrite !fsinv_eqn; try lia. apply Nat.add_le_mono_l.
+ { simpl. intros. apply finv_above_id. }
+ intros.
+ destruct (Nat.eq_dec m 0) as [->|Hm].
+ { now rewrite !fsinv_0. }
+ rewrite !fsinv_eqn by lia. apply Nat.add_le_mono_l.
  simpl Nat.sub. rewrite Nat.sub_diag, seq_S.
  rewrite map_app, list_sum_app. simpl.
  rewrite <- (Nat.add_0_r (list_sum _)). apply Nat.add_le_mono; try lia.
@@ -248,10 +247,19 @@ Qed.
 
 Theorem f_grows k n : f k n <= f (S k) n.
 Proof.
- apply (fsinv_grows_then_f_grows k (n+1)).
- - intros m _. apply fsinv_grows.
- - rewrite <- fsinv_above_id. lia.
+ induction n as [n IH] using lt_wf_ind.
+ apply (fsinv_grows_then_f_grows k n).
+ 2:{ rewrite <- fsinv_above_id. lia. }
+ apply (f_grows_then_fsinv_grows k n).
+ apply IH.
 Qed.
+
+Lemma fsinv_grows k r : fsinv k k r <= fsinv (S k) (S k) r.
+Proof.
+ apply (f_grows_then_fsinv_grows k r); trivial.
+ intros. apply f_grows.
+Qed.
+
 
 (** ** Second, f k < f (k+1) for large enough points. *)
 
