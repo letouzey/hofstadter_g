@@ -1,5 +1,5 @@
 From Coq Require Import List Arith NArith Lia.
-Require Import MoreFun MoreList.
+Require Import MoreTac MoreFun MoreList.
 Require FlexArray GenFib GenG.
 Import ListNotations.
 Local Open Scope N.
@@ -106,7 +106,7 @@ Proof.
    rewrite nth_map_indep with (d':=O) by (rewrite seq_length; lia).
    rewrite !seq_nth by lia. unfold A'. clear A'.
    case Nat.ltb_spec; try lia. intros. unfold A. f_equal. f_equal. lia. }
- intros k n. destruct (N.eq_dec k 0) as [->|K].
+ intros k n. if (k = 0) as [->|K].
  - change (A 0 n) with (A 1 n). rewrite GenFib.A_0. now apply H.
  - now apply H.
 Qed.

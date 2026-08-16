@@ -239,7 +239,7 @@ Qed.
 
 Lemma Fkj_nonzero k j n : 1 <= n <-> 1 <= (F k ^^j) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - rewrite F0_j. destruct j; simpl. lia. rewrite F0_alt. lia.
  - rewrite Fs_alt. split.
    + generalize (@GenG.fs_nonzero k n j). lia.
@@ -249,7 +249,7 @@ Qed.
 Lemma Fkj_lt_id k j n : 1<=j -> (2<=n <-> ((F k)^^j) n < n).
 Proof.
  intros Hj.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - rewrite F0_j. destruct j; simpl. lia. rewrite F0_alt; lia.
  - rewrite Fs_alt. split.
    + intros. apply GenG.fs_lt; lia.
@@ -258,7 +258,7 @@ Qed.
 
 Lemma dF_eqn k n : 0<n -> dF k 1 n = 1 - dF k k (n-1).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - unfold dF. simpl. rewrite !F0_alt.
    replace (n-1+1-(n-1)) with 1; lia.
  - intros N. unfold dF. simpl Nat.iter.
@@ -401,7 +401,7 @@ Proof.
  induction n; simpl. now rewrite L_alt.
  assert (E := L_S k 1 n). simpl in E. rewrite E. clear E.
  assert (H := word_x_letters k n K).
- destruct (Nat.eq_dec (word_x k n) k) as [->|NE];
+ if (word_x k n = k) as [->|NE];
   rewrite ?subst_τ_k, ?subst_τ_nk; simpl; lia.
 Qed.
 
@@ -449,7 +449,7 @@ Qed.
 
 Lemma Fkj_Lkj k j n : 0<k -> (F k ^^j) ((L k ^^j) n) = n.
 Proof.
- intros. destruct (Nat.eq_dec n 0) as [->|N].
+ intros. if (n = 0) as [->|N].
  - now rewrite L_0, Fkj_0.
  - apply Thm_3_1_main; try lia. split; trivial.
    apply incr_strmono; apply L_incr || lia.
@@ -471,7 +471,7 @@ Qed.
 Lemma Cor_3_2 k j : 0<k ->
   forall n m, (F k ^^j) n <= m <-> n <= (L k ^^j) m.
 Proof.
- intros. destruct (Nat.eq_dec n 0) as [->|N].
+ intros. if (n = 0) as [->|N].
  - rewrite Fkj_0; lia.
  - split; intros.
    + etransitivity. 2:apply incr_mono; eauto using L_incr.
@@ -632,12 +632,12 @@ Qed.
 
 Lemma Fkj_decr k j n : (F k ^^j) n <= Nat.max 1 (n-j).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - destruct j. simpl Nat.iter; lia. rewrite F0_Sj. rewrite F0_alt. lia.
  - induction j.
    + simpl Nat.iter. lia.
    + simpl Nat.iter.
-     destruct (Nat.le_gt_cases ((F k ^^j) n) 1) as [LE|GT].
+     if ((F k ^^j) n <= 1) as [LE|GT].
      * transitivity (F k 1). now apply (Fkj_mono k 1).
        change (F k 1) with ((F k^^1) 1). rewrite Fkj_1. lia.
      * assert (F k ((F k^^j) n) < (F k^^j) n).
@@ -700,7 +700,7 @@ Lemma Prop_4_4_k k n : 0<k -> word_x k n = k <-> dF k (k-1) n = 1.
 Proof.
  intros. unfold dF. rewrite !Fs_alt, Nat.add_1_r.
  assert (H2 := word_x_letters k n H).
- destruct (Nat.eq_dec k 1) as [->|K].
+ if (k = 1) as [->|K].
  - rewrite !Nat.sub_diag. simpl Nat.iter. lia.
  - rewrite <- Words.kseq_above_p_is_delta_fs; try lia.
    unfold word_x in *. case Nat.leb_spec; lia.
@@ -863,7 +863,7 @@ Qed.
 
 Lemma α_km1_βm1 k : α k ^(k-1) = β k - 1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - simpl. unfold β. simpl. rewrite Mu.mu_0. lra.
  - assert (Hα : α k <> 0). { generalize (α_itvl k); lra. }
    rewrite α_β. apply Rmult_eq_reg_l with (α k); trivial.
@@ -939,7 +939,7 @@ Proof.
    assert (H := L_S k 1 (n-1)). simpl in H.
    replace (S (n-1)) with n in H by lia.
    assert (HL := word_x_letters k (n-1) K).
-   destruct (Nat.eq_dec (word_x k (n-1)) k) as [E'|NE].
+   if (word_x k (n-1) = k) as [E'|NE].
    - rewrite E' in *. rewrite subst_τ_k in H by trivial. simpl in H. lia.
    - rewrite subst_τ_nk in H by lia. simpl in H. lia. }
 Qed.
@@ -1187,8 +1187,8 @@ Qed.
 
 Lemma Prop_8_1 k n : C (S k) (Nat.eqb 1) n <= C k (Nat.eqb 1) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K]; try easy.
- destruct (Nat.eq_dec k 1) as [->|K'].
+ if (k = 0%nat) as [->|K]; try easy.
+ if (k = 1%nat) as [->|K'].
  - transitivity n. apply C_le. unfold C. rewrite filter_all.
    now rewrite take_length.
    intros x. rewrite in_take. intros (i & <- & Hi). rewrite Nat.eqb_eq.

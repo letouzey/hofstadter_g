@@ -70,7 +70,7 @@ Lemma CV_radius_radius' a : CV_radius a = CV_radius' a.
 Proof.
  apply Rbar.Rbar_le_antisym.
  { apply Lub.Lub_Rbar_correct. red.
-   intros x Hx. destruct (Rle_lt_dec 0 x).
+   intros x Hx. if (0 <= x).
    - apply Lub_Rbar_ub. now apply CV_disk_disk'.
    - apply Rbar.Rbar_le_trans with (Rbar.Finite 0). simpl; lra.
      apply Lub_Rbar_ub. red. exists 0%R. split. apply Rabs_pos_eq; lra.
@@ -284,7 +284,7 @@ Lemma C_CV_radius_radius' a : C_CV_radius a = C_CV_radius' a.
 Proof.
  apply Rbar.Rbar_le_antisym.
  { apply Lub.Lub_Rbar_correct.
-   intros x Hx. destruct (Rle_lt_dec 0 x).
+   intros x Hx. if (0 <= x).
    - apply Lub_Rbar_ub. exists x. split.
      + now rewrite Cmod_R, Rabs_pos_eq.
      + now apply ex_series_Cmod.
@@ -311,7 +311,7 @@ Proof.
  intros H.
  apply Rbar_le_carac_via_lt.
  intros x Hx. simpl in Hx.
- destruct (Rle_lt_dec 0 x).
+ if (0 <= x).
  - rewrite C_CV_radius_radius'.
    apply Lub_Rbar_ub. red. exists x; split.
    + rewrite Cmod_R, Rabs_pos_eq; lra.
@@ -451,7 +451,7 @@ Proof.
  destruct (C_CV_radius (PS_poly p)) as [x | | ]; trivial; exfalso.
  - specialize (H (Rabs x + 1)%R). simpl in H.
    rewrite Cmod_R in H.
-   destruct (Rle_lt_dec 0 x).
+   if (0 <= x).
    + rewrite !Rabs_pos_eq in H; try (generalize (Rabs_pos x); lra).
    + generalize (Rabs_pos (Rabs x + 1)); lra.
  - apply (H 0).
@@ -580,7 +580,7 @@ Proof.
  { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
    intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
  clear Hc.
- destruct (Rle_lt_dec 0 c).
+ if (0 <= c).
  - replace c with (Cmod c) in Ha, Hb.
    2:{ rewrite Cmod_R, Rabs_pos_eq; trivial. }
    apply C_CV_radius_inside in Ha,Hb.
@@ -747,7 +747,7 @@ Lemma is_CPS_mult (a b : nat -> C) (z la lb : C) :
   -> is_CPowerSeries (CPS_mult a b) z (la * lb).
 Proof.
  intros Ha Hb Ha' Hb'.
- destruct (Ceq_dec z 0) as [->|Hz].
+ if (z = 0) as [->|Hz].
  { replace la with (a O).
    2:{ apply CPowerSeries_unique in Ha. rewrite <- Ha.
        symmetry. apply CPowerSeries_unique.
@@ -818,7 +818,7 @@ Proof.
  { generalize Hc. apply Rbar.Rbar_min_case_strong; trivial.
    intros. eapply Rbar.Rbar_lt_le_trans; eauto. }
  clear Hc.
- destruct (Rle_lt_dec 0 c).
+ if (0 <= c).
  - replace c with (Cmod c) in Ha, Hb.
    2:{ rewrite Cmod_R, Rabs_pos_eq; trivial. }
    rewrite C_CV_radius_radius'.
@@ -869,7 +869,7 @@ Definition PS_pow := Cpow.
 Lemma PS_pow_ok r x : Cmod (r*x) < 1 ->
   is_CPowerSeries (PS_pow r) x (/(1-r*x)).
 Proof.
- destruct (Ceq_dec r 0) as [Hr|Hr].
+ if (r = 0) as [->|Hr].
  { intros _.
    rewrite is_CPowerSeries_alt. apply is_pseries_ext with PS_one.
    { intros [|n]; simpl; trivial. subst; lca. }
@@ -1058,7 +1058,7 @@ Proof.
      assert (E' := Nat.div_mod_eq n k).
      apply (f_equal S) in E'. rewrite <- Nat.add_succ_r in E'.
      assert (H' : (S (n mod k) = S n mod k)%nat).
-     { destruct (Nat.eqb_spec (n mod k) (k-1)) as [H'|H'].
+     { if (n mod k = k-1)%nat as [H'|H'].
        - rewrite H' in E'.
          replace (_+_)%nat with (k*(S (n/k)))%nat in E' by lia.
          assert (S n mod k = 0)%nat; try lia.
@@ -1094,7 +1094,7 @@ Lemma PS_dilate_radius_lt a k r : k<>O ->
  Rbar.Rbar_lt r (C_CV_radius (PS_dilate a k)).
 Proof.
  intros Hk H.
- destruct (Rle_lt_dec 0 r) as [LE|LT].
+ if (0 <= r) as [LE|LT].
  - assert (H1 : exists r1, r^k < r1 /\ Rbar.Rbar_lt r1 (C_CV_radius a)).
    { destruct (C_CV_radius a) as [ra| | ]; try easy.
      - exists ((r^k+ra)/2)%R. split; simpl in H|-*; lra.
@@ -1125,7 +1125,7 @@ Lemma PS_dilate_radius_le a k r : k<>O ->
 Proof.
  intros Hk H.
  apply Rbar_le_carac_via_lt. intros r' Hr'. simpl in Hr'.
- destruct (Rle_lt_dec 0 r') as [LE|LT].
+ if (0 <= r') as [LE|LT].
  - apply Rbar.Rbar_lt_le. apply (PS_dilate_radius_lt a k r'); trivial.
    eapply Rbar.Rbar_lt_le_trans; eauto.
    simpl. apply Rpow_lt_compat_r; trivial.

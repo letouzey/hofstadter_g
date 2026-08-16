@@ -1,4 +1,4 @@
-Require Import MoreFun DeltaList GenFib GenG GenAdd.
+Require Import MoreTac MoreFun DeltaList GenFib GenG GenAdd.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -11,7 +11,7 @@ Definition shift k n := sumA k (map S (decomp k n)).
 
 Lemma shift_rchild k n : shift k n = rchild k n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - unfold shift, rchild. simpl.
    now rewrite decomp_0, sumA0, <- rchild_decomp.
  - symmetry. now apply rchild_decomp.
@@ -100,7 +100,7 @@ Qed.
 
 Lemma shift_injective k n m : shift k n = shift k m -> n = m.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - rewrite !shift_0. lia.
  - intros. rewrite <- (@f_shift k n K), <- (@f_shift k m K). now f_equal.
 Qed.
@@ -110,7 +110,7 @@ Qed.
 Lemma shift_steps k n :
   shift k (S n) = S (shift k n) \/ shift k (S n) = S (S (shift k n)).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { rewrite !shift_0. lia. }
  unfold shift. rewrite decomp_S by trivial.
  assert (D := decomp_delta k n).
@@ -119,7 +119,7 @@ Proof.
  - simpl map. case Nat.ltb_spec; intros; [|simpl; now right].
    rewrite !renormS_alt, renorm_mapS, renorm_sum by trivial.
    simpl map. rewrite !sumA_cons, <- !Nat.add_succ_l.
-   destruct (Nat.eqb_spec a (k-1)).
+   if (a = k-1).
    + right. f_equal. subst a.
      rewrite A_S. fixpred. replace (k -(k-1)) with 1 by lia.
      rewrite A_k_1. lia.

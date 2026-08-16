@@ -1,6 +1,6 @@
 (** * Fib : Fibonacci sequence and decomposition *)
 
-Require Import DeltaList.
+Require Import MoreTac DeltaList.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -623,7 +623,7 @@ Proof.
  intros N (l & E & D & _).
  destruct l as [|k l].
  - simpl in E. lia.
- - destruct (Nat.Even_or_Odd k) as [(k',->)|(k',->)].
+ - if (Nat.Even k) as [(k',->)|(k',->)].
    + left. exists k'; exists l; auto.
    + right. exists k'; exists l; auto.
 Qed.
@@ -733,7 +733,7 @@ Lemma Even_or_Odd n : n<>0 -> Even 2 n \/ Odd 2 n.
 Proof.
  intros N.
  destruct (Low_exists N) as (k,K).
- destruct (Nat.Even_or_Odd k) as [(k',->)|(k',->)]; firstorder.
+ if (Nat.Even k) as [(k',->)|(k',->)]; firstorder.
 Qed.
 
 Lemma Even_xor_Odd n : Even 2 n -> Odd 2 n -> False.
@@ -916,15 +916,14 @@ Proof.
  induction n as [[|[|[|n]]] IH] using lt_wf_ind; try easy.
  intros l.
  change (preds _) with (preds (S n) ++ [S (S n)]).
- destruct (Nat.le_decidable (S n) 2) as [LE|NLE].
- - pose proof LE as H. rewrite <- preds_nil in H. rewrite H.
+ if (n <= 1) as [LE|GT].
+ - assert (H : S n <= 2) by lia. rewrite <- preds_nil in H. rewrite H.
    simpl. intros [= <- _]. lia.
- - rewrite <- preds_nil in NLE. specialize (IH (S n)).
+ - assert (H : ~(S n <= 2)) by lia. rewrite <- preds_nil in H.
+   specialize (IH (S n) lia).
    destruct (preds (S n)) as [|x' l']; try easy.
-   simpl.
    intros [= -> E].
-   assert (H : S n < S (S (S n))) by lia.
-   now apply (IH H l').
+   now apply (IH l').
 Qed.
 
 Lemma preds_delta n : Delta 2 (0::preds n).
@@ -947,9 +946,10 @@ Proof.
  induction n as [[|[|[|n]]] IH] using lt_wf_ind; trivial.
  change (preds (S (S (S n)))) with (preds (S n) ++ [S (S n)]).
  simpl Nat.sub.
- destruct (Nat.le_decidable (S n) 2).
- - rewrite <- preds_nil in H. now rewrite H.
- - pose proof H as H'. rewrite <- preds_nil in H. rewrite tl_app_nn; auto.
+ if (n <= 1) as [LE|GT].
+ - assert (H : S n <= 2) by lia. rewrite <- preds_nil in H. now rewrite H.
+ - assert (H : ~(S n <= 2)) by lia. rewrite <- preds_nil in H.
+   rewrite tl_app_nn; auto.
    rewrite !map_app, IH; auto. simpl map.
    now destruct n as [|[|n]].
 Qed.

@@ -326,7 +326,7 @@ Lemma vmeandiff_eqn n : n<>O ->
   ++ (1 - f 4 n / n) ** (Vinit ++ Mapply4 Mat (vmeandiff (n - f 4 n))).
 Proof.
  intros Hn.
- destruct (Nat.eq_dec n 1) as [->|Hn'].
+ if (n = 1%nat) as [->|Hn'].
  { change (f 4 1) with 1%nat.
    simpl Rdiv. replace (1/1) with 1 by lra.
    replace (1-1) with 0 by lra. rewrite Vscal_0.
@@ -787,7 +787,7 @@ Proof.
    - simpl. unfold sumdiff. simpl. lra.
    - unfold sumdiff in *. rewrite S_INR. simpl.
      generalize (diff_bound n). lra. }
- intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
+ intros n. if (n = 0%nat) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
  - apply (Rmult_le_reg_r n). inr.
@@ -831,7 +831,7 @@ Proof.
    - simpl. unfold sumdiff_4_2. simpl. lra.
    - unfold sumdiff_4_2 in *. rewrite S_INR. simpl.
      generalize (diff_4_2_bound n). lra. }
- intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
+ intros n. if (n = 0%nat) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
  - apply (Rmult_le_reg_r n). inr.
@@ -849,7 +849,7 @@ Proof.
    - simpl. unfold sumdiff_4_3. simpl. lra.
    - unfold sumdiff_4_3 in *. rewrite S_INR. simpl.
      generalize (diff_4_3_bound n). lra. }
- intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
+ intros n. if (n = 0%nat) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
  - apply (Rmult_le_reg_r n). inr.
@@ -1003,17 +1003,17 @@ Qed.
 Lemma U_scal_A_minus_cst p : U p <= K2 * A 4 p - K1.
 Proof.
  induction p as [p IH] using lt_wf_ind.
- destruct (Nat.eq_dec p 0) as [->|P0].
+ if (p = 0%nat) as [->|P0].
  { simpl. unfold K2. ring_simplify. apply Rmax_l. }
- destruct (Nat.eq_dec p 1) as [->|P1].
+ if (p = 1%nat) as [->|P1].
  { transitivity (K2*1 - K1).
    - unfold K2. ring_simplify. rewrite <- Rmax_r. apply Rmax_l.
    - simpl. generalize K2_pos. lra. }
- destruct (Nat.eq_dec p 2) as [->|P2].
+ if (p = 2%nat) as [->|P2].
  { transitivity (K2*1 - K1).
    - unfold K2. ring_simplify. rewrite <- 2 Rmax_r. apply Rmax_l.
    - simpl. generalize K2_pos. lra. }
- destruct (Nat.eq_dec p 3) as [->|P3].
+ if (p = 3%nat) as [->|P3].
  { transitivity (K2*1 - K1).
    - unfold K2. ring_simplify. rewrite <- 2 Rmax_r. apply Rmax_r.
    - simpl. generalize K2_pos. lra. }
@@ -1170,7 +1170,7 @@ Proof.
    replace (Rnorm _) with 0; try (generalize K6_pos; lra).
    symmetry. apply Rnorm_0_iff. simpl. f_equal; ring.
  - intros n Hn.
-   destruct (Nat.lt_ge_cases n (A 4 p)).
+   if (n < A 4 p)%nat.
    + rewrite (IH p); try lia.
      apply Rmult_le_compat_l. apply K6_pos.
      simpl. rewrite <- (Rmult_1_l (rate^p)) at 1.
@@ -1216,7 +1216,7 @@ Qed.
 
 Lemma vsumdiff'_ineq' n : Rnorm (vsumdiff' n) <= K7 * Rpower n 0.9.
 Proof.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0%nat) as [->|Hn].
  - simpl. unfold vsumdiff'.
    replace (Rnorm _) with 0. apply Rmult_le_pos. apply K7_pos.
    apply Rlt_le, Rpower_pos.

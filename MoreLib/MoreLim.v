@@ -365,7 +365,7 @@ Proof.
    intros M N.
    destruct (finite_max u (N-1)) as (M' & HM').
    destruct (Hu' (Rmax M (M'+1))) as (n & Hn). exists n. split.
-   + destruct (Nat.le_gt_cases N n); trivial. exfalso.
+   + if (N <= n)%nat; trivial. exfalso.
      specialize (HM' n lia). generalize (Rmax_r M (M'+1)). lra.
    + eapply Rle_lt_trans; [ apply Rmax_l | apply Hn ].
  - intros Hu. apply is_sup_seq_unique.
@@ -1198,8 +1198,7 @@ Lemma Rbar_le_carac_via_lt a b :
   (forall c:R, Rbar.Rbar_lt c a -> Rbar.Rbar_le c b) -> Rbar.Rbar_le a b.
 Proof.
  destruct a as [a| | ], b as [b| | ]; simpl; trivial; intros H.
- - destruct (Rle_lt_dec a b) as [LE|LT]; trivial.
-   specialize (H ((b+a)/2)). lra.
+ - if (a <= b) as [LE|LT]; trivial. specialize (H ((b+a)/2)). lra.
  - apply (H (a-1)%R). lra.
  - specialize (H (b+1)%R). lra.
  - now apply (H 0).

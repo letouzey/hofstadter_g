@@ -108,7 +108,7 @@ Proof.
  rewrite <- map_map with (g := fun x => frac_part x).
  set (l := map u _).
  rewrite map_filter, map_length.
- destruct (Req_dec b 1) as [->|Hb1].
+ if (b = 1) as [->|Hb1].
  - assert (Hb' : frac_part 1 = 0).
    { assert (E := int_frac 1).
      replace (Int_part 1) with 1%Z in E. lra.
@@ -195,7 +195,7 @@ Proof.
  - intros H a.
    eapply is_lim_seq_ext.
    { intros n. symmetry. rewrite mean_frac_reduce. reflexivity. }
-   destruct (Req_dec (frac_part a) 0) as [->|Ha].
+   if (frac_part a = 0) as [->|Ha].
    { apply is_lim_seq_ext with (u:=fun _ => 0). 2:apply is_lim_seq_const.
      intros n. unfold mean_frac, mean. unfold compose.
      symmetry. apply Rminus_diag_eq. now setoid_rewrite Rplus_0_r. }
@@ -271,8 +271,7 @@ Proof.
      destruct q1; try lia. }
    assert (LT : forall m, frac_part (t*m) < frac_part (t*(m-q1)+a)+eps').
    { intros m.
-     destruct (Rle_lt_dec 1 (frac_part (t*(m-q1))+frac_part (t*q1)))
-      as [H|H].
+     if (1 <= frac_part (t*(m-q1))+frac_part (t*q1)) as [H|H].
      - assert (H' : frac_part(t*(-q1)) <= frac_part (t*(m-q1))).
        { rewrite E. lra. }
        replace (t*m) with (t*(m-q1) - t*(-q1)) by ring.
@@ -281,7 +280,7 @@ Proof.
          with (frac_part (t*(m - q1)) - frac_part (-a) + eps').
        lra. apply Rplus_le_compat_r.
        replace (_+a) with (t*(m-q1)-(-a)) by lra.
-       destruct (Rle_lt_dec (frac_part (-a)) (frac_part (t*(m-q1)))).
+       if (frac_part (-a) <= frac_part (t*(m-q1))).
        + rewrite Rminus_fp1; lra.
        + rewrite Rminus_fp2; lra.
      - assert (H' : frac_part (t*(m-q1)) < frac_part(t*(-q1))).
@@ -335,8 +334,7 @@ Proof.
      destruct q2; try lia. }
    assert (LT : forall m, frac_part (t*m) > frac_part (t*(m-q2)+a)-eps').
    { intros m.
-     destruct (Rle_lt_dec 1 (frac_part (t*(m-q2))+frac_part (t*q2)))
-      as [H|H].
+     if (1 <= frac_part (t*(m-q2))+frac_part (t*q2)) as [H|H].
      - assert (H' : frac_part(t*(-q2)) <= frac_part (t*(m-q2))).
        { rewrite E. lra. }
        replace (t*m) with (t*(m-q2) - t*(-q2)) by ring.
@@ -353,7 +351,7 @@ Proof.
        replace (t*m) with (t*(m-q2) - t*(-q2)) by ring.
        rewrite Rminus_fp2, E by lra.
        replace (_+a) with (t*(m-q2)--a) by lra.
-       destruct (Rle_lt_dec (frac_part (-a)) (frac_part (t*(m-q2)))).
+       if (frac_part (-a) <= frac_part (t*(m-q2))).
        + rewrite Rminus_fp1; lra.
        + rewrite Rminus_fp2; lra. }
    clear E.
@@ -625,16 +623,16 @@ Lemma Rcountin_gen_close1 kd (u:nat->R) a b n :
   S (Gen.Rcountin LT kd u a b n))%nat.
 Proof.
  intros Hu.
- destruct (Rlt_le_dec b a).
+ if (b < a).
  { rewrite !Rcountin_gen_noitvl; try lia; try lra. }
  unfold Gen.Rcountin.
  rewrite !map_filter, !map_length. unfold compose.
  erewrite filter_ext with
   (f:=fun m => Gen.RIn LE kd _ _ _)
   (g:=fun m => (Gen.RIn LT kd a b (u m))
-               || (Rcmp kd a b && (Req_EM_T (u m) a ||| false))).
+               || (Rcmp kd a b && Reqb (u m) a)).
  2:{ intros m. unfold Gen.RIn. simpl.
-     destruct (Req_EM_T (u m) a) as [->|N].
+     if (u m = a) as [->|N].
      - destruct (Rcmp kd a b); simpl;
          case Rleb_spec; case Rltb_spec; simpl; lra.
      - rewrite andb_false_r, orb_false_r.
@@ -643,7 +641,7 @@ Proof.
        + now rewrite !andb_false_r. }
  rewrite filter_or_disj.
  2:{ intros m _. unfold Gen.RIn. simpl.
-     destruct (Req_EM_T (u m) a) as [->|N].
+     if (u m = a) as [->|N].
      - case (Rltb_spec a a); intros; simpl; lra.
      - now rewrite !andb_false_r. }
  set (L1 := length _).
@@ -651,8 +649,8 @@ Proof.
  assert (H2 : (L2 <= 1)%nat); try lia.
  { apply filter_uniq. 2:apply seq_NoDup.
    intros p q _ _. destruct (Rcmp kd a b); simpl; try easy.
-   destruct (Req_EM_T (u p) a) as [E|N]; try easy.
-   destruct (Req_EM_T (u q) a) as [E'|N']; try easy.
+   if (u p = a) as [E|N]; try easy.
+   if (u q = a) as [E'|N']; try easy.
    intros _ _. apply (Hu p q). lra. }
 Qed.
 

@@ -1,7 +1,8 @@
 From Coq Require Import Arith Reals Lra Lia Permutation Morphisms.
 From Hofstadter.HalfQuantum Require Import Complex Polynomial.
 From Hofstadter.HalfQuantum Require FTA.
-Require Import MoreList DeltaList MoreSets MoreReals MoreComplex MoreSum.
+Require Import MoreTac MoreList DeltaList MoreSets MoreReals MoreComplex.
+Require Import MoreSum.
 Local Open Scope R.
 Local Open Scope C.
 Local Coercion INR : nat >-> R.
@@ -51,7 +52,7 @@ Lemma compactify_last (p : Polynomial) :
 Proof.
  unfold compactify.
  induction (rev p); simpl; auto.
- destruct (Ceq_dec a 0) as [->|N]; auto.
+ destruct Ceq_dec; auto.
  right. simpl. now rewrite last_last.
 Qed.
 
@@ -114,7 +115,7 @@ Proof.
  intros. unfold compactify. simpl. rewrite prune_last.
  - now rewrite rev_app_distr.
  - rewrite Peq0_cons in H.
-   destruct (Ceq_dec c 0); auto.
+   if (c = 0); auto.
    + right. contradict H. split; auto. rewrite Peq0_alt in H.
      rewrite rev_length in H. rewrite <- (rev_involutive p), H.
      rewrite rev_repeat. apply Peq0_alt. now rewrite repeat_length.
@@ -150,7 +151,7 @@ Proof.
  rewrite (compactify_eqn p) at 2.
  set (m := (_ - _)%nat). clearbody m.
  unfold coef.
- destruct (Nat.lt_ge_cases n (length (compactify p))).
+ if (n < length (compactify p))%nat.
  - now rewrite app_nth1.
  - rewrite app_nth2 by trivial. rewrite nth_overflow by trivial.
    symmetry. apply nth_repeat.
@@ -231,7 +232,7 @@ Proof.
  intros Hc.
  unfold monom, compactify.
  rewrite rev_app_distr. simpl.
- destruct (Ceq_dec c 0) as [->|N]. easy.
+ destruct Ceq_dec as [->|N]. easy.
  simpl. now rewrite rev_involutive.
 Qed.
 
@@ -266,7 +267,7 @@ Qed.
 
 Lemma topcoef_monom c k : topcoef (monom c k) = c.
 Proof.
- destruct (Ceq_dec c 0); subst.
+ if (c = 0); subst.
  - unfold monom, topcoef.
    rewrite app_C0_compactify_reduce_1.
    change (repeat 0 k) with ([]++repeat 0 k).
@@ -533,8 +534,8 @@ Proof.
      replace (degree a - k)%nat with (degree b) by lia.
      rewrite <- topcoef_alt. fold top_b. unfold c. field.
      now apply topcoef_nz. }
-   destruct (Nat.eq_dec (degree a') 0) as [E0|N0]; try lia.
-   destruct (Nat.eq_dec (degree a') (degree a)) as [E|N]; try lia.
+   if (degree a' = 0%nat) as [E0|N0]; try lia.
+   if (degree a' = degree a) as [E|N]; try lia.
    rewrite <- E in Ha'. rewrite <- topcoef_alt in Ha'.
    apply topcoef_nz in Ha'; try lia.
    intro H. rewrite H in N0. now apply N0. }
@@ -730,7 +731,7 @@ Qed.
 Lemma All_roots' (p : Polynomial) :
   exists l : list C, p ≅ [topcoef p] *, linfactors l.
 Proof.
- destruct (Ceq_dec (topcoef p) 0) as [E|N].
+ if (topcoef p = 0) as [E|N].
  - exists []. simpl. rewrite E. rewrite Cmult_0_l, Cplus_0_l.
    rewrite C0_Peq_nil. now apply topcoef_0_iff.
  - destruct (All_roots ([/topcoef p]*,p)) as (l & E).
@@ -806,7 +807,7 @@ Lemma extra_roots_implies_null p l :
 Proof.
  intros ND IN LT.
  rewrite <- topcoef_0_iff.
- destruct (Ceq_dec (topcoef p) 0) as [E|N]; trivial. exfalso.
+ if (topcoef p = 0) as [E|N]; trivial. exfalso.
  set (a := topcoef p) in *.
  set (p' := [/a] *, p).
  assert (D : degree p' = degree p).
@@ -1009,7 +1010,7 @@ Proof.
  apply (NoDup_count_occ' Ceq_dec).
  intros c Hc.
  assert (Hc' := Hc). rewrite (count_occ_In Ceq_dec) in Hc'.
- destruct (Nat.eq_dec (count_occ Ceq_dec l c) 1). trivial.
+ if (count_occ Ceq_dec l c = 1%nat). trivial.
  apply linfactors_roots in Hc. specialize (H c Hc).
  destruct H. apply multiple_root_diff. lia.
 Qed.
@@ -1099,7 +1100,7 @@ Lemma reciprocal_coef p i : (i <= degree p)%nat ->
 Proof.
  unfold coef, reciprocal, degree.
  intros Hi.
- destruct (Nat.eq_dec (length (compactify p)) 0) as [E|N].
+ if (length (compactify p) = 0%nat) as [E|N].
  - rewrite length_zero_iff_nil in E. rewrite E in *. simpl in *.
    replace i with O by lia.
    change (0 = coef 0 p). now rewrite <- compactify_coef, E.
@@ -1173,7 +1174,7 @@ Lemma reciprocal_root p x :
   x<>0 -> Root x (reciprocal p) <-> Root (/x) p.
 Proof.
  intros Hx.
- destruct (Ceq_dec (topcoef p) 0) as [Y|N].
+ if (topcoef p = 0) as [Y|N].
  - rewrite topcoef_0_iff in Y. unfold reciprocal. now rewrite Y.
  - rewrite topcoef_0_iff in N. unfold Root.
    rewrite Peval_reciprocal; trivial.
@@ -1344,7 +1345,7 @@ Proof.
      (f:=fun k => F _ _ ) (g:=fun k => (x * F n k + y * F n (S k))%G).
    2:{ intros k Hk. unfold F. simpl.
        rewrite plus_INR, RtoC_plus.
-       destruct (Nat.eq_dec k n) as [->|Hk'].
+       if (k = n) as [->|Hk'].
        - rewrite (binom_zero n (S n)) by lia. simpl. ring.
        - replace (n - k)%nat with (S (n-S k))%nat by lia. simpl. ring. }
    rewrite big_sum_Cplus.

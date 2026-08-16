@@ -63,10 +63,10 @@ Lemma kword_le_prefix k n m :
 Proof.
  induction 1. apply Prefix_id.
  eapply Prefix_trans; eauto.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { rewrite !kword_01 by lia. simpl. rewrite Nat.add_0_r.
    rewrite repeat_app. now eexists. }
- destruct (Nat.le_gt_cases m (k-1)).
+ if (m <= k-1).
  - rewrite !kword_low by lia.
    exists [m]. simpl. now rewrite <- seq_S.
  - rewrite (kword_eqn k (S m)) by lia. fixpred. now eexists.
@@ -79,7 +79,7 @@ Proof.
  revert u1 u2 n m.
  withoutloss k (k<>0).
  { intros K u1 u2 n m SU PR.
-   destruct (Nat.le_gt_cases m n).
+   if (m <= n).
    - exists (S (n + k)). rewrite kword_eqn by lia.
      assert (HSn : Prefix u2 (kword k (S n))).
      { eapply Prefix_trans; eauto. apply kword_le_prefix. lia. }
@@ -104,7 +104,7 @@ Proof.
      destruct HSm' as (u2' & E2).
      exists u1', u2'. rewrite <- app_assoc, E2, app_assoc, E1.
      f_equal; f_equal; lia. }
- { destruct (Nat.eq_dec k 0) as [->|K]; [ | now apply WL].
+ { if (k = 0) as [->|K]; [ | now apply WL].
    intros u1 u2 n m.
    specialize (WL 1 lia u1 u2 n m).
    revert WL. setoid_rewrite kword_01; easy || lia. }
@@ -147,7 +147,7 @@ Proof.
  - rewrite SubSeq_kseq_alt. intros (n & SU).
    apply Sub_kword_minimal in SU. clear n.
    destruct SU as (n & SU & NS).
-   destruct (Nat.le_gt_cases n (k-1)).
+   if (n <= k-1).
    + left. eapply Sub_Prefix_Sub; eauto. apply kword_le_prefix; lia.
    + right. destruct n as [|n]; try lia.
      rewrite kword_eqn in SU by lia. fixpred.
@@ -280,7 +280,7 @@ Qed.
 Lemma kfactors0opt_in k p u :
   k<>0 -> In u (kfactors0opt k p) <-> SubSeqLen p u (kseq k).
 Proof.
- intros K. destruct (Nat.eq_dec p 0) as [->|Hp].
+ intros K. if (p = 0) as [->|Hp].
  - rewrite kfactors0opt_0_r. split.
    + intros ->. split; auto. now exists 0.
    + unfold SubSeqLen. now rewrite length_zero_iff_nil.
@@ -432,7 +432,7 @@ Qed.
 Lemma f6_below_f7 n : f 6 n <= f 7 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 424) as [LT|LE].
+if (n < 424) as [LT|LE].
 - clear IH. revert LT. apply InitTests.fk_leb_fSk_spec. now vm_compute.
 - replace n with ((n-424)+424) by lia.
   etransitivity; [ apply f6_add_424 | ].
@@ -454,7 +454,7 @@ Qed.
 Lemma f7_below_f8 n : f 7 n <= f 8 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 843) as [LT|LE].
+if (n < 843) as [LT|LE].
 - clear IH. revert LT. apply InitTests.fk_leb_fSk_spec. now vm_compute.
 - replace n with ((n-843)+843) by lia.
   etransitivity; [ apply f7_add_843 | ].
@@ -528,7 +528,7 @@ Qed.
 Lemma kfactors_linear_length k p :
   k<>0 -> length (kfactors k p) <= if p <=? k+1 then (k-1)*p+1 else k*(p-1).
 Proof.
- intros K. destruct (Nat.eq_dec p 0) as [->|Hp].
+ intros K. if (p = 0) as [->|Hp].
  - rewrite kfactors_0_r. simpl; lia.
  - rewrite <- kfactors0opt_length; trivial. apply nodup_length_le.
 Qed.

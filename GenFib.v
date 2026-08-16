@@ -211,7 +211,7 @@ Lemma A_submult k n p : A k (n+p) <= A k n * A k p.
 Proof.
  induction n as [[|n] IH] using lt_wf_ind.
  - cbn. lia.
- - destruct (Nat.le_gt_cases k (S n)).
+ - if (k <= S n).
    + cbn.
      assert (IHn := IH n).
      assert (IHnq := IH (n-(k-1))).
@@ -230,7 +230,7 @@ Definition triangle p := p*(p+1)/2.
 
 Lemma pSp_even p : p*(p+1) mod 2 = 0.
 Proof.
- destruct (Nat.Even_or_Odd p) as [(p',->)|(p',->)].
+ if (Nat.Even p) as [(p',->)|(p',->)].
  - rewrite <- Nat.mul_assoc, Nat.mul_comm.
    apply Nat.mod_mul; auto.
  - replace (2*p'+1+1) with (2*(p'+1)) by lia.
@@ -339,7 +339,7 @@ Lemma A_diag_decr_exact k n : k<>0 -> 2*k+1 <= n <= 3*k ->
 Proof.
  induction n as [n IH] using lt_wf_ind.
  intros Hk Hn.
- destruct (Nat.eq_dec n (2*k+1)) as [E|N].
+ if (n = (2*k+1)) as [E|N].
  - replace (n-2*k-1) with 0 by lia. simpl "/". now rewrite A_diag_eq.
  - replace n with (S (n-1)) at 1 by lia. simpl A.
    rewrite (IH (n-1)) by lia.
@@ -709,7 +709,7 @@ Proof.
  { intros K n Hn.
    apply decomp_carac. trivial. constructor. cbn. rewrite A_base; lia. }
  { intros n Hn.
-   destruct (Nat.eq_dec k 0) as [->|K].
+   if (k = 0) as [->|K].
    - rewrite decomp_0. apply WL; lia.
    - now apply WL. }
 Qed.
@@ -878,7 +878,7 @@ Qed.
 
 Lemma renorm_delta k l : Delta (k-1) l -> Delta k (renorm k l).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - simpl. rewrite renorm_0. intros D.
    apply Delta_S, renorm_loop_delta; trivial; lia.
  - intros. unfold renorm. now apply renorm_loop_delta.
@@ -1210,7 +1210,7 @@ Proof.
  induction p as [|p IH]; intros n r Hp Hr.
  - exists r, 0. auto with arith.
  - destruct (IH n r) as (r' & a & H1 & H2 & H3); auto; try lia.
-   destruct (Nat.ltb_spec r' k) as [LE|LT].
+   if (r' < k) as [LE|LT].
    destruct (rank_next_high' _ H2 LE) as (r'' & Hr'' & LT').
    + exists r''. exists (S a). repeat split; auto with arith.
      lia.
@@ -1269,7 +1269,7 @@ Qed.
 Lemma decompred_delta k n : Delta k (decompred k n).
 Proof.
  induction n as [[|n] IH] using lt_wf_rec; autoh.
- simpl. destruct (Nat.le_gt_cases n (k-1)).
+ simpl. if (n <= k-1).
  - replace (n-(k-1)) with 0 by lia. simpl. constructor.
  - apply Delta_app with (n-k).
    + apply IH; lia.
@@ -1338,7 +1338,7 @@ Proof.
  induction a as [[|a] IH] using lt_wf_ind.
  - now destruct 1.
  - intros _ l. cbn -[Nat.modulo].
-   destruct (Nat.eq_dec (a-(k-1)) 0) as [E|NE].
+   if (a-(k-1) = 0) as [E|NE].
    + rewrite E. cbn -[Nat.modulo]. f_equal. rewrite Nat.sub_0_r.
      rewrite Nat.mod_small; auto. lia.
    + rewrite <- app_assoc, IH; try lia.

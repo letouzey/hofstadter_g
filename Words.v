@@ -191,7 +191,7 @@ Proof.
  intros m b Hm.
  unfold subst2seq.
  rewrite (nth_indep _ b a); auto.
- destruct (Nat.le_gt_cases n m).
+ if (n <= m).
  - apply Prefix_nth; auto.
    apply napply_prefix_mono; auto.
  - symmetry.
@@ -378,7 +378,7 @@ Qed.
 
 Lemma kword_len k n : length (kword k n) = A k n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { rewrite kword_01 by lia. now rewrite repeat_length, A_0, A_1_pow2. }
  induction n as [[|n] IH] using lt_wf_ind.
  - now rewrite kword_0.
@@ -439,7 +439,7 @@ Definition bounded_rank k n := omin (rank k n) (k-1).
 
 Lemma kseq_bounded_rank k n : kseq k n = bounded_rank k n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { rewrite kseq_01 by lia. unfold bounded_rank, omin. simpl.
    destruct rank; lia. }
  induction n as [n IH] using lt_wf_ind.
@@ -454,7 +454,7 @@ Proof.
      + simpl; lia.
      + apply decomp_max; trivial. apply Delta_rev. now rewrite <- E'. }
    rewrite (kseq_alt k n (S a) 0) by lia.
-   destruct (Nat.lt_ge_cases (S a) k) as [LT|LE].
+   if (S a < k) as [LT|LE].
    + rewrite kword_low by lia.
      destruct n as [|n]; try easy.
      change (nth _ _ _) with (nth n (List.seq 0 (S a)) 0).
@@ -505,8 +505,8 @@ Proof.
  destruct (@fs_flat_iff' k lia p n) as (_,H).
  destruct (@fs_nonflat_iff' k lia p n) as (_,H').
  unfold bounded_rank. destruct (rank k n) as [r|]; unfold omin.
- - destruct (Nat.lt_decidable r p) as [LT|NLT]; case Nat.leb_spec; lia.
- - simpl in *. case Nat.leb_spec; lia.
+ - if (r < p); case Nat.leb_spec; lia.
+ - case Nat.leb_spec; lia.
 Qed.
 
 (** Another description of [kseq k n] :
@@ -593,7 +593,7 @@ Qed.
 
 Lemma fs_count_km1 k n : fs k (k-1) n = count (kseq k) (k-1) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - simpl. symmetry. apply count_all. intros m _. apply kseq_01; lia.
  - rewrite fs_count_above by lia. apply count_above_kseq_km1.
 Qed.
@@ -685,7 +685,7 @@ Lemma decomp_prefix_kword k w n l : k<>0 ->
 Proof.
  intros K. revert w l. induction n as [n IH] using lt_wf_ind.
  intros w l P.
- destruct (Nat.le_gt_cases n k).
+ if (n <= k).
  - clear IH. rewrite kword_low in * by trivial.
    destruct (Prefix_cons_inv _ _ _ P) as [->|(w' & E' & P')].
    + simpl. now intros ->.
@@ -839,8 +839,8 @@ Definition NapplySizeBound s n N :=
 Lemma Bound_A k n : k<>0 -> NapplySizeBound (ksubst k) n (A k n).
 Proof.
  unfold NapplySizeBound. intros K a.
- destruct (Nat.le_gt_cases a (k-1)).
- - destruct (Nat.le_gt_cases (k-1) (n+a)).
+ if (a <= k-1).
+ - if (k-1 <= n+a).
    + rewrite napply_ksubst_is_kword by lia. rewrite kword_len.
      apply A_mono. lia.
    + rewrite napply_ksubst_shift by lia. simpl. apply A_nz.
@@ -853,7 +853,7 @@ Lemma nbocc_km1_kword k n : k<>0 -> nbocc (k-1) (kword k n) = A k (n-(k-1)).
 Proof.
  intros K.
  induction n as [n IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases n (k-1)).
+ if (n <= k-1).
  - rewrite kword_low by lia. simpl.
    rewrite Nat.eqb_refl, nbocc_notin.
    2:{ rewrite in_seq; lia. }
@@ -870,7 +870,7 @@ Lemma nbocc_0_kword k n : 1<k -> nbocc 0 (kword k (S n)) = A k (n-(k-1)).
 Proof.
  intros K.
  induction n as [n IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases (S n) (k-1)).
+ if (S n <= k-1).
  - rewrite kword_low by lia. simpl.
    rewrite nbocc_notin by (rewrite in_seq; lia).
    case Nat.eqb_spec; try lia.
@@ -878,7 +878,7 @@ Proof.
  - destruct n; try lia.
    rewrite kword_eqn, nbocc_app by lia. fixpred.
    rewrite IH by lia.
-   destruct (Nat.le_gt_cases (S n) (k-1)).
+   if (S n = k-1).
    + replace (S n - (k-1)) with 0 by lia. replace (n-(k-1)) with 0 by lia.
      replace (S (S n) - k) with 0 by lia.
      simpl. case Nat.eqb_spec; try lia.
@@ -1025,7 +1025,7 @@ Proof.
  intros HG. revert a w.
  induction n as [n IH] using lt_wf_ind.
  intros a w Hn B1 BG NE Pr.
- destruct (Nat.le_gt_cases n G).
+ if (n <= G).
  - exists []. exists w. simpl. repeat split; auto. constructor.
    apply Prefix_len in Pr.
    etransitivity; [apply Pr|]. red in BG.
@@ -1073,7 +1073,7 @@ Proof.
  intros HG. revert a w.
  induction n as [n IH] using lt_wf_ind.
  intros a w Hn BG NE Pr.
- destruct (Nat.le_gt_cases n G).
+ if (n <= G).
  - exists []. exists w. simpl. repeat split; auto.
    apply Prefix_len in Pr.
    etransitivity; [apply Pr|]. red in BG.
@@ -1172,8 +1172,7 @@ Qed.
 
 Lemma k0_pred_km1 k n : kseq k n = 0 -> kseq k (pred n) = k-1.
 Proof.
- destruct (Nat.le_gt_cases k 1) as [LE|K].
- { rewrite !kseq_01; lia. }
+ if (k <= 1) as [LE|K]. { rewrite !kseq_01; lia. }
  rewrite !kseq_bounded_rank.
  unfold bounded_rank at 1, omin.
  destruct rank as [r|] eqn:E; try lia. intros Hr.
@@ -1282,7 +1281,7 @@ Proof.
      * apply (f_equal (@rev _)) in E. rewrite !rev_app_distr in E.
        simpl in E.
        unfold ksubst in E at 1.
-       destruct (Nat.eqb_spec (kseq k m) (k-1)) as [M|M]; try easy.
+       if (kseq k m = k-1) as [M|M]; try easy.
        simpl in E. injection E as N' E. apply rev_inj in E.
        rewrite <- E, P, <- U, take_S. f_equal. now f_equal.
      * red. f_equal. now rewrite take_length.
@@ -1306,11 +1305,11 @@ Proof.
  - rewrite ksubstw_app. simpl. rewrite app_nil_r.
    intros E. symmetry in E. apply length_zero_iff_nil in E.
    rewrite app_length in E. unfold ksubst in E.
-   destruct (Nat.eqb b (k-1)); simpl in E; lia.
+   if (b = k-1); simpl in E; lia.
  - rewrite ksubstw_app. simpl. rewrite app_nil_r.
    intros E. apply length_zero_iff_nil in E.
    rewrite app_length in E. unfold ksubst in E.
-   destruct (Nat.eqb a (k-1)); simpl in E; lia.
+   if (a = k-1); simpl in E; lia.
  - rewrite !ksubstw_app. simpl. rewrite !app_nil_r.
    unfold ksubst. simpl.
    do 2 case Nat.eqb_spec; intros; subst.
@@ -1372,7 +1371,7 @@ Proof.
  intros NE PR u. rewrite PrefixSeq_alt by trivial.
  split.
  - intros H. now exists (length u).
- - intros (m,H). destruct (Nat.le_gt_cases m (length u)) as [L|L].
+ - intros (m,H). if (m <= length u) as [L|L].
    + eapply Prefix_trans; eauto. apply napply_prefix_mono; trivial.
    + eapply Prefix_Prefix; eauto.
      * apply Nat.lt_le_incl, noerase_prolong_napply_len; trivial.
@@ -1422,7 +1421,7 @@ Proof.
  symmetry. apply take_carac; trivial.
  intros m a Hm. unfold applyseq.
  rewrite nth_indep with (d' := 0); trivial.
- destruct (Nat.le_gt_cases (length u) (S m)) as [LE|GT].
+ if (length u <= S m) as [LE|GT].
  - assert (PR: Prefix u (take (S m) f)).
    { rewrite Hu. now apply Prefix_take. }
    destruct PR as (v & <-).
@@ -1559,7 +1558,7 @@ Qed.
 Lemma kseq_next_km2 k p : kseq k p = k-2 -> kseq k (S p) = k-1.
 Proof.
  intros E.
- destruct (Nat.eq_dec (kseq k (S p)) (k-1)) as [E'|E']; trivial.
+ if (kseq k (S p) = k-1); trivial.
  rewrite kseq_next_letter, E; trivial.
  unfold next_letter.
  case Nat.eqb_spec; lia.
@@ -1581,7 +1580,7 @@ Proof.
  do 2 case Nat.eqb_spec; intros E2 E1; try lia. clear IHn.
  destruct n; simpl.
  - rewrite kseq_k_0 in *. unfold prev_letter in *.
-   destruct (Nat.eqb_spec a 0) as [->|E3]; lia.
+   if (a = 0) as [->|E3]; lia.
  - specialize (IH n lia).
    assert (E3 := kseq_prev_letter k (S n) lia).
    rewrite E1 in E3.
@@ -1599,11 +1598,11 @@ Qed.
 
 Lemma count_le_count_km1 k a n : count (kseq k) a n <= count (kseq k) (k-1) n.
 Proof.
- destruct (Nat.eq_dec a (k-1)) as [->|Ha]; trivial.
- destruct (Nat.ltb_spec (k-1) a) as [Ha'|Ha'].
+ if (a = k-1) as [->|Ha]; trivial.
+ if (k-1 < a) as [Ha'|Ha'].
  - replace (count (kseq k) a n) with 0; try lia. symmetry. apply count_0.
    intros x _.
-   destruct (Nat.eq_dec k 0) as [->|K].
+   if (k = 0) as [->|K].
    + rewrite kseq_01; lia.
    + generalize (kseq_letters k x). lia.
  - transitivity (count (kseq k) 0 n).

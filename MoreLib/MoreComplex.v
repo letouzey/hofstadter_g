@@ -1,7 +1,7 @@
 From Coq Require Import NArith Lia Reals Lra Permutation RelationClasses Sorted.
 From Hofstadter.HalfQuantum Require Import Complex.
 From Hofstadter.HalfQuantum Require Polar.
-Require Import MoreList MoreReals.
+Require Import MoreTac MoreList MoreReals.
 
 Local Open Scope R.
 Local Open Scope C.
@@ -31,6 +31,11 @@ Proof.
  now rewrite <- RtoC_inv, Rinv_1.
 Qed.
 
+#[global] Instance Dec2_C_eq a b : Decide2 (a=b) (Ceq_dec a b ||| false).
+Proof.
+ destruct Ceq_dec; now constructor.
+Qed.
+
 (** Properties in Coquelicot and QuantumLib, for which a precondition
     can be removed now that [/0 = 0]
     (cf Coq 8.16 and the future Coquelicot 4) *)
@@ -39,7 +44,7 @@ Qed.
 
 Lemma Cmod_inv (c : C) : Cmod (/ c) = Rinv (Cmod c).
 Proof.
-  destruct (Req_dec (Cmod c) 0) as [Hm|Hm].
+  if (Cmod c = 0%R) as [Hm|Hm].
   - rewrite Hm, Rinv_0.
     apply Cmod_eq_0 in Hm.
     rewrite Hm, Cinv_0.
@@ -74,7 +79,7 @@ Qed.
 
 Lemma Cinv_Copp c : /-c = -/c.
 Proof.
- destruct (Ceq_dec c 0) as [->|N]; try lca. now field.
+ if (c = 0) as [->|N]; try lca. now field.
 Qed.
 
 Lemma re_alt' (c:C) : c + Cconj c = 2*Re c.
@@ -128,8 +133,8 @@ Qed.
 Lemma Cmult_integral (a b : C) : a * b = 0 <-> a = 0 \/ b = 0.
 Proof.
  split.
- - destruct (Ceq_dec a 0) as [->|A]. now left.
-   destruct (Ceq_dec b 0) as [->|B]. now right.
+ - if (a = 0) as [->|A]. now left.
+   if (b = 0) as [->|B]. now right.
    intros H. now destruct (Cmult_neq_0 a b).
  - intros [-> | ->]; ring.
 Qed.
@@ -158,7 +163,7 @@ Qed.
 
 Lemma polar_eqn (c:C) : Cmod c * Cexp (Polar.get_arg c) = c.
 Proof.
- destruct (Ceq_dec c 0) as [->|Hc].
+ if (c = 0) as [->|Hc].
  - now rewrite Cmod_0, Cmult_0_l.
  - now apply Polar.rect_to_polar_to_rect.
 Qed.

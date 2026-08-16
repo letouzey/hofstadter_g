@@ -421,7 +421,7 @@ Proof.
    destruct (H (pos_div_2 eps)) as (N & HN).
    exists N. intros n Hn. specialize (HN n Hn).
    unfold pos_div_2 in HN. simpl in HN.
-   destruct (Req_dec (g n) 0) as [Z|NZ].
+   if (g n = 0) as [Z|NZ].
    + rewrite Z in *. unfold Rdiv.
      rewrite Rinv_0, Rmult_0_r, Rminus_0_r, Rabs_R0. apply eps.
    + rewrite Rminus_0_r, Rabs_div by lra.
@@ -446,7 +446,7 @@ Proof.
  exists (Build_little_o _ _ o_prf). simpl. intros k.
  unfold o. case Nat.ltb_spec; intros.
  - rewrite H' by lia. lra.
- - destruct (Nat.eq_dec k 0).
+ - if (k = 0%nat).
    + subst. simpl. unfold Rdiv. rewrite Rinv_0, tau_0. lra.
    + replace k with 1%nat by lia. simpl. rewrite ln_1. lra.
 Qed.
@@ -626,7 +626,7 @@ Proof.
      try apply D2f; try apply P2; lra. }
  assert (P1 : forall x, x1<x<x2 -> 0 < df x).
  { intros x Hx.
-   destruct (Rle_or_lt x x3) as [Hx'|Hx'].
+   if (x <= x3) as [Hx'|Hx'].
    + destruct (MVT_weak df d2H2 x1 x) as (c & Hc & Hc'); try lra.
      { intros. apply D2f; lra. }
      rewrite X1', Rminus_0_r in Hc'. rewrite Hc'.
@@ -648,7 +648,7 @@ Proof.
  split.
  - intros x Hx. clear N1b.
    apply Rminus_lt. change (f x < 0).
-   destruct (Rle_or_lt x x1) as [Hx'|Hx'].
+   if (x <= x1) as [Hx'|Hx'].
    + destruct (MVT_weak f df 0 x) as (c & Hc & Hc'); try lra.
      { intros. apply Df; lra. }
      rewrite E0, !Rminus_0_r in Hc'. rewrite Hc'.
@@ -660,7 +660,7 @@ Proof.
      apply Rmult_lt_0_compat; try apply P1; lra.
  - intros x Hx. clear N1a.
    apply Rminus_lt_0. change (0 < f x).
-   destruct (Rle_or_lt x x2) as [Hx'|Hx'].
+   if (x <= x2) as [Hx'|Hx'].
    + destruct (MVT_weak f df root x) as (c & Hc & Hc'); try lra.
      { intros. apply Df; lra. }
      rewrite Er, !Rminus_0_r in Hc'. rewrite Hc'.
@@ -702,9 +702,7 @@ Qed.
 Lemma FF_fixpoint x : 0<x<1 -> F (F x) = x <-> x = root.
 Proof.
  intros Hx. split.
- - intros E. destruct (Rtotal_order x root) as [LT|[EQ|LT]]; trivial.
-   + generalize (FF_low x). lra.
-   + generalize (FF_high x). lra.
+ - intros. generalize (FF_low x) (FF_high x); lra.
  - intros ->. now rewrite 2 F_fixpoint.
 Qed.
 
@@ -784,7 +782,7 @@ Proof.
  destruct (U eps) as (N,HN).
  destruct (U' eps) as (N',HN').
  exists (Nat.max (2*N) (2*N'+1)). intros n Hn.
- destruct (Nat.Even_or_Odd n) as [Ev|Od].
+ if (Nat.Even n) as [Ev|Od].
  - assert (Hn' : (n = 2 * (Nat.div2 n))%nat).
    { rewrite <- Nat.double_twice. now apply Nat.Even_double. }
    rewrite Hn'. apply HN. apply Nat.mul_le_mono_pos_l with 2%nat; lia.

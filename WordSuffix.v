@@ -8,7 +8,7 @@ Import ListNotations.
 Lemma kword_suffix_cycle k n u :
   Suffix u (kword k n) -> Suffix u (kword k (n+k)).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - now rewrite Nat.add_0_r.
  - intros Su.
    rewrite kword_eqn by lia. replace (n+k-k) with n by lia.
@@ -31,7 +31,7 @@ Lemma kword_suffix_cycle' k n u :
   Suffix u (kword k n) -> Suffix u (kword k (n-k)).
 Proof.
  intros Hn Hu Su.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { now rewrite Nat.sub_0_r. }
  rewrite kword_eqn in Su by lia.
  apply Suffix_app_inv in Su.
@@ -61,7 +61,7 @@ Qed.
 Lemma kword_last k n : k<>0 -> last (kword k n) 0 = (n+k-1) mod k.
 Proof.
  intros K. induction n as [n IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases n (k-1)).
+ if (n <= k-1).
  - rewrite kword_low by lia.
    destruct n.
    + rewrite Nat.mod_small; simpl; lia.
@@ -106,7 +106,7 @@ Proof.
    replace (m-n) with ((m+k-1)-(n+k-1)) by lia.
    rewrite <- mod_diff; try lia.
    rewrite <- !kword_last, <- Hn, <- Hm, !last_app; trivial. }
- { destruct (Nat.le_gt_cases n m); intros; auto.
+ { if (n <= m); intros; auto.
    symmetry; apply WL; auto. lia. }
 Qed.
 
@@ -136,7 +136,7 @@ Proof.
    + exists n. apply lastn_Suffix.
  - intros (Hu,(n & SU)).
    setoid_rewrite in_seq.
-   destruct (Nat.le_gt_cases n0 n).
+   if (n0 <= n).
    + assert (E := Nat.div_mod (n-n0) k K).
      set (r := (n-n0) mod k) in *.
      set (s := (n-n0) / k) in *.
@@ -173,7 +173,7 @@ Proof.
     rewrite <- (last_lastn (kword k (n0+j)) p) by trivial.
     now f_equal. }
   rewrite !kword_last in E'; trivial.
-  destruct (Nat.le_gt_cases i j).
+  if (i <= j).
   - apply mod_diff in E'; try lia. replace (_-_) with (j-i) in E' by lia.
     rewrite Nat.mod_small in E'; lia.
   - symmetry in E'. apply mod_diff in E'; try lia.
@@ -186,7 +186,7 @@ Lemma allsuffixesAt_permut k p n0 n0' :
   Permutation (allsuffixesAt k p n0) (allsuffixesAt k p n0').
 Proof.
  intros K H H'.
- destruct (Nat.eq_dec p 0) as [->|Hp].
+ if (p = 0) as [->|Hp].
  - unfold allsuffixesAt. apply eq_Permutation.
    rewrite <- (Nat.add_0_r n0), <- (Nat.add_0_r n0').
    rewrite <- !(map_add_seq k 0), !map_map.

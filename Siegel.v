@@ -149,7 +149,7 @@ Proof.
    rewrite <- RtoC_mult, <- mult_IZR in T.
    apply RtoC_inj, eq_IZR in T.
    apply Z.mul_eq_1 in T. destruct T as [-> | ->]. now left. now right. }
- destruct (Ceq_dec (Peval p1 x) 0) as [Hx|Hx].
+ if (Peval p1 x = 0) as [Hx|Hx].
  - assert (Hx' : ~Root x p2).
    { intros Hx'.
      assert (Root x (Pdiff p)).
@@ -538,8 +538,8 @@ Proof.
  replace (f x) with ((IZR sgn * /Peval Pcoef 0 * Peval Pcoef x) *
                      (Peval Pcoef 0 * /Peval (reciprocal Pcoef) x)).
  2:{ unfold f. field. split; try apply Root_nz.
-     destruct (Ceq_dec x 0) as [Y|N].
-     - subst. rewrite Peval_reciprocal_0.
+     if (x = 0) as [->|N].
+     - rewrite Peval_reciprocal_0.
        rewrite Hcoefs, linfactors_monic. intros [=H]; lra.
      - rewrite Peval_reciprocal; trivial.
        + intros H. apply Cmult_integral in H. destruct H.
@@ -586,7 +586,7 @@ Proof.
    rewrite (CPowerSeries_unique _ _ _ (fps_ok _ Hy)).
    rewrite Pmult_eval, Pconst_eval.
    unfold f. field.
-   { destruct (Ceq_dec y 0) as [->|N].
+   { if (RtoC y = 0) as [->|N].
      - rewrite Peval_reciprocal_0.
        rewrite Hcoefs, linfactors_monic. intros [=H]; lra.
      - rewrite Peval_reciprocal; trivial.
@@ -616,7 +616,7 @@ Proof.
  apply CInteger_mult. rewrite CInteger_alt. now exists (-1)%Z.
  apply CInteger_big_sum.
  intros k Hk. apply CInteger_mult. now apply IH.
- destruct (Nat.le_gt_cases (n-k) (degree Pcoef)).
+ if (n-k <= degree Pcoef)%nat.
  - rewrite reciprocal_coef by trivial. apply IntPoly_coef.
    rewrite IntPoly_alt. now eexists.
  - rewrite reciprocal_coef_0 by trivial.
@@ -679,8 +679,8 @@ Proof.
  2:{ unfold g. field. split.
      2:{ change (~Root 0 (linfactors roots)).
          rewrite <- linfactors_roots. apply roots_nz. }
-     destruct (Ceq_dec x 0) as [Y|N].
-     - subst. rewrite Peval_reciprocal_0.
+     if (x = 0) as [->|N].
+     - rewrite Peval_reciprocal_0.
        rewrite linfactors_monic. intros [=H]; lra.
      - rewrite Peval_reciprocal; trivial.
        + intros H. apply Cmult_integral in H. destruct H.
@@ -1165,7 +1165,7 @@ Proof.
    apply IZR_le, Rsqr_incr_1 in LE0; try lra.
    rewrite Rsqr_1, Rsqr_pow2 in LE0.
    lra. }
- destruct (Z.le_gt_cases 0 (fps' (S n))) as [HSn|HSn].
+ if (0 <= fps' (S n))%Z as [HSn|HSn].
  2:{ apply IZR_lt in HSn.
      unfold d in D. rewrite <- !Rsqr_pow2 in D.
      apply Rsqr_le_abs_0 in D.
@@ -1174,7 +1174,7 @@ Proof.
      rewrite Rabs_right in D by lra'.
      assert (LT' : root * IZR (fps' n) < root * 1) by lra.
      apply Rmult_lt_reg_l in LT'; lra'. }
- destruct (Z.eq_dec 0 (fps' (S n))) as [HSn'|HSn'].
+ if (0 = fps' (S n))%Z as [HSn'|HSn'].
  2:{ apply (Rlt_irrefl (root^2)).
      eapply Rlt_le_trans; [|apply D].
      apply Rle_lt_trans with ((IZR (fps' n) - IZR (fps' (S n)))^2*root^2)%R.
@@ -1558,7 +1558,7 @@ Qed.
 
 Lemma Ineq8 (r:nat) : IZR (big_sum (fun m => (fps' m)^2)%Z r) <= root^(2*r).
 Proof.
- destruct (Nat.eq_dec r 0) as [->|N].
+ if (r = 0%nat) as [->|N].
  - simpl. lra.
  - rewrite <- (re_RtoC (root^(2*r))). rtoc. rewrite grps_square; trivial.
    rewrite grps_square_real, re_RtoC; trivial.
@@ -1740,7 +1740,7 @@ Proof.
  assert (LE := Ineq8' 5 lia).
  cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3 in LE.
  assert (H4 : (fps' 4 <= 4)%Z) by lia. clear LE.
- destruct (Z.eq_dec (fps' 4) 4) as [H4'|H4'].
+ if (fps' 4 = 4)%Z as [H4'|H4'].
  - exfalso. clear H4.
    generalize (Ineq9 3 lia). unfold phi, C, B, A.
    cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4'. cbn -[pow].
@@ -1763,7 +1763,7 @@ Proof.
      assert (LE := Ineq8' 6 lia).
      cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4 in LE.
      assert (H5 : (fps' 5 <= 6)%Z) by lia. clear LE.
-     destruct (Z.eq_dec (fps' 5) 6) as [H5'|H5'].
+     if (fps' 5 = 6)%Z as [H5'|H5'].
      * exfalso. clear H5.
        generalize (Ineq9 4 lia). unfold phi, C, B, A.
        cbn -[Z.pow pow]. rewrite H0, H1, H2, H3, H4, H5'. cbn -[pow].
@@ -1786,7 +1786,7 @@ Proof.
           assert (LE := Ineq8' 7 lia).
           cbn -[Z.pow pow] in LE. rewrite H0, H1, H2, H3, H4, H5 in LE.
           assert (H6 : (fps' 6 <= 9)%Z) by lia. clear LE.
-          destruct (Z.le_gt_cases 8 (fps' 6)) as [H6'|H6'].
+          if (8 <= fps' 6)%Z as [H6'|H6'].
           2:{ generalize (Two 6). simpl. lia. }
           exfalso.
           generalize (Ineq9 5 lia). unfold phi, C, B, A.
@@ -1881,7 +1881,7 @@ Qed.
 Lemma continuous_poly p x : continuous (Peval p) x.
 Proof.
  unfold Peval.
- destruct (Nat.eq_dec (length p) 0) as [E|N].
+ if (length p = 0%nat) as [E|N].
  - rewrite E. simpl. apply continuous_const.
  - replace (length p) with (S (length p - 1)) by lia.
    eapply continuous_ext. { intros y. symmetry. apply big_sum_sum_n. }
@@ -2418,7 +2418,7 @@ Proof.
    intros x Hx. rewrite !Pmult_eval, Pconst_eval, Bkpoly_ok, <- EQ.
    2:{ rewrite Cmod_R, Rabs_pos_eq; lra. }
    unfold f. field.
-   destruct (Req_dec x 0).
+   if (x = 0%R).
    - subst. rewrite Peval_0.
      rewrite reciprocal_coef by lia.
      rewrite Nat.sub_0_r.
@@ -2833,10 +2833,10 @@ Qed.
 
 Lemma SiegelTheorem x : Pisot x -> Mu.mu 5 <= x.
 Proof.
- intros Hx.
- destruct (Rle_lt_dec (sqrt 2) x) as [Hx'|Hx'].
+ intros.
+ if (sqrt 2 <= x).
  - generalize mu_5 sqrt2_approx. lra.
- - destruct (SiegelTheoremFull x Hx Hx') as [-> | ->]; try easy.
+ - destruct (SiegelTheoremFull x) as [-> | ->]; try easy.
    generalize mu_4 mu_5; lra.
 Qed.
 

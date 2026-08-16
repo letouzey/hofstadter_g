@@ -3,7 +3,7 @@ From Coq Require Import QArith Qreals Qminmax Qabs Qcanon.
 Close Scope Q. Close Scope Qc. (* Issue with QArith *)
 From Coquelicot Require Rcomplements.
 From Hofstadter.HalfQuantum Require Import RealAux.
-Require Import MoreList DeltaList.
+Require Import MoreTac MoreList DeltaList.
 Import ListNotations.
 
 (** * Complements about Coq reals *)
@@ -46,13 +46,52 @@ Proof.
  intros x x' Hx y y' Hy. lra.
 Qed.
 
+(** Boolean tests *)
+
+Definition Reqb (a b : R) := if Req_dec_T a b then true else false.
+Definition Rleb (a b : R) := if Rle_lt_dec a b then true else false.
+Definition Rltb (a b : R) := negb (Rleb b a).
+
+Lemma Reqb_spec a b : BoolSpec (a = b) (a <> b) (Reqb a b).
+Proof.
+ unfold Reqb. destruct Req_dec_T; now constructor.
+Qed.
+
+Lemma Rleb_spec a b : BoolSpec (a <= b) (b < a) (Rleb a b).
+Proof.
+ unfold Rleb. destruct Rle_lt_dec; now constructor.
+Qed.
+
+Lemma Rltb_spec a b : BoolSpec (a < b) (b <= a) (Rltb a b).
+Proof.
+ unfold Rltb. case Rleb_spec; intros; now constructor.
+Qed.
+Lemma Reqb_eq x y : Reqb x y = true <-> x = y.
+Proof.
+ unfold Reqb; now destruct Req_dec_T.
+Qed.
+
+Lemma Rleb_le x y : Rleb x y = true <-> x <= y.
+Proof.
+ unfold Rleb; destruct Rle_lt_dec; lra.
+Qed.
+
+Lemma Rltb_lt x y : Rltb x y = true <-> x < y.
+Proof.
+ unfold Rltb; case Rleb_spec; lra.
+Qed.
+
+#[global] Instance Dec2_R_eq a b : Decide3 _ _ _ := Reqb_spec a b.
+#[global] Instance Dec3_R_le a b : Decide3 _ _ _ | 5 := Rleb_spec a b.
+#[global] Instance Dec3_R_lt a b : Decide3 _ _ _ | 3 := Rltb_spec a b.
+
 (** Rabs_right, but with Rle instead of Rge precondition *)
 Definition Rabs_right' := Rabs_pos_eq.
 
 Lemma Rdist_pos_pos a b : 0<=a -> 0<=b -> R_dist a b <= Rmax a b.
 Proof.
 unfold R_dist. intros Ha Hb.
-destruct (Rlt_le_dec a b).
+if (a < b).
 - rewrite Rmax_right, Rabs_left; lra.
 - rewrite Rmax_left, Rabs_right; lra.
 Qed.
@@ -60,7 +99,7 @@ Qed.
 Lemma Rdist_impl_pos (a b : R) : R_dist a b < b -> 0 < a.
 Proof.
  unfold R_dist. intros H.
- destruct (Rle_or_lt b a).
+ if (b <= a).
  - rewrite Rabs_right in H; lra.
  - rewrite Rabs_left in H; lra.
 Qed.
@@ -115,9 +154,9 @@ Lemma Rmult_ge_lowerbound a r b a' r' b' :
  a*a' <= r*r' \/ a*b' <= r*r' \/ b*a' <= r*r' \/ b*b' <= r*r'.
 Proof.
  intros.
- destruct (Rle_lt_dec 0 a); destruct (Rle_lt_dec 0 a'); try nra.
- destruct (Rle_lt_dec 0 b); destruct (Rle_lt_dec 0 b'); try nra.
- destruct (Rle_lt_dec 0 r); nra.
+ if (0 <= a); if (0 <= a'); try nra.
+ if (0 <= b); if (0 <= b'); try nra.
+ if (0 <= r); nra.
 Qed.
 
 Lemma Rmult_le_upperbound a r b a' r' b' :
@@ -136,7 +175,7 @@ Lemma pow_lt_compat_l x y n :
  0 <= x < y -> n<>O -> x^n < y^n.
 Proof.
  induction n; try easy.
- destruct (Nat.eq_dec n O) as [->|N]; try lra.
+ if (n = O) as [->|N]; try lra.
  intros Hxy _. simpl. apply Rmult_lt_compat; trivial.
  split; auto. now apply pow_le.
 Qed.
@@ -180,11 +219,11 @@ Qed.
 
 Lemma minus_INR_max (n m : nat) : INR (n-m) = Rmax 0 (n - m).
 Proof.
- destruct (Nat.le_ge_cases n m) as [H|H].
+ if (n <= m)%nat as [H|H].
  - replace (n-m)%nat with 0%nat by lia.
    rewrite Rmax_left; trivial. apply le_INR in H. lra.
- - rewrite Rmax_right by (apply le_INR in H; lra).
-   apply minus_INR; trivial.
+ - rewrite Rmax_right by (apply lt_INR in H; lra).
+   apply minus_INR; lia.
 Qed.
 
 Lemma Rplus_reorder a b c d : (a+b)+(c+d) = (a+c)+(b+d).
@@ -223,9 +262,9 @@ Qed.
 Lemma pow_incr_odd n x y : Nat.Odd n -> x <= y -> x^n <= y^n.
 Proof.
  intros Hn LE.
- destruct (Rle_lt_dec 0 x).
+ if (0 <= x).
  - apply pow_incr; lra.
- - destruct (Rle_lt_dec 0 y).
+ - if (0 <= y).
    + apply Rle_trans with 0.
      * apply Rlt_le. apply pow_odd_neg; auto.
      * now apply pow_le.
@@ -305,21 +344,6 @@ Ltac ntor :=
  end.
 
 Ltac inr := ntor; break_max; lra.
-
-(** Boolean tests *)
-
-Definition Rleb (a b : R) := if Rle_lt_dec a b then true else false.
-Definition Rltb (a b : R) := negb (Rleb b a).
-
-Lemma Rleb_spec a b : BoolSpec (a <= b) (b < a) (Rleb a b).
-Proof.
- unfold Rleb. destruct Rle_lt_dec; now constructor.
-Qed.
-
-Lemma Rltb_spec a b : BoolSpec (a < b) (b <= a) (Rltb a b).
-Proof.
- unfold Rltb. case Rleb_spec; intros; now constructor.
-Qed.
 
 (** Link between Q and R *)
 
@@ -483,8 +507,8 @@ Qed.
 Lemma nat_part_mono a b : a <= b -> (nat_part a <= nat_part b)%nat.
 Proof.
  intros H. unfold nat_part.
- destruct (Z.le_gt_cases 0 (Int_part b)) as [LE|LT].
- - destruct (Z.le_gt_cases 0 (Int_part a)).
+ if (0 <= Int_part b)%Z as [LE|LT].
+ - if (0 <= Int_part a)%Z.
    + apply Z2Nat.inj_le; trivial. now apply Int_part_mono.
    + destruct (Int_part a); simpl; try lia.
  - assert (b < 0).
@@ -524,12 +548,12 @@ Qed.
 (** Ceil function (from R to Z) : [1+Int_part] except on integers *)
 
 Definition ceil (x:R) : Z :=
-  Int_part x + if Req_EM_T (frac_part x) 0 then 0 else 1.
+  Int_part x + if Reqb (frac_part x) 0 then 0 else 1.
 
 Lemma ceil_bound (r : R) : r <= IZR (ceil r) < r + 1.
 Proof.
  unfold ceil.
- destruct Req_EM_T as [E|N].
+ case Reqb_spec; intros E.
  - rewrite (int_frac r) at 1 4. rewrite plus_IZR, E. lra.
  - rewrite (int_frac r) at 1 4. rewrite plus_IZR.
    generalize (base_fp r); lra.
@@ -540,14 +564,14 @@ Proof.
  split.
  2:{ intros <-. generalize (ceil_bound r). lra. }
  unfold ceil.
- destruct Req_EM_T as [E|N].
+ case Reqb_spec; intros E.
  - rewrite (int_frac r) at 1 2. rewrite E. clear E.
    rewrite Z.add_0_r, Rplus_0_r, Z_R_minus.
    intros (U,V). apply le_IZR in U. apply lt_IZR in V. lia.
  - rewrite (int_frac r) at 1 2.
    assert (Hr := base_fp r).
    intros Hz.
-   assert (Hz' : 0 < IZR z - IZR (Int_part r) < 2) by lra. clear N Hr Hz.
+   assert (Hz' : 0 < IZR z - IZR (Int_part r) < 2) by lra. clear E Hr Hz.
    rewrite Z_R_minus in Hz'.
    destruct Hz' as (U,V). apply lt_IZR in U. apply lt_IZR in V. lia.
 Qed.
@@ -556,7 +580,7 @@ Lemma large_enough_exponent (a b:R) :
   1 < a -> exists n:nat, b < a^n.
 Proof.
  intros Ha.
- destruct (Rlt_or_le b 1); [now exists O|].
+ if (b < 1); [now exists O|].
  assert (0 <= ln b).
  { rewrite <- ln_1. apply Rcomplements.ln_le; lra. }
  assert (0 < ln a).
@@ -680,7 +704,7 @@ Proof.
      apply IZR_neq. intro E. change (0%Z) with (Z.of_nat 0) in E.
      apply Nat2Z.inj in E. lia.
    - rewrite <- positive_nat_Z. f_equal. rewrite Nat2Pos.id; lia. }
- destruct (Z.eq_dec (Int_part (q*a)) p) as [EQ|NEQ].
+ if (Int_part (q*a) = p) as [EQ|NEQ].
  - assert (Hm' : m < eps).
    { rewrite (int_frac (q*a)), EQ in LT. fold m in LT.
      replace (p+m-p) with m in LT by lra. rewrite Rabs_right in LT; lra. }
@@ -746,7 +770,7 @@ Qed.
 
 Lemma cos_abs x : cos (Rabs x) = cos x.
 Proof.
- destruct (Rle_lt_dec 0 x).
+ if (0 <= x).
  - rewrite Rabs_right; lra.
  - rewrite Rabs_left by lra. apply cos_neg.
 Qed.
@@ -878,7 +902,7 @@ Proof.
  { apply Rmult_lt_reg_l with a; trivial. ring_simplify. nra. }
  apply Rmult_lt_reg_l with (4*c)%R; try lra.
  rewrite Rmult_0_r, !Rmult_plus_distr_l, <- Rmult_assoc.
- destruct (Req_dec x 0) as [->|X].
+ if (x = 0) as [->|X].
  - ring_simplify. nra.
  - apply Rle_lt_trans with (b^2*x^2 + 4*c*(b*x)+4*c*c)%R.
    + replace (_+_)%R with ((b*x+2*c)^2)%R by ring. apply pow2_ge_0.
@@ -961,40 +985,40 @@ Proof.
  intros Hx Hy.
  destruct n as [|n].
  { simpl. lra. }
- destruct (Req_dec x 0) as [Hx'|Hx'], (Req_dec y 0) as [Hy'|Hy'].
+ if (x = 0); if (y = 0).
  - subst. simpl. lra.
  - lra.
  - subst. apply (pow_le x (S n)) in Hx. rewrite Rpow_0_l by easy. lra.
  - rewrite !pow_via_exp by lra.
-   intros H. apply exp_lt_inv in H.
-   apply Rmult_lt_reg_l in H; try apply RSpos.
+   intros H'. apply exp_lt_inv in H'.
+   apply Rmult_lt_reg_l in H'; try apply RSpos.
    apply ln_lt_inv; lra.
 Qed.
 
 (** Generalized n-th root *)
 
 Definition nthroot (x:R) (n:nat) :=
-  if Rle_lt_dec x 0 then 0 else exp (ln x / n).
+  if Rleb x 0 then 0 else exp (ln x / n).
 
 Lemma nthroot_alt x n : 0 < x -> nthroot x n = exp (ln x / n).
 Proof.
- intros. unfold nthroot. destruct Rle_lt_dec; lra.
+ intros. unfold nthroot. case Rleb_spec; lra.
 Qed.
 
 Lemma nthroot_nonpos x n : x <= 0 -> nthroot x n = 0.
 Proof.
- intros. unfold nthroot. destruct Rle_lt_dec; lra.
+ intros. unfold nthroot. case Rleb_spec; lra.
 Qed.
 
 Lemma nthroot_pos x n : 0 <= nthroot x n.
 Proof.
- unfold nthroot. destruct Rle_lt_dec; try lra. apply Rlt_le, exp_pos.
+ unfold nthroot. case Rleb_spec; intros; try lra. apply Rlt_le, exp_pos.
 Qed.
 
 Lemma nthroot_gt_0 x n : 0 < x -> 0 < nthroot x n.
 Proof.
  intros Hx.
- unfold nthroot. destruct Rle_lt_dec; try lra. apply exp_pos.
+ unfold nthroot. case Rleb_spec; intros; try lra. apply exp_pos.
 Qed.
 
 (** Beware of the non-conventional nthroot 0 0 = 0 *)
@@ -1008,15 +1032,15 @@ Qed.
 Lemma nthroot_pow x n : n<>O -> 0 <= x -> (nthroot x n)^n = x.
 Proof.
  intros Hn Hx.
- destruct (Req_dec x 0) as [Hx'|Hx'].
- - rewrite Hx', nthroot_nonpos by lra. apply Rpow_0_l. lia.
+ if (x = 0) as [->|Hx'].
+ - rewrite nthroot_nonpos by lra. apply Rpow_0_l. lia.
  - rewrite nthroot_alt, exp_pow by lra.
    rewrite <- (exp_ln x) at 2 by lra. f_equal. field. inr.
 Qed.
 
 Lemma nthroot_sqrt x : nthroot x 2 = sqrt x.
 Proof.
- destruct (Rle_lt_dec x 0).
+ if (x <= 0).
  - rewrite nthroot_nonpos by trivial. symmetry. now apply sqrt_neg_0.
  - apply (pow_inj_l 2); try lia; try apply nthroot_pos; try apply sqrt_pos.
    rewrite nthroot_pow by (lia||lra). rewrite pow2_sqrt; lra.
@@ -1030,9 +1054,9 @@ Qed.
 
 Lemma sqrt_subadd x y : sqrt (x+y) <= sqrt x + sqrt y.
 Proof.
- destruct (Rle_lt_dec x 0).
+ if (x <= 0).
  { rewrite (sqrt_neg_0 x), Rplus_0_l by lra. apply sqrt_le_1_alt. lra. }
- destruct (Rle_lt_dec y 0).
+ if (y <= 0).
  { rewrite (sqrt_neg_0 y), Rplus_0_r by lra. apply sqrt_le_1_alt. lra. }
  apply Rsqr_incr_0.
  2: apply sqrt_pos.

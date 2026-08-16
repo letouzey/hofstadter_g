@@ -80,7 +80,7 @@ Qed.
 
 Lemma knsub_len_low k j : j <= k -> length (knsub k j [k-1]) = j+1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - intros Hj. now replace j with 0 by lia.
  - intros. rewrite knsub_len, A_base; try lia.
 Qed.
@@ -212,14 +212,14 @@ Proof.
  induction n.
  - inversion Hn.
  - rewrite f_S. simpl fs.
-   destruct (Nat.eq_dec n 0) as [->|N]; [simpl; lia | lia].
+   if (n = 0) as [->|N]; [simpl; lia | lia].
 Qed.
 
 Lemma steiner_thm_disj k n :
   LBound k 1 n (f k n) -> L k 1 (f k n) = n \/ kseq k n = 0.
 Proof.
   unfold LBound. intros IH1.
-  destruct (Nat.eq_dec n 0) as [->|N]; [now left|].
+  if (n = 0) as [->|N]; [now left|].
   generalize (knsub_prefixseq k 1 (f k n)).
   revert IH1.
   replace (f k n) with (S (f k n - 1)) at 2 3 4
@@ -230,7 +230,7 @@ Proof.
   set (x := kseq _ _) in *.
   unfold knsub. simpl. rewrite app_nil_r.
   unfold ksubst. case Nat.eqb; intros W0 W; simpl in *; try lia.
-  destruct (Nat.eq_dec (length w) (n-1)) as [W'|W']; try lia.
+  if (length w = n-1) as [W'|W']; try lia.
   right. rewrite W' in W.
   rewrite Nat.add_succ_r, Nat.add_1_r in W.
   rewrite !take_S, <- app_assoc in W. simpl in W.
@@ -245,7 +245,7 @@ Lemma steiner_thm_corestep k n : 0<k -> 2<=n ->
 Proof.
  intros K Hn IHn1 IHn.
  (* Case k=1 must be handled separately (but it's easy, L is double) *)
- destruct (Nat.eq_dec k 1) as [->|Hq]; [ apply steiner_thm_k1_j1 | ].
+ if (k = 1) as [->|Hq]; [ apply steiner_thm_k1_j1 | ].
  assert (Hn' : S (n-1) = n) by lia.
  destruct (fs_step k k (n-1)) as [E|E]; rewrite Hn' in E.
  - (* First case : f^^k flat at (n-1) *)
@@ -342,7 +342,7 @@ Lemma steiner_thm k j n : 0<k -> 0 < n -> LBound k j n (fs k j n).
 Proof.
  intros K. change (SteinerThm k j n).
  revert j. induction n as [n IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases n 2) as [Hn|Hn].
+ if (n <= 2) as [Hn|Hn].
  - destruct n as [|[|[|n]]]; try lia.
    + (* n=0 *) inversion 1.
    + (* n=1 *)
@@ -409,7 +409,7 @@ Qed.
 Lemma fs_rightmost_child_carac k j a n :
   0<k -> fs k j n = a -> fs k j (S n) = S a <-> n = L k j a.
 Proof.
- intros K. destruct (Nat.eq_dec a 0) as [->|Ha]; intros E.
+ intros K. if (a = 0) as [->|Ha]; intros E.
  - apply fs_0_inv in E. subst n. now rewrite fs_k_1, L_0.
  - split; intros E'.
    + apply steiner_thm_iff in E, E'; try lia. unfold LBound in *.
@@ -419,7 +419,7 @@ Qed.
 
 Lemma L_k_1_rchild k n : L k 1 n = rchild k n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - rewrite L_01_1 by lia. unfold rchild. simpl. lia.
  - rewrite <- rightmost_child_carac; try lia.
    apply (fs_S_L k 1); lia. apply (fs_L k 1); lia.
@@ -575,9 +575,9 @@ Qed.
 
 Lemma fs_count_km1 k n : fs k (k-1) n = C k (k-1) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { simpl. symmetry. apply count_all. intros m _. apply kseq_01; lia. }
- destruct (Nat.eq_dec n 0) as [->|N].
+ if (n = 0) as [->|N].
  { now rewrite fs_k_0. }
  apply LBound_Ckkm1; try lia. apply steiner_thm; lia.
 Qed.
@@ -587,8 +587,8 @@ Lemma Lk_LSk k n : 0<k ->
  /\ (0<n -> forall j, j<=k -> L k j n < L (S k) (S j) n).
 Proof.
  intros K. induction n as [n IH] using lt_wf_ind.
- destruct (Nat.eq_dec n 0) as [->|N0]; [easy|].
- destruct (Nat.eq_dec n 1) as [->|N1].
+ if (n = 0) as [->|N0]; [easy|].
+ if (n = 1) as [->|N1].
  { clear N0 IH. split; intros;
    rewrite !L_S, !L_0, !kseq_k_0, !knsub_kword, !kword_len, !A_base; lia. }
  split.
@@ -596,17 +596,17 @@ Proof.
    fixpred.
    set (c := fs k (k-1) n).
    set (c' := fs (S k) k n).
-   destruct (Nat.eq_dec c' 0); try lia.
+   if (c' = 0); try lia.
    replace c' with (S (c'-1)) by lia. change (c'-1 < c).
    apply (incr_strmono_iff _ (L_incr (S k) k)).
    apply Nat.lt_le_trans with n; [apply steiner_thm; lia|].
    transitivity (L k (k-1) c); [apply steiner_thm; lia|].
-   destruct (Nat.eq_dec k 1) as [->|K1].
+   if (k = 1) as [->|K1].
    + rewrite L_k_0. apply L_ge_n.
    + apply Nat.lt_le_incl. replace k with (S (k-1)) at 4 by lia.
      apply IH; try apply fs_lt; try apply fs_nonzero; lia.
  - intros _. destruct n; try easy.
-   destruct (Nat.eq_dec (kseq (S k) n) (S k - 1)) as [E|N].
+   if (kseq (S k) n = S k - 1) as [E|N].
    + intros j Hj. rewrite !L_S, E.
      rewrite knsub_kword, kword_len by lia.
      assert (Hx := kseq_letters k n lia).
@@ -637,7 +637,7 @@ Proof.
        eapply Nat.le_lt_trans; [|apply IH6].
        rewrite <- (Nat.add_1_r j), <- L_add. apply incr_mono; trivial.
        apply L_incr. }
-     intros j Hj. destruct (Nat.eq_dec j k) as [->|Hj'].
+     intros j Hj. if (j = k) as [->|Hj'].
      * generalize (steiner_trick k (S n) lia).
        specialize (LT (k-1) lia). fixpred. lia.
      * apply LT. lia.
@@ -645,7 +645,7 @@ Qed.
 
 Lemma Lk1_ge_LSk1 k n : L (S k) 1 n <= L k 1 n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { rewrite !L_01_1; lia. }
  { apply Lk_LSk; lia. }
 Qed.
@@ -653,7 +653,7 @@ Qed.
 Lemma Lkj_lt_LSkSj k j n :
   j<=k -> 0 < n -> L k j n < L (S k) (S j) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { intros Hj Hn. replace j with 0 by lia.
    rewrite L_k_0, L_01_1 by lia. lia. }
  { intros. apply Lk_LSk; lia. }
@@ -663,9 +663,9 @@ Lemma fs_decreases k j n :
  j<=k -> fs (S k) (S j) n <= fs k j n.
 Proof.
  intros Hj.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  { replace j with 0 by lia. simpl. apply f_le. }
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  { now rewrite !fs_k_0. }
  apply Nat.lt_pred_le. rewrite <- Nat.sub_1_r, (L_lt (S k) (S j)).
  transitivity n; [ apply steiner_thm; lia |].
@@ -759,7 +759,7 @@ Proof.
      rewrite seq_S. simpl. rewrite <- app_assoc, flat_map_app.
      do 2 f_equal. simpl. rewrite app_nil_r. f_equal. lia. }
  { intros n.
-   destruct (Nat.eq_dec k 0) as [->|K]; [|apply WL; lia].
+   if (k = 0) as [->|K]; [|apply WL; lia].
    simpl. specialize (WL 1 lia n). simpl in WL. apply WL. }
 Qed.
 
@@ -772,7 +772,7 @@ Proof.
  exists w. split.
  - rewrite <- Hw. rewrite !kword_low, seq_S by lia. simpl.
    now rewrite <- app_assoc.
- - destruct (Nat.le_gt_cases (S p + i) (k-1)).
+ - if (S (p + i) <= k-1).
    + rewrite !kword_low in Hw by lia.
      rewrite seq_app in Hw. injection Hw as Hw. apply app_inv_head in Hw.
      subst. rewrite in_seq. lia.
@@ -869,7 +869,7 @@ Qed.
 Lemma fs_count k p n : p < k-1 -> fs k (k+p) n = C k p (n+S p).
 Proof.
  intros Hp.
- destruct (Nat.eq_dec n 0) as [->|N].
+ if (n = 0) as [->|N].
  - rewrite Nat.add_0_l, fs_k_0, count_nbocc.
    rewrite <- (@A_base k p lia), kprefix_A_kword, kword_low by lia.
    rewrite nbocc_notin; trivial. simpl. rewrite in_seq. lia.
@@ -893,9 +893,9 @@ Qed.
 
 Lemma Ck0_ge_CSk0 k n : C (S k) 0 n <= C k 0 n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K0].
+ if (k = 0) as [->|K0].
  { apply Nat.le_refl. }
- destruct (Nat.eq_dec k 1) as [->|K1].
+ if (k = 1) as [->|K1].
  { rewrite (count_all (kseq 1)). apply count_subid.
    intros m _. rewrite kseq_01; lia. }
  generalize (f_count_0 k n lia) (f_count_0 (S k) n lia) (f_grows k n). lia.
@@ -960,7 +960,7 @@ Proof.
    rewrite kprefix_length, app_length. lia. }
  clear P. rename P' into P.
  rewrite knsub_alt in * by trivial.
- destruct (Nat.ltb_spec (p+x) (k-1)).
+ if (p+x < k-1).
  - simpl in H.
    destruct P as ([|],P).
    + rewrite app_nil_r in P. rewrite P, nbabove_app. simpl.
@@ -1024,7 +1024,7 @@ Qed.
 
 Lemma L_f_galois k j n m : 0<k -> fs k j n <= m <-> n <= L k j m.
 Proof.
- intros. destruct (Nat.eq_dec n 0) as [->|N].
+ intros. if (n = 0) as [->|N].
  - rewrite fs_k_0; lia.
  - split; intros.
    + etransitivity. 2:apply incr_mono; eauto using L_incr.
@@ -1051,7 +1051,7 @@ Lemma LL_fsfs_le_bis k k' j j' n :
   let m := fs k j n in L k j m <= L k' j' m -> fs k' j' n <= fs k j n.
 Proof.
  simpl; intros K K' H.
- destruct (Nat.eq_dec n 0) as [->|N].
+ if (n = 0) as [->|N].
  - now rewrite !fs_k_0.
  - apply L_f_galois; trivial.
    etransitivity; [|apply H]. apply steiner_thm; lia.
@@ -1082,7 +1082,7 @@ Qed.
 Lemma Lkj1_A k j : L k j 1 = A k j.
 Proof.
  rewrite L_S, L_0. rewrite kseq_k_0.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - simpl. change (knsub 0 j [0]) with (knsub 1 j [0]). rewrite A_0.
    now rewrite knsub_kword, kword_len by lia.
  - now rewrite knsub_kword, kword_len by lia.
@@ -1128,7 +1128,7 @@ Qed.
 
 Lemma L_diag_incr_example k j : j <= 2*k -> L k j 1 < L (S k) (S j) 1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - intros J. replace j with 0 by lia. now compute.
  - intros J. rewrite !Lkj1_A, A_diag_step; lia.
 Qed.
@@ -1234,7 +1234,7 @@ Lemma f_L_conjectures_bis k : 0<k ->
  (forall m, quad (k-1) < m -> L (S k) 1 m < L k 1 m).
 Proof.
  intros K H m Hm.
- destruct (Nat.eq_dec k 1) as [->|K1].
+ if (k = 1) as [->|K1].
  { simpl in Hm. rewrite (L_01_1 1) by trivial.
    apply L21_lt_2n. compute in Hm. lia. }
  destruct k; try easy. fixpred.
@@ -1261,7 +1261,7 @@ Qed.
 
 Lemma L_k_2k k : L k (2*k) 1 = triangle (k+2) - 2.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K]; try easy.
+ if (k = 0) as [->|K]; try easy.
  rewrite Lkj1_A. replace (2*k) with (k-1+(k+1)) by lia.
  rewrite A_triangle by lia.
  rewrite (Nat.add_succ_r _ 1), triangle_succ. lia.
@@ -1303,7 +1303,7 @@ Lemma cex_spec k j :
   L (S k) (S j) (cex k j) < L k j (cex k j).
 Proof.
  intros K Hj.
- destruct (Nat.le_gt_cases (2*k+2) j) as [Hj'|Hj'].
+ if (2*k+2 <= j).
  - unfold cex. replace (2*k+2-j) with 0 by lia.
    rewrite !Lkj1_A. apply A_diag_decr; lia.
  - unfold cex. set (p := 2*k+2-j) in *.

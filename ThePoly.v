@@ -36,7 +36,7 @@ Qed.
 
 Lemma ThePoly_root_eqn r k : Root r (ThePoly k) -> r^(k-1)*(r-1) = 1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros Hr. now apply ThePoly_0_NoRoot in Hr. }
  { rewrite ThePoly_root_carac. rewrite <- (succ_pred K) at 1.
    simpl. unfold Cminus. rewrite Cmult_plus_distr_l, (Cmult_comm _ r).
@@ -87,7 +87,7 @@ Qed.
 Lemma ThePoly_deg k : degree (ThePoly k) = k.
 Proof.
  unfold ThePoly.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { simpl. set (l := [_]). generalize (degree_length l). unfold l.
    simpl. lia. }
  rewrite Pplus_assoc, Pplus_comm.
@@ -140,9 +140,9 @@ Lemma ThePoly_no_common_root_with_diff k c :
   Root c (ThePoly k) -> ~ Root c (Pdiff (ThePoly k)).
 Proof.
  intros Hc.
- destruct (Nat.eq_dec k 0) as [->|K0].
+ if (k = 0%nat) as [->|K0].
  { now apply ThePoly_0_NoRoot in Hc. }
- destruct (Nat.eq_dec k 1) as [->|K1].
+ if (k = 1%nat) as [->|K1].
  { rewrite ThePoly_diff_1. unfold Root. cbn. rewrite Cmult_1_l, Cplus_0_l.
    apply C1_nz. }
  unfold Root.
@@ -169,7 +169,7 @@ Qed.
 Lemma roots_le_mu k (r:C) :
  Root r (ThePoly k) -> Cmod r <= mu k.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros E. apply ThePoly_root_eqn in E.
  apply Rnot_lt_le. intros L.
@@ -190,7 +190,7 @@ Qed.
 Lemma other_roots_lt_mu k (r:C) :
  Root r (ThePoly k) -> r <> mu k -> Cmod r < mu k.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros R N.
  assert (LE := roots_le_mu k r R).
@@ -210,7 +210,7 @@ Lemma root_equal_Cmod_Re k (r1 r2:C) :
  Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
  Cmod r1 = Cmod r2 -> Re r1 = Re r2.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros R1 R2 E.
  assert (E1 := ThePoly_root_eqn _ _ R1).
@@ -245,7 +245,7 @@ Lemma root_order_Cmod_Re k (r1 r2:C) :
  Root r1 (ThePoly k) -> Root r2 (ThePoly k) ->
  (Cmod r1 < Cmod r2 -> Re r1 < Re r2)%R.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros R1 R2 LT.
  assert (E1 := ThePoly_root_eqn _ _ R1).
@@ -282,9 +282,9 @@ Lemma root_equal_Cmod_Re_iff q (r1 r2:C) :
  (Cmod r1 = Cmod r2 <-> Re r1 = Re r2)%R.
 Proof.
  intros R1 R2. split; [ apply (root_equal_Cmod_Re q); eauto | intros E ].
- destruct (Rtotal_order (Cmod r1) (Cmod r2)) as [H|[H|H] ]; trivial.
- - apply (root_order_Cmod_Re q) in H; trivial. lra.
- - apply (root_order_Cmod_Re q) in H; trivial. lra.
+ if (Cmod r1 < Cmod r2). { apply (root_order_Cmod_Re q) in H; trivial. lra. }
+ if (Cmod r2 < Cmod r1). { apply (root_order_Cmod_Re q) in H0; trivial. lra. }
+ lra.
 Qed.
 
 Lemma root_equal_or_conj q (r1 r2:C) :
@@ -299,7 +299,7 @@ Proof.
  destruct r1 as (x1,y1), r2 as (x2,y2); simpl in *.
  unfold Cconj. simpl. subst x2.
  revert E'.
- destruct (Rle_or_lt 0 y1), (Rle_or_lt 0 y2);
+ if (0 <= y1); if (0 <= y2);
    do 2 ((rewrite Rabs_right by lra) || (rewrite Rabs_left by lra));
    intros; subst; intuition.
  left. f_equal. lra.
@@ -310,15 +310,15 @@ Lemma root_order_Cmod_Re_iff q (r1 r2:C) :
  (Cmod r1 < Cmod r2 <-> Re r1 < Re r2)%R.
 Proof.
  intros R1 R2. split; [ apply (root_order_Cmod_Re q); eauto | intros LT ].
- destruct (Rtotal_order (Cmod r1) (Cmod r2)) as [H|[H|H] ]; trivial.
- - apply (root_equal_Cmod_Re q) in H; trivial. lra.
- - apply (root_order_Cmod_Re q) in H; trivial. lra.
+ if (Cmod r1 = Cmod r2). { apply (root_equal_Cmod_Re q) in H; trivial. lra. }
+ if (Cmod r2 < Cmod r1). { apply (root_order_Cmod_Re q) in H0; trivial. lra. }
+ lra.
 Qed.
 
 Lemma roots_ge_nu k (r:C) :
  Nat.Even k -> Root r (ThePoly k) -> -nu k <= Cmod r.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros _ Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros K' R.
  assert (E := ThePoly_root_eqn _ _ R).
@@ -346,7 +346,7 @@ Qed.
 Lemma other_roots_gt_nu k (r:C) :
  Nat.Even k -> Root r (ThePoly k) -> r <> nu k -> -nu k < Cmod r.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { intros _ Hr. now apply ThePoly_0_NoRoot in Hr. }
  intros K' R N.
  assert (GE := roots_ge_nu k r K' R).
@@ -434,11 +434,11 @@ Qed.
 Lemma SortedRoots_mu k l : SortedRoots k l -> l@0 = mu k.
 Proof.
  intros SR.
- destruct (Nat.eq_dec k 0) as [->|K]. { now apply SortedRoots_nz in SR. }
+ if (k = 0%nat) as [->|K]. { now apply SortedRoots_nz in SR. }
  assert (H : length l = k) by apply (SortedRoots_length _ _ SR).
  destruct l as [|r l]. simpl in *; lia. clear H.
  unfold Cnth. simpl.
- destruct (Ceq_dec r (mu k)) as [ |N]; [trivial|exfalso].
+ if (r = mu k) as [ |N]; [trivial|exfalso].
  assert (M : In (RtoC (mu k)) (r::l))
   by (apply (SortedRoots_roots _ _ SR), mu_is_root; trivial).
  simpl in M. destruct M as [M|M]; try easy.
@@ -457,7 +457,7 @@ Qed.
 Lemma SortedRoots_nu k l : Nat.Even k -> SortedRoots k l -> l@(k-1) = nu k.
 Proof.
  intros K' SR.
- destruct (Nat.eq_dec k 0) as [->|K]. { now apply SortedRoots_nz in SR. }
+ if (k = 0%nat) as [->|K]. { now apply SortedRoots_nz in SR. }
  assert (H : length l = k) by apply (SortedRoots_length _ _ SR).
  rewrite <- H at 1.
  unfold Cnth. rewrite <- rev_nth by lia.
@@ -466,7 +466,7 @@ Proof.
  rewrite <- rev_length in H.
  setoid_rewrite In_rev in RO.
  destruct (rev l) as [|r l']; simpl in H; try lia; clear H. simpl.
- destruct (Ceq_dec r (nu k)) as [ |N]; [trivial|exfalso].
+ if (r = nu k) as [ |N]; [trivial|exfalso].
  assert (R : Root r (ThePoly k)) by (apply RO; now left).
  assert (NU : In (RtoC (nu k)) (r::l')).
  { apply RO, ThePoly_root_carac. ctor. now rewrite nu_carac. }
@@ -494,10 +494,10 @@ Lemma root_img k c :
   Root c (ThePoly k) -> c<>mu k -> c<>nu k -> Im c <> 0%R.
 Proof.
  intros R M N E.
- destruct (Nat.eq_dec k 0) as [->|K]. { now apply ThePoly_0_NoRoot in R. }
+ if (k = 0%nat) as [->|K]. { now apply ThePoly_0_NoRoot in R. }
  destruct c as (x,y). simpl in *. subst. change (x,0%R) with (RtoC x) in *.
  revert R. rewrite ThePoly_root_carac. ctor. intros [=R].
- destruct (Nat.Even_or_Odd k) as [E|O].
+ if (Nat.Even k) as [E|O].
  - destruct (mu_or_nu k x E); trivial; subst; now rewrite ?P_root_equiv.
  - apply M. f_equal. apply mu_unique_odd; trivial. now rewrite P_root_equiv.
 Qed.
@@ -508,7 +508,7 @@ Lemma SortedRoots_next k l :
     0 < Im (l@(n+1)) /\ l@(n+2) = Cconj (l@(n+1)).
 Proof.
  intros SR n N H.
- destruct (Nat.eq_dec k 0) as [->|K]. { now apply SortedRoots_nz in SR. }
+ if (k = 0%nat) as [->|K]. { now apply SortedRoots_nz in SR. }
  set (r := l @ (n + 1)).
  assert (length l = k) by now apply SortedRoots_length.
  assert (SR' := SortedRoots_roots k l SR).
@@ -516,7 +516,7 @@ Proof.
  assert (IN : In (Cconj r) l). { apply SR'. now apply root_conj. }
  destruct (In_nth l (Cconj r) 0 IN) as (m & M & E'). clear IN.
  change (l@m = r^*) in E'.
- destruct (Rle_or_lt (Im r) 0).
+ if (Im r <= 0).
  - exfalso.
    set (r0 := l@n) in *.
    assert (R0' : Root r0 (ThePoly k)). { apply SR', nth_In. lia. }
@@ -566,7 +566,7 @@ Proof.
    assert (m <> n+1)%nat.
    { intros ->. fold r in E'.
      symmetry in E'. apply is_real_carac in E'. lra. }
-   destruct (Nat.eq_dec m (n+2))%nat.
+   if (m =n+2)%nat.
    + unfold r'. rewrite <- E'. now f_equal.
    + assert (Clt (Cconj r) r'). { rewrite <- E'. apply SC. lia. }
      destruct (root_equal_or_conj k r' r) as [-> | ->]; trivial.
@@ -654,7 +654,7 @@ Proof.
  split; trivial.
  intros n N.
  apply SortedRoots_Cmod_sorted in SR. rewrite StronglySorted_nth in SR.
- destruct (Nat.eq_dec n 3) as [->|Hn]. apply Rle_refl. apply Rge_le, SR. lia.
+ if (n = 3%nat) as [->|Hn]. apply Rle_refl. apply Rge_le, SR. lia.
 Qed.
 
 Section Roots.
@@ -770,7 +770,7 @@ Qed.
 
 Lemma coefB_diff r : r<>0 -> coefB r = / Peval (Pdiff (ThePoly k)) r.
 Proof.
- intros Hr. unfold coefB. destruct (Nat.eq_dec k 1) as [->|Hk].
+ intros Hr. unfold coefB. if (k = 1%nat) as [->|Hk].
  - rewrite ThePoly_diff_1. unfold Peval; simpl. now field.
  - rewrite ThePoly_diff_expr by lia.
    rewrite Cinv_mult. unfold Cdiv. f_equal.
@@ -831,7 +831,7 @@ Lemma linfactors_remove_at i : (i < k)%nat ->
      (map (fun j => /(roots@i)^(S j)) (seq 0 (k-1)) ++ [1]).
 Proof.
  intros Hi.
- destruct (Nat.eq_dec k 1) as [->|K'].
+ if (k = 1%nat) as [->|K'].
  { replace i with O by lia. simpl. now destruct roots as [|a [|b l]]. }
  apply Pmult_Peq_reg_l with [- roots@i;1].
  { intro E. generalize (eq_refl (coef 1 [])). rewrite <- E at 1. apply C1_nz. }
@@ -959,7 +959,7 @@ Qed.
 
 Lemma B_ones i : (Z.of_nat k -1 <= i <= 2*Z.of_nat k -2)%Z -> B i = 1.
 Proof.
- destruct (Nat.eq_dec k 1) as [K'|K'].
+ if (k = 1%nat) as [K'|K'].
  { intros Hi. replace i with 0%Z by lia. unfold B. simpl.
    unfold coefB. rewrite K' in *. simpl.
    destruct roots as [|a [|b l]]; try easy. simpl. field.
@@ -986,7 +986,7 @@ Proof.
  - rewrite B_rec, A_sum by lia.
    rewrite plus_INR, RtoC_plus. f_equal.
    + rewrite <- IH by lia. f_equal. lia.
-   + destruct (Nat.lt_ge_cases (S n) k).
+   + if (S n < k)%nat.
      * replace (S n - k)%nat with O by lia. apply B_ones; lia.
      * rewrite <- IH by lia. f_equal. lia.
 Qed.
@@ -1047,7 +1047,7 @@ Proof.
  assert (E : roots = RtoC (mu k) :: tl roots).
  { destruct roots; simpl in *; try lia. f_equal.
    now apply SortedRoots_mu in roots_ok. }
- destruct (Nat.eq_dec n 0) as [->|N].
+ if (n = 0%nat) as [->|N].
  - simpl. rewrite Rmult_1_r, RtoC_minus, <- coefdA_sum; trivial.
    rewrite E at 1. simpl. rewrite coefdA_mu, Cplus_0_l.
    now setoid_rewrite Cmult_1_r.
@@ -1106,7 +1106,7 @@ End Roots.
 Lemma coefA_nz k r : Root r (ThePoly k) -> coefA k r <> 0.
 Proof.
  intros R.
- destruct (Nat.eq_dec k 0) as [->|K0].
+ if (k = 0%nat) as [->|K0].
  { now apply ThePoly_0_NoRoot in R. }
  unfold coefA. replace (r^k) with (r^(2*(k-1))*r/r^(k-1)).
  2:{ replace k with (S (k-1)) at 3 by lia.
@@ -1140,7 +1140,7 @@ Qed.
 Lemma A_div_pow_mu_limit k :
  is_lim_seq (fun n => A k n / mu k ^n)%R (coef_mu k).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { apply is_lim_seq_ext with (fun _ => R1).
    - intros n. rewrite A_0, A_1_pow2, mu_0. rewrite pow_INR.
      unfold Rdiv. rewrite Rinv_r. lra. apply pow_nonzero; lra.
@@ -1475,7 +1475,7 @@ Proof.
  induction n as [ [|n] IH] using lt_wf_ind; intros H.
  - simpl. now replace (k-1)%nat with 0%nat by lia.
  - simpl.
-   destruct (Nat.le_gt_cases (k-1) n).
+   if (k-1 <= n)%nat.
    + rewrite IH by lia.
      rewrite B_zero by lia.
      destruct k as [|[|k]]; simpl; trivial. case Nat.eqb_spec; lia.
@@ -1485,14 +1485,14 @@ Qed.
 
 Lemma A_B k n : A k n = B k (n+2*(k-1)).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { induction n; trivial. simpl.
    rewrite !Nat.add_0_r, !Nat.sub_0_r in *. lia. }
  induction n as [ [|n] IH] using lt_wf_ind.
  - rewrite B_one; simpl; trivial. lia.
  - cbn -["=?"]. rewrite !IH by lia.
    case Nat.eqb_spec; try lia. intros _. rewrite Nat.add_0_r. f_equal.
-   destruct (Nat.lt_ge_cases n (k-1)).
+   if (n <= k-1)%nat.
    + rewrite !B_one; lia.
    + f_equal. lia.
 Qed.
@@ -1503,9 +1503,9 @@ Lemma B_ok k roots : SortedRoots k roots -> (1<k)%nat ->
   forall n, B k roots (Z.of_nat n) = Alt.B k n.
 Proof.
  intros roots_ok K' n.
- destruct (Nat.lt_ge_cases n (k-1)).
+ if (n < k-1)%nat.
  { rewrite Alt.B_zero, B_zeros; trivial; lia. }
- destruct (Nat.le_gt_cases n (2*k-2)).
+ if (n <= 2*k-2)%nat.
  { rewrite Alt.B_one, B_ones; trivial; lia. }
  replace n with (n-2*(k-1)+2*(k-1))%nat at 2 by lia.
  rewrite <- Alt.A_B, <- (B_A k roots); trivial. f_equal; lia.
@@ -1518,7 +1518,7 @@ Proof.
  intros roots_ok n.
  assert (K : (k<>0)%nat).
  { intros ->. apply (SortedRoots_nz _ roots_ok). }
- destruct (Nat.eq_dec k 1) as [->|K'].
+ if (k = 1%nat) as [->|K'].
  - replace (Alt.B 1 n) with (A 1 n). 2:{ rewrite Alt.A_B. f_equal; lia. }
    rewrite (Equation_A _ _ roots_ok). f_equal. apply map_ext_in.
    intros r Hr. rewrite (coefA_coefB 1 roots); trivial.

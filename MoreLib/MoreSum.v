@@ -3,7 +3,7 @@ From Coquelicot Require Complex.
 From Coquelicot Require Import Hierarchy.
 Close Scope R. (* Issue with Coquelicot *)
 From Hofstadter.HalfQuantum Require Import Complex.
-Require Import DeltaList MoreList MoreReals MoreComplex.
+Require Import MoreTac DeltaList MoreList MoreReals MoreComplex.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 
@@ -372,7 +372,7 @@ Qed.
 Lemma sum_n_m_triangle (a : nat -> C) n m :
   Cmod (sum_n_m a n m) <= sum_n_m (Cmod ∘ a) n m.
 Proof.
- destruct (Nat.le_gt_cases n m).
+ if (n <= m)%nat as [H|H].
  - induction H.
    + rewrite !sum_n_n. apply Rle_refl.
    + rewrite !sum_n_Sm; try lia.
@@ -459,7 +459,7 @@ Lemma sum_n_m_le (a a' : nat -> R) :
   (forall n, a n <= a' n) -> forall n m, sum_n_m a n m <= sum_n_m a' n m.
 Proof.
  intros Ha n m.
- destruct (Nat.le_gt_cases n m).
+ if (n <= m)%nat as [H|H].
  - induction H.
    + now rewrite !sum_n_n.
    + rewrite !sum_n_Sm; try lia.
@@ -674,7 +674,7 @@ Proof.
  induction n.
  - lia.
  - intros m M F. rewrite <- big_sum_extend_r. simpl.
-   destruct (Nat.eq_dec n m) as [<-|M'].
+   if (n = m) as [<-|M'].
    + rewrite big_sum_0_bounded. simpl. ring. intros i Hi. apply F; lia.
    + rewrite F, Rplus_0_r by lia. apply IHn; try lia.
      intros i Hi. apply F; lia.
@@ -689,7 +689,7 @@ Proof.
  induction n.
  - lia.
  - intros m M F. rewrite <- big_sum_extend_r. simpl.
-   destruct (Nat.eq_dec n m) as [<-|M'].
+   if (n = m) as [<-|M'].
    + rewrite big_sum_0_bounded. simpl. ring. intros i Hi. apply F; lia.
    + rewrite F, Cplus_0_r by lia. apply IHn; try lia.
      intros i Hi. apply F; lia.

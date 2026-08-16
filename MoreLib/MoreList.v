@@ -512,7 +512,7 @@ Proof.
  rewrite remove_at_nth in E.
  rewrite NoDup_nth with (d:=d) in Hl.
  rewrite remove_at_length in Hj by trivial.
- destruct (Nat.ltb_spec j i).
+ if (j < i).
  - specialize (Hl j i lia Hi E). lia.
  - specialize (Hl (S j) i lia Hi E). lia.
 Qed.
@@ -528,7 +528,7 @@ Proof.
    rewrite remove_at_length; trivial. lia.
  - rewrite Nat.ltb_nlt, Nat.nlt_ge in E.
    assert (H := remove_at_nth l d i (j-1)).
-   destruct (Nat.ltb_spec (j-1) i); try lia.
+   if (j-1 < i); try lia.
    replace (S (j-1)) with j in H by lia.
    rewrite <- H. apply nth_In.
    rewrite remove_at_length; trivial. lia.
@@ -1482,9 +1482,9 @@ Proof.
  - destruct l as [|x l]; simpl; try lia.
    intros B _. specialize (B x); simpl in B; lia.
  - intros l B L.
-   destruct (Nat.lt_ge_cases 1 (nbocc n l)).
+   if (1 < nbocc n l).
    + now exists n.
-   + destruct (Nat.le_gt_cases 1 (nbocc n l)).
+   + if (nbocc n l = 1).
      * destruct (nbocc_S l n 0 ltac:(lia)) as (l1 & l2 & E0 & E1 & E2).
        destruct (IHn (l1++l2)) as (x & Hx).
        { intros x Hx.
@@ -1540,7 +1540,7 @@ Lemma nth_error_ext' {A} (l l':list A) :
 Proof.
  intros E H.
  apply nth_error_ext. intros n.
- destruct (Nat.lt_ge_cases n (length l)) as [LT|GE].
+ if (n < length l) as [LT|GE].
  - now apply H.
  - destruct (nth_error_None l n) as (_,->); trivial.
    rewrite E in GE. destruct (nth_error_None l' n) as (_,->); trivial.

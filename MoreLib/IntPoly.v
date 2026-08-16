@@ -335,7 +335,7 @@ Qed.
 
 Lemma Rational_inv a : Rational a -> Rational (/a).
 Proof.
- destruct (Req_dec a 0) as [->|N].
+ if (a = 0%R) as [->|N].
  - now rewrite Rinv_0.
  - intros (qa, ->). exists (Qinv qa). rewrite Qreals.Q2R_inv; trivial.
    contradict N. rewrite N. lra.
@@ -360,7 +360,7 @@ Qed.
 
 Lemma CRational_inv a : CRational a -> CRational (/a).
 Proof.
- destruct (Ceq_dec a 0) as [E|N]; subst.
+ if (a = 0) as [E|N]; subst.
  - now rewrite Cinv_0.
  - intros (qa, ->). exists (Qinv qa).
    rewrite <- RtoC_inv, Qreals.Q2R_inv; trivial.
@@ -605,7 +605,7 @@ Definition PolyZ_factor (l : list Z) : list Z :=
 Lemma PolyZ_factor_ok (l : list Z) :
  Peq ([RtoC (IZR (Zcontent l))] *, Zpoly (PolyZ_factor l)) (Zpoly l).
 Proof.
- destruct (Z.eq_dec (Zcontent l) 0) as [E|N].
+ if (Zcontent l = 0)%Z as [E|N].
  - rewrite E. apply Zcontent_0_rev in E. rewrite E, C0_Peq_nil. easy.
  - simpl.
    unfold PolyZ_factor, Zpoly.
@@ -760,11 +760,11 @@ Proof.
  intros Hp Mp E Hq Mq Hr.
  assert (Mr : monic r).
  { unfold monic in *. now rewrite E, topcoef_mult, Mq, Cmult_1_l in Mp. }
- destruct (Nat.eq_dec (degree q) 0) as [Dq|Dq].
+ if (degree q = 0%nat) as [Dq|Dq].
  { rewrite (deg0_monic_carac q Dq Mq) in *.
    rewrite Pmult_1_l in E. rewrite <- E. split; trivial.
    rewrite IntPoly_alt. now exists [1]%Z. }
- destruct (Nat.eq_dec (degree r) 0) as [Dr|Dr].
+ if (degree r = 0%nat) as [Dr|Dr].
  { rewrite (deg0_monic_carac r Dr Mr) in *.
    rewrite Pmult_1_r in E. rewrite <- E. split; trivial.
    rewrite IntPoly_alt. now exists [1]%Z. }
@@ -880,7 +880,7 @@ Proof.
      now rewrite Hml in H'. }
  rewrite Pmult_1_l in E.
  clearbody m c2 d2. clear g l Hml Hg Hl NZq NZr Dq Dr.
- destruct (Z.eq_dec m 1%Z) as [->|Hm1].
+ if (m = 1)%Z as [->|Hm1].
  { rewrite Pmult_1_l in E.
    assert (H := Peq_topcoef _ _ E). rewrite topcoef_mult, Mp in H.
    rewrite topcoef_mult, topcoef_singl in Mq, Mr.
@@ -898,7 +898,7 @@ Proof.
      rewrite Mq, Mr.
      split; apply IntPoly_mult; rewrite IntPoly_alt;
       (now exists [-1]%Z) || (now eexists). }
- destruct (Z.eq_dec m (-1)%Z) as [->|Hm1'].
+ if (m = -1)%Z as [->|Hm1'].
  { assert (H := Peq_topcoef _ _ E).
    rewrite !topcoef_mult, topcoef_singl, Mp, Cmult_1_r in H.
    rewrite topcoef_mult, topcoef_singl in Mq, Mr.
@@ -984,7 +984,7 @@ Lemma MinPolyQ_divide x p q :
   exists u, RatPoly u /\ Peq q (p *, u).
 Proof.
  intros (MO & RP & Hx & MIN) RP' Hx'.
- destruct (Nat.eq_dec (degree p) 0) as [D0|D0].
+ if (degree p = 0%nat) as [D0|D0].
  { exists q. split; trivial. now rewrite (deg0_monic_carac p), Pmult_1_l. }
  { destruct (Pdiv q p) as (u & v) eqn:E.
    assert (Huv1 := Pdiv_eqn q p).
@@ -1028,7 +1028,7 @@ Proof.
                        (n < degree p)%nat -> Peq q []).
    { induction n as [n IH] using lt_wf_ind.
      intros q Hn Rq Hx' D.
-     destruct (Nat.eq_dec (degree q) 0) as [D'|D'].
+     if (degree q = 0%nat) as [D'|D'].
      - destruct (degree_0_const _ D') as (c & E). rewrite E in Hx'.
        red in Hx'. rewrite Pconst_eval in Hx'.
        now rewrite Hx', C0_Peq_nil in E.

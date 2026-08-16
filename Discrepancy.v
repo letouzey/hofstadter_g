@@ -127,7 +127,7 @@ Proof.
  induction p as [[|p] IH] using lt_wf_ind.
  - intros n Hn. unfold diff. simpl in *. replace n with O by lia. simpl. lra.
  - intros n Hn. simpl in *.
-   destruct (Nat.ltb_spec n (A k p)).
+   if (n < A k p)%nat.
    + rewrite app_nth1.
      2:{ now rewrite AllDeltas_len. }
      apply IH; trivial; lia.
@@ -163,7 +163,7 @@ Proof.
  induction p as [[|p] IH] using lt_wf_ind.
  - intros n Hn. simpl in *. replace n with O by lia. lra.
  - intros n Hn. simpl in *.
-   destruct (Nat.ltb_spec n (A k p)).
+   if (n < A k p)%nat.
    + rewrite app_nth1.
      2:{ now rewrite AllDeltas_len. }
      rewrite IH; trivial; try lia. apply Rmax_l.
@@ -184,7 +184,7 @@ Proof.
  - simpl.
    destruct (IH p lia) as (n1 & Hn1 & E1).
    destruct (IH (p-(k-1))%nat lia) as (n2 & Hn2 & E2).
-   destruct (Rle_lt_dec (diff k n2 + diff k (A k p)) (diff k n1)).
+   if (diff k n2 + diff k (A k p) <= diff k n1).
    + exists n1. split. lia. rewrite E1, E2, Rmax_left; lra.
    + exists (n2+A k p)%nat. split. lia. rewrite E1, E2, Rmax_right by lra.
      symmetry. now apply diff_add.
@@ -271,7 +271,7 @@ Proof.
  induction p as [[|p] IH] using lt_wf_ind.
  - intros n Hn. simpl in *. replace n with O by lia. lra.
  - intros n Hn. simpl in *.
-   destruct (Nat.ltb_spec n (A k p)).
+   if (n < A k p)%nat.
    + rewrite app_nth1.
      2:{ now rewrite AllDeltas_len. }
      rewrite <- IH; trivial; try lia. apply Rmin_l.
@@ -292,7 +292,7 @@ Proof.
  - simpl.
    destruct (IH p lia) as (n1 & Hn1 & E1).
    destruct (IH (p-(k-1))%nat lia) as (n2 & Hn2 & E2).
-   destruct (Rle_lt_dec (diff k n1) (diff k n2 + diff k (A k p))).
+   if (diff k n1 <= diff k n2 + diff k (A k p)).
    + exists n1. split. lia. rewrite E1, E2, Rmin_left; lra.
    + exists (n2+A k p)%nat. split. lia. rewrite E1, E2, Rmin_right by lra.
      symmetry. now apply diff_add.

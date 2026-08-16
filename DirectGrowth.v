@@ -33,7 +33,7 @@ Qed.
 Lemma finv_is_inv k n : k<>0 -> f k (finv k n) = n.
 Proof.
  intros Hk.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  - unfold finv. simpl. now rewrite fs_k_0.
  - rewrite finv_as_rchild by trivial.
    replace n with (S (n-1)) at 2 by lia.
@@ -44,7 +44,7 @@ Qed.
 Lemma finv_is_leftmost k n : k<>0 -> f k (finv k n - 1) = n - 1.
 Proof.
  intros Hk.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  - unfold finv. simpl. now rewrite fs_k_0.
  - rewrite finv_as_rchild by trivial.
    replace (S _ -1) with (rchild k (n-1)) by lia.
@@ -61,7 +61,7 @@ Lemma f_onto_or k n a :
   k<>0 -> f k n = a -> n = finv k a \/ n = rchild k a.
 Proof.
  intros Hk <-.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  - rewrite f_k_0, finv_0. now left.
  - unfold finv, rchild.
    destruct (f_step k (n-1)) as [H|H];
@@ -115,7 +115,7 @@ Qed.
 Lemma fsinv_is_leftmost k p n : k<>0 -> fs k p (fsinv k p n - 1) = n - 1.
 Proof.
  intros Hk.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  - rewrite fsinv_0. apply fs_k_0.
  - induction p; trivial. rewrite (iter_S (f k)). simpl.
    rewrite finv_is_leftmost; trivial.
@@ -221,7 +221,7 @@ Lemma f_high k n r : k<>0 ->
  n <= fsinv k k (r+1) -> n - r <= f k n.
 Proof.
  intros Hk H.
- destruct (Nat.eq_dec n 0) as [->|Hn]. { rewrite f_k_0; lia. }
+ if (n = 0) as [->|Hn]. { rewrite f_k_0; lia. }
  assert (H' : n-1 < fsinv k k (r+1)) by lia.
  rewrite <- galois_again_lt in H' by trivial.
  rewrite f_eqn. lia.
@@ -254,7 +254,7 @@ Qed.
 
 Theorem f_grows k n : f k n <= f (S k) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { rewrite f_0. destruct n. simpl. easy. simpl.
    generalize (@f_nonzero 1 (S n)). lia. }
  induction n as [n IH] using lt_wf_ind.
@@ -264,7 +264,7 @@ Proof.
    - now apply fs_mono, IH.
    - apply Nat.le_lt_trans with m; trivial. apply f_le. }
  clear IH.
- destruct (Nat.eq_dec n 0) as [->|Hn]. { now rewrite !f_k_0. }
+ if (n = 0) as [->|Hn]. { now rewrite !f_k_0. }
  assert (H := fs_itvl k k (n-1) Hk). set (r := fs k k (n-1)) in H.
  cbv zeta in H.
  assert (Hr : r <= n-1) by apply fs_le.
@@ -281,9 +281,9 @@ Qed.
 
 Lemma fsinv_grows k n : fsinv k k n <= fsinv (S k) (S k) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk].
- { simpl. unfold finv. lia. }
- apply fsinv_grows_if; trivial. intros. apply fs_grows.
+ if (k = 0) as [->|Hk].
+ - simpl. unfold finv. lia.
+ - apply fsinv_grows_if; trivial. intros. apply fs_grows.
 Qed.
 
 Lemma f_grows_gen k k' n n' : k <= k' -> n <= n' -> f k n <= f k' n'.
@@ -312,13 +312,13 @@ Lemma fsinv_triangle k n :
  1 < n <= k+2 -> fsinv k k n = triangle (n-1) + k+1.
 Proof.
  intros Hn.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { simpl. replace n with 2; simpl; lia. }
  rewrite fsinv_eqn by trivial.
  rewrite Nat.sub_diag.
  rewrite map_ext_in with (g := fun i => max 1 (n-1-i)).
  2:{ intros m. rewrite in_seq. intros. apply fs_init. lia. }
- destruct (Nat.eq_dec n (k+2)) as [EQ|NE].
+ if (n = k+2) as [EQ|NE].
  - rewrite map_ext_in with (g := fun i => n-1-i).
    2:{ intros m. rewrite in_seq. lia. }
    replace (map _ _) with (rev (seq 2 k)).
@@ -345,7 +345,7 @@ Qed.
 
 Lemma fsinv_kp2 k : fsinv k k (k+2) = triangle (k+2) - 1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk]. easy.
+ if (k = 0) as [->|Hk]. easy.
  rewrite fsinv_triangle by lia.
  replace (k + 2 -1) with (k+1) by lia.
  replace (k + 2) with (S (k+1)) by lia.
@@ -354,7 +354,7 @@ Qed.
 
 Lemma fsinv_kp3 k : fsinv k k (k+3) = quad k.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk]. easy.
+ if (k = 0) as [->|Hk]. easy.
  rewrite fsinv_eqn by lia.
  rewrite Nat.sub_diag.
  rewrite map_ext_in with (g := fun i => k+2-i).
@@ -398,11 +398,11 @@ Lemma f_triangle k n p : k<>0 -> 1 < n <= quad k ->
  triangle p <= n-k-2 < triangle (p+1) -> f k n = n - p - 1.
 Proof.
  intros Hk Hn Hp.
- destruct (Nat.le_gt_cases n (k+2)).
+ if (n <= k+2).
  { rewrite f_init by lia. replace (n-k-2) with 0 in Hp by lia.
    destruct p. lia. rewrite triangle_succ in Hp. lia. }
  assert (p <= k+1).
- { destruct (Nat.le_gt_cases p (k+1)) as [LE|GT]; try lia. exfalso.
+ { if (p <= k+1) as [LE|GT]; try lia. exfalso.
    red in GT. replace (S (k+1)) with (k+2) in GT by lia.
    apply triangle_mono in GT.
    assert (LE : triangle p <= quad k - k - 2) by lia.
@@ -414,7 +414,7 @@ Proof.
    replace (p+1-1) with p; lia.
    split; try lia.
    destruct p; try lia. unfold triangle in Hp. simpl in Hp. lia.
- - destruct (Nat.eq_dec p (k+1)) as [->|EQ].
+ - if (p = k+1) as [->|EQ].
    + replace (k+1+1+1) with (k+3) by lia. rewrite fsinv_kp3; lia.
    + rewrite fsinv_triangle by lia.
      replace (p+1+1-1) with (p+1); lia.
@@ -423,7 +423,7 @@ Qed.
 Lemma f_after_triangle_1 k n :
  n = S (quad k) -> f k n = n - k - 3.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K]; [now intros ->|].
+ if (k = 0) as [->|K]; [now intros ->|].
  intros Hn.
  replace (n-k-3) with (n-(k+3)) by lia.
  apply f_itvl_eq; trivial.
@@ -544,8 +544,8 @@ Proof.
    split. lia.
    rewrite quad_alt in Hn by trivial.
    rewrite Nat.add_0_r in E. rewrite <- E in Hn.
-   destruct (Nat.lt_ge_cases q (2*k+1)) as [LT|LE]; try lia.
-   apply (A_mono k) in LE. lia.
+   if (q < 2*k+1) as [LT|LE]; try lia.
+   apply (A_mono k) in LE. lia. (* cbv plus controlé dans MyDecide ! *)
 Qed.
 
 Lemma decomp_tri_carac' k n :
@@ -734,7 +734,7 @@ Qed.
 
 Lemma fsinv_quadp1 k : fsinv k k (quad k + 1) = sumA k [0;k;2*k;3*k].
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk]. easy.
+ if (k = 0) as [->|Hk]. easy.
  rewrite fsinv_decomp by lia.
  replace (_+1-1) with (quad k) by lia.
  rewrite quad_decomp by trivial.
@@ -761,10 +761,10 @@ Lemma bootstrap k n : k<>0 ->
  k+3 <= n <= quad k -> fsinv k k (n+1) <= fsinv (S k) (S k) n.
 Proof.
  intros Hk Hn.
- destruct (Nat.eq_dec n (quad k)) as [E|N].
+ if (n = quad k) as [E|N].
  2:{ destruct (decomp_tri_carac' k n Hk lia) as
        [ (q & Hq & E) | (p & q & Hq & Hp & E)].
-     - destruct (Nat.eq_dec q 1) as [->|Hq'].
+     - if (q = 1) as [->|Hq'].
        + apply case0_ok; trivial.
        + apply (case1_ok k n q); trivial; lia.
      - destruct p as [|[|p]].
@@ -795,10 +795,8 @@ End Bootstrap.
 Lemma f_low_eq k n : n <= k+2 -> f k n = f (S k) n.
 Proof.
  intros Hn.
- destruct (Nat.eq_dec n 0) as [->|Hn0].
- { easy. }
- destruct (Nat.eq_dec n 1) as [->|Hn1].
- { now rewrite !f_k_1. }
+ if (n = 0) as [->|Hn0]. { easy. }
+ if (n = 1) as [->|Hn1]. { now rewrite !f_k_1. }
  rewrite !f_init; lia.
 Qed.
 
@@ -807,7 +805,7 @@ Lemma f_overlap_then_fsinv_overlap k n : k+3 <= n ->
   fsinv k k (n+1) <= fsinv (S k) (S k) n.
 Proof.
  intros Hn Hf.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { simpl. unfold finv. simpl. lia. }
  rewrite 2 fsinv_eqn; try lia.
  rewrite <- Nat.add_assoc. apply Nat.add_le_mono_l.
@@ -837,8 +835,7 @@ Lemma f_grows_strict_then_fsinv_overlap_core k n :
 Proof.
  intros Hf.
  assert (Hn : k+3 <= n).
- { destruct (Nat.le_gt_cases n (k+2)) as [H|H]; try lia.
-   generalize (f_low_eq _ _ H); lia. }
+ { if (n <= k+2) as [H|H]; try lia. generalize (f_low_eq _ _ H); lia. }
  apply f_overlap_then_fsinv_overlap; trivial.
  generalize (f_step (S k) (n-1)); replace (S (n-1)) with n; lia.
 Qed.
@@ -848,12 +845,9 @@ Lemma f_grows_strict_then_fsinv_overlap k N :
   (forall n, k+3 <= n <= N -> fsinv k k (n+1) <= fsinv (S k) (S k) n).
 Proof.
  intros Hf n Hn.
- destruct (Nat.eq_dec k 0) as [->|Hk].
- { simpl. unfold finv. simpl. lia. }
- destruct (Nat.le_gt_cases n (quad k)).
- { apply Bootstrap.bootstrap; lia. }
- apply f_grows_strict_then_fsinv_overlap_core.
- apply Hf; lia.
+ if (k = 0) as [->|Hk]. { simpl. unfold finv. simpl. lia. }
+ if (n <= quad k). { apply Bootstrap.bootstrap; lia. }
+ apply f_grows_strict_then_fsinv_overlap_core, Hf; lia.
 Qed.
 
 (* And finally the strict monotonicity.
@@ -861,15 +855,13 @@ Qed.
 
 Theorem f_grows_strict k n : quad k < n -> f k n < f (S k) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { rewrite f_0. unfold quad. simpl.
    destruct n. lia. red. intros H. rewrite <- (@f_k_3 1 lia).
    apply f_mono. lia. }
  induction n as [n IH] using lt_wf_ind. intros Hn.
- destruct (Nat.eq_dec n (S (quad k))) as [E1|N1].
- { rewrite f_grows_strict_init1; lia. }
- destruct (Nat.eq_dec n (S (S (quad k)))) as [E2|N2].
- { rewrite f_grows_strict_init2; lia. }
+ if (n = S (quad k)) as [E1|N1]. { rewrite f_grows_strict_init1; lia. }
+ if (n = S (S (quad k))) as [E2|N2]. { rewrite f_grows_strict_init2; lia. }
  assert (Hr := fs_itvl k k (n-1) lia).
  set (r := fs k k (n-1)) in Hr. cbv zeta in Hr.
  apply Nat.le_lt_trans with (n-r); [ apply f_low; lia | ].
@@ -899,7 +891,7 @@ Qed.
 
 Lemma fk_fSk_first_diff k : S (f k (k+3)) = f (S k) (k+3).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|Hk]. easy.
+ if (k = 0) as [->|Hk]. easy.
  rewrite (Nat.add_comm k 3), f_k_plus_3 by trivial.
  rewrite f_init; lia.
 Qed.
@@ -941,7 +933,7 @@ Qed.
 Lemma fkn_lt_fSkSn k n : n<>1 -> f k n < f (S k) (S n).
 Proof.
  intros Hn.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { rewrite f_0. destruct n.
    + rewrite f_k_1. simpl; lia.
    + simpl. rewrite f_1_div2. red. change 2 with (4/2).
@@ -1105,10 +1097,8 @@ Qed.
 Lemma fk_fSk_init_eq k n : k<>0 -> n <= k+2 -> f (S k) n = f k n.
 Proof.
  intros Hk Hn.
- destruct (Nat.eq_dec n 0) as [->|N].
- { now rewrite !f_k_0. }
- destruct (Nat.eq_dec n 1) as [->|N'].
- { now rewrite !f_k_1. }
+ if (n = 0) as [->|N]. { now rewrite !f_k_0. }
+ if (n = 1) as [->|N']. { now rewrite !f_k_1. }
  now rewrite 2 f_init by lia.
 Qed.
 
@@ -1173,7 +1163,7 @@ Lemma fsinv_carac k p n a :
   k<>0 -> fs k p a = n -> fs k p (a-1) = n-1 -> fsinv k p n = a.
 Proof.
  intros Hk H1 H2.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0) as [->|Hn].
  { rewrite fsinv_0. generalize (@fs_nonzero k a p); lia. }
  assert (H1' : n <= fs k p a) by lia.
  apply galois_again in H1'; trivial.
@@ -1203,10 +1193,8 @@ Lemma fk_fSk_diff_1 k n :
   k<>0 -> quad k < n < quad (S k) -> f (S k) n = 1 + f k n.
 Proof.
  intros Hk Hn.
- destruct (Nat.eq_dec n (S (quad k))).
- { now apply f_grows_strict_init1. }
- destruct (Nat.eq_dec n (S (S (quad k)))).
- { now apply f_grows_strict_init2. }
+ if (n = S (quad k)). { now apply f_grows_strict_init1. }
+ if (n = S (S (quad k))). { now apply f_grows_strict_init2. }
  assert (fsinv k k (k+4) = 2 + quad k) by now apply fsinv_kp4.
  assert (fsinv (S k) (S k) (k+3) = 2 + quad k) by apply fsinv_kp3'.
  assert (E := fsinv_kp5 k Hk).
@@ -1224,13 +1212,11 @@ Lemma fk_fSk_diff_le_1 k n :
  k<>0 -> n < quad (S k) -> f (S k) n <= 1 + f k n.
 Proof.
  intros Hk Hn.
- destruct (Nat.lt_ge_cases n (k+3)) as [H1|H1].
- { rewrite fk_fSk_init_eq; lia. }
- destruct (Nat.lt_ge_cases n (quad k)) as [H2|H2].
- { apply fk_fSk_low_diff; lia. }
+ if (n < k+3) as [H1|H1]. { rewrite fk_fSk_init_eq; lia. }
+ if (n < quad k) as [H2|H2]. { apply fk_fSk_low_diff; lia. }
  apply Nat.le_lteq in H2. destruct H2 as [H2|H2].
- { rewrite fk_fSk_diff_1; lia. }
- { rewrite <- fk_fSk_last_equality; lia. }
+ - rewrite fk_fSk_diff_1; lia.
+ - rewrite <- fk_fSk_last_equality; lia.
 Qed.
 
 
@@ -1328,8 +1314,7 @@ Lemma f_grows_strict_then_fsinv_overlap_core' k n :
 Proof.
  intros Hf.
  assert (Hn : k+3 <= n).
- { destruct (Nat.le_gt_cases n (k+2)) as [H|H]; try lia.
-   generalize (f_low_eq _ _ H); lia. }
+ { if (n <= k+2) as [H|H]; try lia. generalize (f_low_eq _ _ H); lia. }
  replace (n+2) with ((n+1)+1) by lia.
  apply f_overlap_then_fsinv_overlap. lia.
  rewrite Nat.add_1_r. simpl. rewrite Nat.sub_0_r.
@@ -1347,7 +1332,7 @@ Lemma fsinv_overlap_then_f_grows_strict_core k r :
            f k n < f (S k) n.
 Proof.
  intros H n Hn.
- destruct (Nat.eq_dec k 0) as [->|Hk].
+ if (k = 0) as [->|Hk].
  { rewrite f_0. simpl in Hn,H. unfold finv in *. simpl in Hn,H.
    assert (3<=n) by lia.
    replace (min 1 n) with 1 by lia.
@@ -1355,7 +1340,7 @@ Proof.
  assert (Hr : r <> 0).
  { intros ->. rewrite fsinv_0, fsinv_1 in *. lia. }
  assert (r <= n-1) by (generalize (fsinv_above_id k k r); lia).
- destruct (Nat.lt_ge_cases (fsinv k k (r+1)) n).
+ if (fsinv k k (r+1) < n).
  - apply Nat.lt_le_trans with (n-r).
    + assert (f k n <= n - (r + 1)); try apply f_low; lia.
    + apply f_high; lia.

@@ -378,7 +378,7 @@ Definition div_up a b := a/b + Nat.min (a mod b) 1.
 Lemma div_up_unique a b q r : r < b -> a + r = b * q -> q = div_up a b.
 Proof.
  intros R E. unfold div_up.
- destruct (Nat.eq_dec r 0) as [->|R'].
+ if (r = 0) as [->|R'].
  - rewrite Nat.add_0_r in *. rewrite <- (Nat.div_unique_exact a b q) by lia.
    subst a. rewrite Nat.mul_comm, Nat.mod_mul; simpl; lia.
  - assert (q<>0) by lia.
@@ -530,7 +530,7 @@ Proof.
        - now rewrite next_decomp_sum, decomp_sum. }
    assert (D := decomp_canon k n).
    destruct (decomp k n) as [|r l]; trivial.
-   destruct (Nat.le_gt_cases k r) as [R|R].
+   if (k <= r) as [R|R].
    + rewrite next_decomp_highrank by trivial.
      unfold rshift. rewrite filter_all.
      2:{ intros x. rewrite Nat.leb_le. intros [<-|IN]; trivial.
@@ -569,7 +569,7 @@ Lemma Ftilde_alt' k n :
   0<k -> Ftilde k n = sum k (decomp k n >> 1).
 Proof.
  intros K. unfold Ftilde.
- destruct (Nat.eq_dec k 1) as [->|K'].
+ if (k = 1) as [->|K'].
  { rewrite F_alt, GenG.f_1_div2 by lia.
    replace (S (n+1)) with (n+1*2) by lia. rewrite Nat.div_add by easy.
    rewrite rshift_decomp_k1, decomp_sum. simpl Nat.pow. lia. }
@@ -581,7 +581,7 @@ Proof.
  remember (decomp k n) as l eqn:E.
  assert (D : Delta k l). { subst l; apply decomp_canon. }
  destruct l as [|r l]; trivial.
- destruct (Nat.lt_ge_cases r k) as [R|R].
+ if (r < k) as [R|R].
  - rewrite next_decomp_lowrank; trivial.
    rewrite sum_rshiftup_norm by lia. rewrite rshiftup_rshift_diff.
    2:{ rewrite Nat.add_1_r.
@@ -673,7 +673,7 @@ Lemma xk_rank k n : 0<k -> word_x k n = bounded_succ_rank k n.
 Proof.
  intros K. unfold bounded_succ_rank.
  destruct (rank k n) as [r|] eqn:E.
- - destruct (Nat.lt_ge_cases (r+1) k).
+ - if (r+1 < k).
    + replace (min _ _) with (r+1) by lia.
      rewrite Prop_4_4 by lia.
      replace (r+1-1) with r by lia.
@@ -886,7 +886,7 @@ Qed.
 
 Lemma SortedRoots_exists k : exists! roots, SortedRoots k roots.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - exists []. split. now rewrite SortedRoots_0.
    intros l. now rewrite SortedRoots_0.
  - destruct (ThePoly.SortedRoots_exists k lia) as (l, Hl).
@@ -928,7 +928,7 @@ Qed.
 
 Lemma TheRoots_length k : length (TheRoots k) = k.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - now rewrite TheRoots_0.
  - now apply ThePoly.SortedRoots_length, SortedRoots_alt, TheRoots_ok.
 Qed.
@@ -964,7 +964,7 @@ Qed.
 Lemma TheRoots_dominated_by_beta k r :
   In r (TheRoots k) -> r <> β k -> Cmod r < β k.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - now rewrite TheRoots_0.
  - intros IN.
    apply ThePoly.other_roots_lt_mu.
@@ -976,7 +976,7 @@ Qed.
 Lemma TheRoots_same_mod_re k r r' :
  In r (TheRoots k) -> In r' (TheRoots k) -> Cmod r = Cmod r' <-> Re r = Re r'.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - now rewrite TheRoots_0.
  - intros IN IN'.
    rewrite TheRoots_roots, IsRoot_alt in IN, IN' by trivial.
@@ -986,7 +986,7 @@ Qed.
 Lemma TheRoots_lt_mod_re k r r' :
  In r (TheRoots k) -> In r' (TheRoots k) -> Cmod r < Cmod r' <-> Re r < Re r'.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - now rewrite TheRoots_0.
  - intros IN IN'.
    rewrite TheRoots_roots, IsRoot_alt in IN, IN' by trivial.
@@ -997,7 +997,7 @@ Lemma TheRoots_same_mod_conj k r r' :
  In r (TheRoots k) -> In r' (TheRoots k) -> Cmod r = Cmod r' ->
  r = r' \/ r = Cconj r'.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  - now rewrite TheRoots_0.
  - intros IN IN'.
    rewrite TheRoots_roots, IsRoot_alt in IN, IN' by trivial.
@@ -1327,7 +1327,7 @@ Proof.
  apply is_sup_seq_unique.
  eapply is_sup_seq_ext.
  - intros n. unfold δ. rewrite F_alt; lia || easy.
- - destruct (Nat.eq_dec k 5) as [->|K'].
+ - if (k = 5%nat) as [->|K'].
    + apply F5.delta_sup_k5.
    + apply SecondRoot.delta_sup_k6; lia.
 Qed.
@@ -1338,7 +1338,7 @@ Proof.
  apply is_inf_seq_unique.
  eapply is_inf_seq_ext.
  - intros n. unfold δ. rewrite F_alt; lia || easy.
- - destruct (Nat.eq_dec k 5) as [->|K'].
+ - if (k = 5%nat) as [->|K'].
    + apply F5.delta_inf_k5.
    + apply SecondRoot.delta_inf_k6; lia.
 Qed.
@@ -1432,10 +1432,10 @@ Proof.
  intros (U,V). apply le_INR in U, V.
  rewrite !plus_INR in V. inr_const.
  split. 2:lra.
- destruct (Nat.le_gt_cases 2 (GenG.f 3 p + GenG.f 3 n)) as [H|H].
+ if (2 <= GenG.f 3 p + GenG.f 3 n)%nat as [H|H].
  - rewrite minus_INR in U by lia. inr_const.
    rewrite plus_INR in U. lra.
- - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
+ - apply le_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 4.
@@ -1445,10 +1445,10 @@ Proof.
  intros (U,V). apply le_INR in U,V.
  rewrite !plus_INR in V. inr_const.
  split. 2:lra.
- destruct (Nat.le_gt_cases 4 (GenG.f 4 p + GenG.f 4 n)) as [H|H].
+ if (4 <= GenG.f 4 p + GenG.f 4 n)%nat as [H|H].
  - rewrite minus_INR in U by lia. inr_const.
    rewrite plus_INR in U. simpl in U. lra.
- - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
+ - apply le_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 (** Proposition 8.11 *)
@@ -1458,7 +1458,7 @@ Lemma no_almostadd_after_k5 k M : (5 <= k)%nat ->
 Proof.
  intros K QA.
  assert (BD : forall n, Rabs (δ k n) <= M).
- { intros n. unfold δ. destruct (Nat.eq_dec n 0) as [->|Hn].
+ { intros n. unfold δ. if (n = 0%nat) as [->|Hn].
    { generalize (QA O O). simpl. now rewrite Rmult_0_r, !Rminus_0_r. }
    apply Rcomplements.Rabs_le_between. split.
    - apply Rcomplements.Rle_minus_r. rewrite Rplus_comm.
@@ -1552,12 +1552,12 @@ Proof.
    unfold Rminus. rewrite Rabs_triang.
    apply Rplus_le_compat_l. rewrite Rabs_Ropp. apply Rabs_le.
    generalize (base_fp (α k*n+b)). lra. }
- destruct (Nat.le_gt_cases 5 k) as [K'|K'].
+ if (5 <= k)%nat as [K'|K'].
  { assert (DS := Sup_seq_correct (fun n => Rabs (δ k n))).
    fold (Δ k) in DS. rewrite Delta_gen in DS by lia.
    destruct (DS (Rabs b +1)) as (n & LT).
    specialize (B n). simpl in *. lra. }
- destruct (Nat.eq_dec k 4) as [->|K4].
+ if (k = 4)%nat as [->|K4].
  { clear K K' B.
    assert (E2 := E 2%nat). assert (E6 := E 6%nat). inr_const.
    change (F 4 2) with 1%nat in E2.
@@ -1615,12 +1615,12 @@ Proof.
      generalize (Rcomplements.Rabs_maj2 b); lra.
    - apply Rle_trans with (b+1); try lra.
      generalize (Rle_abs b); lra. }
- destruct (Nat.le_gt_cases 5 k) as [K'|K'].
+ if (5 <= k)%nat as [K'|K'].
  { assert (DS := Sup_seq_correct (fun n => Rabs (δ k n))).
    fold (Δ k) in DS. rewrite Delta_gen in DS by lia.
    destruct (DS (Rabs b +1)) as (n & LT).
    specialize (B n). simpl in *. lra. }
- destruct (Nat.eq_dec k 4) as [->|K4].
+ if (k = 4)%nat as [->|K4].
  { clear K K' B.
    assert (E2 := E 2%nat). assert (E6 := E 6%nat). inr_const.
    change (F 4 2) with 1%nat in E2.

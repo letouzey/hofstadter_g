@@ -44,10 +44,10 @@ Qed.
 
 Lemma A_ge_mu_pow k n : mu k ^ n <= A k n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0)%nat as [->|K].
  { rewrite A_0, A_1_pow2, mu_0, pow_INR. apply Rle_refl. }
  induction n as [[|n] IH] using lt_wf_ind; simpl; try lra.
- destruct (Nat.le_gt_cases n (k-1)).
+ if (n <= k-1)%nat.
  - (* n <= k-1 *)
    replace (n-(k-1))%nat with O by lia. simpl.
    apply Rle_trans with (mu k ^ n + 1).
@@ -281,7 +281,7 @@ Qed.
 
 Lemma Lim_fk_div_n k : k<>O -> is_lim_seq (fun n => f k n / n) (tau k).
 Proof.
- intros K. destruct (Nat.eq_dec k 1) as [->|K1].
+ intros K. if (k = 1%nat) as [->|K1].
  - rewrite tau_1. apply Lim_f1_div_n.
  - apply Lim_fk_div_n_gt1. lia.
 Qed.
@@ -292,7 +292,7 @@ Lemma fk_lt_fSk_eventually :
  forall k, exists N, forall n, (N<=n -> f k n < f (S k) n)%nat.
 Proof.
  intros k.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { exists 3%nat. intros n Hn. rewrite f_0, f_1_div2.
    replace (min 1 n) with 1%nat by lia.
    apply (Nat.div_le_mono 4 (S n) 2); lia. }

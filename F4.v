@@ -790,7 +790,7 @@ assert (LT := f4_close_τn n).
 assert (LE : 0 <= τ*n).
 { apply Rmult_le_pos. approx. inr. }
 assert (INR(f 4 n - 2) <= τ*n).
-{ destruct (Nat.le_gt_cases (f 4 n) 2).
+{ if (f 4 n <= 2)%nat.
   - replace (f 4 n - 2)%nat with O by lia. simpl. lra.
   - rewrite minus_INR by lia. simpl. lra. }
 apply nat_part_le in H; auto; lia.
@@ -813,7 +813,7 @@ Lemma f4_quasiadd p n :
  (f 4 p + f 4 n -4 <= f 4 (p+n) <= f 4 p + f 4 n + 4)%nat.
 Proof.
 split.
- - destruct (Nat.le_gt_cases (f 4 p + f 4 n) 4); try lia.
+ - if (f 4 p + f 4 n <= 4)%nat; try lia.
    assert (f 4 p + f 4 n < f 4 (p+n) +5)%nat; try lia.
    apply INR_lt. rewrite !plus_INR. inr_const.
    generalize (diff_bound p) (diff_bound n) (diff_bound (p+n)).

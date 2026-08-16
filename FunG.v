@@ -1,7 +1,7 @@
 (** * FunG : Hofstadter's G function and tree *)
 
 From Coq Require Import Program Program.Wf.
-Require Import MoreFun MoreList DeltaList Fib.
+Require Import MoreTac MoreFun MoreList DeltaList Fib.
 Import ListNotations.
 Set Implicit Arguments.
 
@@ -1096,7 +1096,7 @@ Proof.
    change (g (sumfib (2::4::l)) = 2 + g (sumfib (3::l))).
    rewrite !g_sumfib'; autoh.
  - intros E.
-   destruct (Nat.eq_dec n 0) as [->|Hn].
+   if (n = 0) as [->|Hn].
    + discriminate.
    + destruct (decomp_complete Hn) as [H|[H|H]]; auto.
      * rewrite g_Two_iff in H.
@@ -1209,7 +1209,7 @@ Proof.
  destruct (le_lt_dec k 2).
  - destruct k as [|[|[|k]]]; try reflexivity. lia.
  - replace (fib k - 2) with (fib k - 1 - 1) by lia.
-   destruct (Nat.Even_or_Odd k) as [(k',->)|(k',->)].
+   if (Nat.Even k) as [(k',->)|(k',->)].
    + rewrite Odd_gP.
      * rewrite Nat.sub_1_r. apply g_pred_fib_even.
      * apply EvenHigh_pred_Odd.
@@ -1547,7 +1547,7 @@ destruct dp as [|a pl].
     }
   + set (pl' := b::pl) in *.
     apply Delta_inv2 in D. destruct D as (Hb,D).
-    destruct (Nat.lt_ge_cases (a+2) b) as [Hb'|Hb'].
+    if (a+2 < b) as [Hb'|Hb'].
     * { (* a+2 < b *)
         destruct (decomp_exists n) as (nl & En & Dn).
         destruct (In_dec Nat.eq_dec b nl) as [INb|NIb].
@@ -1723,7 +1723,7 @@ Lemma g_add_fib n k :
   fib k + g n - k mod 2 <= g (fib (S k) + n) <= fib k + g n + 1 - k mod 2.
 Proof.
  generalize (g_add_approx n (fib (S k))).
- destruct (Nat.eq_dec k 0).
+ if (k = 0).
  - subst k. simpl. change (g 1) with 1.
    rewrite (Nat.add_1_r n). lia.
  - rewrite g_fib; auto. rewrite rank_fib by lia.

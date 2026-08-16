@@ -316,7 +316,7 @@ Proof.
  destruct (Z.compare_spec 0 s) as [<-|POS|NEG].
  - replace (r * _)%Z with (r^3)%Z by ring. change (0^3) with 0.
    rewrite Rmult_0_r. rewrite IZR_lt_iff. lia.
- - destruct (Z.le_gt_cases r 0).
+ - if (r <= 0)%Z.
    { split; intros _; try lia.
      apply Rle_lt_trans with 0%R. now apply IZR_le.
      apply Rmult_lt_0_compat. approx. now apply IZR_lt. }
@@ -336,7 +336,7 @@ Proof.
      field_simplify in LT. 2:{ try (*compat*) revert LT. apply IZR_neq. lia. }
      rewrite !pow_IZR, <- !mult_IZR, <- plus_IZR in LT. apply lt_IZR in LT.
      simpl Z.of_nat in LT. now ring_simplify.
- - destruct (Z.le_gt_cases 0 r).
+ - if (0 <= r)%Z.
    { split; intros H'; try lia. exfalso. apply IZR_lt in NEG.
      apply IZR_le in H. generalize (tau_itvl 3). fold τ. nra. }
    rewrite Rminus_lt_0. replace (_ - _)%R with (IZR (-r) - τ * IZR (-s))%R.
@@ -659,11 +659,11 @@ assert (-1 < τ*n - h n < 1).
 { rewrite h_alt.
   assert (H := diff_lt_1 n).
   rewrite Rcomplements.Rabs_lt_between in H. lra. }
-destruct (Rle_or_lt 0 (τ*n-h n)).
+if (0 <= τ*n-h n).
 - left. symmetry. apply nat_part_carac; lra.
 - right.
-  case (Nat.eq_dec n 0); intros Hn.
-  + subst n. change (h 0) with O in *. simpl in *. lra.
+  if (n = 0%nat) as [->|Hn].
+  + change (h 0) with O in *. simpl in *. lra.
   + assert (h n <> O). { contradict Hn. eapply f_0_inv; eauto. }
     assert (nat_part (τ*n) = h n -1)%nat; try lia.
     apply nat_part_carac. rewrite minus_INR by lia. simpl. lra.
@@ -796,7 +796,7 @@ Proof.
  - assert ((h^^2) n - 2 <= nat_part (τ^2 * n))%nat; try lia.
    { apply nat_part_le.
      - apply Rmult_le_pos. approx. inr.
-     - destruct (Nat.le_gt_cases 4 n) as [LE|LT].
+     - if (4 <= n)%nat as [LE|LT].
        + assert (LE' := fs_mono 3 2 LE).
          rewrite minus_INR by trivial. inr_const.
          generalize (diffh2_bounds n). unfold diffh2. simpl. lra.

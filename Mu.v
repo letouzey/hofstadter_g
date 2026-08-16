@@ -137,7 +137,7 @@ Qed.
 Lemma tau_incr k : k<>O -> tau k < tau (S k).
 Proof.
  destruct k as [|k]; try easy. intros _.
- destruct (Rlt_or_le (tau (S k)) (tau (S (S k)))); auto. exfalso.
+ if (tau (S k) < tau (S (S k))); auto. exfalso.
  assert (E := tau_carac (S k) lia).
  assert (E' := tau_carac (S (S k)) lia).
  assert (tau (S (S k)) ^ (S (S k)) < tau (S k) ^(S k)); try lra.
@@ -164,7 +164,7 @@ Definition Ptau k x := x^k + x.
 Lemma Ptau_incr k x y :
  0<=x<=1 -> 0<=y<=1 -> x<y -> Ptau k x < Ptau k y.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { unfold Ptau. intros. rewrite !pow_O. lra. }
  set (P' := fun x => k*x^(pred k)+1).
  assert (D : forall x, derivable_pt_lim (Ptau k) x (P' x)).
@@ -181,24 +181,20 @@ Qed.
 Lemma tau_unique k x : k<>O -> 0 <= x -> Ptau k x = 1 -> x = tau k.
 Proof.
  intros K Hx H.
- assert (x < 1).
- { destruct (Rlt_or_le x 1); auto. exfalso.
-   generalize (pow_R1_Rle x k). unfold Ptau in H. lra. }
+ if (1 <= x). { exfalso. generalize (pow_R1_Rle x k). unfold Ptau in H. lra. }
  assert (I := tau_itvl k).
  assert (E := tau_carac k K). change (Ptau k (tau k) = 1) in E.
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - apply (Ptau_incr k) in LT; lra.
- - apply (Ptau_incr k) in GT; lra.
+ if (x < tau k) as [LT|?]. { exfalso. apply (Ptau_incr k) in LT; lra. }
+ if (tau k < x) as [LT|?].  { exfalso. apply (Ptau_incr k) in LT; lra. }
+ lra.
 Qed.
 
 Lemma mu_unique k x : 0 <= x -> x^k = x^(k-1)+1 -> x = mu k.
 Proof.
  intros Hx H.
- destruct (Nat.eq_dec k 0) as [->|K].
- { rewrite !pow_O in H. lra. }
- assert (x <> 0).
- { destruct k. simpl in *. lra.
-   intros ->. simpl in H. generalize (pow_le 0 (k-0)). lra. }
+ if (k = 0)%nat as [->|K]. { rewrite !pow_O in H. lra. }
+ if (x = 0) as [->|X].
+ { destruct k; simpl in *. lra. generalize (pow_le 0 (k-0)). lra. }
  assert (E : 1/x = tau k).
  { apply tau_unique; trivial.
    - apply Rle_mult_inv_pos; lra.
@@ -213,43 +209,44 @@ Qed.
 Lemma Ptau_lower k x : k<>O -> 0 <= x -> Ptau k x < 1 -> x < tau k.
 Proof.
  intros K H H'.
- assert (x < 1).
- { destruct (Rlt_or_le x 1); auto. exfalso.
-   generalize (pow_R1_Rle x k). unfold Ptau in H'. lra. }
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - subst x. unfold Ptau in H'. rewrite tau_carac in H'; trivial. lra.
- - apply (Ptau_incr k) in GT; try lra.
+ if (1 <= x).
+ { exfalso. generalize (pow_R1_Rle x k). unfold Ptau in H'. lra. }
+ if (x = tau k) as [->|?].
+ { exfalso. unfold Ptau in H'. rewrite tau_carac in H'; trivial. lra. }
+ if (tau k < x) as [GT|?].
+ { exfalso. apply (Ptau_incr k) in GT; try lra.
    unfold Ptau in GT at 1. rewrite tau_carac in GT; trivial. lra.
-   generalize (tau_itvl k); lra.
+   generalize (tau_itvl k); lra. }
+ lra.
 Qed.
 
 Lemma Ptau_upper k x : k<>O -> 0 <= x -> 1 < Ptau k x -> tau k < x.
 Proof.
  intros K H H'.
- destruct (Rtotal_order x (tau k)) as [LT|[EQ|GT]]; auto; exfalso.
- - apply (Ptau_incr k) in LT; try (generalize (tau_itvl k); lra).
-   unfold Ptau in LT at 2. rewrite tau_carac in LT; trivial. lra.
- - subst x. unfold Ptau in H'. rewrite tau_carac in H'; trivial. lra.
+ if (x = tau k) as [->|?].
+ { exfalso. unfold Ptau in H'. rewrite tau_carac in H'; trivial. lra. }
+ if (x < tau k) as [LT|?].
+ { exfalso. apply (Ptau_incr k) in LT; try (generalize (tau_itvl k); lra).
+   unfold Ptau in LT at 2. rewrite tau_carac in LT; trivial. lra. }
+ lra.
 Qed.
 
 Lemma Ptau_lt1_iff k x : k<>O -> 0 <= x -> Ptau k x < 1 <-> x < tau k.
 Proof.
- intros K Hx. split.
+ intros K X. split.
  - now apply Ptau_lower.
- - destruct (Req_dec (Ptau k x) 1).
-   + apply tau_unique in H; trivial. lra.
-   + intros LT. apply Rlt_not_le in LT. apply Rnot_le_lt.
-     contradict LT. apply Rlt_le. apply Ptau_upper; trivial; lra.
+ - if (Ptau k x = 1).
+   + generalize (tau_unique _ _ K X). lra.
+   + generalize (Ptau_upper _ _ K X). lra.
 Qed.
 
 Lemma Ptau_gt1_iff k x : k<>O -> 0 <= x -> 1 < Ptau k x <-> tau k < x.
 Proof.
- intros K Hx. split.
+ intros K X. split.
  - now apply Ptau_upper.
- - destruct (Req_dec (Ptau k x) 1).
-   + apply tau_unique in H; trivial. lra.
-   + intros LT. apply Rlt_not_le in LT. apply Rnot_le_lt.
-     contradict LT. apply Rlt_le. apply Ptau_lower; trivial. lra.
+ - if (Ptau k x = 1).
+   + generalize (tau_unique _ _ K X). lra.
+   + generalize (Ptau_lower _ _ K X). lra.
 Qed.
 
 Lemma tau_0 : tau 0 = 1/2.
@@ -338,7 +335,7 @@ Qed.
 
 Lemma minushalf_no_root k : P k (-0.5) < 0.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { unfold P. rewrite !pow_O. lra. }
  unfold P. replace (-0.5) with (-1*/2) by lra.
  replace k with (S (k-1)) at 1 by lia. simpl.
@@ -386,12 +383,12 @@ Proof.
  intros K EV. unfold nu. destruct k. easy.
  destruct (Nat.Even_Odd_dec (S k)) as [EV'|OD'].
  - destruct nu_spec as (x & H & E). simpl.
-   destruct (Req_dec x (-1)).
-   { subst. unfold P in *; simpl in *.
+   if (x = -1) as [->|?].
+   { unfold P in *; simpl in *.
      rewrite Nat.sub_0_r in E. rewrite minusone_pow_odd in E. lra.
      now rewrite <- Nat.Even_succ. }
-   destruct (Req_dec x (-0.5)).
-   { subst. generalize (minushalf_no_root (S k)). lra. }
+   if (x = -0.5) as [->|?].
+   { generalize (minushalf_no_root (S k)). lra. }
    lra.
  - destruct (Nat.Even_Odd_False _ EV OD').
 Qed.
@@ -448,7 +445,7 @@ Lemma P_odd_neg_decr k x y :
  Nat.Odd k -> x<y<=0 -> P k x < P k y.
 Proof.
  intros K Hxy.
- destruct (Nat.eq_dec k 1) as [->|NZ]. { unfold P. simpl. lra. }
+ if (k = 1%nat) as [->|NZ]. { unfold P. simpl. lra. }
  set (P' := fun x => k*x^(pred k)-(k-1)%nat*x^(pred (k-1))-0).
  assert (D : forall x, derivable_pt_lim (P k) x (P' x)).
  { clear. intros x. repeat apply derivable_pt_lim_minus.
@@ -474,20 +471,19 @@ Lemma nu_unique_even k x :
   x <= 0 -> P k x = 0 -> k<>O /\ Nat.Even k /\ x = nu k.
 Proof.
  intros Hx E.
- destruct (Nat.eq_dec k 0) as [->|K0].
+ if (k = 0%nat) as [->|K0].
  { unfold P in E. rewrite !pow_O in E. lra. }
- destruct (Nat.eq_dec k 1) as [->|K1].
+ if (k = 1%nat) as [->|K1].
  { unfold P in E; simpl in E. lra. }
  split. trivial.
- destruct (Req_dec x 0).
- { subst x. unfold P in E. rewrite !pow_i in E by lia. lra. }
- destruct (Nat.Even_Odd_dec k) as [EV|OD].
+ if (x = 0) as [->|?]. { unfold P in E. rewrite !pow_i in E by lia. lra. }
+ if (Nat.Even k) as [EV|OD].
  - split; trivial.
    assert (I := nu_itvl k K0 EV).
    assert (R := nu_root k K0 EV).
-   destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; auto; exfalso.
-   + generalize (P_even_neg_decr k x (nu k) K0 EV); lra.
-   + generalize (P_even_neg_decr k (nu k) x K0 EV); lra.
+   if (x < nu k). { generalize (P_even_neg_decr k x (nu k) K0 EV); lra. }
+   if (nu k < x). { generalize (P_even_neg_decr k (nu k) x K0 EV); lra. }
+   lra.
  - generalize (P_odd_neg_decr k x 0 OD). rewrite E.
    unfold P. rewrite !pow_i by lia. lra.
 Qed.
@@ -500,7 +496,7 @@ Qed.
 Lemma mu_unique_odd k x : Nat.Odd k -> P k x = 0 -> x = mu k.
 Proof.
  intros K E.
- destruct (Rle_or_lt x 0) as [LE|LT].
+ if (x <= 0) as [LE|LT].
  - destruct (Nat.Even_Odd_False k); trivial.
    apply (nu_unique_even _ _ LE E).
  - apply mu_unique. lra. now apply P_root_equiv.
@@ -509,27 +505,31 @@ Qed.
 Lemma mu_or_nu q x : Nat.Even q -> P q x = 0 -> x = mu q \/ x = nu q.
 Proof.
  intros Hq E. rewrite P_root_equiv in E.
- destruct (Rle_or_lt x 0) as [LE|LT].
+ if (x <= 0).
  - right. now apply nu_unique.
  - left. apply mu_unique; trivial. lra.
 Qed.
 
 Lemma P_neg_upper k x : k<>O -> Nat.Even k -> P k x < 0 -> nu k < x.
 Proof.
- intros K K' Hx.
- destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; trivial; exfalso.
- - generalize (P_even_neg_decr k x (nu k) K K').
-   generalize (nu_itvl k K K'). rewrite nu_root by trivial. lra.
- - subst x. rewrite nu_root in Hx; trivial. lra.
+ intros K K' X.
+ if (x < nu k).
+ { exfalso. generalize (P_even_neg_decr k x (nu k) K K').
+   generalize (nu_itvl k K K'). rewrite nu_root by trivial. lra. }
+ if (x = nu k).
+ { exfalso. subst. rewrite nu_root in X; trivial. lra. }
+ lra.
 Qed.
 
 Lemma P_neg_lower k x : k<>O -> Nat.Even k -> x <= 0 -> 0 < P k x -> x < nu k.
 Proof.
- intros K K' Hx Hx'.
- destruct (Rtotal_order x (nu k)) as [LT|[EQ|GT]]; trivial; exfalso.
- - subst x. rewrite nu_root in Hx'; trivial. lra.
- - generalize (P_even_neg_decr k (nu k) x K K').
-   rewrite nu_root by trivial. lra.
+ intros K K' X X'.
+ if (nu k < x).
+ { exfalso. generalize (P_even_neg_decr k (nu k) x K K').
+   rewrite nu_root by trivial. lra. }
+ if (x = nu k).
+ { exfalso. subst. rewrite nu_root in X'; trivial. lra. }
+ lra.
 Qed.
 
 Lemma nu_decr k : k<>O -> Nat.Even k -> nu (S (S k)) < nu k.
@@ -615,7 +615,7 @@ Proof.
    rewrite Z.pow_succ_r, <- Z.mul_assoc by lia.
    now apply Z.divide_mul_l. }
  apply Zdivide_pow_inv in D; trivial.
- destruct (Z.le_gt_cases 0%Z a) as [Ha|Ha].
+ if (0 <= a)%Z as [Ha|Ha].
  - rewrite Z.divide_gcd_iff, P in D; trivial.
    subst a. clear Ha P.
    rewrite Z.pow_1_l in E2 by lia.
@@ -643,13 +643,13 @@ Qed.
 
 Lemma mu_rat k (x:Q) : mu k = Q2R x <-> (k<=1)%nat /\ x==2.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { rewrite mu_0. split.
    + intros. split. lia. apply Qreals.eqR_Qeq. rewrite <- H. lra.
    + intros (_,->). lra. }
  split.
  - intros E. assert (C := mu_carac k K). rewrite E in C.
-   destruct (Nat.eq_dec k 1) as [->|K'].
+   if (k = 1%nat) as [->|K'].
    + split. trivial. apply Qreals.eqR_Qeq. rewrite <- E, mu_1. lra.
    + exfalso. revert C. apply root_irrat. lia.
  - intros (K',->). replace k with 1%nat by lia. rewrite mu_1. lra.
@@ -684,7 +684,7 @@ Qed.
 
 Lemma tau_rat k (x:Q) : tau k = Q2R x <-> (k<=1)%nat /\ x==1#2.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0%nat) as [->|K].
  { split.
    - intros E. split. lia. apply Qreals.eqR_Qeq. rewrite <- E.
      unfold tau. rewrite mu_0. lra.
@@ -718,8 +718,7 @@ Qed.
 
 Lemma mu_upper_bound_aux (k:nat) : k*(mu k - 1)^2 <= 1.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
- { rewrite Rmult_0_l. lra. }
+ if (k = 0%nat) as [->|K]. { rewrite Rmult_0_l. lra. }
  unfold mu. destruct mu_spec as (mu & M1 & [->|M2]); try easy.
  cbn -[pow INR].
  unfold P in M2. replace k with (S (k-1)) in M2 at 1 by lia.
@@ -750,8 +749,7 @@ Qed.
 
 Lemma pow_mu_lower_bound (k:nat) : sqrt k <= (mu k)^(k-1).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
- { simpl. rewrite sqrt_0. lra. }
+ if (k = 0%nat) as [->|K]. { simpl. rewrite sqrt_0. lra. }
  rewrite <- (sqrt_pow2 (mu k ^(k-1))).
  2:{ apply Rlt_le, pow_lt. generalize (mu_itvl k); lra. }
  apply sqrt_le_1.

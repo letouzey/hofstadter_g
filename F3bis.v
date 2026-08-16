@@ -220,7 +220,7 @@ Lemma vmeandiff_eqn n : n<>O ->
   (1 - h n / n)%R * (Vinit + Mcube Mat (vmeandiff (n - h n))).
 Proof.
  intros Hn.
- destruct (Nat.eq_dec n 1) as [->|Hn'].
+ if (n = 1%nat) as [->|Hn'].
  { change (h 1) with 1%nat.
    simpl Rdiv. replace (1/1)%R with 1%R by lra.
    replace (1-1)%R with 0%R by lra. rewrite Cmult_0_l.
@@ -449,7 +449,7 @@ Proof.
    - simpl. unfold sumdiff. simpl. lra.
    - unfold sumdiff in *. rewrite S_INR. simpl.
      generalize (diff_bound n). lra. }
- intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
+ intros n. if (n = 0%nat) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
  - apply (Rmult_le_reg_r n). inr.
@@ -466,7 +466,7 @@ Proof.
    - simpl. unfold sumdiffh2. simpl. lra.
    - unfold sumdiffh2 in *. rewrite S_INR. simpl.
      generalize (diffh2_bounds n). lra. }
- intros n. destruct (Nat.eq_dec n 0) as [->|Hn].
+ intros n. if (n = 0%nat) as [->|Hn].
  { simpl. unfold Rdiv. rewrite Rinv_0, Rmult_0_r. lra. }
  specialize (H n). split.
  - apply (Rmult_le_reg_r n). inr.
@@ -601,13 +601,13 @@ Qed.
 Lemma U_scal_A_minus_cst p : U p <= K2 * A3 p - K1.
 Proof.
  induction p as [p IH] using lt_wf_ind.
- destruct (Nat.eq_dec p 0) as [->|P0].
+ if (p = 0%nat) as [->|P0].
  { simpl. unfold K2. ring_simplify. apply Rmax_l. }
- destruct (Nat.eq_dec p 1) as [->|P1].
+ if (p = 1%nat) as [->|P1].
  { transitivity (K2*1 - K1).
    - unfold K2. ring_simplify. rewrite <- Rmax_r. apply Rmax_l.
    - simpl. generalize K2_pos. lra. }
- destruct (Nat.eq_dec p 2) as [->|P2].
+ if (p = 2%nat) as [->|P2].
  { transitivity (K2*1 - K1).
    - unfold K2. ring_simplify. rewrite <- Rmax_r. apply Rmax_r.
    - simpl. generalize K2_pos. lra. }
@@ -758,7 +758,7 @@ Proof.
    unfold Rnorm; simpl. replace (0+_)%C with 0%C by lca. rewrite Cmod_0.
    rewrite Rmult_1_r. apply K6_pos.
  - intros n Hn.
-   destruct (Nat.lt_ge_cases n (A3 p)).
+   if (n < A3 p)%nat.
    + rewrite (IH p); try lia.
      apply Rmult_le_compat_l. apply K6_pos.
      simpl. rewrite <- (Rmult_1_l ((sqrt μ)^p)) at 1.
@@ -795,7 +795,7 @@ Qed.
 
 Lemma vsumdiff'_ineq' n : Rnorm (vsumdiff' n) <= K7 * sqrt n.
 Proof.
- destruct (Nat.eq_dec n 0) as [->|Hn].
+ if (n = 0%nat) as [->|Hn].
  - simpl. unfold vsumdiff'. rewrite vsumdiff_0, sqrt_0. simpl.
    replace (0-_)%C with 0%C by lca.
    unfold Rnorm; simpl. replace (0+_)%C with 0%C by lca. rewrite Cmod_0.
@@ -1063,8 +1063,8 @@ Proof.
    intro; apply tau_irrat; lia.
    generalize sup_deltas_approx; unfold Approx; lra. }
  intros a b Ha Hab Hb.
- destruct (Rle_lt_dec b 0). { apply Neg; trivial. }
- destruct (Rle_lt_dec 0 a). { apply Pos; trivial. }
+ if (b <= 0). { apply Neg; trivial. }
+ if (0 <= a). { apply Pos; trivial. }
  replace (b-a) with ((0-a)+(b-0)) by lra.
  eapply is_lim_seq_ext.
  { intros n. symmetry. rewrite (Rcountin_split (diff 3) a 0 b) by lra.

@@ -1,6 +1,6 @@
 (** * FlipG : Hofstadter's flipped G tree *)
 
-Require Import DeltaList Fib FunG.
+Require Import MoreTac DeltaList Fib FunG.
 Set Implicit Arguments.
 
 (** See first the file [FunG] for the study of:
@@ -864,7 +864,7 @@ Lemma fg_g_aux3 n : IHeq n -> IHsucc n -> 3<n ->
 Proof.
  intros IH1 IH2 Hn (k & K & L).
  apply fg_g_eq_inv; auto.
- destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
+ if (Nat.Even k) as [(p,Hp)|(p,Hp)]; subst k.
  - (* even *)
    assert (E1 : g (n-1) = g n - 1) by (apply Even_gP; now exists p).
    assert (S (fg (n-1)) < n) by (generalize (@fg_lt (n-1)); lia).
@@ -879,7 +879,7 @@ Proof.
      rewrite E1, Odd_gP by autoh.
      destruct L as (l & E & D & _).
      destruct l as [|k l]; [simpl in E; lia|].
-     destruct (Nat.Even_or_Odd k) as [(p,Hp)|(p,Hp)]; subst k.
+     if (Nat.Even k) as [(p,Hp)|(p,Hp)]; subst k.
      * (* next term after 3 is even *)
        assert (ThreeEven 2 (n-1)).
        { exists p; exists l; auto. subst; split; auto.

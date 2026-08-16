@@ -312,7 +312,7 @@ Qed.
 Lemma f_1_div2 n : f 1 n = (S n) / 2.
 Proof.
 rewrite <- Nat.div2_div.
-destruct (Nat.Even_or_Odd n) as [(m,->)|(m,->)].
+if (Nat.Even n) as [(m,->)|(m,->)].
 - destruct (f_1_half m) as (->,_).
   symmetry. apply Nat.div2_succ_double.
 - rewrite Nat.add_1_r.
@@ -441,8 +441,8 @@ Lemma fs_lt k p n : 0<p -> 1<n -> fs k p n < n.
 Proof.
  destruct p; [easy|intros _ Hn].
  change (f k (fs k p n) < n).
- destruct (Nat.eq_dec (fs k p n) 0) as [->|N0]; [cbn; lia| ].
- destruct (Nat.eq_dec (fs k p n) 1) as [->|N1]; [now rewrite f_k_1| ].
+ if (fs k p n = 0) as [->|N0]. { cbn; lia. }
+ if (fs k p n = 1) as [->|N1]. { now rewrite f_k_1. }
  apply Nat.lt_le_trans with (fs k p n); [|apply fs_le].
  apply f_lt. lia.
 Qed.
@@ -525,9 +525,9 @@ Qed.
 Lemma fs_ultimately_1 k n p : 1 <= n <= S p -> fs k p n = 1.
 Proof.
  intros N.
- destruct (Nat.eq_dec n 1) as [->|N']; [ apply fs_k_1 |].
+ if (n = 1) as [->|N']. { apply fs_k_1. }
  assert (H := @fs_nonzero k n p).
- destruct (Nat.eq_dec (fs k p n) 1); trivial.
+ if (fs k p n = 1); trivial.
  generalize (@fs_bound k n p). lia.
 Qed.
 
@@ -550,7 +550,7 @@ Proof.
  - simpl Nat.iter. lia.
  - rewrite iter_S. rewrite IHp.
    2:{ split. generalize (@f_nonzero k n); lia. rewrite f_le; lia. }
-   destruct (Nat.eq_dec n 1) as [->|Hn].
+   if (n = 1) as [->|Hn].
    + rewrite f_k_1. lia.
    + rewrite f_init; lia.
 Qed.
@@ -817,7 +817,7 @@ Proof.
      unfold succrank, rank in H.
      assert (D := decomp_delta k n).
      destruct decomp as [|r l]; trivial.
-     destruct (Nat.eq_dec r 0) as [->|R].
+     if (r = 0) as [->|R].
      * rewrite renorm_mapdecr by lia.
        f_equal. symmetry. apply map_decr_S.
      * rewrite renorm_nop; trivial.
@@ -833,7 +833,7 @@ Qed.
 Lemma f_subid k n : n<>1 -> n <= k+2 -> f k n = n-1.
 Proof.
  intros Hn Hn'.
- destruct (Nat.eq_dec n 0).
+ if (n = 0).
  - subst. now rewrite f_k_0.
  - apply f_init; lia.
 Qed.
@@ -901,7 +901,7 @@ Qed.
 
 Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+2.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - rewrite f_0. lia.
  - intros E. split.
    + intros ->. rewrite f_k_1 in E. discriminate.
@@ -915,12 +915,12 @@ Qed.
 Lemma f_k_plus_some k p : k<>0 -> 1 <= p <= 6 -> f k (k+p) = k + p/2.
 Proof.
  intros K Hp. rewrite !(Nat.add_comm k).
- destruct (Nat.eq_dec p 1) as [->|N1]. now apply f_k_Sk.
- destruct (Nat.eq_dec p 2) as [->|N2]. now apply f_k_plus_2.
- destruct (Nat.eq_dec p 3) as [->|N3]. now apply f_k_plus_3.
- destruct (Nat.eq_dec p 4) as [->|N4]. now apply f_k_plus_4.
- destruct (Nat.eq_dec p 5) as [->|N5]. now apply f_k_plus_5.
- destruct (Nat.eq_dec p 6) as [->|N6]. now apply f_k_plus_6.
+ if (p = 1) as [->|N1]. now apply f_k_Sk.
+ if (p = 2) as [->|N2]. now apply f_k_plus_2.
+ if (p = 3) as [->|N3]. now apply f_k_plus_3.
+ if (p = 4) as [->|N4]. now apply f_k_plus_4.
+ if (p = 5) as [->|N5]. now apply f_k_plus_5.
+ if (p = 6) as [->|N6]. now apply f_k_plus_6.
  lia.
 Qed.
 
@@ -1071,9 +1071,9 @@ Lemma f_maxsteps_carac n :
 Proof.
  split.
  - intros E.
-   destruct (Nat.le_gt_cases n 1) as [LE|LT].
+   if (n <= 1) as [LE|LT].
    + left.
-     destruct (Nat.eq_dec n 0) as [->|N].
+     if (n = 0) as [->|N].
      * rewrite f_k_0 in E. apply f_fix in E. lia.
      * replace n with 1 in * by lia. rewrite f_k_1 in *.
        apply f_fix in E. lia.
@@ -1082,10 +1082,10 @@ Proof.
      intros r Hr.
      rewrite steps_ranks_nz in E.
      apply Nat.le_ngt. intros LT'.
-     destruct (Nat.le_gt_cases r (k-1)) as [LE'|GT].
+     if (r <= k-1) as [LE'|GT].
      * destruct (@rank_later_is_zero k (n-1) K) as (a & Ha & R).
-       destruct (Nat.eq_dec a 0).
-       { subst a. simpl in *.
+       if (a = 0) as [->|Ha'].
+       { simpl in *.
          apply rank_next_high in Hr; auto. destruct Hr as (m & Hr).
          replace (S (n-2)) with (n-1) in Hr by lia.
          rewrite Hr in R. now injection R. lia. }
@@ -1130,13 +1130,13 @@ Lemma f_maxsteps_examples_alt n a :
 Proof.
  intros R.
  destruct (step_rank_nz n) as (_,R').
- destruct (Nat.eq_dec k 1) as [->|Hq].
+ if (k = 1) as [->|Hq].
  - rewrite Nat.mul_1_r in R.
    replace (n+1-1) with n by lia.
    rewrite Nat.add_1_r. rewrite R'. lia. now rewrite R.
  - assert (R2 : rank k n <> Some 0). { rewrite R. intros [= E]. lia. }
    specialize (R' R2).
-   destruct (Nat.eq_dec n 0) as [->|Hn].
+   if (n = 0) as [->|Hn].
    + rewrite f_k_1. simpl. now destruct k.
    + assert (Rm : rank k (n-1) = Some (k-1)).
      { apply rank_pred in R. 2,3:(simpl; lia).
@@ -1198,7 +1198,7 @@ Proof.
          apply Delta_le with (y:=x) in D; trivial. lia.
        - rewrite <- E. apply decomp_delta. }
      intros p Hp.
-     destruct (Nat.le_gt_cases p (r-k)) as [LE|LT].
+     if (p <= r-k) as [LE|LT].
      * rewrite <- E2 by lia. now rewrite decomp_sum.
      * replace p with ((p+(k-1)-r)+(r-(k-1))) by lia.
        rewrite iter_add. rewrite fs_decomp by lia.
@@ -1244,7 +1244,7 @@ Proof.
  unfold succrank, rank in *.
  destruct (decomp k n) as [|r l] eqn:E; try easy. clear N. subst.
  assert (D := decomp_delta k n). rewrite E in D.
- destruct (Nat.le_gt_cases r (k-1)) as [LE|LT].
+ if (r <= k-1) as [LE|LT].
  - rewrite !fs_decomp by lia.
    rewrite decomp_S, E; trivial. simpl. case Nat.ltb_spec; try lia. intros _.
    rewrite renormS_alt by trivial.
@@ -1361,18 +1361,15 @@ Lemma steps_inv_lt a b :
  a*(a+1) < b*(b+1) -> a < b.
 Proof.
  intros LT.
- destruct (Nat.lt_ge_cases a b) as [H|H]; auto.
- apply Nat.lt_eq_cases in H. destruct H.
- - apply steps_lt in H. lia.
- - subst. lia.
+ if (a < b) as [H|H]. { auto. }
+ if (b < a) as [H'|H']. { apply steps_lt in H'. lia. }
+ replace b with a in LT; lia.
 Qed.
 
 Lemma steps_inv_le a b :
  a*(a+1) <= b*(b+1) -> a <= b.
 Proof.
- intros LE.
- destruct (Nat.le_gt_cases a b) as [H|H]; auto.
- apply steps_lt in H. lia.
+ intros LE. if (a <= b) as [H|H]; auto. apply steps_lt in H. lia.
 Qed.
 
 Lemma steps_uniqueness n a b :
@@ -1406,7 +1403,7 @@ Proof.
    assert (p' <= p).
    { apply Nat.lt_succ_r. apply steps_inv_lt. lia. }
    assert (p <= S p').
-   { destruct (Nat.eq_dec p 0).
+   { if (p = 0).
      - clearbody p. subst p. auto with arith.
      - assert (p-1 < S p'); try lia.
        apply steps_inv_lt.
@@ -1471,7 +1468,7 @@ Lemma steps_step n : steps (S n) <= S (steps n).
 Proof.
  assert (H := steps_spec' n).
  set (q := steps n) in *.
- destruct (Nat.leb_spec (S n - triangle q) q).
+ if (S n - triangle q <= q).
  - replace (S n) with (triangle q + (S n - triangle q)) by lia.
    rewrite steps_altspec; auto.
  - rewrite triangle_succ in H.
@@ -1579,7 +1576,7 @@ Proof.
  induction n.
  - reflexivity.
  - intros K NE LE.
-   destruct (Nat.leb_spec (S n) (k+2)).
+   if (S n <= k+2).
    + rewrite f_subid; auto.
      replace (S n - k - 2) with 0 by lia. simpl. lia.
    + destruct (f_step k n) as [E|E].
@@ -1617,7 +1614,7 @@ Proof.
            unfold rank. replace (decomp k n) with [0;p]; auto.
            symmetry. apply decomp_carac; simpl; try lia.
            constructor; autoh. }
-         destruct (Nat.eq_dec (A k p) n) as [E'|NE'].
+         if (A k p = n) as [E'|NE'].
          - clear Hp.
            assert (k < p).
            { apply A_lt_inv with k. rewrite A_base; lia. }
@@ -1639,7 +1636,7 @@ Lemma f_triangle_diag_incr k n :
   k<>0 -> n<>1 -> n <= quad k -> f (S k) (S n) = S (f k n).
 Proof.
  intros K Hn LE.
- destruct (Nat.eq_dec n 0).
+ if (n = 0).
  - subst. now rewrite f_k_0, f_k_1.
  - rewrite !f_triangle; try lia. simpl.
    generalize (steps_le_id (n-k-2)). lia.
@@ -1648,10 +1645,10 @@ Qed.
 
 Lemma f_triangle_incrk k n : n <= quad k -> f k n <= f (S k) n.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K].
+ if (k = 0) as [->|K].
  - intros _. rewrite f_0, f_1_div2. destruct n. lia.
    simpl min. change 1 with (2/2). apply Nat.div_le_mono; lia.
- - destruct (Nat.eq_dec n 1) as [->|NE].
+ - if (n = 1) as [->|NE].
    + intros _. now rewrite !f_k_1.
    + intros LE.
      destruct (f_step (S k) n) as [E|E].
@@ -1662,7 +1659,7 @@ Qed.
 Lemma f_last_triangle_1 k n : k<>0 -> n = quad k -> f k n = n - k - 2.
 Proof.
  intros K EQ.
- destruct (Nat.eq_dec n 1) as [->|NE].
+ if (n = 1) as [->|NE].
  - exfalso. generalize (quad_min k). lia.
  - rewrite f_triangle by lia.
    rewrite EQ at 2. unfold quad.
@@ -1675,7 +1672,7 @@ Qed.
 Lemma f_last_triangle_2 k n : k<>0 -> n = quad k -> f (S k) n = n - k - 2.
 Proof.
  intros K EQ.
- destruct (Nat.eq_dec n 1) as [->|NE].
+ if (n = 1) as [->|NE].
  - exfalso. generalize (quad_min k). lia.
  - rewrite f_triangle; try lia.
    2:{ simpl. rewrite quad_S. lia. }
@@ -1703,7 +1700,7 @@ Lemma fk_fSk_conjectures k : k<>0 ->
  (forall n, n<>1 -> f k n < f (S k) (S n)).
 Proof.
  intros K C1 n Hn.
- destruct (Nat.ltb_spec (quad k) n) as [LT|LE].
+ if (quad k < n) as [LT|LE].
  - apply C1 in LT. eapply Nat.lt_le_trans; eauto. apply f_mono; lia.
  - rewrite f_triangle_diag_incr; auto.
 Qed.
@@ -1768,7 +1765,7 @@ Qed.
 
 Lemma rchild_SSk_Squad k : rchild (S (S k)) (S (quad k)) = quad (S k).
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K]; [easy|].
+ if (k = 0) as [->|K]; [easy|].
  rewrite rchild_decomp, decomp_S, quad_decomp_SSk by easy. simpl.
  case Nat.ltb_spec; try lia; intros _.
  case Nat.eqb_spec; try lia; intros _.
@@ -1785,7 +1782,7 @@ Qed.
 Lemma f_after_triangle_1 k n :
  n = S (quad k) -> f k n = n - k - 3.
 Proof.
- destruct (Nat.eq_dec k 0) as [->|K]; [now intros ->|].
+ if (k = 0) as [->|K]; [now intros ->|].
  rewrite quad_alt by trivial.
  replace (S (_ -1)) with (A k (2*k+1))
   by (generalize (@A_nz k (2*k+1)); lia).
@@ -1878,7 +1875,7 @@ Qed.
 
 Lemma f_alt_eqn k n : k<>0 -> f k n + fs k (k-1) (f k (S n) - 1) = n.
 Proof.
- intros K. destruct (Nat.eq_dec n 0) as [-> |Hn].
+ intros K. if (n = 0) as [-> |Hn].
  - rewrite f_k_1. simpl. apply fs_k_0.
  - assert (Hn' := f_nz k Hn).
    case (f_step k n) as [H|H].
@@ -1972,7 +1969,7 @@ Proof.
  - intros _. rewrite depth_eqn by lia.
    simpl. rewrite Nat.sub_0_r.
    set (n' := S (S n)) in *.
-   destruct (Nat.eq_dec (f k n') 1) as [->|NE].
+   if (f k n' = 1) as [->|NE].
    + simpl. unfold n'; lia.
    + assert (H : f k n' <> 0) by (apply f_nz; unfold n'; lia).
      assert (depth k (f k n') <> 0).
@@ -2051,7 +2048,7 @@ Qed.
 Lemma depth_alt k n : k<>0 -> depth k n = invA_up k n.
 Proof.
  intros K.
- destruct (Nat.le_gt_cases n 1).
+ if (n <= 1).
  - replace (depth k n) with 0; symmetry. apply invA_up_is_0; lia.
    apply depth_is_0; lia.
  - rewrite depth_carac; trivial. 2:{ rewrite (invA_up_is_0 k); lia. }

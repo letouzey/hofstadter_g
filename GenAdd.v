@@ -724,7 +724,7 @@ Lemma h_addA p n : A3 (p-1) + h n - 1 <= h (A3 p + n) <= A3 (p-1) + h n + 1.
 Proof.
  revert n.
  induction p as [p IH] using lt_wf_ind.
- destruct (Nat.le_gt_cases p 3) as [LE|GT].
+ if (p <= 3) as [LE|GT].
  - destruct p as [|[|[|[|n]]]]; simpl; intros.
    + generalize (h_add_1 n). simpl. lia.
    + generalize (h_add_2 n). simpl. lia.
@@ -878,10 +878,10 @@ Proof.
  assert (H' : forall u v, u < v -> p = A3 u + A3 v ->
          h p + h n -2 <= h(p+n) <= h p + h n + 2).
  { intros u v LT E.
-   destruct (Nat.leb_spec (u+2) v) as [LE|LT'].
+   if (u + 2 <= v) as [LE|LT'].
    - eapply H; eauto.
    - replace v with (S u) in * by lia. clear LT LT'.
-     destruct (Nat.eq_dec u 0) as [->|NE].
+     if (u = 0) as [->|NE].
      + change (A3 0 + A3 1) with 3 in E. subst p.
        change (h 3) with 2.
        generalize (h_add_3 n). lia.
@@ -889,37 +889,35 @@ Proof.
        rewrite Nat.add_comm in E.
        apply H with (u-3) (u+2); auto. lia. }
  intros u v E.
- destruct (Nat.lt_total u v) as [LT|EQ_LT].
- - apply (H' u v); auto.
- - rewrite or_comm in EQ_LT. destruct EQ_LT as [LT|EQ].
-   + rewrite Nat.add_comm in E. apply (H' v u); auto.
-   + clear H H'. subst v p.
-     destruct (Nat.leb_spec 6 u).
-     * assert (Hu := h_addA u (A3 u+n)).
-       rewrite Nat.add_assoc in Hu.
-       assert (Hv := h_addA u n).
-       replace (A3 u + A3 u) with (2 * A3 u) at 1 4 by lia.
-       rewrite h_times2 by lia.
-       lia.
-     * destruct (Nat.eq_dec u 0) as [->|H0].
-       { change (A3 0 + A3 0) with 2. change (h 2) with 1.
-         generalize (h_add_2 n). lia. }
-       destruct (Nat.eq_dec u 1) as [->|H1].
-       { change (A3 1 + A3 1) with 4. change (h 4) with 3.
-         generalize (h_add_4 n). lia. }
-       destruct (Nat.eq_dec u 2) as [->|H2].
-       { change (A3 2 + A3 2) with 6. change (h 6) with 4.
-         generalize (h_add_6 n). lia. }
-       destruct (Nat.eq_dec u 3) as [->|H3].
-       { change (A3 3 + A3 3) with 8. change (h 8) with 5.
-         generalize (h_add_8 n). lia. }
-       destruct (Nat.eq_dec u 4) as [->|H4].
-       { change (A3 4 + A3 4) with 12. change (h 12) with 8.
-         generalize (h_add_12 n). lia. }
-       destruct (Nat.eq_dec u 5) as [->|H5].
-       { change (A3 5 + A3 5) with 18. change (h 18) with 13.
-         generalize (h_add_18 n). lia. }
-       lia.
+ if (u < v) as [LT|GE]. { apply (H' u v); auto. }
+ if (v < u) as [GT|LE]. { rewrite Nat.add_comm in E. apply (H' v u); lia. }
+ replace v with u in * by lia. clear GE LE H H'. subst p.
+ if (6 <= u).
+ { assert (Hu := h_addA u (A3 u+n)).
+   rewrite Nat.add_assoc in Hu.
+   assert (Hv := h_addA u n).
+   replace (A3 u + A3 u) with (2 * A3 u) at 1 4 by lia.
+   rewrite h_times2 by lia.
+   lia. }
+ if (u = 0) as [->|H0].
+ { change (A3 0 + A3 0) with 2. change (h 2) with 1.
+   generalize (h_add_2 n). lia. }
+ if (u = 1) as [->|H1].
+ { change (A3 1 + A3 1) with 4. change (h 4) with 3.
+   generalize (h_add_4 n). lia. }
+ if (u = 2) as [->|H2].
+ { change (A3 2 + A3 2) with 6. change (h 6) with 4.
+   generalize (h_add_6 n). lia. }
+ if (u = 3) as [->|H3].
+ { change (A3 3 + A3 3) with 8. change (h 8) with 5.
+   generalize (h_add_8 n). lia. }
+ if (u = 4) as [->|H4].
+ { change (A3 4 + A3 4) with 12. change (h 12) with 8.
+   generalize (h_add_12 n). lia. }
+ if (u = 5) as [->|H5].
+ { change (A3 5 + A3 5) with 18. change (h 18) with 13.
+   generalize (h_add_18 n). lia. }
+ lia.
 Qed.
 
 (* TODO : is there a version for subtraction : p = A3 u - A3 v ? *)
@@ -936,7 +934,7 @@ Proof.
  induction n using N.peano_ind.
  - simpl. intros; lia.
  - rewrite N.peano_rect_succ, andb_true_iff. intros (U,V).
-   intros m Hm. destruct (N.eq_dec m n) as [->|Hm']; trivial.
+   intros m Hm. if (m = n) as [->|Hm']; trivial.
    apply (IHn U m); lia.
 Qed.
 
@@ -989,7 +987,7 @@ Qed.
 Lemma g_below_h n : g n <= h n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 8).
+if (n < 8).
 - (* compute for all n < 8 or : *)
   rewrite <- f_2_g. apply f_triangle_incrk. unfold quad; simpl. lia.
 - replace n with (8+(n-8)) by lia.
@@ -1003,7 +1001,7 @@ Qed.
 Lemma h_below_f4 n : h n <= f 4 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 33).
+if (n < 33).
 - clear IH.
   (* Alas f_triangle_incrq isn't enough : triangle(2+4)-3 = 18 < 33 *)
   revert H. apply fk_leb_fSk_spec. now vm_compute.
@@ -1029,7 +1027,7 @@ Qed.
 Lemma f4_below_f5 n : f 4 n <= f 5 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 73).
+if (n < 73).
 - clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (73+(n-73)) by lia.
   transitivity (54 + f 4 (n - 73)). apply (f4_add_73 (n-73)).
@@ -1053,7 +1051,7 @@ Qed.
 Lemma f5_below_f6 n : f 5 n <= f 6 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 169).
+if (n < 169).
 - clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (169+(n-169)) by lia.
   transitivity (129 + f 5 (n - 169)). apply (f5_add_169 (n-169)).
@@ -1077,7 +1075,7 @@ Qed.
 Lemma f6_below_f7 n : f 6 n <= f 7 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 424).
+if (n < 424).
 - clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (424+(n-424)) by lia.
   transitivity (333 + f 6 (n - 424)). apply (f6_add_424 (n-424)).
@@ -1101,7 +1099,7 @@ Qed.
 Lemma f7_below_f8 n : f 7 n <= f 8 n.
 Proof.
 induction n as [n IH] using lt_wf_ind.
-destruct (Nat.lt_ge_cases n 843).
+if (n < 843).
 - clear IH. revert H. apply fk_leb_fSk_spec. now vm_compute.
 - replace n with (843+(n-843)) by lia.
   transitivity (677 + f 7 (n - 843)). apply (f7_add_843 (n-843)).
@@ -1133,7 +1131,7 @@ Proof.
  unfold quad, triangle; simpl.
  induction n as [n IH] using lt_wf_ind.
  intros Hn.
- destruct (Nat.le_gt_cases n 9) as [LE|LT].
+ if (n <= 9) as [LE|LT].
  - rewrite <- f_2_g. red in Hn. rewrite <- Nat.lt_succ_r in LE.
    generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
  - replace n with (2+(n-2)) by lia.
@@ -1147,7 +1145,7 @@ Lemma g_lt_h n : quad 2 < n -> g n < h n.
 Proof.
 unfold quad, triangle; simpl.
 induction n as [n IH] using lt_wf_ind. intros Hn.
-destruct (Nat.le_gt_cases n 20) as [LE|LT].
+if (n <= 20) as [LE|LT].
 - rewrite <- f_2_g. red in Hn. rewrite <- Nat.lt_succ_r in LE.
   generalize (conj Hn LE). clear. apply fk_ltb_fSk_spec. now vm_compute.
 - clear Hn. replace n with (8+(n-8)) by lia.
