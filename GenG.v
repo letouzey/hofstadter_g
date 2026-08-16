@@ -522,7 +522,7 @@ Proof.
    generalize (@f_lt k (fs k p n)). lia.
 Qed.
 
-Lemma fs_init k n p : 1 <= n <= S p -> fs k p n = 1.
+Lemma fs_ultimately_1 k n p : 1 <= n <= S p -> fs k p n = 1.
 Proof.
  intros N.
  destruct (Nat.eq_dec n 1) as [->|N']; [ apply fs_k_1 |].
@@ -533,7 +533,7 @@ Qed.
 
 Lemma f_init k n : 2 <= n <= k+2 -> f k n = n-1.
 Proof.
- intros. rewrite f_pred. rewrite fs_init; lia.
+ intros. rewrite f_pred. rewrite fs_ultimately_1; lia.
 Qed.
 
 (* Said otherwise : for any n, [f k n] will eventually be stationary
@@ -542,6 +542,18 @@ Qed.
    Hard theorem : at fixed n and growing k, [f k n] will be increasing.
    See [Words.f_grows].
 *)
+
+Lemma fs_init k p n : 1 <= n <= k+2 -> fs k p n = max 1 (n-p).
+Proof.
+ revert n.
+ induction p; intros.
+ - simpl Nat.iter. lia.
+ - rewrite iter_S. rewrite IHp.
+   2:{ split. generalize (@f_nonzero k n); lia. rewrite f_le; lia. }
+   destruct (Nat.eq_dec n 1) as [->|Hn].
+   + rewrite f_k_1. lia.
+   + rewrite f_init; lia.
+Qed.
 
 (*==============================================================*)
 
@@ -828,6 +840,21 @@ Qed.
 
 (** Some particular cases : early diagonals *)
 
+Lemma rchild_k k : k<>0 -> rchild k k = S k.
+Proof.
+ intros Hk. unfold rchild. rewrite fs_init; lia.
+Qed.
+
+Lemma rchild_kp1 k : k<>0 -> rchild k (1+k) = 3+k.
+Proof.
+ intros Hk. unfold rchild. rewrite fs_init; lia.
+Qed.
+
+Lemma rchild_kp2 k : k<>0 -> rchild k (2+k) = 5+k.
+Proof.
+ intros Hk. unfold rchild. rewrite fs_init; lia.
+Qed.
+
 Lemma f_k_km1 k : k<>2 -> f k (k-1) = k-2.
 Proof.
  intros. rewrite f_subid; lia.
@@ -848,42 +875,28 @@ Proof.
  rewrite f_subid; lia.
 Qed.
 
-Lemma f_k_plus_3 k : k<>0 -> f k (3+k) = 1+k.
+Lemma f_k_plus_3 k : f k (3+k) = 1+k.
 Proof.
- intros K. replace (3+k) with (sumA k [S k]).
- 2:{ cbn -[A]. rewrite A_S.
-     replace (k - _) with 1 by lia.
-     rewrite !A_base; lia. }
- rewrite f_sumA; autoh. cbn -[A]. rewrite A_base; lia.
+ rewrite Nat.add_succ_l, f_S, fs_init; lia.
 Qed.
 
 Lemma f_k_plus_4 k : k<>0 -> f k (4+k) = 2+k.
 Proof.
- intros K. replace (4+k) with (sumA k [0;S k]).
- 2:{ cbn -[A]. rewrite A_S.
-     replace (k - _) with 1 by lia.
-     rewrite !A_base; lia. }
- rewrite f_sumA; autoh. cbn -[A]. rewrite !A_base; lia.
+ intros Hk. replace (4+k) with (2+(2+k)) by lia. rewrite f_nonflat; trivial.
+ - now rewrite f_k_plus_2.
+ - rewrite Nat.add_assoc. now rewrite f_k_plus_3, f_k_plus_2.
 Qed.
 
 Lemma f_k_plus_5 k : k<>0 -> f k (5+k) = 2+k.
 Proof.
- intros K. replace (5+k) with (sumA k [1;S k]).
- 2:{ cbn -[A]. rewrite (A_S k k).
-     replace (k - _) with 1 by lia.
-     rewrite !A_base; lia. }
- rewrite f_sumA; autoh. cbn -[A]. rewrite !A_base; lia.
+ intros Hk. rewrite <- rchild_kp2 by lia. now apply f_onto_eqn.
 Qed.
 
 Lemma f_k_plus_6 k : k<>0 -> f k (6+k) = 3+k.
 Proof.
- intros K. destruct (Nat.eq_dec k 1) as [->|Hq]. now compute.
- replace (6+k) with (sumA k [2;S k]).
- 2:{ cbn -[A]. rewrite (A_S k k).
-     replace (k - _) with 1 by lia.
-     rewrite !A_base; lia. }
- rewrite f_sumA_lax; autoh. cbn -[A]. rewrite !A_base; lia.
- apply Delta_S_cons. fixpred. constructor. lia. constructor.
+ intros Hk. replace (6+k) with (2+(4+k)) by lia. rewrite f_nonflat; trivial.
+ - now rewrite f_k_plus_4.
+ - rewrite Nat.add_assoc. now rewrite f_k_plus_5, f_k_plus_4.
 Qed.
 
 Lemma f_subid_inv k n : f k n = n-1 -> n <> 1 /\ n <= k+2.

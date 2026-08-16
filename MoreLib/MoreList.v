@@ -338,6 +338,28 @@ Proof.
  rewrite app_length. now f_equal.
 Qed.
 
+Lemma list_sum_repeat n m :
+  list_sum (repeat n m) = n * m.
+Proof.
+ induction m; simpl; lia.
+Qed.
+
+Lemma list_sum_const {A} n (l:list A) :
+  list_sum (map (fun _ => n) l) = n * length l.
+Proof.
+ induction l; simpl; lia.
+Qed.
+
+Lemma list_sum_le {A} (f g:A->nat) (l:list A) :
+  (forall x, In x l -> f x <= g x) ->
+  list_sum (map f l) <= list_sum (map g l).
+Proof.
+ induction l; simpl; try lia.
+ intros H. apply Nat.add_le_mono. apply H. now left.
+ apply IHl. firstorder.
+Qed.
+
+
 
 (** index : first position of a value in a list.
     Returns the length of the list if the element is not in the list. *)

@@ -192,6 +192,12 @@ Proof.
    transitivity (A k (S m)). apply A_Sk_le. apply A_mono; lia.
 Qed.
 
+Lemma A_k_Sk k : k<>0 -> A k (S k) = k+3.
+Proof.
+ intros.
+ rewrite A_S. replace (k-(k-1)) with 1 by lia. rewrite !A_base; lia.
+Qed.
+
 (* (A k) is sub-multiplicative
 
    Note : Thanks to Fekete theorem, this implies that
