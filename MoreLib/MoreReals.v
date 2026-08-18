@@ -48,13 +48,13 @@ Qed.
 
 (** Boolean tests *)
 
-Definition Reqb (a b : R) := if Req_dec_T a b then true else false.
+Definition Reqb (a b : R) := if Req_EM_T a b then true else false.
 Definition Rleb (a b : R) := if Rle_lt_dec a b then true else false.
 Definition Rltb (a b : R) := negb (Rleb b a).
 
 Lemma Reqb_spec a b : BoolSpec (a = b) (a <> b) (Reqb a b).
 Proof.
- unfold Reqb. destruct Req_dec_T; now constructor.
+ unfold Reqb. destruct Req_EM_T; now constructor.
 Qed.
 
 Lemma Rleb_spec a b : BoolSpec (a <= b) (b < a) (Rleb a b).
@@ -68,7 +68,7 @@ Proof.
 Qed.
 Lemma Reqb_eq x y : Reqb x y = true <-> x = y.
 Proof.
- unfold Reqb; now destruct Req_dec_T.
+ unfold Reqb; now destruct Req_EM_T.
 Qed.
 
 Lemma Rleb_le x y : Rleb x y = true <-> x <= y.
