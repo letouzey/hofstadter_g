@@ -250,7 +250,7 @@ Proof.
  apply Nat.add_le_mono; try lia. apply H; lia.
 Qed.
 
-(* "Directissima" proof. NB: r = fs k k (n-1) is also n - f k n *)
+(* "Directissima" proof. NB: m = fs k k (n-1) is also n - f k n *)
 
 Theorem f_grows k n : f k n <= f (S k) n.
 Proof.
@@ -265,12 +265,12 @@ Proof.
    - apply Nat.le_lt_trans with m; trivial. apply f_le. }
  clear IH.
  if (n = 0) as [->|Hn]. { now rewrite !f_k_0. }
- assert (H := fs_itvl k k (n-1) Hk). set (r := fs k k (n-1)) in H.
+ assert (H := fs_itvl k k (n-1) Hk). set (m := fs k k (n-1)) in H.
  cbv zeta in H.
- assert (Hr : r <= n-1) by apply fs_le.
- assert (H' : fsinv k k (r+1) <= fsinv (S k) (S k) (r+1)).
+ assert (Hm : m <= n-1) by apply fs_le.
+ assert (H' : fsinv k k (m+1) <= fsinv (S k) (S k) (m+1)).
  { apply fsinv_grows_if; trivial. intros p. apply IH'. lia. }
- transitivity (n - r); [apply f_low | apply f_high]; lia.
+ transitivity (n - m); [apply f_low | apply f_high]; lia.
 Qed.
 
 Lemma fs_grows k p n : fs k p n <= fs (S k) p n.
