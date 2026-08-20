@@ -421,7 +421,7 @@ Proof.
 Qed.
 
 Lemma f_after_triangle_1 k n :
- n = S (quad k) -> f k n = n - k - 3.
+ n = 1 + quad k -> f k n = n - k - 3.
 Proof.
  if (k = 0) as [->|K]; [now intros ->|].
  intros Hn.
@@ -431,7 +431,7 @@ Proof.
 Qed.
 
 Lemma f_after_triangle_2 k n :
- k<>0 -> n = S (quad k) -> f k (S n) = n - k - 2.
+ k<>0 -> n = 1 + quad k -> f k (S n) = n - k - 2.
 Proof.
  intros Hk Hn. replace (n-k-2) with (S n-(k+3)) by lia.
  apply f_itvl_eq; trivial.
@@ -439,7 +439,7 @@ Proof.
 Qed.
 
 Lemma f_after_triangle_3 k n :
- n = S (quad k) -> f (S k) n = n - k - 2.
+ n = 1 + quad k -> f (S k) n = n - k - 2.
 Proof.
  intros Hn. replace (n-k-2) with (n - (k+2)) by lia.
  apply f_itvl_eq; try lia. split.
@@ -454,7 +454,7 @@ Proof.
 Qed.
 
 Lemma f_after_triangle_4 k n :
- n = S (quad k) -> f (S k) (S n) = n - k - 1.
+ n = 1 + quad k -> f (S k) (S n) = n - k - 1.
 Proof.
  intros Hn. replace (n-k-1) with (S n - (k+2)) by lia.
  apply f_itvl_eq; try lia. split.
@@ -469,7 +469,7 @@ Proof.
 Qed.
 
 Lemma f_grows_strict_init1 k n : k<>0 ->
-  n = S (quad k) -> f (S k) n = 1 + f k n.
+  n = 1 + quad k -> f (S k) n = 1 + f k n.
 Proof.
  intros Hk Hn.
  rewrite f_after_triangle_3, f_after_triangle_1 by trivial.
@@ -477,10 +477,10 @@ Proof.
 Qed.
 
 Lemma f_grows_strict_init2 k n : k<>0 ->
-  n = S (S (quad k)) -> f (S k) n = 1 + f k n.
+  n = 2 + quad k -> f (S k) n = 1 + f k n.
 Proof.
  intros Hk ->.
- rewrite f_after_triangle_4, f_after_triangle_2 by trivial.
+ rewrite Nat.add_succ_l, f_after_triangle_4, f_after_triangle_2 by trivial.
  replace k with (S (k-1)) by lia. rewrite quad_S. lia.
 Qed.
 
@@ -860,19 +860,18 @@ Proof.
    destruct n. lia. red. intros H. rewrite <- (@f_k_3 1 lia).
    apply f_mono. lia. }
  induction n as [n IH] using lt_wf_ind. intros Hn.
- if (n = S (quad k)) as [E1|N1]. { rewrite f_grows_strict_init1; lia. }
- if (n = S (S (quad k))) as [E2|N2]. { rewrite f_grows_strict_init2; lia. }
- assert (Hr := fs_itvl k k (n-1) lia).
- set (r := fs k k (n-1)) in Hr. cbv zeta in Hr.
- apply Nat.le_lt_trans with (n-r); [ apply f_low; lia | ].
- assert (r < n).
- { rewrite (fsinv_strmono k k).
-   apply Nat.lt_le_trans with n; try lia. apply fsinv_above_id. }
- assert (k+4 < r+1).
- { rewrite (fsinv_strmono k k). rewrite fsinv_kp4; lia. }
- red. replace (S (n-r)) with (n - (r-1)) by lia.
- apply f_high. lia. replace (r-1+1) with r by lia.
- transitivity (fsinv k k (r+1)); try lia.
+ if (n = 1 + quad k) as [E1|N1]. { rewrite f_grows_strict_init1; lia. }
+ if (n = 2 + quad k) as [E2|N2]. { rewrite f_grows_strict_init2; lia. }
+ destruct (fs_itvl k k (n-1) lia) as (_,Hm).
+ set (m := fs k k (n-1)) in Hm.
+ assert (Em : m = n - f k n).
+ { rewrite f_eqn. generalize (@fs_le k k (n-1)); lia. }
+ replace (f k n) with (n-m) by (generalize (f_le k n); lia).
+ assert (m < n). { generalize (@f_nz k n); lia. }
+ assert (k+4 < m+1). { rewrite (fsinv_strmono k k), fsinv_kp4; lia. }
+ red. replace (S (n-m)) with (n - (m-1)) by lia.
+ apply f_high. lia. replace (m-1+1) with m by lia.
+ transitivity (fsinv k k (m+1)); try lia.
  apply (f_grows_strict_then_fsinv_overlap k (n-1)); try lia.
  intros. apply IH; lia.
 Qed.
