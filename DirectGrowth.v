@@ -379,28 +379,6 @@ Proof.
    rewrite <- triangle_as_sum. lia.
 Qed.
 
-Lemma fsinv_kp2 k : fsinv k k (k+2) = triangle (k+2) - 1.
-Proof.
- if (k = 0). { now subst. }
- rewrite fsinv_triangle, (triangle_pred (k+2)); lia.
-Qed.
-
-Lemma fsinv_kp3 k : fsinv k k (k+3) = quad k.
-Proof.
- if (k = 0) as [->|Hk]. easy.
- rewrite fsinv_eqn by lia.
- rewrite Nat.sub_diag.
- rewrite map_ext_in with (g := fun i => k+2-i).
- 2:{ intros m. rewrite in_seq. intros. rewrite fs_init; lia. }
- rewrite list_sum_sub by lia. replace (_-0-_) with 3 by lia.
- unfold quad.
- rewrite triangle_as_sum. replace (k+3) with (S (S (k+1))) at 2 by lia.
- simpl. rewrite seq_app, list_sum_app. simpl. lia.
-Qed.
-
-(* The first "overlap" between (fsinv k k) and
-   (fsinv (S k) (S k) is actually an equality. *)
-
 Lemma fsinv_after_f_flat k n : k<>0 ->
   f k (n+1) = f k n -> fsinv k k (n+2) = 2 + fsinv k k (n+1).
 Proof.
@@ -413,6 +391,48 @@ Proof.
  induction a; try lia. simpl. destruct a. simpl; trivial. rewrite IHa; lia.
 Qed.
 
+Lemma fsinv_after_fs_step k n : k<>0 ->
+  fs k (k-1) (n+1) <> fs k (k-1) n -> fsinv k k (n+2) = k+1 + fsinv k k (n+1).
+Proof.
+ intros Hk Hf.
+ rewrite !fsinv_eqn by lia. rewrite Nat.sub_diag.
+ replace (n+1-1) with n by lia.
+ replace (n+2-1) with (n+1) by lia.
+ assert (Hf' : fs k (k-1) (n+1) = 1 + fs k (k-1) n).
+ { rewrite Nat.add_1_r in *. destruct (fs_step k (k-1) n); lia. }
+ assert (forall p, fs k (S p) (n+1) = 1 + fs k (S p) n ->
+                   fs k p (n+1) = 1 + fs k p n).
+ { intros p H. rewrite !Nat.add_1_r in *.
+   assert (H' : fs k (S p) (S n) <> fs k (S p) n).
+   { destruct (fs_step k (S p) n); lia. }
+   assert (H'' : fs k p (S n) <> fs k p n).
+   { contradict H'. simpl. now rewrite H'. }
+   destruct (fs_step k p n); lia. }
+ set (g := f k) in *. clearbody g. clear Hk Hf.
+ induction k. simpl; lia.
+ rewrite seq_S, !map_app, !list_sum_app. simpl.
+ replace (S k-1) with k in Hf' by lia. rewrite Hf'.
+ rewrite Nat.add_assoc, IHk. lia.
+ destruct k. simpl; lia.
+ replace (S k-1) with k by lia. now apply H.
+Qed.
+
+Lemma fsinv_kp2 k : fsinv k k (k+2) = triangle (k+2) - 1.
+Proof.
+ if (k = 0). { now subst. }
+ rewrite fsinv_triangle, (triangle_pred (k+2)); lia.
+Qed.
+
+Lemma fsinv_kp3 k : fsinv k k (k+3) = quad k.
+Proof.
+ if (k = 0). { now subst. }
+ replace (k+3) with (k+1+2) by lia.
+ rewrite fsinv_after_fs_step; trivial; try (rewrite !fs_init; lia).
+ replace (k+1+1) with (k+2) by lia. rewrite fsinv_kp2.
+ unfold quad. replace (k+3) with (S (k+2)) by lia.
+ rewrite (triangle_succ (k+2)). generalize (triangle_aboveid (k+2)); lia.
+Qed.
+
 Lemma fsinv_kp4 k : k<>0 -> fsinv k k (k+4) = 2 + quad k.
 Proof.
  intros Hk. replace (k+4) with (k+2+2) by lia.
@@ -420,6 +440,21 @@ Proof.
  - f_equal. replace (k+2+1) with (k+3) by lia. apply fsinv_kp3.
  - replace (k+2+1) with (3+k) by lia. rewrite f_k_plus_3, f_init; lia.
 Qed.
+
+Lemma fsinv_kp5 k : k<>0 -> fsinv k k (k+5) = quad (S k) - 1.
+Proof.
+ intros Hk. replace (k+5) with (k+3+2) by lia.
+ rewrite fsinv_after_fs_step; trivial.
+ - replace (k+3+1) with (k+4) by lia. rewrite fsinv_kp4, quad_S; lia.
+ - if (k=1). { now subst. }
+   replace (k-1) with (S (k-2)) by lia. rewrite !iter_S.
+   replace (k+3+1) with (4+k) by lia. replace (k+3) with (3+k) by lia.
+   rewrite f_k_plus_4, f_k_plus_3; trivial.
+   rewrite !fs_init; lia.
+Qed.
+
+(* The first "overlap" between (fsinv k k) and
+   (fsinv (S k) (S k) is actually an equality. *)
 
 Lemma fsinv_kp2' k : fsinv (S k) (S k) (k + 2) = quad k - k.
 Proof.
@@ -491,35 +526,9 @@ Proof.
  generalize (f_eqn_S k n) (fs_le k k n); lia.
 Qed.
 
-Lemma fs_triangle_high k n p : k<>0 -> 0 < n < quad k ->
- n-k-1 < triangle p -> fs k k n <= p.
-Proof.
- intros Hk Hn Hp.
- replace (n-k-1) with (S n-k-2) in Hp by lia.
- apply f_triangle_high in Hp; try lia.
- generalize (f_eqn_S k n) (fs_le k k n); lia.
-Qed.
-
-Lemma fs_triangle k n p : k<>0 -> 0 < n < quad k ->
-  triangle p <= n-k-1 < triangle (p+1) -> fs k k n = p+1.
-Proof.
- intros Hk Hn (Hp,Hp').
- apply fs_triangle_low in Hp; trivial.
- apply fs_triangle_high in Hp'; lia.
-Qed.
-
 (* Lower bounds for (fs k (k-1) n). *)
 
-Lemma fs_triangle_ineq k n p : k<>0 -> 0 < n < quad k ->
- triangle p <= n-k-1 -> p+1 <= fs k (k-1) n.
-Proof.
- intros Hk Hn Hp.
- apply fs_triangle_low in Hp; trivial. rewrite Hp.
- replace (fs k k n) with (fs k (S (k-1)) n) by (f_equal; lia).
- apply f_le.
-Qed.
-
-Lemma fs_triangle_ineq' k n p : k<>0 -> k < n < quad k ->
+Lemma fs_triangle_ineq k n p : k<>0 -> k+1 <= n < quad k ->
  triangle p <= n-k-1 -> p+2 <= fs k (k-1) n.
 Proof.
  intros Hk Hn Hp.
@@ -537,7 +546,7 @@ Lemma fs_triangle_ineqS k n p :
 Proof.
  intros Hk Hn Hp.
  replace (n-k-2) with (n-S k -1) in Hp by lia.
- apply fs_triangle_ineq' in Hp; try lia. rewrite Hp. simpl.
+ apply fs_triangle_ineq in Hp; try lia. rewrite Hp. simpl.
  now rewrite Nat.sub_0_r.
 Qed.
 
@@ -616,19 +625,20 @@ Lemma fs_pred_le_triangle k n p q : k<>0 -> k+3 <= n <= quad k -> 0<q ->
 Proof.
  intros Hk. revert p n. induction q as [[|q] IH] using lt_wf_ind; try lia.
  intros p n Hn Hq Hp.
- if (q < p). { apply fs_pred_le_triangle0 with p; trivial; lia. }
+ if (q < p). { apply (fs_pred_le_triangle0 k n p (S q)); trivial; lia. }
  replace (S q) with (S p + (q-p)) in Hp by lia.
  rewrite Nat.add_assoc in Hp. rewrite <- triangle_succ in Hp.
  if (n-k-2 < triangle (S p)) as [LT|LE].
- - if (p = 0). { subst. unfold triangle in Hp,LT; simpl in Hp,LT; lia. }
-   apply fs_pred_le_iter with p; try lia.
-   rewrite triangle_succ in LT.
-   apply IH with p; lia.
+ - if (p = 0).
+   + subst. unfold triangle in Hp,LT; simpl in Hp,LT; lia.
+   + apply fs_pred_le_iter with p; try lia.
+     rewrite triangle_succ in LT.
+     apply (fs_pred_le_triangle0 k n p p); trivial; lia.
  - if (q = p).
-   { subst q. apply fs_pred_le_iter with 1; simpl; try lia.
-     apply Nat.eq_le_incl, f_pred_eq_triangle with (S p); lia. }
-   apply fs_pred_le_iter with (q-p); try lia.
-   apply IH with (S p); lia.
+   + subst q. apply fs_pred_le_iter with 1; simpl; try lia.
+     apply (fs_pred_le_triangle0 k n (S p) 1); trivial; lia.
+   + apply fs_pred_le_iter with (q-p); try lia.
+     apply IH with (S p); lia.
 Qed.
 
 Lemma fs_pred_le_bound k n q :
@@ -1074,23 +1084,6 @@ Proof.
  - symmetry. apply f_itvl_eq; try lia.
    rewrite <- Nat.add_assoc, fsinv_kp2', fsinv_kp3'.
    subst n. unfold quad. generalize (triangle_aboveid (k+3)); lia.
-Qed.
-
-Lemma fsinv_kp5 k : k<>0 -> fsinv k k (k+5) = quad (S k) - 1.
-Proof.
- intros Hk.
- rewrite fsinv_eqn, Nat.sub_diag; try lia.
- replace k with (S (k-1)) at 2 by lia.
- simpl.
- rewrite Fib.seq_S, map_map.
- rewrite map_ext_in with (g := fun i => k+2-i).
- 2:{ intros a. rewrite in_seq. intros Ha.
-     rewrite iter_S. replace (k+5-1) with (4+k) by lia.
-     rewrite f_k_plus_4, fs_init; trivial; lia. }
- rewrite list_sum_sub by lia. replace (_-0-_) with 4 by lia.
- unfold quad. rewrite 2 triangle_pred. replace (S k+3-1-1) with (k+2) by lia.
- rewrite triangle_as_sum. replace (k+2) with (S (S (S (k-1)))) by lia.
- simpl; lia.
 Qed.
 
 Lemma fk_fSk_diff_1 k n :
