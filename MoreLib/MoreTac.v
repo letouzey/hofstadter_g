@@ -43,7 +43,7 @@ Qed.
 #[global] Instance Dec3_Z_le a b : Dec3P _ _ _ := Z.leb_spec a b.
 #[global] Instance Dec3_Z_lt a b : Dec3P _ _ _ := Z.ltb_spec a b.
 
-#[global] Instance Dec3_nat_even n : Dec3 (Nat.Even n) (Nat.Odd n) (Nat.even n).
+Lemma Nat_even_spec n : BoolSpec (Nat.Even n) (Nat.Odd n) (Nat.even n).
 Proof.
  assert (H := Nat.even_spec n).
  destruct (Nat.even n) eqn:E; constructor.
@@ -51,13 +51,52 @@ Proof.
  - destruct (Nat.Even_or_Odd n); trivial. now rewrite <- H in *.
 Qed.
 
-#[global] Instance Dec3_nat_odd n : Dec3 (Nat.Odd n) (Nat.Even n) (Nat.odd n).
+Lemma Nat_odd_spec n : BoolSpec (Nat.Odd n) (Nat.Even n) (Nat.odd n).
 Proof.
  assert (H := Nat.odd_spec n).
  destruct (Nat.odd n) eqn:E; constructor.
  - now rewrite <- H.
  - destruct (Nat.Even_or_Odd n); trivial. now rewrite <- H in *.
 Qed.
+
+Lemma N_even_spec n : BoolSpec (N.Even n) (N.Odd n) (N.even n).
+Proof.
+ assert (H := N.even_spec n).
+ destruct (N.even n) eqn:E; constructor.
+ - now rewrite <- H.
+ - destruct (N.Even_or_Odd n); trivial. now rewrite <- H in *.
+Qed.
+
+Lemma N_odd_spec n : BoolSpec (N.Odd n) (N.Even n) (N.odd n).
+Proof.
+ assert (H := N.odd_spec n).
+ destruct (N.odd n) eqn:E; constructor.
+ - now rewrite <- H.
+ - destruct (N.Even_or_Odd n); trivial. now rewrite <- H in *.
+Qed.
+
+Lemma Z_even_spec n : BoolSpec (Z.Even n) (Z.Odd n) (Z.even n).
+Proof.
+ assert (H := Z.even_spec n).
+ destruct (Z.even n) eqn:E; constructor.
+ - now rewrite <- H.
+ - destruct (Z.Even_or_Odd n); trivial. now rewrite <- H in *.
+Qed.
+
+Lemma Z_odd_spec n : BoolSpec (Z.Odd n) (Z.Even n) (Z.odd n).
+Proof.
+ assert (H := Z.odd_spec n).
+ destruct (Z.odd n) eqn:E; constructor.
+ - now rewrite <- H.
+ - destruct (Z.Even_or_Odd n); trivial. now rewrite <- H in *.
+Qed.
+
+#[global] Instance Dec3_nat_even n : Dec3P _ _ _ := Nat_even_spec n.
+#[global] Instance Dec3_nat_odd n : Dec3P _ _ _ := Nat_odd_spec n.
+#[global] Instance Dec3_N_even n : Dec3P _ _ _ := N_even_spec n.
+#[global] Instance Dec3_N_odd n : Dec3P _ _ _ := N_odd_spec n.
+#[global] Instance Dec3_Z_even n : Dec3P _ _ _ := Z_even_spec n.
+#[global] Instance Dec3_Z_odd n : Dec3P _ _ _ := Z_odd_spec n.
 
 Definition decide P {Q b} {D : Dec3 P Q b} := D.
 Definition decideb {P Q} b {D : Dec3 P Q b} := D.
