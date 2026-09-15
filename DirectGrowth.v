@@ -979,42 +979,6 @@ Proof.
  rewrite f_k_plus_3; lia.
 Qed.
 
-Lemma f_pred_plus_1 k n p : k<>0 -> 1 < n <= quad k ->
- triangle p + 2 <= n-k-2 < triangle (p+1) -> f k n = f (S k) (n-1) + 1.
-Proof.
- intros Hk Hn Hp.
- rewrite (f_triangle k n p), (f_triangle _ _ p); try lia.
- - generalize (triangle_aboveid p); lia.
- - rewrite quad_S; lia.
-Qed.
-
-Lemma f_flat_triangle k n : k<>0 -> k+3 <= n <= quad k ->
- (exists p, n-k-2 = triangle p) -> f k n = f k (n-1).
-Proof.
- intros Hk Hn (p,Hp).
- if (p = 0). { subst. unfold triangle in Hp; simpl in Hp. lia. }
- rewrite (f_triangle k n p); try lia.
- 2:{ rewrite Nat.add_1_r, triangle_succ; lia. }
- symmetry. replace (n-p-1) with (n-1-(p-1)-1) by lia.
- apply f_triangle; try lia.
- replace (p-1+1) with p by lia.
- replace (n-1-k-2) with (triangle p - 1) by lia. split; try lia.
- rewrite (triangle_pred p); lia.
-Qed.
-
-Lemma f_nonflat_triangle k n : k<>0 -> k+3 <= n <= quad k ->
- (forall p, n-k-2 <> triangle p) -> f k n = f k (n-1) + 1.
-Proof.
- intros Hk Hn Hp.
- destruct (steps_spec' (n-k-2)) as (Hp1,Hp2).
- set (p := steps (n-k-2)) in *. clearbody p.
- rewrite (f_triangle k n p); try lia.
- 2:{ rewrite Nat.add_1_r; lia. }
- rewrite (f_triangle k (n-1) p); try lia.
- - generalize (triangle_aboveid p); lia.
- - rewrite Nat.add_1_r. split; try lia. specialize (Hp p). lia.
-Qed.
-
 Lemma fk_fSk_triangle_diff_1 k n : k<>0 -> k+3 <= n <= quad k ->
  (exists p, n-k-2 = triangle p) -> f (S k) n = f k n + 1.
 Proof.
@@ -1034,29 +998,8 @@ Lemma fk_fSk_triangle_diff_0 k n : k<>0 -> k+3 <= n <= quad k ->
 Proof.
  intros Hk Hn Hp.
  destruct (steps_spec' (n-k-2)) as (Hp1,Hp2).
- set (p := steps (n-k-2)) in *.
- if (n - k - 2 - triangle p = 1).
- - rewrite (Bootstrap.f_pred_eq_triangle k n p); try lia.
-   apply f_flat_triangle; try lia.
-   + split. 2:rewrite quad_S; lia.
-     if (n = k+3); try lia.
-     destruct p.
-     * unfold triangle in H; simpl in H. destruct (Hp 1).
-       unfold triangle. simpl. lia.
-     * rewrite triangle_succ in H. lia.
-   + exists p. lia.
- - rewrite (f_pred_plus_1 k n p); try lia.
-   2:{ rewrite Nat.add_1_r. specialize (Hp p). lia. }
-   apply f_nonflat_triangle; try lia.
-   + split. 2:rewrite quad_S; lia.
-     if (n = k+3); try lia.
-     specialize (Hp 1). unfold triangle in Hp; simpl in Hp. lia.
-   + intros p' E.
-     if (p' = 0).
-     { subst. change (triangle 0) with 0 in *. generalize (Hp 1).
-       change (triangle 1) with 1; lia. }
-     assert (p' = p); try (subst; lia).
-     { apply steps_spec_inv. rewrite triangle_succ. lia. }
+ set (p := steps (n-k-2)) in *. clearbody p. specialize (Hp p).
+ rewrite !f_triangle with (p:=p); rewrite ?quad_S, ?Nat.add_1_r; lia.
 Qed.
 
 Lemma fk_fSk_low_diff k n : k<>0 -> n <= quad k ->
@@ -1435,6 +1378,42 @@ Lemma fsinv_2 k p : k<>0 -> fsinv k p 2 = S (A k p).
 Proof.
  intros. rewrite OldBootstrap.fsinv_as_rchild by lia. f_equal.
  now apply rchilds_1.
+Qed.
+
+Lemma f_pred_plus_1 k n p : k<>0 -> 1 < n <= quad k ->
+ triangle p + 2 <= n-k-2 < triangle (p+1) -> f k n = f (S k) (n-1) + 1.
+Proof.
+ intros Hk Hn Hp.
+ rewrite (f_triangle k n p), (f_triangle _ _ p); try lia.
+ - generalize (triangle_aboveid p); lia.
+ - rewrite quad_S; lia.
+Qed.
+
+Lemma f_flat_triangle k n : k<>0 -> k+3 <= n <= quad k ->
+ (exists p, n-k-2 = triangle p) -> f k n = f k (n-1).
+Proof.
+ intros Hk Hn (p,Hp).
+ if (p = 0). { subst. unfold triangle in Hp; simpl in Hp. lia. }
+ rewrite (f_triangle k n p); try lia.
+ 2:{ rewrite Nat.add_1_r, triangle_succ; lia. }
+ symmetry. replace (n-p-1) with (n-1-(p-1)-1) by lia.
+ apply f_triangle; try lia.
+ replace (p-1+1) with p by lia.
+ replace (n-1-k-2) with (triangle p - 1) by lia. split; try lia.
+ rewrite (triangle_pred p); lia.
+Qed.
+
+Lemma f_nonflat_triangle k n : k<>0 -> k+3 <= n <= quad k ->
+ (forall p, n-k-2 <> triangle p) -> f k n = f k (n-1) + 1.
+Proof.
+ intros Hk Hn Hp.
+ destruct (steps_spec' (n-k-2)) as (Hp1,Hp2).
+ set (p := steps (n-k-2)) in *. clearbody p.
+ rewrite (f_triangle k n p); try lia.
+ 2:{ rewrite Nat.add_1_r; lia. }
+ rewrite (f_triangle k (n-1) p); try lia.
+ - generalize (triangle_aboveid p); lia.
+ - rewrite Nat.add_1_r. split; try lia. specialize (Hp p). lia.
 Qed.
 
 End UnusedStuff.
