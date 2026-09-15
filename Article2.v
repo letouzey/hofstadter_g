@@ -1432,10 +1432,10 @@ Proof.
  intros (U,V). apply le_INR in U, V.
  rewrite !plus_INR in V. inr_const.
  split. 2:lra.
- if (2 <= GenG.f 3 p + GenG.f 3 n)%nat as [H|H].
+ if (2 <= GenG.f 3 p + GenG.f 3 n)%nat.
  - rewrite minus_INR in U by lia. inr_const.
    rewrite plus_INR in U. lra.
- - apply le_INR in H. rewrite plus_INR in H. inr_const. inr.
+ - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 Lemma F4_almostadd p n : Rabs (F 4 (p+n) - F 4 p - F 4 n) <= 4.
@@ -1445,10 +1445,10 @@ Proof.
  intros (U,V). apply le_INR in U,V.
  rewrite !plus_INR in V. inr_const.
  split. 2:lra.
- if (4 <= GenG.f 4 p + GenG.f 4 n)%nat as [H|H].
+ if (4 <= GenG.f 4 p + GenG.f 4 n)%nat.
  - rewrite minus_INR in U by lia. inr_const.
    rewrite plus_INR in U. simpl in U. lra.
- - apply le_INR in H. rewrite plus_INR in H. inr_const. inr.
+ - apply lt_INR in H. rewrite plus_INR in H. inr_const. inr.
 Qed.
 
 (** Proposition 8.11 *)

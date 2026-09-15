@@ -31,7 +31,7 @@ Proof.
  now rewrite <- RtoC_inv, Rinv_1.
 Qed.
 
-#[global] Instance Dec2_C_eq a b : Decide2 (a=b) (Ceq_dec a b ||| false).
+#[global] Instance Dec2_C_eq a b : Dec2 (a=b) (Ceq_dec a b ||| false).
 Proof.
  destruct Ceq_dec; now constructor.
 Qed.

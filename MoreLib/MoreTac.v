@@ -9,29 +9,41 @@ Notation lia := (ltac:(lia)) (only parsing).
 
 (** Lightweight destruct of a decidable statement *)
 
-Class Decide3 (P Q : Prop) (b : bool) := Decide3_spec : BoolSpec P Q b.
-Class Decide2 (P : Prop) (b : bool) := Decide2_spec : Bool.reflect P b.
+Inductive BoolSpecType (P Q : Prop) : bool -> Set :=
+  | BoolSpecTypeT : P -> BoolSpecType P Q true
+  | BoolSpecTypeF : Q -> BoolSpecType P Q false.
 
-#[global] Instance decide23 P b {D : Decide2 P b} : Decide3 P (~P) b :=
+Class Dec3 (P Q : Prop) (b : bool) := dec3 : BoolSpecType P Q b.
+Class Dec3P (P Q : Prop) (b : bool) := dec3P : BoolSpec P Q b.
+Class Dec2 (P : Prop) (b : bool) := dec2 : Bool.reflect P b.
+
+#[global] Instance dec3P3 P Q b (D : Dec3P P Q b) : Dec3 P Q b.
+Proof.
+ destruct b; constructor; now inversion D.
+Qed.
+
+#[global] Instance dec23 P b (D : Dec2 P b) : Dec3 P (~P) b :=
  match D with
- | Bool.ReflectT _ p => BoolSpecT _ p
- | Bool.ReflectF _ np => BoolSpecF _ np
+ | Bool.ReflectT _ p => BoolSpecTypeT _ _ p
+ | Bool.ReflectF _ np => BoolSpecTypeF _ _ np
  end.
 
-#[global] Instance Dec2_nat_eq a b : Decide2 _ _ := Nat.eqb_spec a b.
-#[global] Instance Dec3_nat_le a b : Decide3 _ _ _ | 5 := Nat.leb_spec a b.
-#[global] Instance Dec3_nat_lt a b : Decide3 _ _ _ | 3 := Nat.ltb_spec a b.
-#[global] Instance Dec2_N_eq a b : Decide2 _ _ := N.eqb_spec a b.
-#[global] Instance Dec3_N_le a b : Decide3 _ _ _ | 5 := N.leb_spec a b.
-#[global] Instance Dec3_N_lt a b : Decide3 _ _ _ | 3 := N.ltb_spec a b.
-#[global] Instance Dec2_Pos_eq a b : Decide2 _ _ := Pos.eqb_spec a b.
-#[global] Instance Dec3_Pos_le a b : Decide3 _ _ _ | 5 := Pos.leb_spec a b.
-#[global] Instance Dec3_Pos_lt a b : Decide3 _ _ _ | 3 := Pos.ltb_spec a b.
-#[global] Instance Dec2_Z_eq a b : Decide2 _ _ := Z.eqb_spec a b.
-#[global] Instance Dec3_Z_le a b : Decide3 _ _ _ | 5 := Z.leb_spec a b.
-#[global] Instance Dec3_Z_lt a b : Decide3 _ _ _ | 3 := Z.ltb_spec a b.
+#[global] Typeclasses Opaque lt. (* avoid mixing a < b with S a <= b *)
 
-#[global] Instance Dec3_nat_even n : Decide3 (Nat.Even n) (Nat.Odd n) (Nat.even n).
+#[global] Instance Dec2_nat_eq a b : Dec2 _ _ := Nat.eqb_spec a b.
+#[global] Instance Dec3_nat_le a b : Dec3P _ _ _ := Nat.leb_spec a b.
+#[global] Instance Dec3_nat_lt a b : Dec3P _ _ _ := Nat.ltb_spec a b.
+#[global] Instance Dec2_N_eq a b : Dec2 _ _ := N.eqb_spec a b.
+#[global] Instance Dec3_N_le a b : Dec3P _ _ _ := N.leb_spec a b.
+#[global] Instance Dec3_N_lt a b : Dec3P _ _ _ := N.ltb_spec a b.
+#[global] Instance Dec2_Pos_eq a b : Dec2 _ _ := Pos.eqb_spec a b.
+#[global] Instance Dec3_Pos_le a b : Dec3P _ _ _ := Pos.leb_spec a b.
+#[global] Instance Dec3_Pos_lt a b : Dec3P _ _ _ := Pos.ltb_spec a b.
+#[global] Instance Dec2_Z_eq a b : Dec2 _ _ := Z.eqb_spec a b.
+#[global] Instance Dec3_Z_le a b : Dec3P _ _ _ := Z.leb_spec a b.
+#[global] Instance Dec3_Z_lt a b : Dec3P _ _ _ := Z.ltb_spec a b.
+
+#[global] Instance Dec3_nat_even n : Dec3 (Nat.Even n) (Nat.Odd n) (Nat.even n).
 Proof.
  assert (H := Nat.even_spec n).
  destruct (Nat.even n) eqn:E; constructor.
@@ -39,7 +51,7 @@ Proof.
  - destruct (Nat.Even_or_Odd n); trivial. now rewrite <- H in *.
 Qed.
 
-#[global] Instance Dec3_nat_odd n : Decide3 (Nat.Odd n) (Nat.Even n) (Nat.odd n).
+#[global] Instance Dec3_nat_odd n : Dec3 (Nat.Odd n) (Nat.Even n) (Nat.odd n).
 Proof.
  assert (H := Nat.odd_spec n).
  destruct (Nat.odd n) eqn:E; constructor.
@@ -47,29 +59,29 @@ Proof.
  - destruct (Nat.Even_or_Odd n); trivial. now rewrite <- H in *.
 Qed.
 
-Definition decide P {Q} {b} {D : Decide3 P Q b} := D.
-Definition decideb {P Q} b {D : Decide3 P Q b} := D.
+Definition decide P {Q b} {D : Dec3 P Q b} := D.
+Definition decideb {P Q} b {D : Dec3 P Q b} := D.
 
-Tactic Notation "if" constr(x) :=
- match type of x with
- | bool => destruct (decideb x)
- | _ => destruct (decide x)
- end.
+(* Negations are handled manually, to avoid loops in type class resolution *)
+Definition decide_neg P {Q b} {D : Dec3 P Q b} : Dec3 Q P (negb b).
+Proof.
+ destruct D; now constructor.
+Qed.
 
 Tactic Notation "if" constr(x) "as" simple_intropattern(pat) :=
  match type of x with
  | bool => destruct (decideb x) as pat
- | _ => destruct (decide x) as pat
+ | _ => match x with
+        | not ?y => destruct (decide_neg y) as pat
+        | _ => destruct (decide x) as pat
+        end
  end.
 
+Tactic Notation "if" constr(x) := if x as [?H|?H].
+
 (* TODO concerning this `if` tactic:
-   - Issue with `if (S a + b <= ...)` which half-reduce the +
-     to see it as `(a + b < ...)` but leave the + unfolded.
-     Current fix : `if (S (a+b) <= ...)` or `if (a+b < ...)`.
-   - Do not work when the goal is in Type.
    - Do not accept patterns like `if (n <=? _)` even if the context is clear.
      With that, it could become a alternative to `case Nat.eqb_spec` and alii.
-   - Maybe add someday `if (a <> b)` ?
 *)
 
 (** Sometimes in Coquelicot, ring/field do not recognize the type

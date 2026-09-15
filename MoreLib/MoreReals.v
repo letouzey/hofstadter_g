@@ -81,9 +81,9 @@ Proof.
  unfold Rltb; case Rleb_spec; lra.
 Qed.
 
-#[global] Instance Dec2_R_eq a b : Decide3 _ _ _ := Reqb_spec a b.
-#[global] Instance Dec3_R_le a b : Decide3 _ _ _ | 5 := Rleb_spec a b.
-#[global] Instance Dec3_R_lt a b : Decide3 _ _ _ | 3 := Rltb_spec a b.
+#[global] Instance Dec2_R_eq a b : Dec3P _ _ _ := Reqb_spec a b.
+#[global] Instance Dec3_R_le a b : Dec3P _ _ _ := Rleb_spec a b.
+#[global] Instance Dec3_R_lt a b : Dec3P _ _ _ := Rltb_spec a b.
 
 (** Rabs_right, but with Rle instead of Rge precondition *)
 Definition Rabs_right' := Rabs_pos_eq.

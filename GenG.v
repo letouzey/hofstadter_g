@@ -1360,16 +1360,15 @@ Qed.
 Lemma steps_inv_lt a b :
  a*(a+1) < b*(b+1) -> a < b.
 Proof.
- intros LT.
- if (a < b) as [H|H]. { auto. }
+ intros.
  if (b < a) as [H'|H']. { apply steps_lt in H'. lia. }
- replace b with a in LT; lia.
+ if (b = a); subst; lia.
 Qed.
 
 Lemma steps_inv_le a b :
  a*(a+1) <= b*(b+1) -> a <= b.
 Proof.
- intros LE. if (a <= b) as [H|H]; auto. apply steps_lt in H. lia.
+ intros. if (a <= b) as [H'|H']; auto. apply steps_lt in H'. lia.
 Qed.
 
 Lemma steps_uniqueness n a b :
