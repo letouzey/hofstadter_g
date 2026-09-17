@@ -330,14 +330,9 @@ Proof.
  now rewrite !Nat.lt_nge, triangle_mono_iff.
 Qed.
 
-Lemma steps_spec_inv a b :
- triangle b <= a < triangle (S b) -> b = steps a.
+Lemma triangle_inv n : exists p, triangle p <= n < triangle (S p).
 Proof.
- intros (H1,H2).
- destruct (steps_spec' a) as (H3,H4).
- assert (b < S (steps a)). { apply triangle_str_mono; lia. }
- assert (steps a < S b). { apply triangle_str_mono; lia. }
- lia.
+ exists (steps n). apply steps_spec'.
 Qed.
 
 Lemma list_sum_S l n : n = length l -> list_sum (map S l) = n + list_sum l.
@@ -482,26 +477,23 @@ Lemma f_triangle_low k n p : k<>0 -> 1 < n <= quad k ->
  triangle p <= n-k-2 -> f k n <= n - p - 1.
 Proof.
  intros Hk Hn Hp.
+ if (p = 0). { subst. simpl. generalize (@f_lt k n); lia. }
  if (n <= k+2).
  { rewrite f_init by lia. replace (n-k-2) with 0 in Hp by lia.
-   destruct p. lia. rewrite triangle_succ in Hp. lia. }
- replace (n-p-1) with (n-(p+1)) by lia.
- if (p = 0) as [->|Hp'].
- { simpl. generalize (@f_lt k n); lia. }
- if (p <= k+1) as [LE|GT].
- - apply f_low; trivial.
-   rewrite fsinv_triangle by lia. replace (p+1-1) with p; lia.
- - exfalso. red in GT. replace (S (k+1)) with (k+2) in GT by lia.
-   apply triangle_mono in GT.
+   change 0 with (triangle 0) in Hp. apply triangle_mono_iff in Hp. lia. }
+ assert (p < k+2).
+ { apply triangle_str_mono.
    unfold quad in Hn. replace (k+3) with (S (k+2)) in Hn by lia.
-   rewrite triangle_succ in Hn. lia.
+   rewrite triangle_succ in Hn. lia. }
+ replace (n-p-1) with (n-(p+1)) by lia. apply f_low; trivial.
+ rewrite fsinv_triangle by lia. replace (p+1-1) with p; lia.
 Qed.
 
 Lemma f_triangle_high k n p : k<>0 -> 1 < n <= quad k ->
  n-k-2 < triangle p -> n - p <= f k n.
 Proof.
  intros Hk Hn Hp.
- if (p = 0) as [->|Hp']. { easy. }
+ if (p = 0). { now subst. }
  if (n <= k+2). { rewrite f_init; lia. }
  apply f_high; trivial.
  if (p < k+2).
@@ -596,49 +588,35 @@ Lemma fs_pred_le_triangle0 k n p q : k<>0 -> k+3 <= n <= quad k -> 0<q<=p ->
 Proof.
  intros Hk. revert p n. induction q; try lia.
  intros p n Hn Hq Hp.
- if (q = 0). { subst; now apply Nat.eq_le_incl, (f_pred_eq_triangle k n p). }
- if (f k n <= f (S k) (n-1)) as [LE|GT]. { now apply fs_pred_le_iter with 1. }
+ if (f k n <= f (S k) (n-1)). { now apply fs_pred_le_iter with 1. }
+ if (n-k-2 <= triangle p + 1). { generalize (f_pred_eq_triangle k n p); lia. }
  rewrite !iter_S. replace (f (S k) (n-1)) with (f k n - 1).
  2:{ generalize (fs_pred_plus_1 k 1 n); simpl; lia. }
- assert (E : f k n = n - p - 1).
+ assert (f k n = n - p - 1).
  { apply f_triangle; try lia. rewrite Nat.add_1_r, triangle_succ. lia. }
- assert (k + 3 <= n - p - 1).
- { if (p = 2).
-   - subst p. apply Nat.le_ngt. contradict GT.
-     change (triangle 2) with 3 in Hp.
-     rewrite E. replace (n-1) with (3+S k) by lia. rewrite f_k_plus_3; lia.
-   - generalize (triangle_aboveidp3 p); lia. }
  apply IHq with (p-1); try lia.
- rewrite E. replace (n-p-1-k-2) with ((n-k-2)-p-1) by lia.
- split.
- - if (n - k - 2 = triangle p) as [E'|?].
-   + assert (n - 1 - p <= f (S k) (n - 1)); try lia.
-     { apply f_triangle_high; rewrite ?quad_S; try lia. }
-   + transitivity (triangle p - p); try lia. rewrite (triangle_pred p); lia.
- - transitivity (triangle p + S q - p - 1). lia.
-   rewrite (triangle_pred p); lia.
+ - split; try lia.
+   if (p = 2).
+   + subst p. change (triangle 2) with 3 in *. lia.
+   + generalize (triangle_aboveidp3 p); lia.
+ - rewrite (triangle_pred p) in *. lia.
 Qed.
 
 (* same, without the constraint q<=p *)
 Lemma fs_pred_le_triangle k n p q : k<>0 -> k+3 <= n <= quad k -> 0<q ->
  triangle p <= n-k-2 <= triangle p + q -> fs k q n <= fs (S k) q (n-1).
 Proof.
- intros Hk. revert p n. induction q as [[|q] IH] using lt_wf_ind; try lia.
- intros p n Hn Hq Hp.
- if (q < p). { apply (fs_pred_le_triangle0 k n p (S q)); trivial; lia. }
- replace (S q) with (S p + (q-p)) in Hp by lia.
- rewrite Nat.add_assoc in Hp. rewrite <- triangle_succ in Hp.
- if (n-k-2 < triangle (S p)) as [LT|LE].
- - if (p = 0).
-   + subst. unfold triangle in Hp,LT; simpl in Hp,LT; lia.
-   + apply fs_pred_le_iter with p; try lia.
-     rewrite triangle_succ in LT.
-     apply (fs_pred_le_triangle0 k n p p); trivial; lia.
- - if (q = p).
-   + subst q. apply fs_pred_le_iter with 1; simpl; try lia.
-     apply (fs_pred_le_triangle0 k n (S p) 1); trivial; lia.
-   + apply fs_pred_le_iter with (q-p); try lia.
-     apply IH with (S p); lia.
+ intros Hk Hn Hq Hp.
+ destruct (triangle_inv (n-k-2)) as (p' & Hp').
+ assert (H : p <= p'). { rewrite <- Nat.lt_succ_r, triangle_str_mono; lia. }
+ set (q' := n-k-2 - triangle p').
+ assert (q' <= q). { apply triangle_mono in H. lia. }
+ assert (q' <= p'). { rewrite triangle_succ in *. lia. }
+ if (q' = 0).
+ - apply fs_pred_le_iter with 1; try lia. simpl.
+   generalize (f_pred_eq_triangle k n p'); lia.
+ - apply fs_pred_le_iter with q'; try lia.
+   apply fs_pred_le_triangle0 with p'; lia.
 Qed.
 
 Lemma fs_pred_le_bound k n q :
@@ -646,7 +624,7 @@ Lemma fs_pred_le_bound k n q :
   n <= k+triangle(q+2) -> fs k q n <= fs (S k) q (n-1).
 Proof.
  intros Hk Hn Hq Hn'.
- destruct (steps_spec' (n-k-2)) as (LE,LT). set (p := steps (n-k-2)) in *.
+ destruct (triangle_inv (n-k-2)) as (p & LE & LT).
  apply fs_pred_le_triangle with p; trivial. split; trivial.
  assert (n-k-2 < triangle (q+2) - 1) by lia.
  assert (p < q+2) by (apply triangle_str_mono; lia).
@@ -662,49 +640,44 @@ Proof.
  intros Hk Hn.
  if (n = k+3) as [->|Hn'].
  { rewrite <- fsinv_overlap_eq; trivial. replace (k+3+1) with (k+4); lia. }
- destruct (steps_spec' (n-k-1)) as (H0,H).
- set (q := steps (n-k-1) -1).
- assert (Hq : 0 < q).
- { assert (2 <= steps (n-k-1)).
-   { change 2 with (steps 3). apply steps_incr. lia. }
-   unfold q; lia. }
- red in H. replace (S (n-k-1)) with (n-k) in H by lia.
- replace (S _) with (q+2) in H by lia.
- replace (steps _) with (q+1) in H0 by lia.
- assert (LE := fs_pred_le_bound k n q Hk Hn Hq lia).
- assert (q <= k).
- { replace k with (k+2-1-1) by lia.
-   apply Nat.sub_le_mono_r.
-   rewrite <- (@steps_triangle_minus (k+2) 1 lia). apply steps_incr.
-   apply Nat.sub_le_mono_r.
-   transitivity (quad k -k); try lia. unfold quad.
-   replace (k+3) with (S (k+2)) by lia. rewrite triangle_succ. lia. }
- assert (Hq' : 1+q <= fs (S k) k (n-1)).
- { replace (1+q) with ((q-1)+2) by lia.
-   apply fs_triangle_ineqS. trivial.
+ (* for n>k+3 the inequality is actually strict (but we don't really care). *)
+ apply Nat.lt_le_incl.
+ destruct (triangle_inv (n-k-1)) as (p & Hp1 & Hp2).
+ if (p <= 1) as [Hp|Hp].
+ { rewrite triangle_succ in Hp2.
+   generalize (triangle_mono _ _ Hp). change (triangle 1) with 1. lia. }
+ red in Hp2. replace (S (n-k-1)) with (n-k) in Hp2 by lia.
+ assert (p < k+2).
+ { apply triangle_str_mono.
+   apply Nat.le_lt_trans with (quad k -k-1); try lia.
+   unfold quad. rewrite Nat.add_succ_r, triangle_succ.
+   generalize (triangle_aboveid (k+2)); lia. }
+ assert (Hp' : S p <= fs (S k) k (n-1)).
+ { replace (S p) with ((p-1)+2) by lia. apply fs_triangle_ineqS. trivial.
    - split; try lia. rewrite quad_S; lia.
-   - rewrite (triangle_mono _ q) by lia.
-     transitivity (triangle (q+1)-2); try lia.
-     rewrite Nat.add_1_r, triangle_succ; lia. }
- clearbody q. clear H0.
+   - transitivity (triangle p - 2); try lia.
+     rewrite (triangle_pred p); lia. }
+ set (q := p-1). replace p with (S q) in Hp' by lia.
+ assert (fs k q n <= fs (S k) q (n-1)).
+ { apply fs_pred_le_bound; try lia. replace (q+2) with (S p); lia. }
  (* now something similar to the future fsinv_overlap_if0 *)
  rewrite 2 fsinv_eqn; try lia.
- rewrite <- Nat.add_assoc. apply Nat.add_le_mono_l.
+ rewrite <- Nat.add_assoc. apply Nat.add_lt_mono_l.
  rewrite !Nat.sub_diag.
  rewrite seq_S, map_app, list_sum_app. simpl. rewrite Nat.add_0_r.
  rewrite (Nat.add_comm (list_sum _)).
- etransitivity; [|apply Nat.add_le_mono_r; eauto].
- simpl. rewrite <- Nat.succ_le_mono.
+ red. etransitivity; [|apply Nat.add_le_mono_r; eauto].
+ simpl. rewrite <- 2 Nat.succ_le_mono.
  replace k with (q + (k-q)) at 1 2 by lia.
  rewrite seq_app, !map_app, !list_sum_app, !Nat.add_0_l.
  rewrite Nat.add_assoc. apply Nat.add_le_mono.
  - rewrite <- list_sum_S. 2:now rewrite map_length, seq_length.
    rewrite map_map.
    apply list_sum_le.
-   intros p _. replace (n+1-1) with n by lia. rewrite <- Nat.add_1_r.
+   intros x _. replace (n+1-1) with n by lia. rewrite <- Nat.add_1_r.
    apply fs_pred_plus_1.
  - apply list_sum_le.
-   intros p. rewrite in_seq. intros (Hp,_).
+   intros x. rewrite in_seq. intros (Hx,_).
    replace (n+1-1) with n by lia.
    apply fs_pred_le_iter with q; lia.
 Qed.
@@ -997,8 +970,7 @@ Lemma fk_fSk_triangle_diff_0 k n : k<>0 -> k+3 <= n <= quad k ->
  (forall p, n-k-2 <> triangle p) -> f (S k) n = f k n.
 Proof.
  intros Hk Hn Hp.
- destruct (steps_spec' (n-k-2)) as (Hp1,Hp2).
- set (p := steps (n-k-2)) in *. clearbody p. specialize (Hp p).
+ destruct (triangle_inv (n-k-2)) as (p & Hp1 & Hp2). specialize (Hp p).
  rewrite !f_triangle with (p:=p); rewrite ?quad_S, ?Nat.add_1_r; lia.
 Qed.
 
@@ -1007,11 +979,13 @@ Lemma fk_fSk_low_diff k n : k<>0 -> n <= quad k ->
 Proof.
  intros Hk Hn.
  if (n < k+3) as [Hn'|Hn']. { rewrite <- f_low_eq; lia. }
- if (triangle (steps (n-k-2)) = n-k-2).
- - rewrite (fk_fSk_triangle_diff_1 k n); try lia. now exists (steps (n-k-2)).
+ destruct (triangle_inv (n-k-2)) as (p & Hp1 & Hp2).
+ if (triangle p = n-k-2) as [E|E].
+ - rewrite (fk_fSk_triangle_diff_1 k n); try lia. now exists p.
  - rewrite (fk_fSk_triangle_diff_0 k n); try lia.
-   intros p Hp. apply H. rewrite Hp at 2. f_equal. symmetry.
-   apply steps_spec_inv. rewrite Hp. rewrite triangle_succ. lia.
+   intros p' Hp'. apply E. clear E. rewrite Hp' in *. clear Hp'. f_equal.
+   apply triangle_mono_iff in Hp1.
+   apply triangle_str_mono in Hp2. lia.
 Qed.
 
 (* Revisiting GenG.fk_fSk_last_equality without using decomposition *)
@@ -1407,13 +1381,11 @@ Lemma f_nonflat_triangle k n : k<>0 -> k+3 <= n <= quad k ->
  (forall p, n-k-2 <> triangle p) -> f k n = f k (n-1) + 1.
 Proof.
  intros Hk Hn Hp.
- destruct (steps_spec' (n-k-2)) as (Hp1,Hp2).
- set (p := steps (n-k-2)) in *. clearbody p.
+ destruct (triangle_inv (n-k-2)) as (p & Hp1 & Hp2). specialize (Hp p).
  rewrite (f_triangle k n p); try lia.
  2:{ rewrite Nat.add_1_r; lia. }
- rewrite (f_triangle k (n-1) p); try lia.
- - generalize (triangle_aboveid p); lia.
- - rewrite Nat.add_1_r. split; try lia. specialize (Hp p). lia.
+ rewrite (f_triangle k (n-1) p); rewrite ?Nat.add_1_r; try lia.
+ generalize (triangle_aboveid p); lia.
 Qed.
 
 End UnusedStuff.
