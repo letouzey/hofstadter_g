@@ -301,12 +301,6 @@ Proof.
  induction 1. lia. rewrite triangle_succ. lia.
 Qed.
 
-Lemma triangle_aboveidp1 n : 2<=n -> 1+n <= triangle n.
-Proof.
- intros. replace n with (S (S (n-2))) at 2 by lia.
- rewrite !triangle_succ. generalize (triangle_aboveid (n-2)); lia.
-Qed.
-
 Lemma triangle_aboveidp3 n : 3<=n -> 3+n <= triangle n.
 Proof.
  intros. replace n with (S (S (S (n-3)))) at 2 by lia.
@@ -1389,6 +1383,95 @@ Proof.
  2:{ rewrite Nat.add_1_r; lia. }
  rewrite (f_triangle k (n-1) p); rewrite ?Nat.add_1_r; try lia.
  generalize (triangle_aboveid p); lia.
+Qed.
+
+(* Attempt to describe fs in the triangular zone instead of just f:
+   - Steps when away from the previous triangular number
+   - Flats when close from the previous triangular number
+     (or even just before this number).
+   In the end, not easy to use afterwards. *)
+
+Lemma triangle_aboveidp1 n : 2<=n -> 1+n <= triangle n.
+Proof.
+ intros. replace n with (S (S (n-2))) at 2 by lia.
+ rewrite !triangle_succ. generalize (triangle_aboveid (n-2)); lia.
+Qed.
+
+Lemma fs_triangle_step k n p q : k<>0 -> k+3 <= n <= quad k ->
+ triangle p + q <= n-k-2 < triangle (p+1) ->
+ fs k (S q) n = n + triangle q - (S q)*(S p).
+Proof.
+ intros Hk.
+ revert p n.
+ induction q.
+ - intros. rewrite Nat.add_0_r, Nat.mul_1_l in *.
+   simpl. rewrite (f_triangle k n p); trivial; try lia.
+ - intros p n Hn Hp. rewrite iter_S, (f_triangle k n p); trivial; try lia.
+   rewrite triangle_succ. rewrite Nat.mul_succ_l.
+   if (p = 0). { subst. simpl in *. change (triangle 1) with 1 in *. lia. }
+   if (p = 1).
+   { subst. simpl in *.
+     replace q with 0 in * by lia.
+     simpl. replace (n-1-1) with (2+k) by lia.
+     rewrite f_k_plus_2. lia. }
+   rewrite (IHq (p-1)); clear IHq.
+   + replace p with (S (p-1)) at 3 by lia.
+     rewrite (Nat.mul_succ_r _ (S (p-1))).
+     assert (p < n).
+     { apply Nat.le_lt_trans with (triangle p).
+       apply triangle_aboveid. lia. }
+     lia.
+   + split; try lia. generalize (triangle_aboveidp1 p); lia.
+   + replace (p-1+1) with p by lia.
+     replace p with (S (p-1)) in Hp at 1 by lia.
+     rewrite Nat.add_1_r in Hp.
+     rewrite 2 triangle_succ in Hp.
+     lia.
+Qed.
+
+Lemma triangle_sub p q : q <= p ->
+  triangle (p-q) + S p * q = triangle p + triangle q.
+Proof.
+ revert p.
+ induction q; intros.
+ - simpl. change (triangle 0) with 0. rewrite !Nat.sub_0_r. lia.
+ - destruct p; try lia. simpl. specialize (IHq p); lia.
+Qed.
+
+Lemma fs_triangle_flat k n p q : k<>0 -> k+3 <= n <= quad k -> q<p ->
+ triangle p - 1 <= n-k-2 <= triangle p + q ->
+ fs k (S q) n = k+1 + triangle (p-q-1).
+Proof.
+ intros Hk Hn Hq Hp.
+ if (p = 1).
+ { subst. simpl in Hp.
+   replace q with 0 in * by lia.
+   replace n with (3+k) by lia. simpl. rewrite f_k_plus_3; lia. }
+ apply Nat.le_antisymm.
+ - rewrite (@fs_mono k (S q) n (k+2+triangle p + q)) by lia.
+   rewrite (fs_triangle_step k _ p); trivial.
+   + replace (p-q-1) with (p-S q) by lia.
+     generalize (triangle_sub p (S q) lia).
+     rewrite triangle_succ. lia.
+   + split; [ generalize (triangle_aboveidp1 p); lia | ].
+     assert (S p <= k+2).
+     { apply triangle_str_mono.
+       unfold quad in Hn. rewrite (Nat.add_succ_r k 2) in Hn.
+       simpl in Hn. generalize (triangle_aboveid p); lia. }
+     apply triangle_mono in H0. simpl in H0.
+     unfold quad. rewrite (Nat.add_succ_r k 2). simpl. lia.
+   + rewrite Nat.add_1_r, triangle_succ; lia.
+ - rewrite <- (@fs_mono k (S q) (k+1+triangle p) n) by lia.
+   rewrite (fs_triangle_step k _ (p-1)); trivial.
+   + replace (p-q-1) with (p-S q) by lia.
+     assert (E := triangle_sub p (S q) lia).
+     rewrite triangle_succ in E. replace (S (p-1)) with p by lia.
+     rewrite Nat.mul_succ_l, Nat.mul_comm in E. lia.
+   + split; try lia.
+     generalize (triangle_mono 2 p). simpl. lia.
+   + replace (p-1+1) with p by lia. split.
+     * replace p with (S (p-1)) at 2 by lia. simpl. lia.
+     * generalize (triangle_aboveidp1 p); lia.
 Qed.
 
 End UnusedStuff.
