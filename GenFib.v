@@ -226,7 +226,28 @@ Qed.
 
 (* After the "base" zone, a "triangular" zone *)
 
-Definition triangle p := p*(p+1)/2.
+(* First, the p-th triangular number *)
+
+Fixpoint triangle p := match p with
+| 0 => 0
+| S p' => p + triangle p'
+end.
+
+Lemma triangle_succ p : triangle (S p) = triangle p + S p.
+Proof.
+ simpl. lia.
+Qed.
+
+Lemma double_triangle p : 2 * triangle p = p*(p+1).
+Proof.
+ induction p; simpl; lia.
+Qed.
+
+Lemma triangle_alt p : triangle p = p*(p+1)/2.
+Proof.
+ rewrite <- double_triangle.
+ symmetry. rewrite Nat.mul_comm. now apply Nat.div_mul.
+Qed.
 
 Lemma pSp_even p : p*(p+1) mod 2 = 0.
 Proof.
@@ -238,34 +259,20 @@ Proof.
    apply Nat.mod_mul; auto.
 Qed.
 
-Lemma double_triangle p : 2 * triangle p = p*(p+1).
-Proof.
- rewrite (Nat.div_mod (p*(p+1)) 2); auto. now rewrite pSp_even.
-Qed.
-
-Lemma triangle_succ p : triangle (S p) = triangle p + S p.
-Proof.
- apply Nat.mul_cancel_l with 2; auto.
- rewrite Nat.mul_add_distr_l.
- rewrite !double_triangle. lia.
-Qed.
-
 Lemma triangle_aboveid p : p <= triangle p.
 Proof.
- induction p; auto. rewrite triangle_succ. lia.
+ induction p; simpl; lia.
 Qed.
 
 Lemma A_triangle k n : k<>0 -> n <= k+1 -> A k (k-1 + n) = k + triangle n.
 Proof.
  intros Hk.
  induction n.
- - intros _. rewrite A_base by lia. unfold triangle. simpl. lia.
+ - simpl. intros _. rewrite A_base; lia.
  - intros LE.
-   rewrite Nat.add_succ_r, A_S.
+   rewrite Nat.add_succ_r, A_S. simpl.
    replace (_ + n - _) with n by lia.
-   rewrite (@A_base k n) by lia.
-   rewrite triangle_succ.
-   rewrite IHn; lia.
+   rewrite (@A_base k n); lia.
 Qed.
 
 (* Just after the triangular zone : *)

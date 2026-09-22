@@ -301,6 +301,12 @@ Proof.
  induction 1. lia. rewrite triangle_succ. lia.
 Qed.
 
+Lemma triangle_aboveidp1 n : 2<=n -> 1+n <= triangle n.
+Proof.
+ intros. replace n with (S (S (n-2))) at 2 by lia.
+ rewrite !triangle_succ. generalize (triangle_aboveid (n-2)); lia.
+Qed.
+
 Lemma triangle_aboveidp3 n : 3<=n -> 3+n <= triangle n.
 Proof.
  intros. replace n with (S (S (S (n-3)))) at 2 by lia.
@@ -309,7 +315,7 @@ Qed.
 
 Lemma triangle_pred n : triangle n = triangle (n-1) + n.
 Proof.
- destruct n. easy. simpl; now rewrite triangle_succ, Nat.sub_0_r.
+ destruct n. easy. simpl. rewrite Nat.sub_0_r; lia.
 Qed.
 
 Lemma triangle_as_sum n : triangle n = list_sum (seq 1 n).
@@ -480,7 +486,7 @@ Proof.
  if (p = 0). { subst. simpl. generalize (@f_lt k n); lia. }
  if (n <= k+2).
  { rewrite f_init by lia. replace (n-k-2) with 0 in Hp by lia.
-   change 0 with (triangle 0) in Hp. apply triangle_mono_iff in Hp. lia. }
+   apply (triangle_mono_iff p 0) in Hp. lia. }
  assert (p < k+2).
  { apply triangle_str_mono.
    unfold quad in Hn. replace (k+3) with (S (k+2)) in Hn by lia.
@@ -597,7 +603,7 @@ Proof.
  apply IHq with (p-1); try lia.
  - split; try lia.
    if (p = 2).
-   + subst p. change (triangle 2) with 3 in *. lia.
+   + subst p. simpl in *. lia.
    + generalize (triangle_aboveidp3 p); lia.
  - rewrite (triangle_pred p) in *. lia.
 Qed.
@@ -645,7 +651,7 @@ Proof.
  destruct (triangle_inv (n-k-1)) as (p & Hp1 & Hp2).
  if (p <= 1) as [Hp|Hp].
  { rewrite triangle_succ in Hp2.
-   generalize (triangle_mono _ _ Hp). change (triangle 1) with 1. lia. }
+   generalize (triangle_mono _ _ Hp). simpl. lia. }
  red in Hp2. replace (S (n-k-1)) with (n-k) in Hp2 by lia.
  assert (p < k+2).
  { apply triangle_str_mono.
@@ -826,13 +832,11 @@ Proof.
  intros Hm.
  red in Hm.
  apply Nat.le_lteq in Hm. destruct Hm as [Hm|<-].
- - apply (incr_strmono (rchild (S k))) in Hm.
-   2:{ red. intros p. unfold rchild.
-       apply Nat.add_lt_le_mono. lia. apply fs_mono. lia. }
-   rewrite rchild_Sk_Squad in Hm by lia.
-   rewrite <-f_galois_lt by lia.
-   rewrite <- (@f_onto_eqn (S k) m lia) at 1.
-   apply f_grows_strict. lia.
+ - rewrite <-f_galois_lt by lia.
+   rewrite <- (@f_onto_eqn (S k) m) at 1 by lia.
+   apply f_grows_strict. red.
+   rewrite <- rchild_Sk_Squad.
+   apply rchild_mono; lia.
  - rewrite rchild_SSk_Squad, rchild_Sk_Squad; lia.
 Qed.
 
@@ -861,14 +865,13 @@ Proof.
  intros Hk. apply f_galois; lia.
 Qed.
 
-Lemma fkp_2fSkSp k p n : k<>0 -> fs k p n <= 2 * fs (S k) (S p) n.
+Lemma fkp_2fkSp k p n : k<>0 -> fs k p n <= 2 * fs k (S p) n.
 Proof.
  intros Hk.
  rewrite <- rchild_1. simpl.
- transitivity (rchild 1 (f 1 (fs (S k) p n))).
+ transitivity (rchild 1 (f 1 (fs k p n))).
  2:{ apply rchild_mono. apply f_grows_gen; lia. }
- rewrite <- rchild_f_above by lia.
- apply fs_grows.
+ rewrite <- rchild_f_above; lia.
 Qed.
 
 Lemma list_sum_eq {A} (f g : A -> nat) (l : list A) :
@@ -912,7 +915,7 @@ Proof.
  replace (2*_) with (fs k (k - 1) (n - 1) + fs k (k - 1) (n - 1)) by lia.
  rewrite Nat.add_0_r.
  apply Nat.add_le_mono. 2:apply fs_grows.
- rewrite fkp_2fSkSp; trivial. replace (S (k-1)) with k; lia.
+ rewrite fs_grows, fkp_2fkSp by lia. replace (S (k-1)) with k; lia.
 Qed.
 
 Lemma fs_kSk_SkSSk k n : k<>0 -> fs (S k) (S (S k)) n <= fs k (S k) n.

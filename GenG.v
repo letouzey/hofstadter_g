@@ -1418,13 +1418,10 @@ Qed.
 Lemma steps_spec' n :
  triangle (steps n) <= n < triangle (S (steps n)).
 Proof.
- destruct (steps_spec n) as (LE,LT).
- set (q := steps n) in *. clearbody q.
- split.
- - unfold triangle. apply Nat.div_le_upper_bound; auto.
- - clear LE.
-   replace ((q+1)*(q+2)) with (S q * (S q + 1)) in LT by lia.
-   rewrite <- double_triangle in LT. lia.
+ assert (H := steps_spec n).
+ set (q := steps n) in *. clearbody q. cbv zeta in H.
+ replace ((q+1)*(q+2)) with (S q * (S q + 1)) in * by lia.
+ generalize (double_triangle q). simpl. lia.
 Qed.
 
 Lemma steps_altspec q p :
