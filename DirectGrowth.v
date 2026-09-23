@@ -846,12 +846,6 @@ Qed.
    Cf. GenG.rchild_k_Sk_last_equality, that we redo here without
    decomposition *)
 
-Lemma triangle_aboveidp1 n : 2<=n -> 1+n <= triangle n.
-Proof.
- intros. replace n with (S (S (n-2))) at 2 by lia.
- rewrite !triangle_succ. generalize (triangle_aboveid (n-2)); lia.
-Qed.
-
 Lemma f_quad k : k<>0 -> f k (quad k) = quad (k-1) + 1.
 Proof.
  intros Hk.
@@ -914,12 +908,10 @@ Proof.
    rewrite fS_quad; lia.
 Qed.
 
-Lemma rchild_k_Sk_last_equality_redux k n : k<>0 ->
-   n = quad k -> rchild (S k) n = rchild (S (S k)) n.
+Lemma rchild_k_Sk_last_equality_redux k n : 1<k ->
+   n = quad (k-1) -> rchild k n = rchild (S k) n.
 Proof.
- intros Hk ->.
- replace k with (S k-1) at 2 4 by lia.
- rewrite rchild_quad, rchild_Sk_quad; lia.
+ intros Hk ->. rewrite rchild_quad, rchild_Sk_quad; lia.
 Qed.
 
 (* ... and this is indeed the last equality *)
@@ -950,15 +942,22 @@ Proof.
  - now apply f_quadp2.
 Qed.
 
+Lemma rchild_Sk_lt_rchild_k k m : k<>0 ->
+ quad (k-1) < m -> rchild (S k) m < rchild k m.
+Proof.
+ intros Hk Hm.
+ rewrite <- f_galois_lt by lia.
+ rewrite <- (@f_onto_eqn k m) at 1 by lia.
+ apply f_grows_strict. red.
+ rewrite <- rchild_Squad by easy.
+ apply rchild_mono; lia.
+Qed.
+
 Lemma rchild_SSk_lt_rchild_Sk k m :
  quad k < m -> rchild (S (S k)) m < rchild (S k) m.
 Proof.
- intros Hm.
- rewrite <- f_galois_lt by lia.
- rewrite <- (@f_onto_eqn (S k) m) at 1 by lia.
- apply f_grows_strict. red.
- rewrite <- rchild_Squad by easy. replace (S k - 1) with k by lia.
- apply rchild_mono; lia.
+ intros Hm. apply rchild_Sk_lt_rchild_k. easy. simpl.
+ now rewrite Nat.sub_0_r.
 Qed.
 
 (* Same for finv *)
@@ -1137,13 +1136,14 @@ Proof.
    rewrite fsinv_kp5; lia. }
  replace (1+f k n) with (n-(m-1)) by (generalize (f_le k n); lia).
  apply f_low; try lia.
+ assert (fsinv (S k) (S k) (m-1) <= fsinv k k m); try lia.
  if (m = k+3).
- - replace (m-1) with (k+2) in * by lia.
-   replace m with (k+3) in Lo by lia.
-   rewrite fsinv_kp2', fsinv_kp3 in *. lia.
+ - replace (m-1) with (k+2) by lia.
+   replace m with (k+3) by lia.
+   rewrite fsinv_kp2', fsinv_kp3. lia.
  - replace (m-1) with (k+3) by lia.
-   replace m with (k+4) in Lo by lia.
-   rewrite fsinv_kp3', fsinv_kp4 in *; lia.
+   replace m with (k+4) by lia.
+   rewrite fsinv_kp3', fsinv_kp4; lia.
 Qed.
 
 Lemma fk_fSk_diff_le_1 k n :
@@ -1528,6 +1528,12 @@ Qed.
    - Flats when close from the previous triangular number
      (or even just before this number).
    In the end, not easy to use afterwards. *)
+
+Lemma triangle_aboveidp1 n : 2<=n -> 1+n <= triangle n.
+Proof.
+ intros. replace n with (S (S (n-2))) at 2 by lia.
+ rewrite !triangle_succ. generalize (triangle_aboveid (n-2)); lia.
+Qed.
 
 Lemma fs_triangle_step k n p q : k<>0 -> k+3 <= n <= quad k ->
  triangle p + q <= n-k-2 < triangle (p+1) ->
