@@ -3,7 +3,6 @@ From Hofstadter.HalfQuantum Require Import Complex.
 Require Import MoreTac MoreFun MoreList MoreReals MoreLim MoreComplex MoreSum.
 Require Import DeltaList Approx.
 Require Import GenFib GenG GenAdd Words Mu ThePoly Freq Discrepancy F4.
-Require Equidistrib.
 Local Open Scope C.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.

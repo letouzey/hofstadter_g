@@ -18,7 +18,7 @@ Proof.
 Qed.
 
 Definition Rcountin (u:nat->R) a b n :=
- length (filter (RIn a b) (map u (seq 0 n))).
+ length (filter (RIn a b) (take n u)).
 
 Definition EquiDistr01 (u:nat->R) :=
  forall a b,
@@ -29,7 +29,7 @@ Lemma Rcountin_S (u:nat->R) a b n :
  Rcountin u a b (S n) =
  (Rcountin u a b n + if RIn a b (u n) then 1 else 0)%nat.
 Proof.
- unfold Rcountin. rewrite seq_S, map_app, filter_app, app_length.
+ unfold Rcountin, take. rewrite seq_S, map_app, filter_app, app_length.
  simpl. f_equal. now destruct (RIn a b (u n)).
 Qed.
 
@@ -37,7 +37,7 @@ Lemma Rcountin_split u a b c n : a<=b<=c ->
   (Rcountin u a c n = Rcountin u a b n + Rcountin u b c n)%nat.
 Proof.
  intros (AB,BC).
- unfold Rcountin.
+ unfold Rcountin, take.
  induction (map u _) as [|x l IH]; simpl; trivial.
  unfold RIn at 1 4 7.
  repeat case Rleb_spec; repeat case Rltb_spec; intros; simpl; lra || lia.
@@ -52,7 +52,7 @@ Qed.
 Lemma Rcountin_noitvl (f:nat->R) a b n : b<=a -> Rcountin f a b n = O.
 Proof.
  intros Hab.
- unfold Rcountin. rewrite map_filter, map_length.
+ unfold Rcountin, take. rewrite map_filter, map_length.
  rewrite filter_nop; trivial.
  intros x _. apply not_true_iff_false. unfold compose. rewrite RIn_spec; lra.
 Qed.
@@ -103,7 +103,7 @@ Proof.
  intros Hn Hb.
  unfold mean_frac, mean, compose. rewrite <- Rdiv_minus_distr.
  rewrite !big_sum_Rlistsum, Rlistsum_minus.
- unfold Rcountin.
+ unfold Rcountin, take.
  rewrite <- map_map with (g := fun x => frac_part (x - b) - frac_part x).
  rewrite <- map_map with (g := fun x => frac_part x).
  set (l := map u _).
