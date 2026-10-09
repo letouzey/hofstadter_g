@@ -583,7 +583,7 @@ Proof.
  rewrite !Prop_4_3_alt by trivial.
  unfold C. rewrite take_S, filter_app, app_length.
  rewrite Nat.add_comm, Nat.add_sub. cbn -[Nat.eqb].
- case Nat.eqb_spec; simpl; now intuition.
+ case Nat.eqb_spec; simpl; now intuition auto with *.
 Qed.
 
 Lemma dF_no_two_zeros k n : 0<k -> dF k 1 n = 0 -> dF k 1 (S n) = 1.

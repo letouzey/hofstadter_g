@@ -301,7 +301,7 @@ Proof.
  revert E'.
  if (0 <= y1); if (0 <= y2);
    do 2 ((rewrite Rabs_right by lra) || (rewrite Rabs_left by lra));
-   intros; subst; intuition.
+   intros; subst; intuition auto with *.
  left. f_equal. lra.
 Qed.
 

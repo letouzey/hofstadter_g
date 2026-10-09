@@ -192,7 +192,7 @@ Lemma distinct_roots :
 Proof.
  assert (H := nodup_roots).
  inversion_clear H. inversion_clear H1. inversion_clear H2. simpl in *.
- intuition.
+ intuition auto with *.
 Qed.
 
 Lemma A4_eqn :

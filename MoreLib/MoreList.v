@@ -2,6 +2,10 @@ From Coq Require Export Arith Lia List Bool Permutation Morphisms.
 Require Import MoreTac MoreFun.
 Import Basics ListNotations.
 
+(* Needed for Rocq 9.2 :
+Module FinFun := Finite.
+*)
+
 (** Some complements on Coq lists *)
 
 Lemma nil_carac {A} (l:list A) : l = [] <-> forall x, ~In x l.
@@ -267,7 +271,7 @@ Proof.
  - rewrite filter_nop; simpl; try lia.
    intros a' Ha'. destruct (f a') eqn:E'; trivial. exfalso.
    replace a' with a in *. inversion_clear D; tauto.
-   apply H; intuition.
+   apply H; intuition auto with *.
  - apply IHl.
    + intros b b' Hb Hb'. apply H. now right. now right.
    + now inversion_clear D.

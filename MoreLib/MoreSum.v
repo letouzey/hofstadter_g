@@ -79,7 +79,7 @@ Lemma Rlistsum_lt {A}(f g:A->R) l :
 Proof.
  destruct l as [|a l]; simpl. easy.
  intros _ H. apply Rplus_lt_le_compat. apply H; intuition.
- apply Rlistsum_le. intuition.
+ apply Rlistsum_le. intuition auto with *.
 Qed.
 
 Lemma Rlistsum_const {A}(x:R)(l:list A) :

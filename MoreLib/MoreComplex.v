@@ -368,7 +368,7 @@ Proof.
  - intros Y X.
    destruct (Ctotal_order x y) as [H|[<-|H]].
    + inversion_clear Y.
-     destruct IH as (l' & P & L'); trivial. simpl; intuition.
+     destruct IH as (l' & P & L'); trivial. simpl; intuition auto with *.
      exists (y::l'); split.
      * rewrite <- P. apply perm_swap.
      * constructor; trivial. rewrite <- P. now constructor.
