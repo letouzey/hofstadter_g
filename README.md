@@ -33,7 +33,7 @@ Usage
 
 - Use `make` to compile the Coq/Rocq files.
 
-This development depends on Coq >= 8.16 and <= 9.1 as well as the external library
+This development depends on Coq >= 8.16 and <= 9.2 as well as the external library
 Coquelicot >= 3.4.0. On a recent Debian or Ubuntu system (i.e. Debian Trixie),
 perform `apt install coq libcoq-coquelicot`. Otherwise you can fetch them via opam.
 For instance:
@@ -47,7 +47,7 @@ opam install coq-coquelicot
 Or for the newest versions named Rocq:
 
 ```
-opam pin add rocq-runtime 9.1.0
+opam pin add rocq-runtime 9.2.0
 opam repo add rocq-released https://rocq-prover.org/opam/released
 opam install rocq-prover
 opam install coq-coquelicot
