@@ -1439,7 +1439,7 @@ Qed.
 
 Lemma enum_sparse_subsets_nodup k p : NoDup (enum_sparse_subsets k p).
 Proof.
- apply FinFun.Injective_map_NoDup; [|apply seq_NoDup].
- intros x y E.
+ apply NoDup_map; [|apply seq_NoDup].
+ intros x y _ _ E.
  now rewrite <- (@decomp_sum k x), E, decomp_sum.
 Qed.

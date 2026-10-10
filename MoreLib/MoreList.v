@@ -2,10 +2,6 @@ From Coq Require Export Arith Lia List Bool Permutation Morphisms.
 Require Import MoreTac MoreFun.
 Import Basics ListNotations.
 
-(* Needed for Rocq 9.2 :
-Module FinFun := Finite.
-*)
-
 (** Some complements on Coq lists *)
 
 Lemma nil_carac {A} (l:list A) : l = [] <-> forall x, ~In x l.
@@ -271,7 +267,7 @@ Proof.
  - rewrite filter_nop; simpl; try lia.
    intros a' Ha'. destruct (f a') eqn:E'; trivial. exfalso.
    replace a' with a in *. inversion_clear D; tauto.
-   apply H; intuition auto with *.
+   apply H; intuition'.
  - apply IHl.
    + intros b b' Hb Hb'. apply H. now right. now right.
    + now inversion_clear D.
@@ -540,16 +536,26 @@ Qed.
 
 (** Lists with empty intersection *)
 
-Definition EmptyInter {A} (u v : list A) := forall a, ~(In a u /\ In a v).
+Definition EmptyInter {A} (u v : list A) := forall a, In a u -> ~In a v.
+
+Lemma EmptyInter_cons {A} a (u v : list A) :
+ EmptyInter (a::u) v <-> ~In a v /\ EmptyInter u v.
+Proof.
+ unfold EmptyInter. simpl. firstorder congruence.
+Qed.
+
+Lemma nodup_app_iff {A} (l l' : list A) :
+  NoDup (l++l') <-> NoDup l /\ NoDup l' /\ EmptyInter l l'.
+Proof.
+ induction l; simpl.
+ - repeat split; easy || constructor.
+ - rewrite !NoDup_cons_iff, in_app_iff, EmptyInter_cons, IHl. intuition.
+Qed.
 
 Lemma app_nodup {A} (l l':list A) :
   NoDup l -> NoDup l' -> EmptyInter l l' -> NoDup (l++l').
 Proof.
- revert l'.
- induction l as [|x l IH]; simpl; trivial.
- intros l'. inversion_clear 1. intros Hl' EI. constructor.
- - specialize (EI x). simpl in EI. rewrite in_app_iff. intuition.
- - apply IH; auto. intros y. specialize (EI y). simpl in EI. intuition.
+ intros. now rewrite nodup_app_iff.
 Qed.
 
 Lemma flat_map_nodup {A B} (f:A -> list B) l :
@@ -562,9 +568,36 @@ Proof.
  - constructor.
  - inversion_clear H3.
    apply app_nodup; auto.
-   intros y (Hy1,Hy2). rewrite in_flat_map in Hy2.
-   destruct Hy2 as (x' & IN & IN').
-   refine (H2 x x' _ _ _ y _); auto; congruence.
+   intros y. rewrite in_flat_map. intros Hy (x' & Hx' & Hy').
+   revert Hy Hy'. apply H2; auto; congruence.
+Qed.
+
+(** A stronger version of FinFun.Injective_map_NoDup:
+    injectivity is needed only for elements in the list. *)
+
+Lemma NoDup_map {A B} (f : A -> B) (l : list A) :
+ (forall a a', In a l -> In a' l -> f a = f a' -> a = a') ->
+ NoDup l -> NoDup (map f l).
+Proof.
+ induction l.
+ - constructor.
+ - intros H. inversion_clear 1. simpl in *. constructor.
+   2:{ apply IHl; intuition. }
+   rewrite in_map_iff. intros (a' & E & IN). apply H in E. now subst.
+   now right. now left.
+Qed.
+
+Lemma list_prod_nodup {A B} (l1 : list A) (l2 : list B) :
+  NoDup l1 -> NoDup l2 -> NoDup (list_prod l1 l2).
+Proof.
+ induction l1; simpl; intros ND1 ND2.
+ - constructor.
+ - inversion_clear ND1.
+   apply app_nodup; repeat split; auto.
+   + apply NoDup_map; trivial. congruence.
+   + intros (x,y).
+     rewrite in_map_iff. rewrite in_prod_iff.
+     intros (y' & [= <- <-] & IN). intuition.
 Qed.
 
 (** In a list, moving all the occurrences of a value at front. *)

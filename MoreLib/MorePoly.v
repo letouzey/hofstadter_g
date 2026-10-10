@@ -836,8 +836,8 @@ Proof.
  { unfold Rdiv. apply Rmult_lt_0_compat; trivial.
    apply Rinv_0_lt_compat. apply RSpos. }
  apply (extra_roots_implies_null p (map (fun k:nat => k*r/d) (seq 0 d))).
- - apply FinFun.Injective_map_NoDup; try apply seq_NoDup.
-   intros k k'. intros E. unfold Cdiv in E. rewrite <- !Cmult_assoc in E.
+ - apply NoDup_map; try apply seq_NoDup.
+   intros k k' _ _ E. unfold Cdiv in E. rewrite <- !Cmult_assoc in E.
    apply Cmult_eq_reg_r in E. now apply RtoC_inj, INR_eq in E.
    ctor. unfold Rdiv in RD. intros E'. apply RtoC_inj in E'. lra.
  - intros x. rewrite in_map_iff. intros (x' & <- & IN).

@@ -616,8 +616,11 @@ Qed.
 (** For injective functions, all these possible Gen.Rcountin differ
     by at most 2 *)
 
+(* NB: FinFun.Injective is now Finite.Injective for Rocq 9.2. We copy it *)
+Definition Injective {A B} (f : A -> B) := forall x y : A, f x = f y -> x = y.
+
 Lemma Rcountin_gen_close1 kd (u:nat->R) a b n :
- FinFun.Injective u ->
+ Injective u ->
  (Gen.Rcountin LT kd u a b n <=
   Gen.Rcountin LE kd u a b n <=
   S (Gen.Rcountin LT kd u a b n))%nat.
@@ -655,7 +658,7 @@ Proof.
 Qed.
 
 Lemma Rcountin_gen_close2 kd kd' (u:nat->R) a b n :
- FinFun.Injective u ->
+ Injective u ->
  (Gen.Rcountin LT LT u a b n <=
   Gen.Rcountin kd kd' u a b n <=
   2+Gen.Rcountin LT LT u a b n)%nat.
@@ -678,7 +681,7 @@ Qed.
 (** The densities are hence unchanged *)
 
 Lemma Rcountin_gen_lim kd kd' (u:nat->R) a b (lim:R) :
- FinFun.Injective u ->
+ Injective u ->
  is_lim_seq (fun n => Gen.Rcountin kd kd' u a b n/n) lim <->
  is_lim_seq (fun n => Rcountin u a b n/n) lim.
 Proof.

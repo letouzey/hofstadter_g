@@ -1651,13 +1651,10 @@ Qed.
 Lemma next_kfactors_nodup p : NoDup (next_kfactors p).
 Proof.
  apply app_nodup.
- - apply FinFun.Injective_map_NoDup; try apply seq_NoDup.
-   now injection 1.
- - apply FinFun.Injective_map_NoDup.
-   + now injection 1.
-   + apply NoDup_filter, kfactors_nodup.
+ - apply NoDup_map. now injection 3. apply seq_NoDup.
+ - apply NoDup_map. now injection 3. apply NoDup_filter, kfactors_nodup.
  - intros x. rewrite in_take, in_map_iff.
-   intros ((a & <- & LT),(u & E & IN')).
+   intros (a & <- & LT) (u & E & IN').
    rewrite filter_In in IN'. destruct IN' as (IN',E').
    injection E as E1 E2.
    revert E'. now case listnat_eqb_spec.

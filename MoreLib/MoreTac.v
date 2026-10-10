@@ -185,3 +185,6 @@ Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) cons
 Tactic Notation "srewrite" "<-" constr(x1) constr(x2) constr(x3) constr(x4) constr(x5) constr(x6) constr(x7) constr(x8) :=
   setoid_rewrite <- x1; srewrite <- x2 x3 x4 x5 x6 x7 x8.
 
+(* A more compatible intuition *)
+
+Ltac intuition' := intuition auto with *.

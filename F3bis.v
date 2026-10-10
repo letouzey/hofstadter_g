@@ -969,7 +969,7 @@ Local Notation sup3 := (sup_deltas' 3).
 Local Notation inf3 := (inf_deltas' 3).
 
 Lemma irrat_fracpart_inj t :
-  irrat t -> FinFun.Injective (fun n:nat => frac_part (t*n)).
+  irrat t -> Injective (fun n:nat => frac_part (t*n)).
 Proof.
  intros Ht.
  assert (forall n m, (n<m)%nat -> frac_part (t*n) <> frac_part (t*m)).
@@ -1086,7 +1086,7 @@ Proof.
    + apply NoDup_filter, seq_NoDup.
    + apply NoDup_filter, seq_NoDup.
    + intros x. rewrite !filter_In, !Gen.RIn_spec. simpl.
-     intros ((_,H),(_,H')).
+     intros (_,H) (_,H').
      generalize inf_deltas_approx, sup_deltas_approx.
      unfold Approx. lra.
  - apply NoDup_filter, seq_NoDup.
