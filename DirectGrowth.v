@@ -264,14 +264,6 @@ Proof.
    apply map_ext. intros a. rewrite iter_S, I_is_leftmost; trivial.
 Qed.
 
-Lemma list_sum_eq {A} (f g : A -> nat) (l : list A) :
-  (forall x : A, In x l -> f x = g x) ->
-  list_sum (map f l) = list_sum (map g l).
-Proof.
- induction l; simpl; try lia.
- intros H. f_equal. apply H. now left. apply IHl. firstorder.
-Qed.
-
 Lemma Is_k_Sk_eqn k n : k<>0 ->
  Is k (k+1) n
  = 2*n-1 + 2*Fs k (k-1) (n-1)
@@ -284,8 +276,8 @@ Proof.
  simpl seq. rewrite <- seq_shift. simpl.
  rewrite map_map.
  rewrite !Nat.add_assoc. f_equal.
- 2:{ apply list_sum_eq.
-     intros x _. rewrite iter_S. rewrite I_is_leftmost; lia. }
+ 2:{ f_equal. apply map_ext.
+     intros x. rewrite iter_S, I_is_leftmost; lia. }
  unfold I. rewrite !Nat.add_0_r.
  destruct n; try lia. simpl. now rewrite fs_k_0.
 Qed.
