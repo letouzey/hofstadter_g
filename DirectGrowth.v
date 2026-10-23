@@ -25,7 +25,7 @@ Qed.
 
 (** ** Section 2 : Basic properties of function F *)
 
-(** Righmost inverse of F have already been studied in GenG under
+(** The greatest preimage of F have already been studied in GenG under
     the name rchild. *)
 
 Notation L := rchild.
@@ -70,7 +70,7 @@ Proof.
  intros. rewrite !Nat.lt_nge. now rewrite Fs_galois.
 Qed.
 
-(** Leftmost inverse of F and its iterates *)
+(** Least preimage of F and its iterates *)
 
 Definition I k n := n + Fs k (k-1) (n-1).
 Notation Is k p n := ((I k^^p) n).
@@ -106,7 +106,7 @@ Proof.
    now apply f_onto_eqn.
 Qed.
 
-Lemma I_is_leftmost k n : k<>0 -> F k (I k n - 1) = n - 1.
+Lemma I_is_least k n : k<>0 -> F k (I k n - 1) = n - 1.
 Proof.
  intros Hk.
  if (n = 0) as [->|Hn].
@@ -175,13 +175,13 @@ Proof.
  rewrite I_is_inv; trivial.
 Qed.
 
-Lemma Is_is_leftmost k p n : k<>0 -> Fs k p (Is k p n - 1) = n - 1.
+Lemma Is_is_least k p n : k<>0 -> Fs k p (Is k p n - 1) = n - 1.
 Proof.
  intros Hk.
  if (n = 0) as [->|Hn].
  - rewrite Is_0. apply fs_k_0.
  - induction p; trivial. rewrite (iter_S (f k)). simpl.
-   rewrite I_is_leftmost; trivial.
+   rewrite I_is_least; trivial.
 Qed.
 
 Lemma Is_as_Ls k p n : n<>0 -> Is k p n = S (((L k)^^p) (n-1)).
@@ -261,7 +261,7 @@ Proof.
    ring_simplify. f_equal. f_equal.
    replace (k-p) with (S (k-(1+p))) by lia.
    rewrite <- seq_shift, map_map.
-   apply map_ext. intros a. rewrite iter_S, I_is_leftmost; trivial.
+   apply map_ext. intros a. rewrite iter_S, I_is_least; trivial.
 Qed.
 
 Lemma Is_k_Sk_eqn k n : k<>0 ->
@@ -277,7 +277,7 @@ Proof.
  rewrite map_map.
  rewrite !Nat.add_assoc. f_equal.
  2:{ f_equal. apply map_ext.
-     intros x. rewrite iter_S, I_is_leftmost; lia. }
+     intros x. rewrite iter_S, I_is_least; lia. }
  unfold I. rewrite !Nat.add_0_r.
  destruct n; try lia. simpl. now rewrite fs_k_0.
 Qed.
