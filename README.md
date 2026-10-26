@@ -16,7 +16,7 @@ Documentation:
   https://hal.science/hal-04715451
 
 - Re-Ordering the Generalized Hofstadter Functions G, H, and Beyond.
-  Preprint, 2026. https://hal.science/hal-05839193
+  Pierre Letouzey. Preprint, 2026. https://hal.science/hal-05839193
 
 - Generalized Hofstadter functions G, H and beyond: numeration systems
   and discrepancy. Pierre Letouzey. Preprint, 2025.
